@@ -30,7 +30,7 @@ def affine_forward(x, w, b):
     NN = x.shape[0]
 
     # Reshape each input in our batch to a vector.
-    reshaped_input = np.reshape(x,[NN, -1])
+    reshaped_input = np.reshape(x, [NN, -1])
 
     # FC layer forward pass.
     out = np.dot(reshaped_input, w) + b
@@ -67,14 +67,14 @@ def affine_backward(dout, cache):
     NN = x.shape[0]
 
     # Reshape each input in our batch to a vector.
-    reshaped_x = np.reshape(x,[NN, -1])
+    reshaped_x = np.reshape(x, [NN, -1])
 
     # Calculate dx = w*dout - remember to reshape back to shape of x.
     dx = np.dot(dout, w.T)
     dx = np.reshape(dx, x.shape)
 
     # Calculate dw = x*dout
-    dw = np.dot(reshaped_x.T,dout)
+    dw = np.dot(reshaped_x.T, dout)
 
     # Calculate db = dout
     db = np.sum(dout, axis=0)
@@ -223,7 +223,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
             'x_minus_mean': (x - sample_mean),
             'normalized_data': normalized_data,
             'gamma': gamma,
-            'ivar': 1./np.sqrt(sample_var + eps),
+            'ivar': 1. / np.sqrt(sample_var + eps),
             'sqrtvar': np.sqrt(sample_var + eps),
         }
 
@@ -239,7 +239,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         #######################################################################
 
         # Test time batch norm using learned gamma/beta and calculated running mean/var.
-        out = (gamma / (np.sqrt(running_var + eps)) * x) + (beta - (gamma*running_mean)/np.sqrt(running_var + eps))
+        out = (gamma / (np.sqrt(running_var + eps)) * x) + (beta - (gamma * running_mean) / np.sqrt(running_var + eps))
 
         #######################################################################
         #                          END OF YOUR CODE                           #
@@ -291,24 +291,24 @@ def batchnorm_backward(dout, cache):
 
     # Carry on the backprop in steps to calculate dx.
     # Step1
-    dxhat = dout*gamma
+    dxhat = dout * gamma
     # Step2
-    dxmu1 = dxhat*ivar
+    dxmu1 = dxhat * ivar
     # Step3
-    divar = np.sum(dxhat*x_minus_mean, axis=0)
+    divar = np.sum(dxhat * x_minus_mean, axis=0)
     # Step4
-    dsqrtvar = divar * (-1/sqrtvar**2)
+    dsqrtvar = divar * (-1 / sqrtvar ** 2)
     # Step5
-    dvar = dsqrtvar * 0.5 * (1/sqrtvar)
+    dvar = dsqrtvar * 0.5 * (1 / sqrtvar)
     # Step6
-    dsq = (1/N)*dvar*np.ones_like(dout)
+    dsq = (1 / N) * dvar * np.ones_like(dout)
     # Step7
     dxmu2 = dsq * 2 * x_minus_mean
     # Step8
     dx1 = dxmu1 + dxmu2
-    dmu = -1*np.sum(dxmu1 + dxmu2, axis=0)
+    dmu = -1 * np.sum(dxmu1 + dxmu2, axis=0)
     # Step9
-    dx2 = (1/N)*dmu*np.ones_like(dout)
+    dx2 = (1 / N) * dmu * np.ones_like(dout)
     # Step10
     dx = dx2 + dx1
 
@@ -355,9 +355,11 @@ def batchnorm_backward_alt(dout, cache):
     dgamma = np.sum(dout * normalized_data, axis=0)
 
     # Alternative faster formula way of calculating dx. ref: http://cthorey.github.io./backpropagation/
-    dx =(1 / N) * gamma * 1/sqrtvar * ((N * dout) - np.sum(dout, axis=0) - (x_minus_mean) * np.square(ivar) * np.sum(dout * (x_minus_mean), axis=0))
+    dx = (1 / N) * gamma * 1 / sqrtvar * (
+                (N * dout) - np.sum(dout, axis=0) - (x_minus_mean) * np.square(ivar) * np.sum(dout * (x_minus_mean),
+                                                                                              axis=0))
 
-###########################################################################
+    ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
 
@@ -402,11 +404,11 @@ def dropout_forward(x, dropout_param):
         mask = (np.random.random_sample(x.shape) >= p)
 
         # Inverted dropout scales the remaining neurons during training so we don't have to at test time.
-        dropout_scale_factor = 1/(1-p)
-        mask = mask*dropout_scale_factor
+        dropout_scale_factor = 1 / (1 - p)
+        mask = mask * dropout_scale_factor
 
         # Apply the dropout mask to the input.
-        out = x*mask
+        out = x * mask
 
         #######################################################################
         #                           END OF YOUR CODE                          #
@@ -447,13 +449,233 @@ def dropout_backward(dout, cache):
         #######################################################################
 
         # Only backprop to the neurons we didn't drop.
-        dx = dout*mask*1
+        dx = dout * mask * 1
 
         #######################################################################
         #                          END OF YOUR CODE                           #
         #######################################################################
     elif mode == 'test':
         dx = dout
+    return dx
+
+
+def conv_forward_naive_1D(x, w, b, conv_param):
+    """
+    Forward pass of 1D convolution.
+
+    The input consists of N data points with each data point representing a time-series of length W.
+
+    We also have the notion of channels in the 1-D convolution. We want to use more than a single filter even for the
+    input time-series, so the output is a the batch with the same size but the number of output channels is equal to the
+    number of input filters.
+
+    :param x: Input data of shape (N, C, W)
+    :param w: Filter weights of shape (F, C, WW)
+    :param b: biases, of shape (F,)
+    :param conv_param: A dictionary with the following keys:
+      - 'stride': The number of pixels between adjacent receptive fields in the
+        horizontal and vertical directions.
+      - 'pad': The number of pixels that will be used to zero-pad the input.
+    :return: a tuple of:
+     - out: output data, of shape (N, W') where W' is given by:
+     W' = 1 + (W + 2*pad - WW) / stride
+     - cache: (x, w, b, conv_param)
+    """
+    # Grab conv parameters
+    pad = conv_param.get('pad')
+    stride = conv_param.get('stride')
+
+    N, C, W = x.shape
+    F, C, WW = w.shape
+
+    # Zero pad our tensor along the spatial dimensions.
+    # do not pad N and C dimensions, but only the 1D array - the W dimension
+    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
+
+    # Calculate output spatial dimensions.
+    out_W = np.int(((W + 2 * pad - WW) / stride) + 1)
+
+    # Initialise the output.
+    out = np.zeros([N, F, out_W])
+
+    # Naive convolution loop.
+    for nn in range(N):  # For each time-series in the input batch.
+        for ff in range(F):  # For each filter in w
+            for ii in range(0, out_W):  # For each output value
+                # multiplying tensors - we sum all values along all channels
+                out[nn, ff, ii] = \
+                    np.sum(
+                        # padded x is multiplied for the range: from ii*stride to ii*stride + WW
+                        w[ff, ...] * padded_x[nn, :, ii * stride: ii * stride + WW]) + \
+                    b[ff]
+                # we have a single bias per filter
+                # at the end - sum all the values in the obtained tensor
+
+    ###########################################################################
+    #                             END OF YOUR CODE                            #
+    ###########################################################################
+    cache = (x, w, b, conv_param)
+    return out, cache
+
+
+def conv_backward_naive_1D(dout, cache):
+    """
+    A naive implementation of the backward pass for a 1D convolutional layer.
+
+    Inputs:
+    - dout: Upstream derivatives.
+    - cache: A tuple of (x, w, b, conv_param) as in conv_forward_naive
+
+    Returns a tuple of:
+    - dx: Gradient with respect to x
+    - dw: Gradient with respect to w
+    - db: Gradient with respect to b
+    """
+    dx, dw, db = None, None, None
+    ###########################################################################
+    # TODO: Implement the 1D convolutional backward pass.                     #
+    ###########################################################################
+
+    # Grab conv parameters and pad x if needed.
+    x, w, b, conv_param = cache
+    stride = conv_param.get('stride')
+    pad = conv_param.get('pad')
+    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
+
+    N, C, W = x.shape
+    F, C, WW = w.shape
+    N, F, W_out = dout.shape
+
+    # Initialise gradient output tensors.
+    dx_temp = np.zeros_like(padded_x)
+    dw = np.zeros_like(w)
+    db = np.zeros_like(b)
+
+    # Calculate dB.
+    # Just like in the affine layer we sum up all the incoming gradients for each filters bias.
+    for ff in range(F):
+        db[ff] += np.sum(dout[:, ff, :])
+
+    # Calculate dw.
+    # By chain rule dw is dout*x
+    for nn in range(N):
+        for ff in range(F):
+                for ii in range(W_out):
+                    # dF[i] - gradient for the i-th element of the filter
+                    # dO[j] - gradient for the j-th output of the convolution
+                    # TS[k] - k-th value of the input time-series
+                    # dF = convolution(TS, dO)
+                    # Note that the filter value F[0] influenced 0 + (output-length - WW + 1 = out) values
+                    # dF[0] = TS[0]*dO[0] + TS[1]*d0[1] + ... + TS[out]*d0[out]
+                    # dF[1] = TS[1]*dO[0] + TS[2]*dO[1] + ... + TS[out+1]*d0[out]
+                    # the below computation is element at a time for both df[0] and dF[1]:
+                    # dF[0:1] += dO[0] * TS[0:1]
+                    dw[ff, ...] += dout[nn, ff, ii] * padded_x[nn, :, ii * stride: ii * stride + WW]
+
+    # Calculate dx.
+    # By chain rule dx is dout*w. We need to make dx same shape as padded x for the gradient calculation.
+    for nn in range(N):
+        for ff in range(F):
+                for ii in range(W_out):
+                    dx_temp[nn, :, ii * stride:ii * stride + WW] += dout[nn, ff, ii] * w[ff, ...]
+
+    # Remove the padding from dx so it matches the shape of x.
+    dx = dx_temp[:, :, pad: W + pad]
+
+    ###########################################################################
+    #                             END OF YOUR CODE                            #
+    ###########################################################################
+    return dx, dw, db
+
+
+def max_pool_forward_naive_1D(x, pool_param):
+    """
+    A naive implementation of the forward pass for a max pooling layer.
+
+    Inputs:
+    - x: Input data, of shape (N, C, W)
+    - pool_param: dictionary with the following keys:
+      - 'pool_width': The width of each pooling region
+      - 'stride': The distance between adjacent pooling regions
+
+    Returns a tuple of:
+    - out: Output data
+    - cache: (x, pool_param)
+    """
+    out = None
+    ###########################################################################
+    # TODO: Implement the 1D max pooling forward pass                         #
+    ###########################################################################
+
+    # Grab the pooling parameters.
+    pool_width = pool_param.get('pool_width')
+    stride = pool_param.get('stride')
+
+    N, C, W = x.shape
+
+    # Calculate output spatial dimensions.
+    out_W = np.int(((W - pool_width) / stride) + 1)
+
+    # Initialise output.
+    out = np.zeros([N, C, out_W])
+
+    # Naive maxpool for loop.
+    for n in range(N):  # For each time-series.
+        for c in range(C):  # For each channel.
+                for i in range(out_W):  # For each output value.
+                    out[n, c, i] = np.max(x[n, c, i * stride: i * stride + pool_width])
+
+    ###########################################################################
+    #                             END OF YOUR CODE                            #
+    ###########################################################################
+    cache = (x, pool_param)
+    return out, cache
+
+
+def max_pool_backward_naive_1D(dout, cache):
+    """
+    A naive implementation of the backward pass for a 1D max pooling layer.
+
+    Inputs:
+    - dout: Upstream derivatives
+    - cache: A tuple of (x, pool_param) as in the forward pass.
+
+    Returns:
+    - dx: Gradient with respect to x
+    """
+    dx = None
+    ###########################################################################
+    # TODO: Implement the 1D max pooling backward pass                        #
+    ###########################################################################
+
+    # Grab the pooling parameters.
+    x, pool_param = cache
+    pool_width = pool_param.get('pool_width')
+    stride = pool_param.get('stride')
+
+    N, C, W = x.shape
+    N, C, dout_W = dout.shape
+
+    # Initialise dx to be same shape as maxpool input x.
+    dx = np.zeros_like(x)
+
+    # Naive loop to backprop dout through maxpool layer.
+    for n in range(N):  # For each time-series.
+        for c in range(C):  # For each channel.
+                for i in range(dout_W):  # For each value of the upstream gradient.
+                    # Using argmax get the linear index of the max of each segment.
+                    # print(x[n, c, i * stride: i * stride + pool_width])
+                    max_index = np.argmax(x[n, c, i * stride: i * stride + pool_width])
+                    # print("backward pool max index: ", max_index)
+                    # Using unravel_index convert this linear index to matrix coordinate.
+                    max_coord = np.unravel_index(max_index, [pool_width])
+                    # print("backward pool max coord: ", max_coord)
+                    # Only backprop the dout to the max location.
+                    dx[n, c, i * stride: i * stride + pool_width][max_coord] = dout[n, c, i]
+
+    ###########################################################################
+    #                             END OF YOUR CODE                            #
+    ###########################################################################
     return dx
 
 
@@ -497,8 +719,8 @@ def conv_forward_naive(x, w, b, conv_param):
     padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant'))
 
     # Calculate output spatial dimensions.
-    out_H = np.int(((H + 2*pad - HH) / stride) + 1)
-    out_W = np.int(((W + 2*pad - WW) / stride) + 1)
+    out_H = np.int(((H + 2 * pad - HH) / stride) + 1)
+    out_W = np.int(((W + 2 * pad - WW) / stride) + 1)
 
     # Initialise the output.
     out = np.zeros([N, F, out_H, out_W])
@@ -510,10 +732,12 @@ def conv_forward_naive(x, w, b, conv_param):
                 for ii in range(0, out_W):  # For each output pixel width
                     # multiplying tensors
                     out[nn, ff, jj, ii] = \
-                        np.sum(w[ff, ...] * padded_x[nn, :, jj*stride:jj*stride+HH, ii*stride:ii*stride+WW]) + b[ff]
+                        np.sum(
+                            w[ff, ...] * padded_x[nn, :, jj * stride:jj * stride + HH, ii * stride:ii * stride + WW]) + \
+                        b[ff]
                     # we have a sinlge bias per filter
                     # at the end - sum all the values in the obtained tensor
-                    
+
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -565,7 +789,8 @@ def conv_backward_naive(dout, cache):
         for ff in range(F):
             for jj in range(H_out):
                 for ii in range(W_out):
-                    dw[ff, ...] += dout[nn, ff, jj, ii] * padded_x[nn,:,jj*stride:jj*stride+HH,ii*stride:ii*stride+WW]
+                    dw[ff, ...] += dout[nn, ff, jj, ii] * padded_x[nn, :, jj * stride:jj * stride + HH,
+                                                          ii * stride:ii * stride + WW]
 
     # Calculate dx.
     # By chain rule dx is dout*w. We need to make dx same shape as padded x for the gradient calculation.
@@ -573,10 +798,11 @@ def conv_backward_naive(dout, cache):
         for ff in range(F):
             for jj in range(H_out):
                 for ii in range(W_out):
-                    dx_temp[nn, :, jj*stride:jj*stride+HH,ii*stride:ii*stride+WW] += dout[nn, ff, jj,ii] * w[ff, ...]
+                    dx_temp[nn, :, jj * stride:jj * stride + HH, ii * stride:ii * stride + WW] += dout[nn, ff, jj, ii] * \
+                                                                                                  w[ff, ...]
 
     # Remove the padding from dx so it matches the shape of x.
-    dx = dx_temp[:, :, pad:H+pad, pad:W+pad]
+    dx = dx_temp[:, :, pad:H + pad, pad:W + pad]
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -623,7 +849,8 @@ def max_pool_forward_naive(x, pool_param):
         for c in range(C):  # For each channel
             for j in range(out_H):  # For each output row.
                 for i in range(out_W):  # For each output col.
-                    out[n, c, j, i] = np.max(x[n,c, j*stride:j*stride+pool_height, i*stride:i*stride+pool_width])
+                    out[n, c, j, i] = np.max(
+                        x[n, c, j * stride:j * stride + pool_height, i * stride:i * stride + pool_width])
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -665,13 +892,14 @@ def max_pool_backward_naive(dout, cache):
         for c in range(C):  # For each channel
             for j in range(dout_H):  # For each row of dout.
                 for i in range(dout_W):  # For each col of dout.
-
                     # Using argmax get the linear index of the max of each patch.
-                    max_index = np.argmax(x[n,c, j*stride:j*stride+pool_height, i*stride:i*stride+pool_width])
+                    max_index = np.argmax(
+                        x[n, c, j * stride:j * stride + pool_height, i * stride:i * stride + pool_width])
                     # Using unravel_index convert this linear index to matrix coordinate.
-                    max_coord = np.unravel_index(max_index, [pool_height,pool_width])
+                    max_coord = np.unravel_index(max_index, [pool_height, pool_width])
                     # Only backprop the dout to the max location.
-                    dx[n,c, j*stride:j*stride+pool_height, i*stride:i*stride+pool_width][max_coord] = dout[n, c, j, i]
+                    dx[n, c, j * stride:j * stride + pool_height, i * stride:i * stride + pool_width][max_coord] = dout[
+                        n, c, j, i]
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -720,7 +948,6 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
     # Reshape our results back to our desired shape.
     out_reshaped = out.reshape(*x_t.shape)
     out = out_reshaped.transpose((0, 3, 1, 2))
-
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
