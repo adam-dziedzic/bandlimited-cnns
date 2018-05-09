@@ -482,7 +482,11 @@ def conv_forward_naive_1D(x, w, b, conv_param):
      - cache: (x, w, b, conv_param)
     """
     # Grab conv parameters
+    # print("conv_param: ", conv_param)
     pad = conv_param.get('pad')
+    # print("pad: ", pad)
+    import sys
+    sys.stdout.flush()
     if isinstance(pad, int):
         pad_left = pad
         pad_right = pad

@@ -1,11 +1,15 @@
 import numpy as np
 
-database_path = './cs231n/TimeSeriesDatasets/'
+database_path = '/TimeSeriesDatasets/'
 
 def load_data(dirname, normalization=False, slice_ratio=1, percent_valid=0.2):
+    import os
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    print("current path: ", dir_path)
+
     rng = np.random.RandomState(23455)
-    train_file = database_path + dirname + '/' + dirname + '_TRAIN'
-    test_file = database_path + dirname + '/' + dirname + '_TEST'
+    train_file = dir_path + database_path + dirname + '/' + dirname + '_TRAIN'
+    test_file = dir_path + database_path + dirname + '/' + dirname + '_TEST'
 
     # load train set
     data = np.loadtxt(train_file, dtype=np.str, delimiter=",")

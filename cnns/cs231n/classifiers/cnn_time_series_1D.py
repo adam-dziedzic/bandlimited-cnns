@@ -1,9 +1,9 @@
 from builtins import object
 import numpy as np
 
-from cs231n.layers import *
-from cs231n.fast_layers import *
-from cs231n.layer_utils import *
+from layers import *
+from fast_layers import *
+from layer_utils import *
 
 
 class ThreeLayerConvNetTimeSeries(object):
@@ -58,7 +58,7 @@ class ThreeLayerConvNetTimeSeries(object):
             self.pad_convolution = pad_convolution
         self.pool_stride = pool_stride
 
-        self.params['W1'] = np.random.normal(0, weight_scale, [num_filters, filter_channels, filter_size, filter_size])
+        self.params['W1'] = np.random.normal(0, weight_scale, [num_filters, filter_channels, filter_size])
         self.params['b1'] = np.zeros([num_filters])
         dim_width_conv = (1 + (W + 2 * self.pad_convolution - filter_size) // self.stride_convolution)
         dim_width_pool = dim_width_conv // pool_stride
