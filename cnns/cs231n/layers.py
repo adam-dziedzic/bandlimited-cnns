@@ -483,17 +483,23 @@ def conv_forward_naive_1D(x, w, b, conv_param):
     """
     # Grab conv parameters
     pad = conv_param.get('pad')
+    if isinstance(pad, int):
+        pad_left = pad
+        pad_right = pad
+    else:
+        pad_left = pad[0]
+        pad_right = pad[1]
     stride = conv_param.get('stride')
 
     N, C, W = x.shape
     F, C, WW = w.shape
 
     # Zero pad our tensor along the spatial dimensions.
-    # do not pad N and C dimensions, but only the 1D array - the W dimension
-    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
+    # Do not pad N (0,0) and C (0,0) dimensions, but only the 1D array - the W dimension (pad, pad).
+    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad_left, pad_right)), 'constant'))
 
     # Calculate output spatial dimensions.
-    out_W = np.int(((W + 2 * pad - WW) / stride) + 1)
+    out_W = np.int(((W + pad_left + pad_right - WW) / stride) + 1)
 
     # Initialise the output.
     out = np.zeros([N, F, out_W])
@@ -540,7 +546,13 @@ def conv_backward_naive_1D(dout, cache):
     x, w, b, conv_param = cache
     stride = conv_param.get('stride')
     pad = conv_param.get('pad')
-    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
+    if isinstance(pad, int):
+        pad_left = pad
+        pad_right = pad
+    else:
+        pad_left = pad[0]
+        pad_right = pad[1]
+    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad_left, pad_right)), 'constant'))
 
     N, C, W = x.shape
     F, C, WW = w.shape
@@ -580,7 +592,7 @@ def conv_backward_naive_1D(dout, cache):
                     dx_temp[nn, :, ii * stride:ii * stride + WW] += dout[nn, ff, ii] * w[ff, ...]
 
     # Remove the padding from dx so it matches the shape of x.
-    dx = dx_temp[:, :, pad: W + pad]
+    dx = dx_temp[:, :, pad_left: W + pad_right]
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -614,13 +626,13 @@ def max_pool_forward_naive_1D(x, pool_param):
     N, C, W = x.shape
 
     # Calculate output spatial dimensions.
-    out_W = np.int(((W - pool_width) / stride) + 1)
+    out_W = np.int(((W - pool_width) // stride) + 1)
 
     # Initialise output.
     out = np.zeros([N, C, out_W])
 
     # Naive maxpool for loop.
-    for n in range(N):  # For each time-series.
+    for n in range(N):  # For each time-series (in the batch).
         for c in range(C):  # For each channel.
                 for i in range(out_W):  # For each output value.
                     out[n, c, i] = np.max(x[n, c, i * stride: i * stride + pool_width])
@@ -671,7 +683,7 @@ def max_pool_backward_naive_1D(dout, cache):
                     max_coord = np.unravel_index(max_index, [pool_width])
                     # print("backward pool max coord: ", max_coord)
                     # Only backprop the dout to the max location.
-                    dx[n, c, i * stride: i * stride + pool_width][max_coord] = dout[n, c, i]
+                    dx[n, c, i * stride: i * stride + pool_width][max_coord] += dout[n, c, i]
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -884,7 +896,7 @@ def max_pool_backward_naive(dout, cache):
     N, C, H, W = x.shape
     _, _, dout_H, dout_W = dout.shape
 
-    # Initialise dx to be same shape as maxpool input x.
+    # Initialise dx to be of the same shape as maxpool input x.
     dx = np.zeros_like(x)
 
     # Naive loop to backprop dout through maxpool layer.
