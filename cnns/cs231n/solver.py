@@ -8,7 +8,7 @@ from builtins import range
 
 import numpy as np
 
-import optim
+import cs231n.optim
 
 
 class Solver(object):

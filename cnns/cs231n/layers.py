@@ -356,8 +356,8 @@ def batchnorm_backward_alt(dout, cache):
 
     # Alternative faster formula way of calculating dx. ref: http://cthorey.github.io./backpropagation/
     dx = (1 / N) * gamma * 1 / sqrtvar * (
-                (N * dout) - np.sum(dout, axis=0) - (x_minus_mean) * np.square(ivar) * np.sum(dout * (x_minus_mean),
-                                                                                              axis=0))
+            (N * dout) - np.sum(dout, axis=0) - (x_minus_mean) * np.square(ivar) * np.sum(dout * (x_minus_mean),
+                                                                                          axis=0))
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -576,24 +576,24 @@ def conv_backward_naive_1D(dout, cache):
     # By chain rule dw is dout*x
     for nn in range(N):
         for ff in range(F):
-                for ii in range(W_out):
-                    # dF[i] - gradient for the i-th element of the filter
-                    # dO[j] - gradient for the j-th output of the convolution
-                    # TS[k] - k-th value of the input time-series
-                    # dF = convolution(TS, dO)
-                    # Note that the filter value F[0] influenced 0 + (output-length - WW + 1 = out) values
-                    # dF[0] = TS[0]*dO[0] + TS[1]*d0[1] + ... + TS[out]*d0[out]
-                    # dF[1] = TS[1]*dO[0] + TS[2]*dO[1] + ... + TS[out+1]*d0[out]
-                    # the below computation is element at a time for both df[0] and dF[1]:
-                    # dF[0:1] += dO[0] * TS[0:1]
-                    dw[ff, ...] += dout[nn, ff, ii] * padded_x[nn, :, ii * stride: ii * stride + WW]
+            for ii in range(W_out):
+                # dF[i] - gradient for the i-th element of the filter
+                # dO[j] - gradient for the j-th output of the convolution
+                # TS[k] - k-th value of the input time-series
+                # dF = convolution(TS, dO)
+                # Note that the filter value F[0] influenced 0 + (output-length - WW + 1 = out) values
+                # dF[0] = TS[0]*dO[0] + TS[1]*d0[1] + ... + TS[out]*d0[out]
+                # dF[1] = TS[1]*dO[0] + TS[2]*dO[1] + ... + TS[out+1]*d0[out]
+                # the below computation is element at a time for both df[0] and dF[1]:
+                # dF[0:1] += dO[0] * TS[0:1]
+                dw[ff, ...] += dout[nn, ff, ii] * padded_x[nn, :, ii * stride: ii * stride + WW]
 
     # Calculate dx.
     # By chain rule dx is dout*w. We need to make dx same shape as padded x for the gradient calculation.
     for nn in range(N):
         for ff in range(F):
-                for ii in range(W_out):
-                    dx_temp[nn, :, ii * stride:ii * stride + WW] += dout[nn, ff, ii] * w[ff, ...]
+            for ii in range(W_out):
+                dx_temp[nn, :, ii * stride:ii * stride + WW] += dout[nn, ff, ii] * w[ff, ...]
 
     # Remove the padding from dx so it matches the shape of x.
     dx = dx_temp[:, :, pad_left: W + pad_right]
@@ -638,8 +638,8 @@ def max_pool_forward_naive_1D(x, pool_param):
     # Naive maxpool for loop.
     for n in range(N):  # For each time-series (in the batch).
         for c in range(C):  # For each channel.
-                for i in range(out_W):  # For each output value.
-                    out[n, c, i] = np.max(x[n, c, i * stride: i * stride + pool_width])
+            for i in range(out_W):  # For each output value.
+                out[n, c, i] = np.max(x[n, c, i * stride: i * stride + pool_width])
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -675,19 +675,28 @@ def max_pool_backward_naive_1D(dout, cache):
     # Initialise dx to be same shape as maxpool input x.
     dx = np.zeros_like(x)
 
-    # Naive loop to backprop dout through maxpool layer.
-    for n in range(N):  # For each time-series.
-        for c in range(C):  # For each channel.
-                for i in range(dout_W):  # For each value of the upstream gradient.
-                    # Using argmax get the linear index of the max of each segment.
-                    # print(x[n, c, i * stride: i * stride + pool_width])
-                    max_index = np.argmax(x[n, c, i * stride: i * stride + pool_width])
-                    # print("backward pool max index: ", max_index)
-                    # Using unravel_index convert this linear index to matrix coordinate.
-                    max_coord = np.unravel_index(max_index, [pool_width])
-                    # print("backward pool max coord: ", max_coord)
-                    # Only backprop the dout to the max location.
-                    dx[n, c, i * stride: i * stride + pool_width][max_coord] += dout[n, c, i]
+    for n in range(N):
+        for c in range(C):
+            for w in range(dout_W):
+                current_vector = x[n, c, w * stride: w * stride + pool_width]
+                current_max = np.max(current_vector)
+                for i in range(pool_width):
+                    if current_vector[i] == current_max:
+                        dx[n, c, w * stride + i] += dout[n, c, w]
+
+    # # Naive loop to backprop dout through maxpool layer.
+    # for n in range(N):  # For each time-series.
+    #     for c in range(C):  # For each channel.
+    #         for i in range(dout_W):  # For each value of the upstream gradient.
+    #             # Using argmax get the linear index of the max of each segment.
+    #             # print(x[n, c, i * stride: i * stride + pool_width])
+    #             max_index = np.argmax(x[n, c, i * stride: i * stride + pool_width])
+    #             # print("backward pool max index: ", max_index)
+    #             # Using unravel_index convert this linear index to matrix coordinate.
+    #             max_coord = np.unravel_index(max_index, [pool_width])
+    #             # print("backward pool max coord: ", max_coord)
+    #             # Only backprop the dout to the max location.
+    #             dx[n, c, i * stride: i * stride + pool_width][max_coord] += dout[n, c, i]
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -863,10 +872,10 @@ def max_pool_forward_naive(x, pool_param):
     # Naive maxpool for loop.
     for n in range(N):  # For each image.
         for c in range(C):  # For each channel
-            for j in range(out_H):  # For each output row.
-                for i in range(out_W):  # For each output col.
-                    out[n, c, j, i] = np.max(
-                        x[n, c, j * stride:j * stride + pool_height, i * stride:i * stride + pool_width])
+            for h in range(out_H):  # For each output row.
+                for w in range(out_W):  # For each output col.
+                    out[n, c, h, w] = np.max(
+                        x[n, c, h * stride:h * stride + pool_height, w * stride:w * stride + pool_width])
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -903,19 +912,29 @@ def max_pool_backward_naive(dout, cache):
     # Initialise dx to be of the same shape as maxpool input x.
     dx = np.zeros_like(x)
 
-    # Naive loop to backprop dout through maxpool layer.
-    for n in range(N):  # For each image.
-        for c in range(C):  # For each channel
-            for j in range(dout_H):  # For each row of dout.
-                for i in range(dout_W):  # For each col of dout.
-                    # Using argmax get the linear index of the max of each patch.
-                    max_index = np.argmax(
-                        x[n, c, j * stride:j * stride + pool_height, i * stride:i * stride + pool_width])
-                    # Using unravel_index convert this linear index to matrix coordinate.
-                    max_coord = np.unravel_index(max_index, [pool_height, pool_width])
-                    # Only backprop the dout to the max location.
-                    dx[n, c, j * stride:j * stride + pool_height, i * stride:i * stride + pool_width][max_coord] = dout[
-                        n, c, j, i]
+    for n in range(N):
+        for c in range(C):
+            for h in range(dout_H):
+                for w in range(dout_W):
+                    current_matrix = x[n, c, h * stride: h * stride + pool_height, w * stride: w * stride + pool_width]
+                    current_max = np.max(current_matrix)
+                    for (i, j) in [(i, j) for i in range(pool_height) for j in range(pool_width)]:
+                        if current_matrix[i, j] == current_max:
+                            dx[n, c, h * stride + i, w * stride + j] += dout[n, c, h, w]
+
+    # # Naive loop to backprop dout through maxpool layer.
+    # for n in range(N):  # For each image.
+    #     for c in range(C):  # For each channel
+    #         for j in range(dout_H):  # For each row of dout.
+    #             for i in range(dout_W):  # For each col of dout.
+    #                 # Using argmax get the linear index of the max of each patch.
+    #                 max_index = np.argmax(
+    #                     x[n, c, j * stride:j * stride + pool_height, i * stride:i * stride + pool_width])
+    #                 # Using unravel_index convert this linear index to matrix coordinate.
+    #                 max_coord = np.unravel_index(max_index, [pool_height, pool_width])
+    #                 # Only backprop the dout to the max location.
+    #                 dx[n, c, j * stride:j * stride + pool_height, i * stride:i * stride + pool_width][max_coord] = dout[
+    #                     n, c, j, i]
 
     ###########################################################################
     #                             END OF YOUR CODE                            #

@@ -2,10 +2,11 @@ import numpy as np
 
 database_path = '/TimeSeriesDatasets/'
 
+
 def load_data(dirname, normalization=False, slice_ratio=1, percent_valid=0.2):
     import os
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    print("current path: ", dir_path)
+    # print("current path: ", dir_path)
 
     rng = np.random.RandomState(23455)
     train_file = dir_path + database_path + dirname + '/' + dirname + '_TRAIN'
@@ -15,8 +16,8 @@ def load_data(dirname, normalization=False, slice_ratio=1, percent_valid=0.2):
     data = np.loadtxt(train_file, dtype=np.str, delimiter=",")
     train_x = data[:, 1:].astype(np.float32)
     train_y = np.int_(data[:, 0].astype(np.float32)) - 1  # label starts from 0
-    print("shape of the train_x: ", train_x.shape)
-    print("train size before splitting: ", len(train_y))
+    # print("shape of the train_x: ", train_x.shape)
+    # print("train size before splitting: ", len(train_y))
     len_data = train_x.shape[1]
 
     # restrict slice ratio when data length is too large
@@ -39,8 +40,8 @@ def load_data(dirname, normalization=False, slice_ratio=1, percent_valid=0.2):
         train_x = train_x[ind]
         train_y = train_y[ind]
 
-    print("size of train set: ", len(train_y))
-    print("size of validation set: ", len(valid_y))
+    # print("size of train set: ", len(train_y))
+    # print("size of validation set: ", len(valid_y))
 
     train_x, train_y = slice_data(train_x, train_y, slice_ratio)
     valid_x, valid_y = slice_data(valid_x, valid_y, slice_ratio)
@@ -56,7 +57,7 @@ def load_data(dirname, normalization=False, slice_ratio=1, percent_valid=0.2):
     test_y = np.int_(data[:, 0].astype(np.float32)) - 1
 
     test_x, test_y = slice_data(test_x, test_y, slice_ratio)
-    print("size of the test set: ", len(test_x))
+    # print("size of the test set: ", len(test_x))
 
     # z-normalization (not done by default - the UCR dataset is normalized already)
     if normalization == True:
@@ -67,6 +68,7 @@ def load_data(dirname, normalization=False, slice_ratio=1, percent_valid=0.2):
         test_x = (test_x - mean_x) / std_x
 
     return [(train_x, train_y), (valid_x, valid_y), (test_x, test_y), (len_data), (slice_ratio)]
+
 
 def slice_data(data_x, data_y, slice_ratio=1):
     # return the sliced dataset

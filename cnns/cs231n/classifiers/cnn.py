@@ -53,9 +53,10 @@ class ThreeLayerConvNet(object):
 
         self.params['W1'] = np.random.normal(0, weight_scale, [num_filters, filter_channels, filter_size, filter_size])
         self.params['b1'] = np.zeros([num_filters])
-        self.params['W2'] = np.random.normal(0, weight_scale, [max(1,np.int(H/2))*max(1,np.int(W/2))*num_filters, hidden_dim])
-        #self.params['W2'] = np.random.normal(0, weight_scale, [np.int(H/2)*np.int(W/2)*num_filters, hidden_dim])
-        print("shape of W2: ", self.params['W2'].shape)
+        self.params['W2'] = np.random.normal(0, weight_scale,
+                                             [max(1, np.int(H / 2)) * max(1, np.int(W / 2)) * num_filters, hidden_dim])
+        # self.params['W2'] = np.random.normal(0, weight_scale, [np.int(H/2)*np.int(W/2)*num_filters, hidden_dim])
+        # print("shape of W2: ", self.params['W2'].shape)
         self.params['b2'] = np.zeros([hidden_dim])
         self.params['W3'] = np.random.normal(0, weight_scale, [hidden_dim, num_classes])
         self.params['b3'] = np.zeros([num_classes])
@@ -70,7 +71,6 @@ class ThreeLayerConvNet(object):
 
         for k, v in self.params.items():
             self.params[k] = v.astype(dtype)
-
 
     def loss(self, X, y=None):
         """
@@ -98,10 +98,10 @@ class ThreeLayerConvNet(object):
         # variable.                                                                #
         ############################################################################
 
-        #conv1_out, conv1_cache = conv_forward_naive(X, W1, b1, conv_param)
-        #relu1_out, relu1_cache = relu_forward(conv1_out)
+        # conv1_out, conv1_cache = conv_forward_naive(X, W1, b1, conv_param)
+        # relu1_out, relu1_cache = relu_forward(conv1_out)
 
-        #maxpool1_out, maxpool1_cache = max_pool_forward_naive(relu1_out, pool_param)
+        # maxpool1_out, maxpool1_cache = max_pool_forward_naive(relu1_out, pool_param)
 
         maxpool1_out, combined_cache = conv_relu_pool_forward(X, W1, b1, conv_param, pool_param)
 
@@ -129,19 +129,19 @@ class ThreeLayerConvNet(object):
 
         loss, dsoft = softmax_loss(scores, y)
 
-        loss += self.reg*0.5*(np.sum(np.square(W1)) + np.sum(np.square(W2)) + np.sum(np.square(W3)))
+        loss += self.reg * 0.5 * (np.sum(np.square(W1)) + np.sum(np.square(W2)) + np.sum(np.square(W3)))
 
         dx3, dw3, db3 = affine_backward(dsoft, affine2_cache)
         drelu2 = relu_backward(dx3, relu2_cache)
         dx2, dw2, db2 = affine_backward(drelu2, affine1_cache)
-        #dmax1 = max_pool_backward_naive(dx2, maxpool1_cache)
-        #drelu1 = relu_backward(dmax1, relu1_cache)
-        #dx1, dw1, db1 = conv_backward_naive(drelu1, conv1_cache)
+        # dmax1 = max_pool_backward_naive(dx2, maxpool1_cache)
+        # drelu1 = relu_backward(dmax1, relu1_cache)
+        # dx1, dw1, db1 = conv_backward_naive(drelu1, conv1_cache)
         dx1, dw1, db1 = conv_relu_pool_backward(dx2, combined_cache)
 
-        grads['W3'], grads['b3'] = dw3 + self.reg*W3, db3
-        grads['W2'], grads['b2'] = dw2 + self.reg*W2, db2
-        grads['W1'], grads['b1'] = dw1 + self.reg*W1, db1
+        grads['W3'], grads['b3'] = dw3 + self.reg * W3, db3
+        grads['W2'], grads['b2'] = dw2 + self.reg * W2, db2
+        grads['W1'], grads['b1'] = dw1 + self.reg * W1, db1
 
         ############################################################################
         #                             END OF YOUR CODE                             #
