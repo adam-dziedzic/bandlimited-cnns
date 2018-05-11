@@ -33,6 +33,8 @@ def affine_forward(x, w, b):
     reshaped_input = np.reshape(x, [NN, -1])
 
     # FC layer forward pass.
+    print("shape reshaped input: ", reshaped_input.shape)
+    print("shape of w: ", w.shape)
     out = np.dot(reshaped_input, w) + b
 
     ###########################################################################

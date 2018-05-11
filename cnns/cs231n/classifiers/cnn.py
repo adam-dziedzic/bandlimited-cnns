@@ -52,13 +52,16 @@ class ThreeLayerConvNet(object):
         C, H, W = input_dim
 
         self.params['W1'] = np.random.normal(0, weight_scale, [num_filters, filter_channels, filter_size, filter_size])
+        print("shape of W1: ", self.params['W1'].shape)
         self.params['b1'] = np.zeros([num_filters])
-        self.params['W2'] = np.random.normal(0, weight_scale,
-                                             [max(1, np.int(H / 2)) * max(1, np.int(W / 2)) * num_filters, hidden_dim])
+        # self.params['W2'] = np.random.normal(0, weight_scale,
+        #                                      [max(1, np.int(H / 2)) * max(1, np.int(W / 2)) * num_filters, hidden_dim])
         # self.params['W2'] = np.random.normal(0, weight_scale, [np.int(H/2)*np.int(W/2)*num_filters, hidden_dim])
-        # print("shape of W2: ", self.params['W2'].shape)
+        self.params['W2'] = np.random.normal(0, weight_scale, (num_filters*max(1,H//2)*max(1,W//2), hidden_dim))
+        print("shape of W2: ", self.params['W2'].shape)
         self.params['b2'] = np.zeros([hidden_dim])
         self.params['W3'] = np.random.normal(0, weight_scale, [hidden_dim, num_classes])
+        print("shape of W3: ", self.params['W3'].shape)
         self.params['b3'] = np.zeros([num_classes])
         if pad_convolution is None:
             self.pad_convolution = (filter_size - 1) // 2
