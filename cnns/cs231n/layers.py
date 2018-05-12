@@ -523,13 +523,23 @@ def conv_forward_fft_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
                 # print("xfft: ", xfft)
                 # xfft = xfft[:xfft.shape[0] // 2, :xfft.shape[1] // 2]
                 # print("xfft shape: ", xfft.shape)
-                filterfft = np.fft.fft(w[ff, cc], len(xfft))
+                filters = w[ff, cc]
+                print("filters: ", filters)
+                print("last shape of xfft: ", xfft.shape[-1])
+                filterfft = np.fft.fft(filters, xfft.shape[-1])
                 # filterfft = filterfft[:filterfft.shape[0] // 2, :filterfft.shape[1] // 2]
-                # print("filterfft: ", filterfft)
-                filterfft = np.conjugate(filterfft)
+                print("filterfft: ", filterfft)
+                filterfft = np.conj(filterfft)
+                outfft = xfft * filterfft
+                # take the inverse of the output from the frequency domain and return the modules of the complex numbers
+                outifft = np.fft.ifft(outfft)
                 # out[nn, ff] += np.abs(np.fft.ifft2(xfft * filterfft, (out_H, out_W)))
-                sum_out += np.abs(np.fft.ifft(xfft * filterfft, out_W))
+                # outdouble = np.array(outifft, np.double)
+                out_real = np.real(outifft)
+                sum_out += out_real[:out_W]
             # crop the output to the expected shape
+            # print("shape of expected resuls: ", out[nn, ff].shape)
+            # print("shape of sum_out: ", sum_out.shape)
             out[nn, ff] = sum_out + b[ff]
 
     ###########################################################################

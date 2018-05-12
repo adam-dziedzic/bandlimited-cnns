@@ -16,15 +16,34 @@ filters = np.array(filters)
 b = np.array([0])
 
 stride = 1
-padding = len(filters)-1
 
-scipy_correlate = signal.correlate(x, filters, 'full')
+mode="valid"
+if mode == "valid":
+    padding=0
+elif mode == "full":
+    padding = len(filters) - 1
+
+scipy_correlate = signal.correlate(x, filters, mode=mode)
 print("correlate scipy:", scipy_correlate)
 print("correlate scipy shape:", scipy_correlate.shape)
 
-np_correlate = np.correlate(x, filters, 'full')
+np_correlate = np.correlate(x, filters, mode=mode)
 print("correlate numpy:", np_correlate)
 print("correlate numpy shape:", np_correlate.shape)
+
+print("x: ", x)
+print("filters: ", filters)
+xfft = np.fft.fft(x)
+filterfft = np.conj(np.fft.fft(filters, len(xfft)))
+# element-wise multiplication in the frequency domain
+out = xfft * filterfft
+# take the inverse of the output from the frequency domain and return the modules of the complex numbers
+out = np.fft.ifft(out)
+output = np.array(out, np.double)[:xfft.shape[-1]]
+# output = np.absolute(out)
+
+print("output of cross-correlation via fft: ", output)
+print("output of cross-correlation via fft shape: ", output.shape)
 
 x = x.reshape(1, 1, -1)
 filters = filters.reshape(1, 1, -1)
@@ -34,6 +53,9 @@ conv_param = {'stride': stride, 'pad': padding}
 outnaive, _ = conv_forward_naive_1D(x, filters, b, conv_param)
 print("out naive conv: ", outnaive)
 print("out naive conv shape: ", outnaive.shape)
+
+print("x: ", x)
+print("filters: ", filters)
 
 outfft, _ = conv_forward_fft_1D(x, filters, b, conv_param)
 print("outfff: ", outfft)
