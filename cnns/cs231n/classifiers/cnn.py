@@ -19,7 +19,8 @@ class ThreeLayerConvNet(object):
 
     def __init__(self, input_dim=(3, 32, 32), num_filters=32, filter_size=7,
                  hidden_dim=100, num_classes=10, weight_scale=1e-3, reg=0.0,
-                 dtype=np.float32, filter_channels=3, pad_convolution=None):
+                 dtype=np.float32, filter_channels=3, pad_convolution=None,
+                 stride_convolution=1, stride_max_pool=2, pool_height=2, pool_width=2):
         """
         Initialize a new network.
 
@@ -51,22 +52,37 @@ class ThreeLayerConvNet(object):
 
         C, H, W = input_dim
 
-        self.params['W1'] = np.random.normal(0, weight_scale, [num_filters, filter_channels, filter_size, filter_size])
-        print("shape of W1: ", self.params['W1'].shape)
-        self.params['b1'] = np.zeros([num_filters])
-        # self.params['W2'] = np.random.normal(0, weight_scale,
-        #                                      [max(1, np.int(H / 2)) * max(1, np.int(W / 2)) * num_filters, hidden_dim])
-        # self.params['W2'] = np.random.normal(0, weight_scale, [np.int(H/2)*np.int(W/2)*num_filters, hidden_dim])
-        self.params['W2'] = np.random.normal(0, weight_scale, (num_filters*max(1,H//2)*max(1,W//2), hidden_dim))
-        print("shape of W2: ", self.params['W2'].shape)
-        self.params['b2'] = np.zeros([hidden_dim])
-        self.params['W3'] = np.random.normal(0, weight_scale, [hidden_dim, num_classes])
-        print("shape of W3: ", self.params['W3'].shape)
-        self.params['b3'] = np.zeros([num_classes])
         if pad_convolution is None:
             self.pad_convolution = (filter_size - 1) // 2
         else:
             self.pad_convolution = pad_convolution
+
+        # pass conv_param to the forward pass for the convolutional layer
+        # filter_size = W1.shape[2]
+        # print("filter 0 first channel weights: ", W1[0][0])
+        # conv_param = {'stride': 2, 'pad': (filter_size - 1) // 2}
+        self.conv_param = {'stride': stride_convolution, 'pad': self.pad_convolution}
+
+        # pass pool_param to the forward pass for the max-pooling layer
+        self.pool_param = {'pool_height': pool_height, 'pool_width': pool_width, 'stride': stride_max_pool}
+
+        self.params['W1'] = np.random.normal(0, weight_scale, [num_filters, filter_channels, filter_size, filter_size])
+        # print("shape of W1: ", self.params['W1'].shape)
+        self.params['b1'] = np.zeros([num_filters])
+        # self.params['W2'] = np.random.normal(0, weight_scale,
+        #                                      [max(1, np.int(H / 2)) * max(1, np.int(W / 2)) * num_filters, hidden_dim])
+        # self.params['W2'] = np.random.normal(0, weight_scale, [np.int(H/2)*np.int(W/2)*num_filters, hidden_dim])
+        # shape of W2 after convolution
+        conv_out_H, conv_out_W = get_conv_shape((H, W), (filter_size, filter_size), self.conv_param)
+        max_pool_out_H, max_pool_out_W = get_max_pool_shape((conv_out_H, conv_out_W), self.pool_param)
+        W2_conv_max_pool_shape = num_filters * max_pool_out_H * max_pool_out_W
+
+        self.params['W2'] = np.random.normal(0, weight_scale, (W2_conv_max_pool_shape, hidden_dim))
+        # print("shape of W2: ", self.params['W2'].shape)
+        self.params['b2'] = np.zeros([hidden_dim])
+        self.params['W3'] = np.random.normal(0, weight_scale, [hidden_dim, num_classes])
+        # print("shape of W3: ", self.params['W3'].shape)
+        self.params['b3'] = np.zeros([num_classes])
 
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -85,15 +101,6 @@ class ThreeLayerConvNet(object):
         W2, b2 = self.params['W2'], self.params['b2']
         W3, b3 = self.params['W3'], self.params['b3']
 
-        # pass conv_param to the forward pass for the convolutional layer
-        filter_size = W1.shape[2]
-        # print("filter 0 first channel weights: ", W1[0][0])
-        # conv_param = {'stride': 2, 'pad': (filter_size - 1) // 2}
-        conv_param = {'stride': 2, 'pad': self.pad_convolution}
-
-        # pass pool_param to the forward pass for the max-pooling layer
-        pool_param = {'pool_height': 2, 'pool_width': 2, 'stride': 2}
-
         scores = None
         ############################################################################
         # TODO: Implement the forward pass for the three-layer convolutional net,  #
@@ -106,9 +113,9 @@ class ThreeLayerConvNet(object):
 
         # maxpool1_out, maxpool1_cache = max_pool_forward_naive(relu1_out, pool_param)
 
-        maxpool1_out, combined_cache = conv_relu_pool_forward(X, W1, b1, conv_param, pool_param)
-
-        affine1_out, affine1_cache = affine_forward(maxpool1_out, W2, b2)
+        conv_relu_maxpool1_out, combined_cache = conv_relu_pool_forward(X, W1, b1, self.conv_param, self.pool_param)
+        # print("shape of conv_relu_maxpool1_out: ", conv_relu_maxpool1_out.shape)
+        affine1_out, affine1_cache = affine_forward(conv_relu_maxpool1_out, W2, b2)
         relu2_out, relu2_cache = relu_forward(affine1_out)
 
         affine2_out, affine2_cache = affine_forward(relu2_out, W3, b3)
