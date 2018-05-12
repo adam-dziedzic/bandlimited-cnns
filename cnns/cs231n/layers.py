@@ -1,5 +1,6 @@
 from builtins import range
 import numpy as np
+import pyfftw
 
 
 def affine_forward(x, w, b):
@@ -33,8 +34,8 @@ def affine_forward(x, w, b):
     reshaped_input = np.reshape(x, [NN, -1])
 
     # FC layer forward pass.
-    print("shape reshaped input: ", reshaped_input.shape)
-    print("shape of w: ", w.shape)
+    # print("shape reshaped input: ", reshaped_input.shape)
+    # print("shape of w: ", w.shape)
     out = np.dot(reshaped_input, w) + b
 
     ###########################################################################
@@ -706,6 +707,153 @@ def max_pool_backward_naive_1D(dout, cache):
     return dx
 
 
+def get_conv_shape(x_shape, w_shape, conv_param):
+    """
+    Calculate the output shape after the forward pass of the convolution.
+
+    :param x: the input of the convolution
+    :param w: the weights of the convolution (filter)
+    :param conv_param: the padding and stride of the convolutio
+    :return: the output shape after the forward pass of the convolution
+    """
+    # Grab conv parameters
+    pad = conv_param.get('pad')
+    stride = conv_param.get('stride')
+
+    H, W = x_shape
+    HH, WW = w_shape
+
+    # Calculate output spatial dimensions.
+    out_H = np.int(((H + 2 * pad - HH) / stride) + 1)
+    out_W = np.int(((W + 2 * pad - WW) / stride) + 1)
+
+    return out_H, out_W
+
+
+def conv_forward_fftw(x, w, b, conv_param):
+    """
+    The implementation of convolution via the frequency domain (fft).
+
+    The input consists of N data points, each with C channels, height H and
+    width W. We convolve each input with F different filters, where each filter
+    spans all C channels and has height HH and width HH.
+
+    :param x: Input data of shape (N, C, H, W)
+    :param w: Filter weights of shape (F, C, HH, WW)
+    :param b: Biases, of shape (F,) - we have as many bias terms as the number of filters
+    :param conv_param: A dictionary with the following keys:
+      - 'stride': The number of pixels between adjacent receptive fields in the
+        horizontal and vertical directions.
+      - 'pad': The number of pixels that will be used to zero-pad the input.
+    :return: a tuple of:
+    - out: Output data, of shape (N, F, H', W') where H' and W' are given by
+      H' = 1 + (H + 2 * pad - HH) / stride
+      W' = 1 + (W + 2 * pad - WW) / stride
+    - cache: (x, w, b, conv_param)
+    """
+    # Grab conv parameters
+    pad = conv_param.get('pad')
+    stride = conv_param.get('stride')
+
+    N, C, H, W = x.shape
+    F, C, HH, WW = w.shape
+
+    # Zero pad our tensor along the spatial dimensions.
+    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant'))
+
+    # Calculate the output spatial dimensions.
+    out_H, out_W = get_conv_shape((H, W), (HH, WW), conv_param)
+
+    # Initialise the output.
+    # out = np.zeros([N, F, out_H, out_W])
+    out = np.zeros([N, F, out_H, out_W])
+
+    # Naive convolution loop.
+    for nn in range(N):  # For each image in the input batch.
+        for ff in range(F):  # For each filter in w
+            sum_out = np.zeros([H, W])
+            for cc in range(C):
+                xfft = pyfftw.interfaces.numpy_fft.fft2(padded_x[nn, cc], (padded_x.shape[-2], padded_x.shape[-1]))
+                # print("xfft: ", xfft)
+                # xfft = xfft[:xfft.shape[0] // 2, :xfft.shape[1] // 2]
+                # print("xfft shape: ", xfft.shape)
+                filterfft = pyfftw.interfaces.numpy_fft.fft2(w[ff, cc], xfft.shape)
+                # filterfft = filterfft[:filterfft.shape[0] // 2, :filterfft.shape[1] // 2]
+                # print("filterfft: ", filterfft)
+                filterfft = np.conjugate(filterfft)
+                # out[nn, ff] += np.abs(np.fft.ifft2(xfft * filterfft, (out_H, out_W)))
+                sum_out += np.abs(pyfftw.interfaces.numpy_fft.ifft2(xfft * filterfft, (padded_x.shape[-2], padded_x.shape[-1])))
+            # crop the output to the expected shape
+            out[nn, ff] = sum_out[:out_H, :out_W] + b[ff]
+    ###########################################################################
+    #                             END OF YOUR CODE                            #
+    ###########################################################################
+    cache = (x, w, b, conv_param)
+    return out, cache
+
+
+def conv_forward_fft(x, w, b, conv_param):
+    """
+    The implementation of convolution via the frequency domain (fft).
+
+    The input consists of N data points, each with C channels, height H and
+    width W. We convolve each input with F different filters, where each filter
+    spans all C channels and has height HH and width HH.
+
+    :param x: Input data of shape (N, C, H, W)
+    :param w: Filter weights of shape (F, C, HH, WW)
+    :param b: Biases, of shape (F,) - we have as many bias terms as the number of filters
+    :param conv_param: A dictionary with the following keys:
+      - 'stride': The number of pixels between adjacent receptive fields in the
+        horizontal and vertical directions.
+      - 'pad': The number of pixels that will be used to zero-pad the input.
+    :return: a tuple of:
+    - out: Output data, of shape (N, F, H', W') where H' and W' are given by
+      H' = 1 + (H + 2 * pad - HH) / stride
+      W' = 1 + (W + 2 * pad - WW) / stride
+    - cache: (x, w, b, conv_param)
+    """
+    # Grab conv parameters
+    pad = conv_param.get('pad')
+    stride = conv_param.get('stride')
+
+    N, C, H, W = x.shape
+    F, C, HH, WW = w.shape
+
+    # Zero pad our tensor along the spatial dimensions.
+    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant'))
+
+    # Calculate the output spatial dimensions.
+    out_H, out_W = get_conv_shape((H, W), (HH, WW), conv_param)
+
+    # Initialise the output.
+    # out = np.zeros([N, F, out_H, out_W])
+    out = np.zeros([N, F, out_H, out_W])
+
+    # Naive convolution loop.
+    for nn in range(N):  # For each image in the input batch.
+        for ff in range(F):  # For each filter in w
+            sum_out = np.zeros([H, W])
+            for cc in range(C):
+                xfft = np.fft.fft2(padded_x[nn, cc], (padded_x.shape[-2], padded_x.shape[-1]))
+                # print("xfft: ", xfft)
+                # xfft = xfft[:xfft.shape[0] // 2, :xfft.shape[1] // 2]
+                # print("xfft shape: ", xfft.shape)
+                filterfft = np.fft.fft2(w[ff, cc], xfft.shape)
+                # filterfft = filterfft[:filterfft.shape[0] // 2, :filterfft.shape[1] // 2]
+                # print("filterfft: ", filterfft)
+                filterfft = np.conjugate(filterfft)
+                # out[nn, ff] += np.abs(np.fft.ifft2(xfft * filterfft, (out_H, out_W)))
+                sum_out += np.abs(np.fft.ifft2(xfft * filterfft, (padded_x.shape[-2], padded_x.shape[-1])))
+            # crop the output to the expected shape
+            out[nn, ff] = sum_out[:out_H, :out_W] + b[ff]
+    ###########################################################################
+    #                             END OF YOUR CODE                            #
+    ###########################################################################
+    cache = (x, w, b, conv_param)
+    return out, cache
+
+
 def conv_forward_naive(x, w, b, conv_param):
     """
     A naive implementation of the forward pass for a convolutional layer.
@@ -745,9 +893,8 @@ def conv_forward_naive(x, w, b, conv_param):
     # Zero pad our tensor along the spatial dimensions.
     padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant'))
 
-    # Calculate output spatial dimensions.
-    out_H = np.int(((H + 2 * pad - HH) / stride) + 1)
-    out_W = np.int(((W + 2 * pad - WW) / stride) + 1)
+    # Calculate the output spatial dimensions.
+    out_H, out_W = get_conv_shape((H, W), (HH, WW), conv_param)
 
     # Initialise the output.
     out = np.zeros([N, F, out_H, out_W])
@@ -762,7 +909,7 @@ def conv_forward_naive(x, w, b, conv_param):
                         np.sum(
                             w[ff, ...] * padded_x[nn, :, jj * stride:jj * stride + HH, ii * stride:ii * stride + WW]) + \
                         b[ff]
-                    # we have a sinlge bias per filter
+                    # we have a single bias per filter
                     # at the end - sum all the values in the obtained tensor
 
     ###########################################################################
@@ -837,6 +984,28 @@ def conv_backward_naive(dout, cache):
     return dx, dw, db
 
 
+def get_max_pool_shape(x_shape, pool_param):
+    """
+    Get the shape of the output of the max pool.
+
+    :param x: the input to the max pool
+    :param pool_param: the params of the max pool
+    :return: the output shape of the max pool
+    """
+    # Grab the pooling parameters.
+    pool_height = pool_param.get('pool_height')
+    pool_width = pool_param.get('pool_width')
+    stride = pool_param.get('stride')
+
+    H, W = x_shape
+
+    # Calculate output spatial dimensions.
+    out_H = np.int(((H - pool_height) / stride) + 1)
+    out_W = np.int(((W - pool_width) / stride) + 1)
+
+    return out_H, out_W
+
+
 def max_pool_forward_naive(x, pool_param):
     """
     A naive implementation of the forward pass for a max pooling layer.
@@ -856,18 +1025,13 @@ def max_pool_forward_naive(x, pool_param):
     ###########################################################################
     # TODO: Implement the max pooling forward pass                            #
     ###########################################################################
-
     # Grab the pooling parameters.
     pool_height = pool_param.get('pool_height')
     pool_width = pool_param.get('pool_width')
     stride = pool_param.get('stride')
 
     N, C, H, W = x.shape
-
-    # Calculate output spatial dimensions.
-    out_H = np.int(((H - pool_height) / stride) + 1)
-    out_W = np.int(((W - pool_width) / stride) + 1)
-
+    out_H, out_W = get_max_pool_shape((H, W), pool_param)
     # Initialise output.
     out = np.zeros([N, C, out_H, out_W])
 

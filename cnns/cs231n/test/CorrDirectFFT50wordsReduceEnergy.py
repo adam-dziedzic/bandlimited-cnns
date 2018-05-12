@@ -2,7 +2,7 @@
 import numpy as np
 from scipy import signal
 
-from load_time_series import load_data
+from cs231n.load_time_series import load_data
 
 np.random.seed(231)
 
@@ -28,6 +28,7 @@ print("len of standard corr: ", len(standard_corr))
 
 def fft_cross_correlation(x, output_len, preserve_energy_rate=0.95):
     xfft = np.fft.fft(x)
+    xfft = xfft[1:len(x) // 2]
     squared_abs = np.abs(xfft) ** 2
     full_energy = np.sum(squared_abs)
     current_energy = 0.0

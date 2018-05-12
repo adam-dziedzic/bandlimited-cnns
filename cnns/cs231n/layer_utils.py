@@ -150,10 +150,10 @@ def conv_relu_pool_forward(x, w, b, conv_param, pool_param):
     """
     #print("conv_param: ", conv_param)
     a, conv_cache = conv_forward_fast(x, w, b, conv_param)
-    #print("shape of conv output: ", a.shape)
+    # print("shape of conv output: ", a.shape)
     s, relu_cache = relu_forward(a)
     out, pool_cache = max_pool_forward_fast(s, pool_param)
-    #print("shape of pool out: ", out.shape)
+    # print("shape of pool out: ", out.shape)
     cache = (conv_cache, relu_cache, pool_cache)
     return out, cache
 
