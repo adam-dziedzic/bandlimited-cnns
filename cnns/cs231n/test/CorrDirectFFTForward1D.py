@@ -10,19 +10,26 @@ def rel_error(x, y):
 
 x = [1, 2, 3, 5, 1, -1, 2, 3, 5, 8, 3, 9, 1, 2, 5, 1]
 x = np.array(x)
+print("input x shape: ", x.shape)
 filters = [4, 5, 3, 4]
 filters = np.array(filters)
-
 b = np.array([0])
 
-standard_conv = signal.convolve(x, filters, 'valid')
-print("conv scipy:", standard_conv)
+stride = 1
+padding = len(filters)-1
+
+scipy_correlate = signal.correlate(x, filters, 'full')
+print("correlate scipy:", scipy_correlate)
+print("correlate scipy shape:", scipy_correlate.shape)
+
+np_correlate = np.correlate(x, filters, 'full')
+print("correlate numpy:", np_correlate)
+print("correlate numpy shape:", np_correlate.shape)
 
 x = x.reshape(1, 1, -1)
 filters = filters.reshape(1, 1, -1)
 
-stride = 1
-padding = 0
+print("size of padding: ", padding)
 conv_param = {'stride': stride, 'pad': padding}
 outnaive, _ = conv_forward_naive_1D(x, filters, b, conv_param)
 print("out naive conv: ", outnaive)

@@ -508,6 +508,7 @@ def conv_forward_fft_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
             sum_out = np.zeros([out_W])
             for cc in range(C):
                 xfft = np.fft.fft(padded_x[nn, cc])
+                print("first xfft: ", xfft)
                 # xfft = xfft[:len(xfft) // 2]
                 squared_abs = np.abs(xfft) ** 2
                 full_energy = np.sum(squared_abs)
@@ -517,6 +518,7 @@ def conv_forward_fft_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
                 while current_energy < preserve_energy and index < len(squared_abs):
                     current_energy += squared_abs[index]
                     index += 1
+                print("index: ", index)
                 xfft = xfft[:index]
                 # print("xfft: ", xfft)
                 # xfft = xfft[:xfft.shape[0] // 2, :xfft.shape[1] // 2]
@@ -563,8 +565,6 @@ def conv_forward_naive_1D(x, w, b, conv_param):
     # print("conv_param: ", conv_param)
     pad = conv_param.get('pad')
     # print("pad: ", pad)
-    import sys
-    sys.stdout.flush()
     if isinstance(pad, int):
         pad_left = pad
         pad_right = pad
