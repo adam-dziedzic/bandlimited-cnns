@@ -25,7 +25,10 @@ filterfft = np.conj(np.fft.fft(corr_filter, len(xfft)))
 out = xfft * filterfft
 # take the inverse of the output from the frequency domain and return the modules of the complex numbers
 out = np.fft.ifft(out)
-output = np.array(out, np.double)[:len(standard_corr)]
+#output = np.array(out, np.double)[:len(standard_corr)]
+# output = np.real(out)
+output = np.abs(out)
+output = output[:len(standard_corr)]
 # output = np.absolute(out)
 
 print("output of cross-correlation via fft: ", output)

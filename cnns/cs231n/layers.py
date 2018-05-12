@@ -492,6 +492,9 @@ def conv_forward_fft_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
     N, C, W = x.shape
     F, C, WW = w.shape
 
+    xw_size = W + WW - 1
+    fftsize = 2 ** np.ceil(np.log2(xw_size)).astype(int)
+
     # Zero pad our tensor along the spatial dimensions.
     # Do not pad N (0,0) and C (0,0) dimensions, but only the 1D array - the W dimension (pad, pad).
     padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
@@ -507,7 +510,7 @@ def conv_forward_fft_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
         for ff in range(F):  # For each filter in w
             sum_out = np.zeros([out_W])
             for cc in range(C):
-                xfft = np.fft.fft(padded_x[nn, cc])
+                xfft = np.fft.fft(padded_x[nn, cc], fftsize)
                 print("first xfft: ", xfft)
                 # xfft = xfft[:len(xfft) // 2]
                 squared_abs = np.abs(xfft) ** 2
@@ -535,7 +538,8 @@ def conv_forward_fft_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
                 outifft = np.fft.ifft(outfft)
                 # out[nn, ff] += np.abs(np.fft.ifft2(xfft * filterfft, (out_H, out_W)))
                 # outdouble = np.array(outifft, np.double)
-                out_real = np.real(outifft)
+                # out_real = np.real(outifft)
+                out_real = np.abs(outifft)
                 sum_out += out_real[:out_W]
             # crop the output to the expected shape
             # print("shape of expected resuls: ", out[nn, ff].shape)
