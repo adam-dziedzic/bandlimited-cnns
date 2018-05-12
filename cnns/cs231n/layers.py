@@ -462,6 +462,81 @@ def dropout_backward(dout, cache):
     return dx
 
 
+def conv_forward_fft_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
+    """
+    Forward pass of 1D convolution.
+
+    The input consists of N data points with each data point representing a time-series of length W.
+
+    We also have the notion of channels in the 1-D convolution. We want to use more than a single filter even for the
+    input time-series, so the output is a the batch with the same size but the number of output channels is equal to the
+    number of input filters.
+
+    :param x: Input data of shape (N, C, W)
+    :param w: Filter weights of shape (F, C, WW)
+    :param b: biases, of shape (F,)
+    :param conv_param: A dictionary with the following keys:
+      - 'stride': The number of pixels between adjacent receptive fields in the
+        horizontal and vertical directions.
+      - 'pad': The number of pixels that will be used to zero-pad the input.
+    :return: a tuple of:
+     - out: output data, of shape (N, W') where W' is given by:
+     W' = 1 + (W + 2*pad - WW) / stride
+     - cache: (x, w, b, conv_param)
+    """
+    # Grab conv parameters
+    # print("conv_param: ", conv_param)
+    pad = conv_param.get('pad')
+    stride = conv_param.get('stride')
+
+    N, C, W = x.shape
+    F, C, WW = w.shape
+
+    # Zero pad our tensor along the spatial dimensions.
+    # Do not pad N (0,0) and C (0,0) dimensions, but only the 1D array - the W dimension (pad, pad).
+    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
+
+    # Calculate output spatial dimensions.
+    out_W = np.int(((W + 2*pad - WW) / stride) + 1)
+
+    # Initialise the output.
+    out = np.zeros([N, F, out_W])
+
+    # Naive convolution loop.
+    for nn in range(N):  # For each time-series in the input batch.
+        for ff in range(F):  # For each filter in w
+            sum_out = np.zeros([out_W])
+            for cc in range(C):
+                xfft = np.fft.fft(padded_x[nn, cc])
+                # xfft = xfft[:len(xfft) // 2]
+                squared_abs = np.abs(xfft) ** 2
+                full_energy = np.sum(squared_abs)
+                current_energy = 0.0
+                preserve_energy = full_energy * preserve_energy_rate
+                index = 0
+                while current_energy < preserve_energy and index < len(squared_abs):
+                    current_energy += squared_abs[index]
+                    index += 1
+                xfft = xfft[:index]
+                # print("xfft: ", xfft)
+                # xfft = xfft[:xfft.shape[0] // 2, :xfft.shape[1] // 2]
+                # print("xfft shape: ", xfft.shape)
+                filterfft = np.fft.fft(w[ff, cc], len(xfft))
+                # filterfft = filterfft[:filterfft.shape[0] // 2, :filterfft.shape[1] // 2]
+                # print("filterfft: ", filterfft)
+                filterfft = np.conjugate(filterfft)
+                # out[nn, ff] += np.abs(np.fft.ifft2(xfft * filterfft, (out_H, out_W)))
+                sum_out += np.abs(np.fft.ifft(xfft * filterfft, out_W))
+            # crop the output to the expected shape
+            out[nn, ff] = sum_out + b[ff]
+
+    ###########################################################################
+    #                             END OF YOUR CODE                            #
+    ###########################################################################
+    cache = (x, w, b, conv_param)
+    return out, cache
+
+
 def conv_forward_naive_1D(x, w, b, conv_param):
     """
     Forward pass of 1D convolution.
