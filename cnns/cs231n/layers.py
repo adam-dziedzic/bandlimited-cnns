@@ -462,6 +462,144 @@ def dropout_backward(dout, cache):
     return dx
 
 
+def find_close_power2(x):
+    """
+    :param x: an integer number
+    :return: the power of 2 which is the larger than x but the smallest possible
+    """
+    return 2 ** np.ceil(np.log2(x)).astype(int)
+
+
+def conv_forward_fft_1D_correct(x, w, b, conv_param, preserve_energy_rate=1.0):
+    """
+    Forward pass of 1D convolution.
+    SOURCE: http://www.aip.de/groups/soe/local/numres/bookfpdf/f13-1.pdf
+
+    The input consists of N data points with each data point representing a time-series of length W.
+
+    We also have the notion of channels in the 1-D convolution. We want to use more than a single filter even for the
+    input time-series, so the output is a batch with the same size but the number of output channels is equal to the
+    number of input filters.
+
+    The function convolves a real data set x (0:n) (including any user supplied zero padding) with a response function
+    w (weights also called filter or kernel), stored in wrap-around order in a real array of length WW <= W (WW should
+    be an odd integer). Wrap-around order means that the first half of the array contains the impulse response function
+    at positive times, while the second half of the array contains the impulse response function at negative times,
+    counting down from the highest element w(WW-1).
+
+    The answer is returned in the first out_W components.
+
+    :param x: Input data of shape (N, C, W)
+    :param w: Filter weights of shape (F, C, WW)
+    :param b: biases, of shape (F,)
+    :param conv_param: A dictionary with the following keys:
+      - 'stride': The number of pixels between adjacent receptive fields in the
+        horizontal and vertical directions. The stride is not supported for FFT.
+      - 'pad': The number of pixels that will be used to zero-pad the input.
+    :return: a tuple of:
+     - out: output data, of shape (N, out_W) where out_W is given by:
+     out_W = W + 2*pad - WW + 1
+     - cache: (x, w, b, conv_param)
+
+     :see:
+     main source: http://www.aip.de/groups/soe/local/numres/bookfpdf/f13-1.pdf
+
+     https://stackoverflow.com/questions/40703751/using-fourier-transforms-to-do-convolution?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+     short: https://goo.gl/GwyhXz
+    """
+    # Grab conv parameters
+    # print("conv_param: ", conv_param)
+    pad = conv_param.get('pad')
+    stride = conv_param.get('stride')
+    if stride != 1:
+        raise AttributeError("stride is not supported for fft-based convolution")
+
+    N, C, W = x.shape
+    F, C, WW = w.shape
+
+    # We need to pad the data with a number of zeros on one end equal to the maximum positive duration or maximum
+    # negative duration of the response function, whichever is larger. For example, if w_0 through w_6 are non-zero,
+    # while w_7, w_8, w_9, ... are all zero, then we need at least K = 6 padding zeros at the end of the data: x_W-6 =
+    # x_W-5 = ... = x_W-1 = 0. We approximate it (to be precise: over-approximate) the estimation by setting the
+    fft_pad = WW // 2
+    xw_size = W + 2*fft_pad
+    # The FFT padding is the biggest possible padding (otherwise, you return additional zeros - with bigger
+    # convolutional padding).
+    # The FFT is faster if the input signal is a power of 2.
+    fftsize = find_close_power2(xw_size)
+
+    # final padding of x should get as to fftsize
+    fft_pad_left = (fftsize - W) // 2
+    fft_pad_right = fft_pad_left
+    if W % 2 == 1:
+        fft_pad_right += 1
+
+    # Zero pad our tensor along the spatial dimensions.
+    # Do not pad N (0,0) and C (0,0) dimensions, but only the 1D array - the W dimension (pad, pad).
+    padded_x = (np.pad(x, ((0, 0), (0, 0), (fft_pad_left, fft_pad_right)), 'constant'))
+
+    # Calculate output for the time domain dimensions (for a standard direct convolution).
+    out_W = W + 2*pad - WW + 1  # no padding for fft based convolution
+
+    # Initialise the output.
+    out = np.zeros([N, F, out_W])
+
+    # Naive convolution loop.
+    for nn in range(N):  # For each time-series in the input batch.
+        for ff in range(F):  # For each filter in w
+            sum_out = np.zeros([out_W])
+            for cc in range(C):
+                xfft = np.fft.fft(padded_x[nn, cc], fftsize)
+                print("first xfft: ", xfft)
+                print("first xfft shape: ", xfft.shape)
+                # the output is symmetric so cut off the second half
+                # xfft = xfft[:np.ceil(len(xfft) / 2).astype(int)]
+                squared_abs = np.abs(xfft) ** 2
+                full_energy = np.sum(squared_abs)
+                current_energy = 0.0
+                preserve_energy = full_energy * preserve_energy_rate
+                index = 0
+                while current_energy < preserve_energy and index < len(squared_abs):
+                    current_energy += squared_abs[index]
+                    # preserve the index as a power of 2
+                    if index == 0:
+                        index = 1
+                    else:
+                        index *= 2
+                print("index: ", index)
+                xfft = xfft[:index]
+                # print("xfft: ", xfft)
+                # xfft = xfft[:xfft.shape[0] // 2, :xfft.shape[1] // 2]
+                # print("xfft shape: ", xfft.shape)
+                filters = w[ff, cc]
+                print("filters: ", filters)
+                print("last shape of xfft: ", xfft.shape[-1])
+                # The convolution theorem takes the duration of the response to be the same as the period of the data.
+                # The are both
+                filterfft = np.fft.fft(filters, xfft.shape[-1])
+                # filterfft = filterfft[:filterfft.shape[0] // 2, :filterfft.shape[1] // 2]
+                print("filterfft: ", filterfft)
+                filterfft = np.conj(filterfft)
+                outfft = xfft * filterfft
+                # take the inverse of the output from the frequency domain and return the modules of the complex numbers
+                outifft = np.fft.ifft(outfft, out_W)  # out_W: crop or pad with zeros
+                # out[nn, ff] += np.abs(np.fft.ifft2(xfft * filterfft, (out_H, out_W)))
+                # outdouble = np.array(outifft, np.double)
+                out_real = np.real(outifft)
+                # out_real = np.abs(outifft)
+                # if len(out_real) < out_W:
+                #     out_real = np.pad(out_real, (0, out_W - len(out_real)), 'constant')
+                # sum_out += out_real[:out_W]
+                sum_out += out_real
+            # crop the output to the expected shape
+            # print("shape of expected resuls: ", out[nn, ff].shape)
+            # print("shape of sum_out: ", sum_out.shape)
+            out[nn, ff] = sum_out + b[ff]
+
+    cache = (x, w, b, conv_param)
+    return out, cache
+
+
 def conv_forward_fft_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
     """
     Forward pass of 1D convolution.
@@ -483,6 +621,9 @@ def conv_forward_fft_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
      - out: output data, of shape (N, W') where W' is given by:
      W' = 1 + (W + 2*pad - WW) / stride
      - cache: (x, w, b, conv_param)
+
+     :see:  source: https://stackoverflow.com/questions/40703751/using-fourier-transforms-to-do-convolution?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+     short: https://goo.gl/GwyhXz
     """
     # Grab conv parameters
     # print("conv_param: ", conv_param)
@@ -493,6 +634,7 @@ def conv_forward_fft_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
     F, C, WW = w.shape
 
     xw_size = W + WW - 1
+    # The FFT is faster if the input signal is a power of 2.
     fftsize = 2 ** np.ceil(np.log2(xw_size)).astype(int)
 
     # Zero pad our tensor along the spatial dimensions.
@@ -511,7 +653,7 @@ def conv_forward_fft_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
             sum_out = np.zeros([out_W])
             for cc in range(C):
                 xfft = np.fft.fft(padded_x[nn, cc], fftsize)
-                print("first xfft: ", xfft)
+                # print("first xfft: ", xfft)
                 # xfft = xfft[:len(xfft) // 2]
                 squared_abs = np.abs(xfft) ** 2
                 full_energy = np.sum(squared_abs)
@@ -521,34 +663,37 @@ def conv_forward_fft_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
                 while current_energy < preserve_energy and index < len(squared_abs):
                     current_energy += squared_abs[index]
                     index += 1
-                print("index: ", index)
+                # print("index: ", index)
                 xfft = xfft[:index]
                 # print("xfft: ", xfft)
                 # xfft = xfft[:xfft.shape[0] // 2, :xfft.shape[1] // 2]
                 # print("xfft shape: ", xfft.shape)
                 filters = w[ff, cc]
-                print("filters: ", filters)
-                print("last shape of xfft: ", xfft.shape[-1])
+                # print("filters: ", filters)
+                # print("last shape of xfft: ", xfft.shape[-1])
+                # The convolution theorem takes the duration of the response to be the same as the period of the data.
                 filterfft = np.fft.fft(filters, xfft.shape[-1])
+                # filterfft = np.fft.fft(filters, xfft.shape[-1]*2)
                 # filterfft = filterfft[:filterfft.shape[0] // 2, :filterfft.shape[1] // 2]
-                print("filterfft: ", filterfft)
+                # filterfft = filterfft[:filterfft.shape[-1] // 2]
+                # print("filterfft: ", filterfft)
                 filterfft = np.conj(filterfft)
                 outfft = xfft * filterfft
+                # outfft = np.concatenate(outfft, reversed(outfft))
                 # take the inverse of the output from the frequency domain and return the modules of the complex numbers
                 outifft = np.fft.ifft(outfft)
                 # out[nn, ff] += np.abs(np.fft.ifft2(xfft * filterfft, (out_H, out_W)))
                 # outdouble = np.array(outifft, np.double)
-                # out_real = np.real(outifft)
-                out_real = np.abs(outifft)
+                out_real = np.real(outifft)
+                # out_real = np.abs(outifft)
+                if len(out_real) < out_W:
+                    out_real = np.pad(out_real, (0, out_W - len(out_real)), 'constant')
                 sum_out += out_real[:out_W]
             # crop the output to the expected shape
             # print("shape of expected resuls: ", out[nn, ff].shape)
             # print("shape of sum_out: ", sum_out.shape)
             out[nn, ff] = sum_out + b[ff]
 
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
     cache = (x, w, b, conv_param)
     return out, cache
 
@@ -909,11 +1054,11 @@ def conv_forward_fft(x, w, b, conv_param):
     N, C, H, W = x.shape
     F, C, HH, WW = w.shape
 
-    # Zero pad our tensor along the spatial dimensions.
-    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant'))
-
     # Calculate the output spatial dimensions.
     out_H, out_W = get_conv_shape((H, W), (HH, WW), conv_param)
+
+    # Zero pad our tensor along the spatial dimensions.
+    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant'))
 
     # Initialise the output.
     # out = np.zeros([N, F, out_H, out_W])

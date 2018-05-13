@@ -1,0 +1,1 @@
+filter_size, naive time (sec), fft time (sec), numpy time (sec), scipy time (sec), scipy fft time (sec), err naive, err fft, err numpy, err scipy, err scipy fft

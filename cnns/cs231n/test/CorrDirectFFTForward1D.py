@@ -17,9 +17,9 @@ b = np.array([0])
 
 stride = 1
 
-mode="valid"
+mode = "valid"
 if mode == "valid":
-    padding=0
+    padding = 0
 elif mode == "full":
     padding = len(filters) - 1
 
