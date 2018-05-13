@@ -28,13 +28,14 @@ np.random.seed(231)
 
 num_channels = 1
 
-input_size = 64*64
-filter_size = 4
+input_size = 256
+filter_size = 2
 
 x = np.random.randn(input_size)
 filters = np.random.randn(filter_size)
 
-b = np.random.randn(1)
+# b = np.random.randn(1)
+b = np.array([0])
 
 stride = 1
 
@@ -45,6 +46,7 @@ elif mode == "full":
     padding = len(filters) - 1
 
 exec_number = 1  # number which is the number of executions you'd like to run
+repetitions = 10
 
 
 # decorator - to time the functions with arguments
@@ -71,16 +73,48 @@ def timeit(statement, number=1):
     return t1 - t0, result
 
 
+def timeitrep(statement, number=1, repetition=1):
+    """
+    Time the execution of the statement `number` of times and repeat it number of `repetitions`.
+    The returned timing is the all recorded `repetitions` with discarded potential outliers with the highest and lowest
+    times, then averaged. The statement is executed number of times for each repetition and for each repetition we
+    record the result from the last run (for a given repetition). The result is averaged across all the repetitions.
+
+    :param statement: statement to be executed
+    :param number: number of runs in each repetitions
+    :param repetition: how many time to repeat the experiment
+    :return: averge timing (with min, max timings discarded), average value of the results (from each repetition, we
+    record the last result, and then average the results).
+    """
+    timings = []
+    results = []
+    for _ in range(repetition):
+        t0 = time.time()
+        statement_result = None
+        for _ in range(number):
+            statement_result = statement()
+        t1 = time.time()
+        timings.append(t1 - t0)
+        if len(timings) > 3:
+            # remove the highest and the lowest time values
+            timings.remove(max(timings))
+            timings.remove(min(timings))
+        results.append(statement_result)
+    # meaned_results = np.mean(results, axis=0)
+    return np.average(timings), statement_result
+
+
 conv_param = {'stride': stride, 'pad': padding}
-#conv_naive_time, result_naive = timeit(conv_naive, number=exec_number)
+# conv_naive_time, result_naive = timeit(conv_naive, number=exec_number)
 conv_naive_time, (result_naive, _) = timeit(
-            wrapper(conv_forward_naive_1D, reshape(x), reshape(filters), b, conv_param),
-            number=exec_number)
+    wrapper(conv_forward_naive_1D, reshape(x), reshape(filters), b, conv_param),
+    number=exec_number)
 print("result naive: ", result_naive)
+print("result naive shape: ", result_naive.shape)
 print("conv naive time: ", conv_naive_time)
 # conv_fft_time, result_fft = timeit(conv_fft, number=exec_number)
 conv_fft_time, (result_fft, _) = timeit(wrapper(conv_forward_fft_1D, reshape(x), reshape(filters), b, conv_param),
-                                           number=exec_number)
+                                        number=exec_number)
 # print("result_fft: ", result_fft)
 are_close = np.allclose(result_fft, result_naive)
 print("conv fft time: ", conv_fft_time, ",are close: ", are_close, ", absolute error: ",
@@ -89,6 +123,7 @@ print("conv fft time: ", conv_fft_time, ",are close: ", are_close, ", absolute e
 numpy_time, result_numpy = timeit(wrapper(np.correlate, x, filters, mode=mode), number=exec_number)
 print("numpy time: ", numpy_time, ", abs error: ", abs_error(result_numpy, result_naive))
 print("numpy result: ", result_numpy)
+print("numpy result shape: ", result_numpy.shape)
 scipy_time, result_scipy = timeit(wrapper(signal.correlate, x, filters, mode=mode), number=exec_number)
 print("scipy time: ", scipy_time, ", abs error: ", abs_error(result_scipy, result_naive))
 scipy_time, result_scipy = timeit(wrapper(signal.correlate, x, filters, mode=mode), number=exec_number)
@@ -97,24 +132,45 @@ scipy_time_fft, result_scipy_fft = timeit(wrapper(signal.correlate, x, filters, 
                                           number=exec_number)
 print("scipy time fft: ", scipy_time_fft, ", abs error fft: ", abs_error(result_scipy_fft, result_naive))
 
-with open("results/conv_timimg" + str(time.time()) + ".csv", "w+") as out_file:
+with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime()) + ".csv", "w+") as out_file:
     out_file.write(
-        "filter_size, naive time (sec), fft time (sec), numpy time (sec), scipy time (sec), scipy fft time (sec)\n")
-        #, err naive, err fft, err numpy, err scipy, err scipy fft\n")
+        "filter_size, naive time (sec), fft time (sec), fftw time (sec), numpy time (sec), scipy time (sec), scipy fft time (sec), "
+        "err naive, err fft, err fftw, err numpy, err scipy, err scipy fft\n")
 
     for filter_size in range(1, input_size):
-        # print("filter size: ", filter_size)
+        print("filter size: ", filter_size)
         filters = np.random.randn(filter_size)
-        conv_naive_time, (result_naive, _) = timeit(
+        mode = "full"
+        if mode == "valid":
+            padding = 0
+        elif mode == "full":
+            padding = len(filters) - 1
+        conv_param = {'stride': stride, 'pad': padding}
+        conv_naive_time, (result_naive, _) = timeitrep(
             wrapper(conv_forward_naive_1D, reshape(x), reshape(filters), b, conv_param),
-            number=exec_number)
-        conv_fft_time, (result_fft, _) = timeit(wrapper(conv_forward_fft_1D, reshape(x), reshape(filters), b, conv_param),
-                                           number=exec_number)
-        numpy_time, result_numpy = timeit(wrapper(np.correlate, x, filters, mode=mode), number=exec_number)
-        scipy_time, resutl_scipy = timeit(wrapper(signal.correlate, x, filters, mode=mode), number=exec_number)
-        scipy_fft_time, result_scipy_fft = timeit(wrapper(signal.correlate, x, filters, mode=mode, method="fft"), number=exec_number)
-        result = [filter_size, conv_naive_time, conv_fft_time, numpy_time, scipy_time, scipy_fft_time]
-                  # abs_error(result_naive, result_naive), abs_error(result_naive, result_fft),
-                  # abs_error(result_naive, result_numpy), abs_error(result_naive, result_scipy),
-                  # abs_error(result_naive, result_scipy_fft)]
+            number=exec_number, repetition=repetitions)
+        conv_fft_time, (result_fft, _) = timeitrep(
+            wrapper(conv_forward_fft_1D, reshape(x), reshape(filters), b, conv_param),
+            number=exec_number, repetition=repetitions)
+        conv_fftw_time, (result_fftw, _) = timeitrep(
+            wrapper(conv_forward_fftw_1D, reshape(x), reshape(filters), b, conv_param),
+            number=exec_number, repetition=repetitions)
+        numpy_time, result_numpy = timeitrep(wrapper(np.correlate, x, filters, mode=mode), number=exec_number,
+                                             repetition=repetitions)
+        scipy_time, result_scipy = timeitrep(wrapper(signal.correlate, x, filters, mode=mode), number=exec_number,
+                                             repetition=repetitions)
+        scipy_fft_time, result_scipy_fft = timeitrep(wrapper(signal.correlate, x, filters, mode=mode, method="fft"),
+                                                     number=exec_number, repetition=repetitions)
+        print("result naive shape: ", result_naive.shape)
+        print("result fft shape: ", result_fft.shape)
+        print("result numpy shape: ", result_numpy.shape)
+        print("result scipy shape: ", result_numpy.shape)
+        print("result scipy fft shape: ", result_scipy_fft.shape)
+        result = [filter_size, conv_naive_time, conv_fft_time, conv_fftw_time, numpy_time, scipy_time, scipy_fft_time,
+                  abs_error(result_naive, result_naive),
+                  abs_error(result_naive, result_fft),
+                  abs_error(result_naive, result_fftw),
+                  abs_error(result_naive, result_numpy),
+                  abs_error(result_naive, result_scipy),
+                  abs_error(result_naive, result_scipy_fft)]
         out_file.write(",".join([str(x) for x in result]) + "\n")

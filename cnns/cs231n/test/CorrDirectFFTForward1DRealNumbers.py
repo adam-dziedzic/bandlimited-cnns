@@ -8,16 +8,25 @@ def rel_error(x, y):
     return np.max(np.abs(x - y) / (np.maximum(1e-8, np.abs(x) + np.abs(y))))
 
 
-x = [1, 2, 3, 5, 1, -1, 2, 3, 5, 8, 3, 9, 1, 2, 5, 1]
+def abs_error(x, y):
+    """ return the absolute error """
+    return np.sum(np.abs(x - y))
+
+
+np.random.seed(231)
+
+input_size = 64
+x = np.random.randn(input_size)
 x = np.array(x)
 print("input x shape: ", x.shape)
-filters = [4, 5, 3, 4]
+filter_size = 4
+filters = np.random.randn(filter_size)
 filters = np.array(filters)
 b = np.array([0])
 
 stride = 1
 
-mode = "full"
+mode = "valid"
 if mode == "valid":
     padding = 0
 elif mode == "full":
@@ -74,3 +83,4 @@ print("absolute error fft: ", np.sum(np.abs(outfft - outnaive)))
 print("absolute error scipy: ", np.sum(np.abs(scipy_correlate - outnaive)))
 print("absolute error numpy: ", np.sum(np.abs(np_correlate - outnaive)))
 print("absolute error scipy fft: ", np.sum(np.abs(scipy_fft - outnaive)))
+print("abs error scipy fft: ", abs_error(scipy_fft, outnaive))
