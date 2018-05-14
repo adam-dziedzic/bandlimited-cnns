@@ -21,7 +21,7 @@ x = np.array(x)
 print("input x shape: ", x.shape)
 filter_size = 4
 filters = np.random.randn(filter_size)
-filters = np.array(filters)
+# filters = np.array(filters)
 b = np.array([0])
 
 stride = 1
@@ -84,3 +84,8 @@ print("absolute error scipy: ", np.sum(np.abs(scipy_correlate - outnaive)))
 print("absolute error numpy: ", np.sum(np.abs(np_correlate - outnaive)))
 print("absolute error scipy fft: ", np.sum(np.abs(scipy_fft - outnaive)))
 print("abs error scipy fft: ", abs_error(scipy_fft, outnaive))
+
+outfft_compress, _ = conv_forward_fft_1D_compress(x, filters, b, conv_param, preserve_energy_rate=0.17)
+print("outfff: ", outfft_compress)
+print("outfff shape: ", outfft_compress.shape)
+print("abs error fft compress: ", abs_error(outfft_compress, outnaive))

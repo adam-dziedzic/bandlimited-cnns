@@ -67,10 +67,15 @@ outfft, _ = conv_forward_fft_1D(x, filters, b, conv_param)
 print("outfff: ", outfft)
 print("outfff shape: ", outfft.shape)
 
+outfftcorrect, _ = conv_forward_fft_1D_correct(x, filters, b, conv_param)
+print("outfff: ", outfftcorrect)
+print("outfff shape: ", outfftcorrect.shape)
+
 print("is the fft cross_correlation for convolution correct with respect to naive: ",
       np.allclose(outfft, outnaive, atol=1e-12))
 print("relative error fft naive: ", rel_error(outfft, outnaive))
 print("absolute error fft: ", np.sum(np.abs(outfft - outnaive)))
+print("absolute error fft correct: ", np.sum(np.abs(outfftcorrect - outnaive)))
 print("absolute error scipy: ", np.sum(np.abs(scipy_correlate - outnaive)))
 print("absolute error numpy: ", np.sum(np.abs(np_correlate - outnaive)))
 print("absolute error scipy fft: ", np.sum(np.abs(scipy_fft - outnaive)))

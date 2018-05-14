@@ -3,7 +3,7 @@ import numpy as np
 from scipy import signal
 import os
 
-from load_time_series import load_data
+from cs231n.load_time_series import load_data
 
 np.random.seed(231)
 

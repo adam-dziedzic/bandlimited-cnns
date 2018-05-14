@@ -2,10 +2,14 @@
 from __future__ import print_function
 
 from cs231n.layers import *
+# from cs231n.fast_layers import conv_forward_fft
 
 import time
 
 from scipy import signal
+
+import torch
+import torch.nn.functional as F
 
 
 def reshape(x):
@@ -23,6 +27,9 @@ def abs_error(x, y):
 
 
 print("timeit: simple direct and FFT convolution for 1D")
+
+cuda_id = 2
+device = torch.device("cuda:2")
 
 np.random.seed(231)
 
@@ -120,6 +127,12 @@ are_close = np.allclose(result_fft, result_naive)
 print("conv fft time: ", conv_fft_time, ",are close: ", are_close, ", absolute error: ",
       np.sum(np.abs(result_fft - result_naive)), ", relative error: ", rel_error(result_fft, result_naive))
 # print("abs: ", np.abs(result_fft - result_naive))
+torch_time, result_torch = timeitrep(
+            wrapper(F.conv1d, torch.from_numpy(reshape(x), ), torch.from_numpy(reshape(filters)), None,
+                    stride, padding, 1, 1),
+            number=exec_number, repetition=repetitions)
+result_torch = result_torch.numpy()
+print("torch time: ", torch_time, ", abs error: ", abs_error(result_torch, result_naive))
 numpy_time, result_numpy = timeit(wrapper(np.correlate, x, filters, mode=mode), number=exec_number)
 print("numpy time: ", numpy_time, ", abs error: ", abs_error(result_numpy, result_naive))
 print("numpy result: ", result_numpy)
@@ -134,7 +147,8 @@ print("scipy time fft: ", scipy_time_fft, ", abs error fft: ", abs_error(result_
 
 with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime()) + ".csv", "w+") as out_file:
     out_file.write(
-        "filter_size, naive time (sec), fft time (sec), fftw time (sec), numpy time (sec), scipy time (sec), scipy fft time (sec), "
+        "filter_size, naive time (sec), fft time (sec), fftw time (sec), torch time (sec), numpy time (sec), " +
+        "scipy time (sec), scipy fft time (sec), " +
         "err naive, err fft, err fftw, err numpy, err scipy, err scipy fft\n")
 
     for filter_size in range(1, input_size):
@@ -155,21 +169,51 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
         conv_fftw_time, (result_fftw, _) = timeitrep(
             wrapper(conv_forward_fftw_1D, reshape(x), reshape(filters), b, conv_param),
             number=exec_number, repetition=repetitions)
+        xtorch = torch.from_numpy(reshape(x))
+        filterstorch = torch.from_numpy(reshape(filters))
+        torch_time, result_torch = timeitrep(
+            wrapper(F.conv1d, xtorch, filterstorch, None,
+                    stride, padding, 1, 1),
+            number=exec_number, repetition=repetitions)
+        result_torch = result_torch.numpy()
+        # be default it is the same timing (cpu, gpu)
+        result_torch_gpu = np.zeros(result_torch.shape)
+        torch_gpu_time = 0
+        # let us run it only if CUDA is available
+        if torch.cuda.is_available():
+            # creates a LongTensor and transfers it to GPU as torch.cuda.LongTensor
+            xtorch_gpu = xtorch.to(device=device)
+            filterstorch_gpu = filterstorch.to(device=device)
+            torch_gpu_time, result_torch_gpu = timeitrep(
+                wrapper(F.conv1d, xtorch_gpu, filterstorch_gpu, None,
+                        stride, padding, 1, 1),
+                number=exec_number, repetition=repetitions)
+            # go back to cpu to display the results
+            result_torch_gpu = result_torch_gpu.to(torch.device("cpu")).numpy()
+
+        # conv_stanford_time, (result_stanford, _) = timeitrep(
+        #     wrapper(conv_forward_fftw_1D, reshape(x), reshape(filters), b, conv_param),
+        #     number=exec_number, repetition=repetitions)
         numpy_time, result_numpy = timeitrep(wrapper(np.correlate, x, filters, mode=mode), number=exec_number,
                                              repetition=repetitions)
         scipy_time, result_scipy = timeitrep(wrapper(signal.correlate, x, filters, mode=mode), number=exec_number,
                                              repetition=repetitions)
         scipy_fft_time, result_scipy_fft = timeitrep(wrapper(signal.correlate, x, filters, mode=mode, method="fft"),
                                                      number=exec_number, repetition=repetitions)
-        print("result naive shape: ", result_naive.shape)
-        print("result fft shape: ", result_fft.shape)
-        print("result numpy shape: ", result_numpy.shape)
-        print("result scipy shape: ", result_numpy.shape)
-        print("result scipy fft shape: ", result_scipy_fft.shape)
-        result = [filter_size, conv_naive_time, conv_fft_time, conv_fftw_time, numpy_time, scipy_time, scipy_fft_time,
+        # print("result naive shape: ", result_naive.shape)
+        # print("result fft shape: ", result_fft.shape)
+        # print("result torch shape: ", result_torch.shape)
+        # print("result numpy shape: ", result_numpy.shape)
+        # print("result scipy shape: ", result_numpy.shape)
+        # print("result scipy fft shape: ", result_scipy_fft.shape)
+        result = [filter_size, conv_naive_time, conv_fft_time, conv_fftw_time, torch_time, torch_gpu_time, numpy_time,
+                  scipy_time,
+                  scipy_fft_time,
                   abs_error(result_naive, result_naive),
                   abs_error(result_naive, result_fft),
                   abs_error(result_naive, result_fftw),
+                  abs_error(result_naive, result_torch),
+                  abs_error(result_naive, result_torch_gpu),
                   abs_error(result_naive, result_numpy),
                   abs_error(result_naive, result_scipy),
                   abs_error(result_naive, result_scipy_fft)]
