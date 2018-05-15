@@ -39,7 +39,7 @@ errors = []
 fraction = 0.99
 
 # filter_sizes = [value for value in range(1, len(full_filter))]
-filter_sizes = [value for value in range(1, 21)]
+filter_sizes = [value for value in range(100, 101)]
 for filter_size in filter_sizes:
     print("filter size: ", filter_size)
     filters = full_filter[:filter_size].copy()

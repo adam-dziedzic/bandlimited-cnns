@@ -464,7 +464,7 @@ def dropout_backward(dout, cache):
     return dx
 
 
-def find_close_power2(x):
+def find_next_power2(x):
     """
     :param x: an integer number
     :return: the power of 2 which is the larger than x but the smallest possible
@@ -533,7 +533,7 @@ def conv_forward_fft_1D_correct(x, w, b, conv_param, preserve_energy_rate=1.0):
     # The FFT padding is the biggest possible padding (otherwise, you return additional zeros - with bigger
     # convolutional padding).
     # The FFT is faster if the input signal is a power of 2.
-    fftsize = find_close_power2(xw_size)
+    fftsize = find_next_power2(xw_size)
     fft_pad = fftsize - W
 
     # Zero pad our tensor along the spatial dimensions.
@@ -793,6 +793,13 @@ def conv_forward_fft_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
                 if len(out_real) < out_W:
                     out_real = np.pad(out_real, (0, out_W - len(out_real)), 'constant')
                 sum_out += out_real[:out_W]
+
+            # import matplotlib.pyplot as plt
+            # plt.plot(range(0, len(sum_out)), sum_out)
+            # plt.title("cross-correlation output full")
+            # plt.xlabel('time')
+            # plt.ylabel('Amplitude')
+            # plt.show()
             # crop the output to the expected shape
             # print("shape of expected resuls: ", out[nn, ff].shape)
             # print("shape of sum_out: ", sum_out.shape)
@@ -858,7 +865,7 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, preserve_energy_rate=1.0):
             for cc in range(C):
                 xfft = np.fft.fft(padded_x[nn, cc], fftsize)
                 # print("first xfft: ", xfft)
-                print("preserve_energy_rate: ", preserve_energy_rate)
+                # print("preserve_energy_rate: ", preserve_energy_rate)
                 # fig = plt.figure()
                 # ax1 = fig.add_subplot(111)
                 # x = [x for x in range(len(xfft))]
@@ -867,7 +874,7 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, preserve_energy_rate=1.0):
                 # ax1.axhline(0, color='black', lw=2)
                 # plt.show()
                 xfft_middle = len(xfft) // 2
-                xfft_power = xfft[0:xfft_middle+1]
+                xfft_power = xfft[0:xfft_middle + 1]
                 squared_abs = np.abs(xfft_power) ** 2
                 full_energy = np.sum(squared_abs)
                 # we always include the first and the middle coefficients
@@ -881,7 +888,7 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, preserve_energy_rate=1.0):
                 # print("index: ", index)
                 # print("shape of np.array(xfft[:index]): ", np.array(xfft[:index].shape))
                 # print("shape of np.array(xfft[-index + 1:]): ", np.array(xfft[-index + 1:]).shape)
-                xfft = np.concatenate((np.array(xfft[0:index]), np.array(xfft[xfft_middle:xfft_middle+1]),
+                xfft = np.concatenate((np.array(xfft[0:index]), np.array(xfft[xfft_middle:xfft_middle + 1]),
                                        np.array(xfft[-index + 1:])))
                 # flen = len(xfft) // 2
                 # first_half = xfft[1:flen]
@@ -915,12 +922,12 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, preserve_energy_rate=1.0):
                 # print("filter first half: ", first_half)
                 second_half = filterfft[flen + 1:]
                 second_half = np.flip(np.conj(second_half), axis=0)
-                #print("filter second half: ", second_half)
-                #print("first half length: ", len(first_half))
-                #print("second half length: ", len(second_half))
-                #print("first coefficient from the first half: ", first_half[0])
-                #print("first coefficient from the second half: ", second_half[0])
-                #print("are first coefficients equal: ", first_half[0] == second_half[0])
+                # print("filter second half: ", second_half)
+                # print("first half length: ", len(first_half))
+                # print("second half length: ", len(second_half))
+                # print("first coefficient from the first half: ", first_half[0])
+                # print("first coefficient from the second half: ", second_half[0])
+                # print("are first coefficients equal: ", first_half[0] == second_half[0])
                 # print("are halves equal: ", filterfft[1:flen] == second_half)
                 # print("are halves close: ", np.allclose(first_half, second_half))
                 # import matplotlib.pyplot as plt
@@ -1008,8 +1015,8 @@ def conv_forward_fft_1D_compress_fraction(x, w, b, conv_param, fraction=0.5):
             sum_out = np.zeros([out_W])
             for cc in range(C):
                 xfft = np.fft.fft(padded_x[nn, cc], fftsize)
-                print("size of the first xfft: ", xfft.shape)
-                xfft_middle = len(xfft) // 2
+                # print("size of the first xfft: ", xfft.shape)
+                xfft_middle = int(len(xfft) * fraction)
                 # xfft_power = xfft[0:xfft_middle+1]
                 # squared_abs = np.abs(xfft_power) ** 2
                 # full_energy = np.sum(squared_abs)
@@ -1024,12 +1031,13 @@ def conv_forward_fft_1D_compress_fraction(x, w, b, conv_param, fraction=0.5):
                 # print("index: ", index)
                 # print("shape of np.array(xfft[:index]): ", np.array(xfft[:index].shape))
                 # print("shape of np.array(xfft[-index + 1:]): ", np.array(xfft[-index + 1:]).shape)
-                compress_size = int(fftsize * fraction)
-                index = (compress_size - 2) // 2  # the two half are the same (with respect to the conjugate operation)
-                index += 1  # we already included the 0-th coefficient (+1)
-                xfft = np.concatenate((np.array(xfft[0:index]), np.array(xfft[xfft_middle:xfft_middle+1]),
-                                       np.array(xfft[-index + 1:])))
-                print("size of compressed xfft: ", xfft.shape)
+                # compress_size = int(fftsize * fraction)
+                # index = (compress_size - 2) // 2  # the two half are the same (with respect to the conjugate operation)
+                # index += 1  # we already included the 0-th coefficient (+1)
+                # xfft = np.concatenate((np.array(xfft[0:index]), np.array(xfft[xfft_middle:xfft_middle+1]),
+                #                       np.array(xfft[-index + 1:])))
+                # print("size of compressed xfft: ", xfft.shape)
+                xfft = xfft[0:xfft_middle].copy()
                 # flen = len(xfft) // 2
                 # first_half = xfft[1:flen]
                 # print("xfft first half: ", first_half)
@@ -1054,7 +1062,9 @@ def conv_forward_fft_1D_compress_fraction(x, w, b, conv_param, fraction=0.5):
                 # print("filters: ", filters)
                 # print("last shape of xfft: ", xfft.shape[-1])
                 # The convolution theorem takes the duration of the response to be the same as the period of the data.
-                filterfft = np.fft.fft(filters, xfft.shape[-1])
+                filterfft = np.fft.fft(filters, fftsize)
+                fmiddle = int(len(filterfft) * fraction)
+                filterfft = filterfft[0:fmiddle]
                 # print("filterfft: ", filterfft)
                 # flen = len(filterfft) // 2
                 # print("filter middle: ", filterfft[flen])
@@ -1062,12 +1072,12 @@ def conv_forward_fft_1D_compress_fraction(x, w, b, conv_param, fraction=0.5):
                 # print("filter first half: ", first_half)
                 # second_half = filterfft[flen + 1:]
                 # second_half = np.flip(np.conj(second_half), axis=0)
-                #print("filter second half: ", second_half)
-                #print("first half length: ", len(first_half))
-                #print("second half length: ", len(second_half))
-                #print("first coefficient from the first half: ", first_half[0])
-                #print("first coefficient from the second half: ", second_half[0])
-                #print("are first coefficients equal: ", first_half[0] == second_half[0])
+                # print("filter second half: ", second_half)
+                # print("first half length: ", len(first_half))
+                # print("second half length: ", len(second_half))
+                # print("first coefficient from the first half: ", first_half[0])
+                # print("first coefficient from the second half: ", second_half[0])
+                # print("are first coefficients equal: ", first_half[0] == second_half[0])
                 # print("are halves equal: ", filterfft[1:flen] == second_half)
                 # print("are halves close: ", np.allclose(first_half, second_half))
                 # import matplotlib.pyplot as plt
@@ -1084,14 +1094,23 @@ def conv_forward_fft_1D_compress_fraction(x, w, b, conv_param, fraction=0.5):
                 outfft = xfft * filterfft
                 # outfft = np.concatenate(outfft, reversed(outfft))
                 # take the inverse of the output from the frequency domain and return the modules of the complex numbers
-                outifft = np.fft.ifft(outfft)
+                outfft_W = np.zeros(max(out_W, 2 * len(outfft)))
+                # outfft_W[0:len(outfft)] = np.conj(outfft)
+                # outfft_W[-len(outfft):] = np.conj([x for x in reversed(outfft)])
+                outifft = np.fft.ifft(np.conj([x for x in reversed(outfft)]), out_W)
                 # out[nn, ff] += np.abs(np.fft.ifft2(xfft * filterfft, (out_H, out_W)))
                 # outdouble = np.array(outifft, np.double)
                 out_real = np.real(outifft)
                 # out_real = np.abs(outifft)
-                if len(out_real) < out_W:
-                    out_real = np.pad(out_real, (0, out_W - len(out_real)), 'constant')
-                sum_out += out_real[:out_W]
+                # if len(out_real) < out_W:
+                #     out_real = np.pad(out_real, (0, out_W - len(out_real)), 'constant')
+                sum_out += out_real
+            import matplotlib.pyplot as plt
+            plt.plot(range(0, len(sum_out)), sum_out)
+            plt.title("cross-correlation output compressed")
+            plt.xlabel('time')
+            plt.ylabel('Amplitude')
+            plt.show()
             # crop the output to the expected shape
             # print("shape of expected results: ", out[nn, ff].shape)
             # print("shape of sum_out: ", sum_out.shape)
@@ -1391,38 +1410,51 @@ def conv_forward_fftw(x, w, b, conv_param):
     # Grab conv parameters
     pad = conv_param.get('pad')
     stride = conv_param.get('stride')
+    if stride != 1:
+        raise Exception("Convolution via fft is only possible with stride = 1, while given stride=" + str(stride))
 
     N, C, H, W = x.shape
     F, C, HH, WW = w.shape
 
-    # Zero pad our tensor along the spatial dimensions.
-    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant'))
-
     # Calculate the output spatial dimensions.
     out_H, out_W = get_conv_shape((H, W), (HH, WW), conv_param)
+
+    # Zero pad our tensor along the spatial dimensions.
+    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), mode='constant'))
 
     # Initialise the output.
     # out = np.zeros([N, F, out_H, out_W])
     out = np.zeros([N, F, out_H, out_W])
 
+    fftpadded_x = np.pad(padded_x, ((0, 0), (0, 0), (0, H - 1), (0, W - 1)), mode='constant')
+    _, _, Hpad, Wpad = fftpadded_x.shape
+    fftpadded_filter = np.pad(w, ((0, 0), (0, 0), (0, Hpad - HH), (0, Wpad - WW)), mode='constant')
+
+    # Hpow2, Wpow2 = find_next_power2(Hpad), find_next_power2(Wpad)
+    Hpow2, Wpow2 = Hpad, Wpad
+
     # Naive convolution loop.
     for nn in range(N):  # For each image in the input batch.
         for ff in range(F):  # For each filter in w
-            sum_out = np.zeros([H, W])
+            sum_out = np.zeros([out_H, out_W])
             for cc in range(C):
-                xfft = pyfftw.interfaces.numpy_fft.fft2(padded_x[nn, cc], (padded_x.shape[-2], padded_x.shape[-1]))
+                xfft = pyfftw.interfaces.numpy_fft.fft2(fftpadded_x[nn, cc], (Hpow2, Wpow2))
                 # print("xfft: ", xfft)
                 # xfft = xfft[:xfft.shape[0] // 2, :xfft.shape[1] // 2]
                 # print("xfft shape: ", xfft.shape)
-                filterfft = pyfftw.interfaces.numpy_fft.fft2(w[ff, cc], xfft.shape)
+                filterfft = pyfftw.interfaces.numpy_fft.fft2(fftpadded_filter[ff, cc], xfft.shape)
                 # filterfft = filterfft[:filterfft.shape[0] // 2, :filterfft.shape[1] // 2]
                 # print("filterfft: ", filterfft)
                 filterfft = np.conjugate(filterfft)
                 # out[nn, ff] += np.abs(np.fft.ifft2(xfft * filterfft, (out_H, out_W)))
-                sum_out += np.abs(
-                    pyfftw.interfaces.numpy_fft.ifft2(xfft * filterfft, (padded_x.shape[-2], padded_x.shape[-1])))
+                # H2 = H // 2
+                # W2 = W // 2
+                out_real = pyfftw.interfaces.numpy_fft.ifft2(xfft * filterfft).real
+                # print("out_real: ", out_real.astype(int))
+                # sum_out += out_real[H2:H2 + H, W2:W2 + W]
+                sum_out += out_real[:out_H, :out_W]
             # crop the output to the expected shape
-            out[nn, ff] = sum_out[:out_H, :out_W] + b[ff]
+            out[nn, ff] = sum_out + b[ff]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -1454,6 +1486,8 @@ def conv_forward_fft(x, w, b, conv_param):
     # Grab conv parameters
     pad = conv_param.get('pad')
     stride = conv_param.get('stride')
+    if stride != 1:
+        raise Exception("Convolution via fft is only possible with stride = 1, while given stride=" + str(stride))
 
     N, C, H, W = x.shape
     F, C, HH, WW = w.shape
@@ -1462,29 +1496,41 @@ def conv_forward_fft(x, w, b, conv_param):
     out_H, out_W = get_conv_shape((H, W), (HH, WW), conv_param)
 
     # Zero pad our tensor along the spatial dimensions.
-    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant'))
+    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), mode='constant'))
 
     # Initialise the output.
     # out = np.zeros([N, F, out_H, out_W])
     out = np.zeros([N, F, out_H, out_W])
 
+    fftpadded_x = np.pad(padded_x, ((0, 0), (0, 0), (0, H - 1), (0, W - 1)), mode='constant')
+    _, _, Hpad, Wpad = fftpadded_x.shape
+    fftpadded_filter = np.pad(w, ((0, 0), (0, 0), (0, Hpad - HH), (0, Wpad - WW)), mode='constant')
+
+    # Hpow2, Wpow2 = find_next_power2(Hpad), find_next_power2(Wpad)
+    Hpow2, Wpow2 = Hpad, Wpad
+
     # Naive convolution loop.
     for nn in range(N):  # For each image in the input batch.
         for ff in range(F):  # For each filter in w
-            sum_out = np.zeros([H, W])
+            sum_out = np.zeros([out_H, out_W])
             for cc in range(C):
-                xfft = np.fft.fft2(padded_x[nn, cc], (padded_x.shape[-2], padded_x.shape[-1]))
+                xfft = np.fft.fft2(fftpadded_x[nn, cc], (Hpow2, Wpow2))
                 # print("xfft: ", xfft)
                 # xfft = xfft[:xfft.shape[0] // 2, :xfft.shape[1] // 2]
                 # print("xfft shape: ", xfft.shape)
-                filterfft = np.fft.fft2(w[ff, cc], xfft.shape)
+                filterfft = np.fft.fft2(fftpadded_filter[ff, cc], xfft.shape)
                 # filterfft = filterfft[:filterfft.shape[0] // 2, :filterfft.shape[1] // 2]
                 # print("filterfft: ", filterfft)
                 filterfft = np.conjugate(filterfft)
                 # out[nn, ff] += np.abs(np.fft.ifft2(xfft * filterfft, (out_H, out_W)))
-                sum_out += np.abs(np.fft.ifft2(xfft * filterfft, (padded_x.shape[-2], padded_x.shape[-1])))
+                # H2 = H // 2
+                # W2 = W // 2
+                out_real = np.fft.ifft2(xfft * filterfft).real
+                # print("out_real: ", out_real.astype(int))
+                # sum_out += out_real[H2:H2 + H, W2:W2 + W]
+                sum_out += out_real[:out_H, :out_W]
             # crop the output to the expected shape
-            out[nn, ff] = sum_out[:out_H, :out_W] + b[ff]
+            out[nn, ff] = sum_out + b[ff]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
