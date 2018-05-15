@@ -52,9 +52,8 @@ if mode == "valid":
 elif mode == "full":
     padding = len(filters) - 1
 
-exec_number = 1  # number which is the number of executions you'd like to run
-repetitions = 10
-
+exec_number = 10  # number which is the number of executions you'd like to run
+repetitions = 200
 
 # decorator - to time the functions with arguments
 def wrapper(func, *args, **kwargs):
@@ -128,11 +127,29 @@ print("conv fft time: ", conv_fft_time, ",are close: ", are_close, ", absolute e
       np.sum(np.abs(result_fft - result_naive)), ", relative error: ", rel_error(result_fft, result_naive))
 # print("abs: ", np.abs(result_fft - result_naive))
 torch_time, result_torch = timeitrep(
-            wrapper(F.conv1d, torch.from_numpy(reshape(x), ), torch.from_numpy(reshape(filters)), None,
+            wrapper(F.conv1d, torch.from_numpy(reshape(x)), torch.from_numpy(reshape(filters)), None,
                     stride, padding, 1, 1),
             number=exec_number, repetition=repetitions)
 result_torch = result_torch.numpy()
 print("torch time: ", torch_time, ", abs error: ", abs_error(result_torch, result_naive))
+
+# torch gpu
+result_torch_gpu = np.zeros(result_torch.shape)
+torch_gpu_time = 0
+# let us run it only if CUDA is available
+if torch.cuda.is_available():
+    xtorch_gpu = torch.from_numpy(reshape(x))
+    xtorch_gpu = xtorch_gpu.to(device=device)
+    filterstorch_gpu = torch.from_numpy(reshape(filters))
+    filterstorch_gpu = filterstorch_gpu.to(device=device)
+    result_torch_gpu = np.zeros(result_torch.shape)
+    result_torch_gpu = torch.from_numpy(result_torch_gpu)
+    result_torch_gpu = result_torch_gpu.to(device=device)
+    torch_gpu_time, result_torch_gpu = timeitrep(
+        wrapper(F.conv1d, xtorch_gpu, filterstorch_gpu, None, stride, padding, 1, 1), number=exec_number, repetition=repetitions)
+    result_torch_gpu = result_torch_gpu.to(device=torch.device("cpu")).numpy()
+print("torch gpu time: ", torch_gpu_time, ", abs error: ", abs_error(result_torch_gpu, result_naive))
+                                           
 numpy_time, result_numpy = timeit(wrapper(np.correlate, x, filters, mode=mode), number=exec_number)
 print("numpy time: ", numpy_time, ", abs error: ", abs_error(result_numpy, result_naive))
 print("numpy result: ", result_numpy)
@@ -178,12 +195,16 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
         result_torch = result_torch.numpy()
         # be default it is the same timing (cpu, gpu)
         result_torch_gpu = np.zeros(result_torch.shape)
+        result_torch_gpu = torch.from_numpy(result_torch_gpu)
+        result_torch_gpu = result_torch_gpu.to(device=device)
         torch_gpu_time = 0
         # let us run it only if CUDA is available
         if torch.cuda.is_available():
             # creates a LongTensor and transfers it to GPU as torch.cuda.LongTensor
-            xtorch_gpu = xtorch.to(device=device)
-            filterstorch_gpu = filterstorch.to(device=device)
+            xtorch_gpu = torch.from_numpy(reshape(x))
+            xtorch_gpu = xtorch_gpu.to(device=device)
+            filterstorch_gpu = torch.from_numpy(reshape(filters))
+            filterstorch_gpu = filterstorch_gpu.to(device=device)
             torch_gpu_time, result_torch_gpu = timeitrep(
                 wrapper(F.conv1d, xtorch_gpu, filterstorch_gpu, None,
                         stride, padding, 1, 1),
