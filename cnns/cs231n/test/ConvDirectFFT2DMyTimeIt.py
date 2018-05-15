@@ -161,7 +161,7 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
         "torch time (sec), torch gpu time (sec), scipy time (sec), " +
         "err naive, err stanford, err fft, err fftw, err scipy\n")
 
-    for filter_size in range(1, 2):  # input_size
+    for filter_size in range(1, input_size):  # input_size
         print("filter size: ", filter_size)
         filters = np.random.randn(filter_size, filter_size)
         mode = "full"
@@ -175,7 +175,7 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
         conv_naive_time, (result_naive, _) = timeitrep(
             wrapper(conv_forward_naive, reshaped_x, reshaped_filters, b, conv_param),
             number=exec_number, repetition=repetitions)
-        conv_stanford_time, (result_naive, _) = timeitrep(
+        conv_stanford_time, (result_stanford, _) = timeitrep(
             wrapper(conv_forward_fast, reshaped_x, reshaped_filters, b, conv_param),
             number=exec_number, repetition=repetitions)
         conv_fft_time, (result_fft, _) = timeitrep(
