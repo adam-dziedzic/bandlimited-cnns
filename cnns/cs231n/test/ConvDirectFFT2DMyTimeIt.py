@@ -186,6 +186,7 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
         "scipy fft time (sec), " +
         "scipy auto time (sec), " +
         "err naive, " +
+        "err stanford, "
         "err fft, " +
         "err fftw, " +
         "err torch cpu, " +
