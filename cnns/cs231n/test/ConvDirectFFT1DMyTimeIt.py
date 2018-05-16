@@ -45,10 +45,10 @@ train_set_x, train_set_y = datasets[0]
 valid_set_x, valid_set_y = datasets[1]
 test_set_x, test_set_y = datasets[2]
 
-x = train_set_x[0]
+x = np.array(train_set_x[0], dtype=np.float64)
 filter_size = 4
 full_filter = train_set_x[1]
-filters = full_filter[:filter_size]
+filters = np.array(full_filter[:filter_size], dtype=np.float64)
 
 # num_channels = 1
 # input_size = 256
@@ -214,7 +214,8 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
 
     for filter_size in range(1, input_size+1):
         print("filter size: ", filter_size)
-        filters = np.random.randn(filter_size)
+        # filters = np.random.randn(filter_size)
+        filters = np.array(full_filter[:filter_size], dtype=np.float64)
         mode = "full"
         if mode == "valid":
             padding = 0
@@ -235,9 +236,9 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
             wrapper(conv_forward_fftw_1D, reshaped_x, reshaped_filters, b, conv_param),
             number=exec_number, repetition=repetitions)
         xtorch = torch.from_numpy(reshape(x))
-        xtroch = xtorch.float()
+        # xtroch = xtorch.float()
         filterstorch = torch.from_numpy(reshape(filters))
-        filterstorch = filterstorch.float()
+        # filterstorch = filterstorch.float()
         torch_time, result_torch = timeitrep(
             wrapper(F.conv1d, xtorch, filterstorch, None,
                     stride, padding, 1, 1), number=exec_number, repetition=repetitions)
