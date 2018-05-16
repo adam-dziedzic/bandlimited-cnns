@@ -35,29 +35,29 @@ device = torch.device("cuda")
 
 np.random.seed(231)
 
-# dataset = "Adiac"
-# dataset = "50words"
-dataset = "HandOutlines"
-# dataset = "Herring"
-# dataset = "InlineSkate"
-datasets = load_data(dataset)
-
-train_set_x, train_set_y = datasets[0]
-valid_set_x, valid_set_y = datasets[1]
-test_set_x, test_set_y = datasets[2]
-
-x = np.array(train_set_x[0], dtype=np.float64)
-filter_size = 4
-full_filter = train_set_x[1]
-filters = np.array(full_filter[:filter_size], dtype=np.float64)
-
-# num_channels = 1
-# input_size = 256
-# filter_size = 2
+# # dataset = "Adiac"
+# # dataset = "50words"
+# dataset = "HandOutlines"
+# # dataset = "Herring"
+# # dataset = "InlineSkate"
+# datasets = load_data(dataset)
 #
-# x = np.random.randn(input_size)
-# filters = np.random.randn(filter_size)
+# train_set_x, train_set_y = datasets[0]
+# valid_set_x, valid_set_y = datasets[1]
+# test_set_x, test_set_y = datasets[2]
+#
+# x = np.array(train_set_x[0], dtype=np.float64)
+# filter_size = 4
+# full_filter = train_set_x[1]
+# filters = np.array(full_filter[:filter_size], dtype=np.float64)
 
+num_channels = 1
+input_size = 256
+filter_size = 2
+
+x = np.random.randn(input_size)
+filters = np.random.randn(filter_size)
+full_filter = filters.copy()
 input_size = len(x)
 
 # b = np.random.randn(1)
@@ -216,8 +216,8 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
 
     for filter_size in range(1, input_size+1):
         print("filter size: ", filter_size)
-        # filters = np.random.randn(filter_size)
-        filters = np.array(full_filter[:filter_size], dtype=np.float64)
+        filters = np.random.randn(filter_size)
+        # filters = np.array(full_filter[:filter_size], dtype=np.float64)
         mode = "full"
         if mode == "valid":
             padding = 0

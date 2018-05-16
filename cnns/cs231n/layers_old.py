@@ -256,3 +256,18 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, preserve_energy_rate=1.0):
 
     cache = (x, w, b, conv_param)
     return out, cache
+
+def cross_correlation_fft_1D(x, w, pad):
+    N, C, W=x.shape
+    F, C, WW = w.shape
+
+    xw_size = W + WW - 1
+    fftsize = 2 ** np.ceil(np.log2(xw_size)).astype(int)
+    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
+    out_W = W + 2 * pad - WW + 1
+    xfft = np.fft.fft(padded_x, fftsize)
+    filterfft = np.fft.fft(w, xfft.shape[-1])
+    filterfft = np.conj(filterfft)
+    outfft = xfft * filterfft
+    outifft = np.fft.ifft(outfft)
+    out_real = np.real(outifft)
