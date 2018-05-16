@@ -563,7 +563,7 @@ def conv_forward_fft_1D_correct(x, w, b, conv_param, preserve_energy_rate=1.0):
                         index = 1
                     else:
                         index *= 2
-                print("index: ", index)
+                # print("index: ", index)
                 xfft = xfft[:index]
                 # print("xfft: ", xfft)
                 # xfft = xfft[:xfft.shape[0] // 2, :xfft.shape[1] // 2]
@@ -609,7 +609,7 @@ def conv_forward_fftw_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
     The input consists of N data points with each data point representing a time-series of length W.
 
     We also have the notion of channels in the 1-D convolution. We want to use more than a single filter even for the
-    input time-series, so the output is a the batch with the same size but the number of output channels is equal to the
+    input time-series, so the output is a batch with the same size but the number of output channels is equal to the
     number of input filters.
 
     :param x: Input data of shape (N, C, W)
@@ -643,7 +643,7 @@ def conv_forward_fftw_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
     # Do not pad N (0,0) and C (0,0) dimensions, but only the 1D array - the W dimension (pad, pad).
     padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
 
-    # Calculate output spatial dimensions.
+    # Calculate output spatial/time domain dimensions.
     out_W = np.int(((W + 2 * pad - WW) / stride) + 1)
 
     # Initialise the output.
@@ -654,20 +654,20 @@ def conv_forward_fftw_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
         for ff in range(F):  # For each filter in w
             sum_out = np.zeros([out_W])
             for cc in range(C):
-                # xfft = np.fft.fft(padded_x[nn, cc], fftsize)
                 xfft = pyfftw.interfaces.numpy_fft.fft(padded_x[nn, cc], fftsize)
                 # print("first xfft: ", xfft)
                 # xfft = xfft[:len(xfft) // 2]
-                squared_abs = np.abs(xfft) ** 2
-                full_energy = np.sum(squared_abs)
-                current_energy = 0.0
-                preserve_energy = full_energy * preserve_energy_rate
-                index = 0
-                while current_energy < preserve_energy and index < len(squared_abs):
-                    current_energy += squared_abs[index]
-                    index += 1
-                # print("index: ", index)
-                xfft = xfft[:index]
+                if preserve_energy_rate < 1.0:
+                    squared_abs = np.abs(xfft) ** 2
+                    full_energy = np.sum(squared_abs)
+                    current_energy = 0.0
+                    preserve_energy = full_energy * preserve_energy_rate
+                    index = 0
+                    while current_energy < preserve_energy and index < len(squared_abs):
+                        current_energy += squared_abs[index]
+                        index += 1
+                    # print("index: ", index)
+                    xfft = xfft[:index]
                 # print("xfft: ", xfft)
                 # xfft = xfft[:xfft.shape[0] // 2, :xfft.shape[1] // 2]
                 # print("xfft shape: ", xfft.shape)
@@ -675,7 +675,6 @@ def conv_forward_fftw_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
                 # print("filters: ", filters)
                 # print("last shape of xfft: ", xfft.shape[-1])
                 # The convolution theorem takes the duration of the response to be the same as the period of the data.
-                # filterfft = np.fft.fft(filters, xfft.shape[-1])
                 filterfft = pyfftw.interfaces.numpy_fft.fft(filters, xfft.shape[-1])
                 # filterfft = np.fft.fft(filters, xfft.shape[-1]*2)
                 # filterfft = filterfft[:filterfft.shape[0] // 2, :filterfft.shape[1] // 2]
@@ -685,7 +684,6 @@ def conv_forward_fftw_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
                 outfft = xfft * filterfft
                 # outfft = np.concatenate(outfft, reversed(outfft))
                 # take the inverse of the output from the frequency domain and return the modules of the complex numbers
-                # outifft = np.fft.ifft(outfft)
                 outifft = pyfftw.interfaces.numpy_fft.ifft(outfft)
                 # out[nn, ff] += np.abs(np.fft.ifft2(xfft * filterfft, (out_H, out_W)))
                 # outdouble = np.array(outifft, np.double)
@@ -694,6 +692,13 @@ def conv_forward_fftw_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
                 if len(out_real) < out_W:
                     out_real = np.pad(out_real, (0, out_W - len(out_real)), 'constant')
                 sum_out += out_real[:out_W]
+
+            # import matplotlib.pyplot as plt
+            # plt.plot(range(0, len(sum_out)), sum_out)
+            # plt.title("cross-correlation output full 1D fft cross-correlation")
+            # plt.xlabel('time')
+            # plt.ylabel('Amplitude')
+            # plt.show()
             # crop the output to the expected shape
             # print("shape of expected resuls: ", out[nn, ff].shape)
             # print("shape of sum_out: ", sum_out.shape)
@@ -744,7 +749,7 @@ def conv_forward_fft_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
     # Do not pad N (0,0) and C (0,0) dimensions, but only the 1D array - the W dimension (pad, pad).
     padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
 
-    # Calculate output spatial dimensions.
+    # Calculate output spatial/time domain dimensions.
     out_W = np.int(((W + 2 * pad - WW) / stride) + 1)
 
     # Initialise the output.
@@ -796,7 +801,7 @@ def conv_forward_fft_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
 
             # import matplotlib.pyplot as plt
             # plt.plot(range(0, len(sum_out)), sum_out)
-            # plt.title("cross-correlation output full")
+            # plt.title("cross-correlation output full 1D fft cross-correlation")
             # plt.xlabel('time')
             # plt.ylabel('Amplitude')
             # plt.show()
@@ -961,7 +966,7 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, preserve_energy_rate=1.0):
     return out, cache
 
 
-def conv_forward_fft_1D_compress_fraction(x, w, b, conv_param, fraction=0.5):
+def conv_forward_fft_1D_compress_fraction(x, w, b, conv_param, back_index=0):
     """
     Arbitrarily compress half of the input signal in the frequency domain.
     Forward pass of 1D convolution.
@@ -995,13 +1000,18 @@ def conv_forward_fft_1D_compress_fraction(x, w, b, conv_param, fraction=0.5):
     N, C, W = x.shape
     F, C, WW = w.shape
 
-    xw_size = W + WW - 1
+    print("size of x: ", W)
+    # xw_size = W + WW - 1
     # The FFT is faster if the input signal is a power of 2.
-    fftsize = 2 ** np.ceil(np.log2(xw_size)).astype(int)
+    # fftsize = 2 ** np.ceil(np.log2(xw_size)).astype(int)
+    fft_size = 1 << (2 * W - 1).bit_length()
+    #fft_size = 2 * W - 1
+    print("fft_size: ", fft_size)
 
     # Zero pad our tensor along the spatial/time domain dimensions.xs
     # Do not pad N (0,0) and C (0,0) dimensions, but only the 1D array - the W dimension (pad, pad).
-    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
+    # padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
+    # padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
 
     # Calculate output spatial dimensions.
     out_W = np.int(((W + 2 * pad - WW) / stride) + 1)
@@ -1014,9 +1024,11 @@ def conv_forward_fft_1D_compress_fraction(x, w, b, conv_param, fraction=0.5):
         for ff in range(F):  # For each filter in w
             sum_out = np.zeros([out_W])
             for cc in range(C):
-                xfft = np.fft.fft(padded_x[nn, cc], fftsize)
+                # xfft = np.fft.fft(padded_x[nn, cc], fft_size)
+                xfft = np.fft.fft(x[nn, cc], fft_size)
                 # print("size of the first xfft: ", xfft.shape)
-                xfft_middle = int(len(xfft) * fraction)
+                # xfft_middle = len(xfft) // 2
+                # xfft_middle = len(xfft)
                 # xfft_power = xfft[0:xfft_middle+1]
                 # squared_abs = np.abs(xfft_power) ** 2
                 # full_energy = np.sum(squared_abs)
@@ -1037,7 +1049,7 @@ def conv_forward_fft_1D_compress_fraction(x, w, b, conv_param, fraction=0.5):
                 # xfft = np.concatenate((np.array(xfft[0:index]), np.array(xfft[xfft_middle:xfft_middle+1]),
                 #                       np.array(xfft[-index + 1:])))
                 # print("size of compressed xfft: ", xfft.shape)
-                xfft = xfft[0:xfft_middle].copy()
+                # xfft = xfft[0:xfft_middle-back_index]
                 # flen = len(xfft) // 2
                 # first_half = xfft[1:flen]
                 # print("xfft first half: ", first_half)
@@ -1062,9 +1074,10 @@ def conv_forward_fft_1D_compress_fraction(x, w, b, conv_param, fraction=0.5):
                 # print("filters: ", filters)
                 # print("last shape of xfft: ", xfft.shape[-1])
                 # The convolution theorem takes the duration of the response to be the same as the period of the data.
-                filterfft = np.fft.fft(filters, fftsize)
-                fmiddle = int(len(filterfft) * fraction)
-                filterfft = filterfft[0:fmiddle]
+                filterfft = np.fft.fft(filters, fft_size)
+                # fmiddle = len(filterfft) // 2
+                # fmiddle = len(filterfft)
+                # filterfft = filterfft[0:fmiddle-back_index]
                 # print("filterfft: ", filterfft)
                 # flen = len(filterfft) // 2
                 # print("filter middle: ", filterfft[flen])
@@ -1094,23 +1107,36 @@ def conv_forward_fft_1D_compress_fraction(x, w, b, conv_param, fraction=0.5):
                 outfft = xfft * filterfft
                 # outfft = np.concatenate(outfft, reversed(outfft))
                 # take the inverse of the output from the frequency domain and return the modules of the complex numbers
-                outfft_W = np.zeros(max(out_W, 2 * len(outfft)))
+                # outfft_W = np.zeros(max(out_W, 2 * len(outfft)))
                 # outfft_W[0:len(outfft)] = np.conj(outfft)
                 # outfft_W[-len(outfft):] = np.conj([x for x in reversed(outfft)])
-                outifft = np.fft.ifft(np.conj([x for x in reversed(outfft)]), out_W)
+                # outifft = np.fft.ifft(np.conj([x for x in reversed(outfft)]), out_W)
+                # fft_combined = np.concatenate((outfft, np.conj(np.flip(outfft, axis=0))))
+                # fft_combined = np.concatenate((np.conj(np.flip(outfft, axis=0)), outfft))
+                # fft_combined = np.concatenate((np.flip(outfft, axis=0), outfft))
+                outifft = np.fft.ifft(outfft)
                 # out[nn, ff] += np.abs(np.fft.ifft2(xfft * filterfft, (out_H, out_W)))
                 # outdouble = np.array(outifft, np.double)
-                out_real = np.real(outifft)
+                # out_size = out_W // 2
+                out = np.concatenate((outifft[-(W - 1):], outifft[:W]))
+                out_real = np.real(out)
+                out_real = out_real[:out_W]
+                # print(out_real.shape)
+                # out = out[:out_W]
+                # out_real = np.concatenate((np.flip(outreal, axis=0), outreal))
+                # x_len = W
+                # out_real = np.concatenate((out_real[-(x_len - 1):], out_real[:x_len]))
                 # out_real = np.abs(outifft)
                 # if len(out_real) < out_W:
                 #     out_real = np.pad(out_real, (0, out_W - len(out_real)), 'constant')
-                sum_out += out_real
-            import matplotlib.pyplot as plt
-            plt.plot(range(0, len(sum_out)), sum_out)
-            plt.title("cross-correlation output compressed")
-            plt.xlabel('time')
-            plt.ylabel('Amplitude')
-            plt.show()
+                # out_real *= 2
+                import matplotlib.pyplot as plt
+                plt.plot(range(0, len(out_real)), out_real)
+                plt.title("cross-correlation output compressed")
+                plt.xlabel('time')
+                plt.ylabel('Amplitude')
+                plt.show()
+                sum_out += out_real[:out_W]
             # crop the output to the expected shape
             # print("shape of expected results: ", out[nn, ff].shape)
             # print("shape of sum_out: ", sum_out.shape)
@@ -1118,6 +1144,104 @@ def conv_forward_fft_1D_compress_fraction(x, w, b, conv_param, fraction=0.5):
 
     cache = (x, w, b, conv_param)
     return out, cache
+
+def _ncc_c(x, y):
+    from numpy.linalg import norm
+    from numpy.fft import fft, ifft
+    """
+    >>> _ncc_c([1,2,3,4], [1,2,3,4])
+    array([ 0.13333333,  0.36666667,  0.66666667,  1.        ,  0.66666667,
+            0.36666667,  0.13333333])
+    >>> _ncc_c([1,1,1], [1,1,1])
+    array([ 0.33333333,  0.66666667,  1.        ,  0.66666667,  0.33333333])
+    >>> _ncc_c([1,2,3], [-1,-1,-1])
+    array([-0.15430335, -0.46291005, -0.9258201 , -0.77151675, -0.46291005])
+    """
+    den = np.array(norm(x) * norm(y))
+    den[den == 0] = np.Inf
+
+    x_len = len(x)
+    fft_size = 1 << (2*x_len-1).bit_length()
+    print("fft_size: ", fft_size)
+    cc = ifft(fft(x, fft_size) * np.conj(fft(y, fft_size)))
+    #print("cc: ", cc)
+    print("cc size: ", len(cc))
+    print("x_len: ", x_len)
+    cc = np.concatenate((cc[-(x_len-1):], cc[:x_len]))
+    return_value = np.real(cc) / den
+    import matplotlib.pyplot as plt
+    plt.plot(range(0, len(return_value)), return_value)
+    plt.title("cross-correlation output _ncc_c")
+    plt.xlabel('time')
+    plt.ylabel('Amplitude')
+    plt.show()
+    return return_value
+
+
+def cross_correlate(x, y):
+    from numpy.linalg import norm
+    from numpy.fft import fft, ifft
+    x_len = len(x)
+    # fft_size = 1 << (2*x_len-1).bit_length()
+    xw_size = len(x) + len(y) - 1
+    # The FFT is faster if the input signal is a power of 2.
+    fft_size = 2 ** np.ceil(np.log2(xw_size)).astype(int)
+    pad = len(y) - 1
+    # pad = 0
+    padded_x = (np.pad(x, (pad, pad), 'constant'))
+    cc = ifft(fft(padded_x, fft_size) * np.conj(fft(y, fft_size)))
+    # cc = np.concatenate((cc[-(x_len-1):], cc[:x_len]))
+    cc = np.real(cc)
+    # Calculate output spatial/time domain dimensions.
+    out_size = len(x) + 2 * pad - len(y) + 1
+    cc = cc[:out_size]
+    import matplotlib.pyplot as plt
+    plt.plot(range(0, len(cc)), cc)
+    plt.title("cross-correlation output cross_correlate")
+    plt.xlabel('time')
+    plt.ylabel('Amplitude')
+    plt.show()
+    return cc
+
+def cross_correlate_test(x, y):
+    from numpy.fft import fft, ifft
+
+    xfft1 = fft(x)
+    xfft2 = fft(x, 2*len(x))
+    pad = len(x)//2
+    padded_x = (np.pad(x, (pad, pad), 'constant'))
+    xfft3 = fft(padded_x)
+    import matplotlib.pyplot as plt
+    # plt.plot(range(0, len(xfft1)), np.abs(xfft1), color="red")
+    plt.plot(range(0, len(xfft2)), np.abs(xfft2), color="blue")
+    plt.plot(range(0, len(xfft3)), np.abs(xfft3), color="green")
+    plt.title("cross-correlation output cross_correlate")
+    plt.xlabel('time')
+    plt.ylabel('Amplitude')
+    plt.show()
+
+    x_len = len(x)
+    # fft_size = 1 << (2*x_len-1).bit_length()
+    xw_size = len(x) + len(y) - 1
+    # The FFT is faster if the input signal is a power of 2.
+    # fft_size = 2 ** np.ceil(np.log2(xw_size)).astype(int)
+    # fft_size =
+    pad = len(y) - 1
+    # pad = 0
+    padded_x = (np.pad(x, (pad, pad), 'constant'))
+    cc = ifft(fft(padded_x, fft_size) * np.conj(fft(y, fft_size)))
+    # cc = np.concatenate((cc[-(x_len-1):], cc[:x_len]))
+    cc = np.real(cc)
+    # Calculate output spatial/time domain dimensions.
+    out_size = len(x) + 2 * pad - len(y) + 1
+    cc = cc[:out_size]
+    import matplotlib.pyplot as plt
+    plt.plot(range(0, len(cc)), cc)
+    plt.title("cross-correlation output cross_correlate")
+    plt.xlabel('time')
+    plt.ylabel('Amplitude')
+    plt.show()
+    return cc
 
 
 def conv_forward_naive_1D(x, w, b, conv_param):
@@ -1179,6 +1303,12 @@ def conv_forward_naive_1D(x, w, b, conv_param):
                     b[ff]
                 # we have a single bias per filter
                 # at the end - sum all the values in the obtained tensor
+    # import matplotlib.pyplot as plt
+    # plt.plot(range(0, len(out[0, 0])), out[0, 0])
+    # plt.title("cross-correlation output direct (naive)")
+    # plt.xlabel('time')
+    # plt.ylabel('Amplitude')
+    # plt.show()
 
     ###########################################################################
     #                             END OF YOUR CODE                            #

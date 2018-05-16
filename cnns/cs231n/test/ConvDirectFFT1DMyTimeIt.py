@@ -1,15 +1,16 @@
 # As usual, a bit of setup
 from __future__ import print_function
 
-from cs231n.layers import *
-# from cs231n.fast_layers import conv_forward_fft
-
 import time
-
-from scipy import signal
 
 import torch
 import torch.nn.functional as F
+from scipy import signal
+
+from cs231n.layers import *
+
+
+# from cs231n.fast_layers import conv_forward_fft
 
 
 def reshape(x):
@@ -54,6 +55,7 @@ elif mode == "full":
 
 exec_number = 10  # number which is the number of executions you'd like to run
 repetitions = 200
+
 
 # decorator - to time the functions with arguments
 def wrapper(func, *args, **kwargs):
@@ -112,8 +114,10 @@ def timeitrep(statement, number=1, repetition=1):
 
 conv_param = {'stride': stride, 'pad': padding}
 # conv_naive_time, result_naive = timeit(conv_naive, number=exec_number)
+x_naive = reshape(x)
+filters_naive = reshape(filters)
 conv_naive_time, (result_naive, _) = timeit(
-    wrapper(conv_forward_naive_1D, reshape(x), reshape(filters), b, conv_param),
+    wrapper(conv_forward_naive_1D, x_naive, filters_naive, b, conv_param),
     number=exec_number)
 print("result naive: ", result_naive)
 print("result naive shape: ", result_naive.shape)
@@ -126,10 +130,13 @@ are_close = np.allclose(result_fft, result_naive)
 print("conv fft time: ", conv_fft_time, ",are close: ", are_close, ", absolute error: ",
       np.sum(np.abs(result_fft - result_naive)), ", relative error: ", rel_error(result_fft, result_naive))
 # print("abs: ", np.abs(result_fft - result_naive))
+
+xtorch_cpu = torch.from_numpy(reshape(x))
+xtorch_filters = torch.from_numpy(reshape(filters))
 torch_time, result_torch = timeitrep(
-            wrapper(F.conv1d, torch.from_numpy(reshape(x)), torch.from_numpy(reshape(filters)), None,
-                    stride, padding, 1, 1),
-            number=exec_number, repetition=repetitions)
+    wrapper(F.conv1d, xtorch_cpu, xtorch_filters, None,
+            stride, padding, 1, 1),
+    number=exec_number, repetition=repetitions)
 result_torch = result_torch.numpy()
 print("torch time: ", torch_time, ", abs error: ", abs_error(result_torch, result_naive))
 
@@ -146,17 +153,18 @@ if torch.cuda.is_available():
     result_torch_gpu = torch.from_numpy(result_torch_gpu)
     result_torch_gpu = result_torch_gpu.to(device=device)
     torch_gpu_time, result_torch_gpu = timeitrep(
-        wrapper(F.conv1d, xtorch_gpu, filterstorch_gpu, None, stride, padding, 1, 1), number=exec_number, repetition=repetitions)
+        wrapper(F.conv1d, xtorch_gpu, filterstorch_gpu, None, stride, padding, 1, 1), number=exec_number,
+        repetition=repetitions)
     result_torch_gpu = result_torch_gpu.to(device=torch.device("cpu")).numpy()
 print("torch gpu time: ", torch_gpu_time, ", abs error: ", abs_error(result_torch_gpu, result_naive))
-                                           
+
 numpy_time, result_numpy = timeit(wrapper(np.correlate, x, filters, mode=mode), number=exec_number)
 print("numpy time: ", numpy_time, ", abs error: ", abs_error(result_numpy, result_naive))
 print("numpy result: ", result_numpy)
 print("numpy result shape: ", result_numpy.shape)
 scipy_time, result_scipy = timeit(wrapper(signal.correlate, x, filters, mode=mode), number=exec_number)
 print("scipy time: ", scipy_time, ", abs error: ", abs_error(result_scipy, result_naive))
-scipy_time, result_scipy = timeit(wrapper(signal.correlate, x, filters, mode=mode), number=exec_number)
+scipy_time, result_scipy = timeit(wrapper(signal.correlate, x, filters, mode=mode, method="direct"), number=exec_number)
 print("scipy time: ", scipy_time, ", abs error: ", abs_error(result_scipy, result_naive))
 scipy_time_fft, result_scipy_fft = timeit(wrapper(signal.correlate, x, filters, mode=mode, method="fft"),
                                           number=exec_number)
@@ -164,9 +172,25 @@ print("scipy time fft: ", scipy_time_fft, ", abs error fft: ", abs_error(result_
 
 with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime()) + ".csv", "w+") as out_file:
     out_file.write(
-        "filter_size, naive time (sec), fft time (sec), fftw time (sec), torch time (sec), numpy time (sec), " +
-        "scipy time (sec), scipy fft time (sec), " +
-        "err naive, err fft, err fftw, err numpy, err scipy, err scipy fft\n")
+        "filter_size, naive time (sec), " +
+        "fft time (sec), " +
+        "fftw time (sec), " +
+        "torch cpu time (sec), " +
+        "torch gpu time (sec), " +
+        "numpy time (sec), " +
+        "scipy direct time (sec), " +
+        "scipy fft time (sec), " +
+        "scipy auto time (sec), " +
+        "err naive, " +
+        "err fft, " +
+        "err fftw, " +
+        "err torch cpu, " +
+        "err torch gpu, " +
+        "err numpy, " +
+        "err scipy direct, " +
+        "err scipy fft, " +
+        "err scipy auto" +
+        "\n")
 
     for filter_size in range(1, input_size):
         print("filter size: ", filter_size)
@@ -177,14 +201,16 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
         elif mode == "full":
             padding = len(filters) - 1
         conv_param = {'stride': stride, 'pad': padding}
+        reshaped_x = reshape(x)
+        reshaped_filters = reshape(filters)
         conv_naive_time, (result_naive, _) = timeitrep(
-            wrapper(conv_forward_naive_1D, reshape(x), reshape(filters), b, conv_param),
+            wrapper(conv_forward_naive_1D, reshaped_x, reshaped_filters, b, conv_param),
             number=exec_number, repetition=repetitions)
         conv_fft_time, (result_fft, _) = timeitrep(
-            wrapper(conv_forward_fft_1D, reshape(x), reshape(filters), b, conv_param),
+            wrapper(conv_forward_fft_1D, reshaped_x, reshaped_filters, b, conv_param),
             number=exec_number, repetition=repetitions)
         conv_fftw_time, (result_fftw, _) = timeitrep(
-            wrapper(conv_forward_fftw_1D, reshape(x), reshape(filters), b, conv_param),
+            wrapper(conv_forward_fftw_1D, reshaped_x, reshaped_filters, b, conv_param),
             number=exec_number, repetition=repetitions)
         xtorch = torch.from_numpy(reshape(x))
         filterstorch = torch.from_numpy(reshape(filters))
@@ -195,12 +221,12 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
         result_torch = result_torch.numpy()
         # be default it is the same timing (cpu, gpu)
         result_torch_gpu = np.zeros(result_torch.shape)
-        result_torch_gpu = torch.from_numpy(result_torch_gpu)
-        result_torch_gpu = result_torch_gpu.to(device=device)
         torch_gpu_time = 0
         # let us run it only if CUDA is available
         if torch.cuda.is_available():
             # creates a LongTensor and transfers it to GPU as torch.cuda.LongTensor
+            result_torch_gpu = torch.from_numpy(result_torch_gpu)
+            result_torch_gpu = result_torch_gpu.to(device=device)
             xtorch_gpu = torch.from_numpy(reshape(x))
             xtorch_gpu = xtorch_gpu.to(device=device)
             filterstorch_gpu = torch.from_numpy(reshape(filters))
@@ -217,9 +243,12 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
         #     number=exec_number, repetition=repetitions)
         numpy_time, result_numpy = timeitrep(wrapper(np.correlate, x, filters, mode=mode), number=exec_number,
                                              repetition=repetitions)
-        scipy_time, result_scipy = timeitrep(wrapper(signal.correlate, x, filters, mode=mode), number=exec_number,
-                                             repetition=repetitions)
+        scipy_direct_time, result_scipy_direct = timeitrep(
+            wrapper(signal.correlate, x, filters, mode=mode, method="direct"),
+            number=exec_number, repetition=repetitions)
         scipy_fft_time, result_scipy_fft = timeitrep(wrapper(signal.correlate, x, filters, mode=mode, method="fft"),
+                                                     number=exec_number, repetition=repetitions)
+        scipy_auto_time, result_auto_fft = timeitrep(wrapper(signal.correlate, x, filters, mode=mode, method="auto"),
                                                      number=exec_number, repetition=repetitions)
         # print("result naive shape: ", result_naive.shape)
         # print("result fft shape: ", result_fft.shape)
@@ -227,9 +256,16 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
         # print("result numpy shape: ", result_numpy.shape)
         # print("result scipy shape: ", result_numpy.shape)
         # print("result scipy fft shape: ", result_scipy_fft.shape)
-        result = [filter_size, conv_naive_time, conv_fft_time, conv_fftw_time, torch_time, torch_gpu_time, numpy_time,
-                  scipy_time,
+        result = [filter_size,
+                  conv_naive_time,
+                  conv_fft_time,
+                  conv_fftw_time,
+                  torch_time,
+                  torch_gpu_time,
+                  numpy_time,
+                  scipy_direct_time,
                   scipy_fft_time,
+                  scipy_auto_time,
                   abs_error(result_naive, result_naive),
                   abs_error(result_naive, result_fft),
                   abs_error(result_naive, result_fftw),
@@ -239,3 +275,4 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
                   abs_error(result_naive, result_scipy),
                   abs_error(result_naive, result_scipy_fft)]
         out_file.write(",".join([str(x) for x in result]) + "\n")
+        out_file.flush()

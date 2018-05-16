@@ -241,3 +241,4 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
                   abs_error(result_naive, result_scipy)]
                   # abs_error(result_naive, result_scipy_fft)]
         out_file.write(",".join([str(x) for x in result]) + "\n")
+        out_file.flush()

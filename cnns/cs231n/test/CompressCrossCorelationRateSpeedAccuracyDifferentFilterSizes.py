@@ -1,9 +1,8 @@
-import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import numpy as np
 from pandas import DataFrame
 
-from cs231n.layers import conv_forward_fft_1D_compress_fraction, conv_forward_fft_1D
+from cs231n.layers import *
+from cs231n.layers import _ncc_c
 from cs231n.load_time_series import load_data
 from cs231n.utils.general_utils import reshape_3d_rest, abs_error
 from cs231n.utils.perf_timing import wrapper, timeitrep
@@ -51,13 +50,25 @@ for filter_size in filter_sizes:
         padding = len(filters) - 1
     conv_param = {'stride': stride, 'pad': padding}
 
-    conv_fft_time, (result_fft, _) = timeitrep(
-        wrapper(conv_forward_fft_1D, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param),
-        number=exec_number, repetition=repetitions)
+    # conv_naive_time, (result_naive, _) = timeitrep(
+    #     wrapper(conv_forward_naive_1D, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param),
+    #     number=exec_number, repetition=repetitions)
+    #
+    # conv_fft_time, (result_fft, _) = timeitrep(
+    #     wrapper(conv_forward_fft_1D, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param),
+    #     number=exec_number, repetition=repetitions)
+
+    # conv_kshape, result_kshape = timeitrep(
+    #     wrapper(cross_correlate, x, filters), number=exec_number, repetition=repetitions)
+
+    conv_kshape, result_kshape = timeitrep(
+        wrapper(cross_correlate_test, x, filters), number=exec_number, repetition=repetitions)
+
+    conv_kshape, result_kshape = timeitrep(
+        wrapper(_ncc_c, x, filters), number=exec_number, repetition=repetitions)
 
     conv_fft_time_compressed_fraction, (result_fft_compressed_fraction, _) = timeitrep(
-        wrapper(conv_forward_fft_1D_compress_fraction, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param,
-                fraction=fraction),
+        wrapper(conv_forward_fft_1D_compress_fraction, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param),
         number=exec_number, repetition=repetitions)
 
     timings.append(conv_fft_time_compressed_fraction / conv_fft_time)
