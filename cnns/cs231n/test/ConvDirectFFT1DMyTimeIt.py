@@ -52,7 +52,8 @@ np.random.seed(231)
 # filters = np.array(full_filter[:filter_size], dtype=np.float64)
 
 num_channels = 1
-input_size = 256
+# input_size = 256
+input_size = 4096
 filter_size = 2
 
 x = np.random.randn(input_size)
@@ -213,8 +214,10 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
         "err scipy fft, " +
         "err scipy auto" +
         "\n")
-
-    for filter_size in range(1, input_size+1):
+    scope = [1]
+    [scope.append(x) for x in range(10, 2001, 10)]
+    print("scope", scope)
+    for filter_size in scope: # input size: input_size+1, 10
         print("filter size: ", filter_size)
         filters = np.random.randn(filter_size)
         # filters = np.array(full_filter[:filter_size], dtype=np.float64)
