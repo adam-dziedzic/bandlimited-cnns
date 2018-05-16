@@ -35,26 +35,26 @@ device = torch.device("cuda")
 
 np.random.seed(231)
 
-# dataset = "Adiac"
-dataset = "50words"
-# dataset = "Herring"
-# dataset = "InlineSkate"
-datasets = load_data(dataset)
+# # dataset = "Adiac"
+# dataset = "50words"
+# # dataset = "Herring"
+# # dataset = "InlineSkate"
+# datasets = load_data(dataset)
+#
+# train_set_x, train_set_y = datasets[0]
+# valid_set_x, valid_set_y = datasets[1]
+# test_set_x, test_set_y = datasets[2]
+#
+# x = train_set_x[0]
+# filter_size = 4
+# full_filter = train_set_x[1]
+# filters = full_filter[:filter_size]
 
-train_set_x, train_set_y = datasets[0]
-valid_set_x, valid_set_y = datasets[1]
-test_set_x, test_set_y = datasets[2]
-
-x = train_set_x[0]
-filter_size = 4
-full_filter = train_set_x[1]
-filters = full_filter[:filter_size]
-
-# num_channels = 1
-# input_size = 256
-# filter_size = 2
-# x = np.random.randn(input_size, input_size)
-# filters = np.random.randn(filter_size, filter_size)
+num_channels = 1
+input_size = 256
+filter_size = 2
+x = np.random.randn(input_size, input_size)
+filters = np.random.randn(filter_size, filter_size)
 
 input_size = len(x)
 
@@ -141,7 +141,7 @@ conv_fft_time, (result_fft, _) = timeit(wrapper(conv_forward_fft, reshape(x), re
                                         number=exec_number)
 
 stanford_time, (result_stanford, _) = timeit(wrapper(conv_forward_fast, reshape(x), reshape(filters), b, conv_param),
-                                        number=exec_number)
+                                             number=exec_number)
 print("stanford time: ", stanford_time, ", abs error: ", abs_error(result_stanford, result_naive))
 
 # print("result_fft: ", result_fft)
@@ -174,11 +174,29 @@ print("scipy time: ", scipy_time, ", abs error: ", abs_error(result_scipy, resul
 
 with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime()) + ".csv", "w+") as out_file:
     out_file.write(
-        "filter_size, naive time (sec), stanford_time (sec), fft time (sec), fftw time (sec), " +
-        "torch time (sec), torch gpu time (sec), scipy time (sec), " +
-        "err naive, err stanford, err fft, err fftw, err scipy\n")
+        "filter_size, "
+        "naive time (sec), " +
+        "stanford time (sec), " +
+        "fft time (sec), " +
+        "fftw time (sec), " +
+        "torch cpu time (sec), " +
+        "torch gpu time (sec), " +
+        "numpy time (sec), " +
+        "scipy direct time (sec), " +
+        "scipy fft time (sec), " +
+        "scipy auto time (sec), " +
+        "err naive, " +
+        "err fft, " +
+        "err fftw, " +
+        "err torch cpu, " +
+        "err torch gpu, " +
+        "err numpy, " +
+        "err scipy direct, " +
+        "err scipy fft, " +
+        "err scipy auto" +
+        "\n")
 
-    for filter_size in range(1, input_size+1):  # input_size
+    for filter_size in range(1, input_size + 1):  # input_size
         print("filter size: ", filter_size)
         filters = np.random.randn(filter_size, filter_size)
         mode = "full"
@@ -227,9 +245,14 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
         #     wrapper(conv_forward_fftw_1D, reshape(x), reshape(filters), b, conv_param),
         #     number=exec_number, repetition=repetitions)
         # numpy_time, result_numpy = timeitrep(wrapper(np.correlate, x, filters, mode=mode), number=exec_number,
-        #                                      repetition=repetitions)
-        scipy_time, result_scipy = timeitrep(wrapper(signal.correlate, x, filters, mode=mode), number=exec_number,
-                                             repetition=repetitions)
+        #
+        #                                  repetition=repetitions)
+        scipy_direct_time, result_scipy_direct = 0, result_naive
+        scipy_fft_time, result_scipy_fft = 0, result_naive
+        scipy_auto_time, result_scipy_auto = timeitrep(wrapper(signal.correlate, x, filters, mode=mode),
+                                                       number=exec_number,
+                                                       repetition=repetitions)
+
         # scipy_fft_time, result_scipy_fft = timeitrep(wrapper(signal.correlate, x, filters, mode=mode, method="fft"),
         #                                              number=exec_number, repetition=repetitions)
         # print("result naive shape: ", result_naive.shape)
@@ -238,24 +261,28 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
         # print("result numpy shape: ", result_numpy.shape)
         # print("result scipy shape: ", result_numpy.shape)
         # print("result scipy fft shape: ", result_scipy_fft.shape)
+        numpy_time, result_numpy = 0, result_naive
         result = [filter_size,
                   conv_naive_time,
-                  conv_stanford_time,
+                  stanford_time,
                   conv_fft_time,
                   conv_fftw_time,
                   torch_time,
                   torch_gpu_time,
-                  # numpy_time,
-                  scipy_time,
-                  # scipy_fft_time,
+                  numpy_time,
+                  scipy_direct_time,
+                  scipy_fft_time,
+                  scipy_auto_time,
                   abs_error(result_naive, result_naive),
                   abs_error(result_naive, result_stanford),
                   abs_error(result_naive, result_fft),
                   abs_error(result_naive, result_fftw),
                   abs_error(result_naive, result_torch),
                   abs_error(result_naive, result_torch_gpu),
-                  # abs_error(result_naive, result_numpy),
-                  abs_error(result_naive, result_scipy)]
-                  # abs_error(result_naive, result_scipy_fft)]
+                  abs_error(result_naive, result_numpy),
+                  abs_error(result_naive, result_scipy_direct),
+                  abs_error(result_naive, result_scipy_fft),
+                  abs_error(result_naive, result_scipy_auto),
+                  ]
         out_file.write(",".join([str(x) for x in result]) + "\n")
         out_file.flush()

@@ -36,7 +36,8 @@ device = torch.device("cuda")
 np.random.seed(231)
 
 # dataset = "Adiac"
-dataset = "50words"
+# dataset = "50words"
+dataset = "HandOutlines"
 # dataset = "Herring"
 # dataset = "InlineSkate"
 datasets = load_data(dataset)
