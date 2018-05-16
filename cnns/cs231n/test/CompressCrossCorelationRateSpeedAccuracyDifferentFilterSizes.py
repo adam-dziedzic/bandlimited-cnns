@@ -61,6 +61,13 @@ for filter_size in filter_sizes:
     # conv_kshape, result_kshape = timeitrep(
     #     wrapper(cross_correlate, x, filters), number=exec_number, repetition=repetitions)
 
+    reshaped_x = reshape_3d_rest(x)
+    reshaped_filters = reshape_3d_rest(filters)
+    conv_fft_time_compressed, (result_fft_compressed, _) = timeitrep(
+        wrapper(conv_forward_fft_1D_compress, reshaped_x, reshaped_filters, b, conv_param,
+                index_back=None),
+        number=exec_number, repetition=repetitions)
+
     conv_kshape, result_kshape = timeitrep(
         wrapper(cross_correlate_test, x, filters), number=exec_number, repetition=repetitions)
 

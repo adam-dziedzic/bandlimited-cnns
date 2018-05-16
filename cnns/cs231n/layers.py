@@ -814,7 +814,7 @@ def conv_forward_fft_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
     return out, cache
 
 
-def conv_forward_fft_1D_compress(x, w, b, conv_param, preserve_energy_rate=1.0):
+def conv_forward_fft_1D_compress(x, w, b, conv_param, index_back=0):
     """
     Forward pass of 1D convolution.
 
@@ -831,8 +831,6 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, preserve_energy_rate=1.0):
       - 'stride': The number of pixels between adjacent receptive fields in the
         horizontal and vertical directions.
       - 'pad': The number of pixels that will be used to zero-pad the input.
-    :param preserve_energy_rate - percentage of energy preserved for the signal in the frequency domain by preserving
-    only a specific number (found in iterative way) of the first Fourier coefficients.
     :return: a tuple of:
      - out: output data, of shape (N, W') where W' is given by:
      W' = 1 + (W + 2*pad - WW) / stride
@@ -857,7 +855,7 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, preserve_energy_rate=1.0):
     # Do not pad N (0,0) and C (0,0) dimensions, but only the 1D array - the W dimension (pad, pad).
     padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
 
-    # Calculate output spatial dimensions.
+    # Calculate output spatial/time domain dimensions.
     out_W = np.int(((W + 2 * pad - WW) / stride) + 1)
 
     # Initialise the output.
@@ -869,49 +867,27 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, preserve_energy_rate=1.0):
             sum_out = np.zeros([out_W])
             for cc in range(C):
                 xfft = np.fft.fft(padded_x[nn, cc], fftsize)
+                import matplotlib.pyplot as plt
+                plt.plot(range(0, len(xfft)), np.abs(xfft))
+                plt.title("cross-correlation output 1D fft cross-correlation compressed xfft 1")
+                plt.xlabel('time')
+                plt.ylabel('Amplitude')
+                plt.show()
                 # print("first xfft: ", xfft)
-                # print("preserve_energy_rate: ", preserve_energy_rate)
-                # fig = plt.figure()
-                # ax1 = fig.add_subplot(111)
-                # x = [x for x in range(len(xfft))]
-                # ax1.xcorr(x, xfft, usevlines=True, maxlags=50, normed=True, lw=2)
-                # ax1.grid(True)
-                # ax1.axhline(0, color='black', lw=2)
-                # plt.show()
-                xfft_middle = len(xfft) // 2
-                xfft_power = xfft[0:xfft_middle + 1]
-                squared_abs = np.abs(xfft_power) ** 2
-                full_energy = np.sum(squared_abs)
-                # we always include the first and the middle coefficients
-                current_energy = squared_abs[0] + squared_abs[xfft_middle]
-                # print("full energy: ", full_energy)
-                preserve_energy = full_energy * preserve_energy_rate
-                index = 1
-                while current_energy < preserve_energy and index < len(squared_abs) - 1:
-                    current_energy += squared_abs[index]
-                    index += 1
-                # print("index: ", index)
-                # print("shape of np.array(xfft[:index]): ", np.array(xfft[:index].shape))
-                # print("shape of np.array(xfft[-index + 1:]): ", np.array(xfft[-index + 1:]).shape)
-                xfft = np.concatenate((np.array(xfft[0:index]), np.array(xfft[xfft_middle:xfft_middle + 1]),
-                                       np.array(xfft[-index + 1:])))
-                # flen = len(xfft) // 2
-                # first_half = xfft[1:flen]
-                # print("xfft first half: ", first_half)
-                # second_half = xfft[flen + 1:]
-                # second_half = np.flip(np.conj(second_half), axis=0)
-                # import matplotlib.pyplot as plt
-                # plt.plot(range(0, len(xfft)), np.abs(xfft))
-                # plt.title("dataset: " + "50words" + ", preserved energy: " + str(preserve_energy_rate))
-                # plt.xlabel('index')
-                # plt.ylabel('Absolute value')
-                # plt.show()
-                # print("are halves close: ", np.allclose(first_half, second_half))
-                # import matplotlib.pyplot as plt
-                # plt.plot(range(0, len(xfft)), np.abs(xfft))
-                # plt.xlabel('index')
-                # plt.ylabel('Absolute value')
-                # plt.show()
+                # xfft = xfft[:len(xfft) // 2]
+                if index_back != None:
+                    index = len(xfft)//2 - index_back
+                    xfft = xfft[0: index]
+                    # squared_abs = np.abs(xfft) ** 2
+                    # full_energy = np.sum(squared_abs)
+                    # current_energy = 0.0
+                    # preserve_energy = full_energy * preserve_energy_rate
+                    # index = 0
+                    # while current_energy < preserve_energy and index < len(squared_abs):
+                    #     current_energy += squared_abs[index]
+                    #     index += 1
+                    # # print("index: ", index)
+                    # xfft = xfft[:index]
                 # print("xfft: ", xfft)
                 # xfft = xfft[:xfft.shape[0] // 2, :xfft.shape[1] // 2]
                 # print("xfft shape: ", xfft.shape)
@@ -919,35 +895,40 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, preserve_energy_rate=1.0):
                 # print("filters: ", filters)
                 # print("last shape of xfft: ", xfft.shape[-1])
                 # The convolution theorem takes the duration of the response to be the same as the period of the data.
-                filterfft = np.fft.fft(filters, xfft.shape[-1])
-                # print("filterfft: ", filterfft)
-                flen = len(filterfft) // 2
-                # print("filter middle: ", filterfft[flen])
-                first_half = filterfft[1:flen]
-                # print("filter first half: ", first_half)
-                second_half = filterfft[flen + 1:]
-                second_half = np.flip(np.conj(second_half), axis=0)
-                # print("filter second half: ", second_half)
-                # print("first half length: ", len(first_half))
-                # print("second half length: ", len(second_half))
-                # print("first coefficient from the first half: ", first_half[0])
-                # print("first coefficient from the second half: ", second_half[0])
-                # print("are first coefficients equal: ", first_half[0] == second_half[0])
-                # print("are halves equal: ", filterfft[1:flen] == second_half)
-                # print("are halves close: ", np.allclose(first_half, second_half))
-                # import matplotlib.pyplot as plt
-                # plt.plot(range(0, len(filterfft)), np.abs(filterfft))
-                # plt.title("filter")
-                # plt.xlabel('index')
-                # plt.ylabel('Absolute value')
-                # plt.show()
+                filterfft = np.fft.fft(filters, fftsize)
+                filterfft = np.conj(filterfft)
+                import matplotlib.pyplot as plt
+                plt.plot(range(0, len(filterfft)), np.abs(filterfft))
+                plt.title("cross-correlation output 1D fft cross-correlation compressed filterfft1")
+                plt.xlabel('time')
+                plt.ylabel('Amplitude')
+                plt.show()
+                if index_back != None:
+                    index = len(filterfft)//2 - index_back
+                    filterfft = filterfft[0: index]
                 # filterfft = np.fft.fft(filters, xfft.shape[-1]*2)
                 # filterfft = filterfft[:filterfft.shape[0] // 2, :filterfft.shape[1] // 2]
                 # filterfft = filterfft[:filterfft.shape[-1] // 2]
                 # print("filterfft: ", filterfft)
-                filterfft = np.conj(filterfft)
+                # filterfft = np.conj(filterfft)
+                if index_back != None:
+                    xfft = np.concatenate((xfft, np.conj(np.flip(xfft, axis=0))))
+                    import matplotlib.pyplot as plt
+                    plt.plot(range(0, len(xfft)), np.abs(xfft))
+                    plt.title("cross-correlation output 1D fft cross-correlation compressed xfft2")
+                    plt.xlabel('time')
+                    plt.ylabel('Amplitude')
+                    plt.show()
+                    filterfft = np.concatenate((filterfft, np.conj(np.flip(filterfft, axis=0))))
+                    import matplotlib.pyplot as plt
+                    plt.plot(range(0, len(filterfft)), np.abs(filterfft))
+                    plt.title("cross-correlation output 1D fft cross-correlation compressed filterfft2")
+                    plt.xlabel('time')
+                    plt.ylabel('Amplitude')
+                    plt.show()
                 outfft = xfft * filterfft
-                # outfft = np.concatenate(outfft, reversed(outfft))
+                # if index_back != 0:
+                #     outfft = np.concatenate((outfft, np.conj(np.flip(outfft, axis=0))))
                 # take the inverse of the output from the frequency domain and return the modules of the complex numbers
                 outifft = np.fft.ifft(outfft)
                 # out[nn, ff] += np.abs(np.fft.ifft2(xfft * filterfft, (out_H, out_W)))
@@ -957,6 +938,13 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, preserve_energy_rate=1.0):
                 if len(out_real) < out_W:
                     out_real = np.pad(out_real, (0, out_W - len(out_real)), 'constant')
                 sum_out += out_real[:out_W]
+
+            import matplotlib.pyplot as plt
+            plt.plot(range(0, len(sum_out)), sum_out)
+            plt.title("cross-correlation output 1D fft cross-correlation compressed")
+            plt.xlabel('time')
+            plt.ylabel('Amplitude')
+            plt.show()
             # crop the output to the expected shape
             # print("shape of expected resuls: ", out[nn, ff].shape)
             # print("shape of sum_out: ", sum_out.shape)
