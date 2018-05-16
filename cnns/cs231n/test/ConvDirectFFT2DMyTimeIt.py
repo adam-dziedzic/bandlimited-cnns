@@ -4,6 +4,8 @@ from __future__ import print_function
 from cs231n.layers import *
 from cs231n.fast_layers import conv_forward_fast
 
+from cs231n.load_time_series import load_data
+
 import time
 
 from scipy import signal
@@ -28,18 +30,33 @@ def abs_error(x, y):
 
 print("timeit: simple direct and FFT convolution for 1D")
 
-cuda_id = 2
-device = torch.device("cuda:2")
+cuda_id = 0
+device = torch.device("cuda")
 
 np.random.seed(231)
 
-num_channels = 1
+# dataset = "Adiac"
+dataset = "50words"
+# dataset = "Herring"
+# dataset = "InlineSkate"
+datasets = load_data(dataset)
 
-input_size = 256
-filter_size = 2
+train_set_x, train_set_y = datasets[0]
+valid_set_x, valid_set_y = datasets[1]
+test_set_x, test_set_y = datasets[2]
 
-x = np.random.randn(input_size, input_size)
-filters = np.random.randn(filter_size, filter_size)
+x = train_set_x[0]
+filter_size = 4
+full_filter = train_set_x[1]
+filters = full_filter[:filter_size]
+
+# num_channels = 1
+# input_size = 256
+# filter_size = 2
+# x = np.random.randn(input_size, input_size)
+# filters = np.random.randn(filter_size, filter_size)
+
+input_size = len(x)
 
 # b = np.random.randn(1)
 b = np.array([0])
@@ -161,7 +178,7 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
         "torch time (sec), torch gpu time (sec), scipy time (sec), " +
         "err naive, err stanford, err fft, err fftw, err scipy\n")
 
-    for filter_size in range(1, input_size):  # input_size
+    for filter_size in range(1, input_size+1):  # input_size
         print("filter size: ", filter_size)
         filters = np.random.randn(filter_size, filter_size)
         mode = "full"
