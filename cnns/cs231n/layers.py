@@ -814,7 +814,7 @@ def conv_forward_fft_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
     return out, cache
 
 
-def conv_forward_fft_1D_compress(x, w, b, conv_param, index_back=0):
+def conv_forward_fft_1D_compress(x, w, b, conv_param, index_back=None, fft_back=0):
     """
     Forward pass of 1D convolution.
 
@@ -848,9 +848,10 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, index_back=0):
     F, C, WW = w.shape
 
     xw_size = W + WW - 1
+    print("xw_size: ", xw_size)
     # The FFT is faster if the input signal is a power of 2.
-    fftsize = 2 ** np.ceil(np.log2(xw_size)).astype(int)
-
+    fftsize = 2 ** np.ceil(np.log2(xw_size)).astype(int) - fft_back
+    print("fftsize: ", fftsize)
     # Zero pad our tensor along the spatial dimensions.
     # Do not pad N (0,0) and C (0,0) dimensions, but only the 1D array - the W dimension (pad, pad).
     padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
@@ -867,17 +868,18 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, index_back=0):
             sum_out = np.zeros([out_W])
             for cc in range(C):
                 xfft = np.fft.fft(padded_x[nn, cc], fftsize)
-                import matplotlib.pyplot as plt
-                plt.plot(range(0, len(xfft)), np.abs(xfft))
-                plt.title("cross-correlation output 1D fft cross-correlation compressed xfft 1")
-                plt.xlabel('time')
-                plt.ylabel('Amplitude')
-                plt.show()
+                # print("xfft length: ", len(xfft))
+                # import matplotlib.pyplot as plt
+                # plt.plot(range(0, len(xfft)), np.abs(xfft))
+                # plt.title("cross-correlation output 1D fft cross-correlation compressed xfft 1")
+                # plt.xlabel('time')
+                # plt.ylabel('Amplitude')
+                # plt.show()
                 # print("first xfft: ", xfft)
                 # xfft = xfft[:len(xfft) // 2]
                 if index_back != None:
-                    index = len(xfft)//2 - index_back
-                    xfft = xfft[0: index]
+                    index = len(xfft) // 2 - index_back
+                    xfft = xfft[0: index + 1]
                     # squared_abs = np.abs(xfft) ** 2
                     # full_energy = np.sum(squared_abs)
                     # current_energy = 0.0
@@ -897,35 +899,38 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, index_back=0):
                 # The convolution theorem takes the duration of the response to be the same as the period of the data.
                 filterfft = np.fft.fft(filters, fftsize)
                 filterfft = np.conj(filterfft)
-                import matplotlib.pyplot as plt
-                plt.plot(range(0, len(filterfft)), np.abs(filterfft))
-                plt.title("cross-correlation output 1D fft cross-correlation compressed filterfft1")
-                plt.xlabel('time')
-                plt.ylabel('Amplitude')
-                plt.show()
+                # import matplotlib.pyplot as plt
+                # plt.plot(range(0, len(filterfft)), np.abs(filterfft))
+                # plt.title("cross-correlation output 1D fft cross-correlation compressed filterfft1")
+                # plt.xlabel('time')
+                # plt.ylabel('Amplitude')
+                # plt.show()
                 if index_back != None:
-                    index = len(filterfft)//2 - index_back
-                    filterfft = filterfft[0: index]
+                    index = len(filterfft) // 2 - index_back
+                    filterfft = filterfft[0: index + 1]
                 # filterfft = np.fft.fft(filters, xfft.shape[-1]*2)
                 # filterfft = filterfft[:filterfft.shape[0] // 2, :filterfft.shape[1] // 2]
                 # filterfft = filterfft[:filterfft.shape[-1] // 2]
                 # print("filterfft: ", filterfft)
                 # filterfft = np.conj(filterfft)
                 if index_back != None:
-                    xfft = np.concatenate((xfft, np.conj(np.flip(xfft, axis=0))))
-                    import matplotlib.pyplot as plt
-                    plt.plot(range(0, len(xfft)), np.abs(xfft))
-                    plt.title("cross-correlation output 1D fft cross-correlation compressed xfft2")
-                    plt.xlabel('time')
-                    plt.ylabel('Amplitude')
-                    plt.show()
-                    filterfft = np.concatenate((filterfft, np.conj(np.flip(filterfft, axis=0))))
-                    import matplotlib.pyplot as plt
-                    plt.plot(range(0, len(filterfft)), np.abs(filterfft))
-                    plt.title("cross-correlation output 1D fft cross-correlation compressed filterfft2")
-                    plt.xlabel('time')
-                    plt.ylabel('Amplitude')
-                    plt.show()
+                    xfft = np.concatenate((xfft, np.conj(np.flip(xfft[1:-1], axis=0))))
+                    filterfft = np.concatenate((filterfft, np.conj(np.flip(filterfft[1:-1], axis=0))))
+                    print("size of reconstructed xfft: ", len(xfft))
+                    # import matplotlib.pyplot as plt
+                    # plt.plot(range(0, len(xfft)), np.abs(xfft))
+                    # plt.title("reconstructed xfft")
+                    # plt.xlabel('time')
+                    # plt.ylabel('Amplitude')
+                    # plt.show()
+                    #
+                    # import matplotlib.pyplot as plt
+                    # plt.plot(range(0, len(filterfft)), np.abs(filterfft))
+                    # plt.title("reconstructed filterfft")
+                    # plt.xlabel('time')
+                    # plt.ylabel('Amplitude')
+                    # plt.show()
+
                 outfft = xfft * filterfft
                 # if index_back != 0:
                 #     outfft = np.concatenate((outfft, np.conj(np.flip(outfft, axis=0))))
@@ -939,12 +944,12 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, index_back=0):
                     out_real = np.pad(out_real, (0, out_W - len(out_real)), 'constant')
                 sum_out += out_real[:out_W]
 
-            import matplotlib.pyplot as plt
-            plt.plot(range(0, len(sum_out)), sum_out)
-            plt.title("cross-correlation output 1D fft cross-correlation compressed")
-            plt.xlabel('time')
-            plt.ylabel('Amplitude')
-            plt.show()
+            # import matplotlib.pyplot as plt
+            # plt.plot(range(0, len(sum_out)), sum_out)
+            # plt.title("cross-correlation output 1D fft cross-correlation compressed")
+            # plt.xlabel('time')
+            # plt.ylabel('Amplitude')
+            # plt.show()
             # crop the output to the expected shape
             # print("shape of expected resuls: ", out[nn, ff].shape)
             # print("shape of sum_out: ", sum_out.shape)
@@ -993,7 +998,7 @@ def conv_forward_fft_1D_compress_fraction(x, w, b, conv_param, back_index=0):
     # The FFT is faster if the input signal is a power of 2.
     # fftsize = 2 ** np.ceil(np.log2(xw_size)).astype(int)
     fft_size = 1 << (2 * W - 1).bit_length()
-    #fft_size = 2 * W - 1
+    # fft_size = 2 * W - 1
     print("fft_size: ", fft_size)
 
     # Zero pad our tensor along the spatial/time domain dimensions.xs
@@ -1133,6 +1138,7 @@ def conv_forward_fft_1D_compress_fraction(x, w, b, conv_param, back_index=0):
     cache = (x, w, b, conv_param)
     return out, cache
 
+
 def _ncc_c(x, y):
     from numpy.linalg import norm
     from numpy.fft import fft, ifft
@@ -1149,13 +1155,13 @@ def _ncc_c(x, y):
     den[den == 0] = np.Inf
 
     x_len = len(x)
-    fft_size = 1 << (2*x_len-1).bit_length()
+    fft_size = 1 << (2 * x_len - 1).bit_length()
     print("fft_size: ", fft_size)
     cc = ifft(fft(x, fft_size) * np.conj(fft(y, fft_size)))
-    #print("cc: ", cc)
+    # print("cc: ", cc)
     print("cc size: ", len(cc))
     print("x_len: ", x_len)
-    cc = np.concatenate((cc[-(x_len-1):], cc[:x_len]))
+    cc = np.concatenate((cc[-(x_len - 1):], cc[:x_len]))
     return_value = np.real(cc) / den
     import matplotlib.pyplot as plt
     plt.plot(range(0, len(return_value)), return_value)
@@ -1191,12 +1197,13 @@ def cross_correlate(x, y):
     plt.show()
     return cc
 
+
 def cross_correlate_test(x, y):
     from numpy.fft import fft, ifft
 
     xfft1 = fft(x)
-    xfft2 = fft(x, 2*len(x))
-    pad = len(x)//2
+    xfft2 = fft(x, 2 * len(x))
+    pad = len(x) // 2
     padded_x = (np.pad(x, (pad, pad), 'constant'))
     xfft3 = fft(padded_x)
     import matplotlib.pyplot as plt
@@ -1209,7 +1216,7 @@ def cross_correlate_test(x, y):
     plt.show()
 
     x_len = len(x)
-    # fft_size = 1 << (2*x_len-1).bit_length()
+    fft_size = 1 << (2 * x_len - 1).bit_length()
     xw_size = len(x) + len(y) - 1
     # The FFT is faster if the input signal is a power of 2.
     # fft_size = 2 ** np.ceil(np.log2(xw_size)).astype(int)

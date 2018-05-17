@@ -20,12 +20,13 @@ valid_set_x, valid_set_y = datasets[1]
 test_set_x, test_set_y = datasets[2]
 
 x = train_set_x[0]
+print("input size: ", len(x))
 filter_size = 4
 full_filter = train_set_x[1]
 filters = full_filter[:filter_size]
 # filters = np.random.randn(filter_size)
 
-repetitions = 20
+repetitions = 1
 exec_number = 1
 
 b = np.array([0])
@@ -50,9 +51,10 @@ for filter_size in filter_sizes:
         padding = len(filters) - 1
     conv_param = {'stride': stride, 'pad': padding}
 
-    # conv_naive_time, (result_naive, _) = timeitrep(
-    #     wrapper(conv_forward_naive_1D, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param),
-    #     number=exec_number, repetition=repetitions)
+    conv_naive_time, (result_naive, _) = timeitrep(
+
+        wrapper(conv_forward_naive_1D, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param),
+        number=exec_number, repetition=repetitions)
     #
     # conv_fft_time, (result_fft, _) = timeitrep(
     #     wrapper(conv_forward_fft_1D, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param),
@@ -60,13 +62,14 @@ for filter_size in filter_sizes:
 
     # conv_kshape, result_kshape = timeitrep(
     #     wrapper(cross_correlate, x, filters), number=exec_number, repetition=repetitions)
-
-    reshaped_x = reshape_3d_rest(x)
-    reshaped_filters = reshape_3d_rest(filters)
-    conv_fft_time_compressed, (result_fft_compressed, _) = timeitrep(
-        wrapper(conv_forward_fft_1D_compress, reshaped_x, reshaped_filters, b, conv_param,
-                index_back=None),
-        number=exec_number, repetition=repetitions)
+    for fft_back in range(0, 1):
+        reshaped_x = reshape_3d_rest(x)
+        reshaped_filters = reshape_3d_rest(filters)
+        conv_fft_time_compressed, (result_fft_compressed, _) = timeitrep(
+            wrapper(conv_forward_fft_1D_compress, reshaped_x, reshaped_filters, b, conv_param,
+                    fft_back=fft_back, index_back=None),
+            number=exec_number, repetition=repetitions)
+        print("index_back: ", fft_back, "error: ", abs_error(result_naive, result_fft_compressed))
 
     conv_kshape, result_kshape = timeitrep(
         wrapper(cross_correlate_test, x, filters), number=exec_number, repetition=repetitions)
