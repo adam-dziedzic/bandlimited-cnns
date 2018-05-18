@@ -2,6 +2,7 @@ import matplotlib.patches as mpatches
 from pandas import DataFrame
 
 from cs231n.layers import *
+from cs231n.layers_old import *
 from cs231n.load_time_series import load_data
 from cs231n.utils.general_utils import reshape_3d_rest, abs_error
 from cs231n.utils.perf_timing import wrapper, timeitrep

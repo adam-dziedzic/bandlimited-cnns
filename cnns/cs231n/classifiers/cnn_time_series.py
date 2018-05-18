@@ -20,7 +20,7 @@ class ThreeLayerConvNetTimeSeries(object):
     def __init__(self, input_dim=(3, 32, 32), num_filters=32, filter_size=7,
                  hidden_dim=100, num_classes=10, weight_scale=1e-3, reg=0.0,
                  dtype=np.float32, filter_channels=3, pad_convolution=None, stride_convolution=2,
-                 pool_stride = 2):
+                 pool_stride=2, pool_width=2):
         """
         Initialize a new network.
 
@@ -61,9 +61,10 @@ class ThreeLayerConvNetTimeSeries(object):
         self.params['W1'] = np.random.normal(0, weight_scale, [num_filters, filter_channels, filter_size, filter_size])
         self.params['b1'] = np.zeros([num_filters])
         dim_width_conv =  (1 + (W + 2 * self.pad_convolution - filter_size) // self.stride_convolution)
-        dim_width_pool = dim_width_conv // pool_stride
-        
-        self.params['W2'] = np.random.normal(0, weight_scale, [max(1,np.int(H/2))*(dim_width_pool)*num_filters, hidden_dim])
+        # Calculate output spatial dimensions of the output of max pool.
+        dim_width_pool = np.int(((dim_width_conv - pool_width) // pool_stride) + 1)
+
+        self.params['W2'] = np.random.normal(0, weight_scale, [dim_width_pool * num_filters, hidden_dim])
         #self.params['W2'] = np.random.normal(0, weight_scale, [np.int(H/2)*np.int(W/2)*num_filters, hidden_dim])
         #print("shape of W2: ", self.params['W2'].shape)
         self.params['b2'] = np.zeros([hidden_dim])
@@ -96,7 +97,7 @@ class ThreeLayerConvNetTimeSeries(object):
         conv_param = {'stride': self.stride_convolution, 'pad': self.pad_convolution}
 
         # pass pool_param to the forward pass for the max-pooling layer
-        pool_param = {'pool_height': 2, 'pool_width': 2, 'stride': 2}
+        pool_param = {'pool_width': 2, 'stride': 2}
 
         scores = None
         ############################################################################

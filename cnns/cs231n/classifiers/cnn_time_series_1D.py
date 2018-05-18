@@ -12,15 +12,15 @@ class ThreeLayerConvNetTimeSeries(object):
 
     conv - relu - 2x2 max pool - affine - relu - affine - softmax
 
-    The network operates on minibatches of data that have shape (N, C, H, W)
-    consisting of N images, each with height H and width W and with C input
+    The network operates on minibatches of data that have shape (N, C, W)
+    consisting of N images, each transformed to an array of W values with C input
     channels.
     """
 
-    def __init__(self, input_dim=(3, 32, 32), num_filters=32, filter_size=7,
+    def __init__(self, input_dim=(3, 1024), num_filters=32, filter_size=49,
                  hidden_dim=100, num_classes=10, weight_scale=1e-3, reg=0.0,
-                 dtype=np.float32, filter_channels=3, pad_convolution=None, stride_convolution=2,
-                 pool_stride=2):
+                 dtype=np.float32, filter_channels=3, pad_convolution=None,
+                 stride_convolution=1, pool_stride=2, pool_width=2):
         """
         Initialize a new network.
 
@@ -50,21 +50,22 @@ class ThreeLayerConvNetTimeSeries(object):
         # of the output affine layer.                                              #
         ############################################################################
 
-        C, H, W = input_dim
+        C, W = input_dim
         self.stride_convolution = stride_convolution
         if pad_convolution is None:
             self.pad_convolution = (filter_size - 1) // 2
         else:
             self.pad_convolution = pad_convolution
         self.pool_stride = pool_stride
+        self.pool_width = pool_width
 
         self.params['W1'] = np.random.normal(0, weight_scale, [num_filters, filter_channels, filter_size])
         self.params['b1'] = np.zeros([num_filters])
         dim_width_conv = (1 + (W + 2 * self.pad_convolution - filter_size) // self.stride_convolution)
-        dim_width_pool = dim_width_conv // pool_stride
+        dim_width_pool = np.int(((dim_width_conv - pool_width) // pool_stride) + 1)
 
         self.params['W2'] = np.random.normal(0, weight_scale,
-                                             [max(1, np.int(H / 2)) * (dim_width_pool) * num_filters, hidden_dim])
+                                             [dim_width_pool * num_filters, hidden_dim])
         # self.params['W2'] = np.random.normal(0, weight_scale, [np.int(H/2)*np.int(W/2)*num_filters, hidden_dim])
         # print("shape of W2: ", self.params['W2'].shape)
         self.params['b2'] = np.zeros([hidden_dim])
@@ -95,7 +96,7 @@ class ThreeLayerConvNetTimeSeries(object):
         conv_param = {'stride': self.stride_convolution, 'pad': self.pad_convolution}
 
         # pass pool_param to the forward pass for the max-pooling layer
-        pool_param = {'pool_height': 2, 'pool_width': 2, 'stride': 2}
+        pool_param = {'pool_width': self.pool_width, 'stride': self.pool_stride}
 
         scores = None
         ############################################################################
