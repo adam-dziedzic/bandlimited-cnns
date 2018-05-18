@@ -2,7 +2,6 @@ import matplotlib.patches as mpatches
 from pandas import DataFrame
 
 from cs231n.layers import *
-from cs231n.layers import _ncc_c
 from cs231n.load_time_series import load_data
 from cs231n.utils.general_utils import reshape_3d_rest, abs_error
 from cs231n.utils.perf_timing import wrapper, timeitrep
@@ -51,17 +50,50 @@ for filter_size in filter_sizes:
         padding = len(filters) - 1
     conv_param = {'stride': stride, 'pad': padding}
 
-    conv_naive_time, (result_naive, _) = timeitrep(
+    conv_compressed, (result_compressed, _) = timeitrep(
+        wrapper(conv_forward_fft_1D_compress, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param,
+                index_back=250),
+        number=exec_number, repetition=repetitions)
 
+    conv_naive_time, (result_naive, _) = timeitrep(
         wrapper(conv_forward_naive_1D, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param),
         number=exec_number, repetition=repetitions)
-    #
-    # conv_fft_time, (result_fft, _) = timeitrep(
-    #     wrapper(conv_forward_fft_1D, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param),
-    #     number=exec_number, repetition=repetitions)
 
-    # conv_kshape, result_kshape = timeitrep(
-    #     wrapper(cross_correlate, x, filters), number=exec_number, repetition=repetitions)
+    xfft2 = result_compressed[0][0]
+    xfft3 = result_naive[0][0]
+
+    from scipy.stats.mstats import zscore
+
+    xfft2 = zscore(xfft2)
+    xfft3 = zscore(xfft3)
+
+    import matplotlib.pyplot as plt
+
+    # plt.plot(range(0, len(xfft1)), np.abs(xfft1), color="red")
+    plt.plot(range(0, len(xfft2)), xfft2, color="blue")
+    plt.plot(range(0, len(xfft3)), xfft3, color="green")
+    plt.title("cross-correlation output: naive (green) vs. compressed (blue)")
+    plt.xlabel('time')
+    plt.ylabel('Amplitude')
+    plt.show()
+
+    print("abs error naive compressed: ", abs_error(xfft2, xfft3))
+
+    conv_kshape, result_john = timeitrep(
+        wrapper(cross_corelate_john, x, filters, padding), number=exec_number, repetition=repetitions)
+
+    conv_fft_time, result_adam = timeitrep(
+        wrapper(cross_correlate_adam, x, filters, padding), number=exec_number, repetition=repetitions)
+
+    print("abs error john adam: ", abs_error(result_john, result_adam))
+
+    conv_kshape, result_kshape = timeitrep(
+        wrapper(cross_correlate, x, filters), number=exec_number, repetition=repetitions)
+
+    conv_naive_time, (result_naive, _) = timeitrep(
+        wrapper(conv_forward_naive_1D, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param),
+        number=exec_number, repetition=repetitions)
+
     for fft_back in range(0, 1):
         reshaped_x = reshape_3d_rest(x)
         reshaped_filters = reshape_3d_rest(filters)
