@@ -5,6 +5,7 @@ import pyfftw
 from numpy.fft import fft, ifft
 from numpy.linalg import norm
 
+
 def affine_forward(x, w, b):
     """
     Computes the forward pass for an affine (fully-connected) layer.
@@ -815,6 +816,74 @@ def conv_forward_fft_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
     return out, cache
 
 
+def conv_forward_fft_1D_compress_optimized(x, w, b, conv_param, index_back=10):
+    """
+    Forward pass of 1D convolution.
+
+    The input consists of N data points with each data point representing a time-series of length W.
+
+    We also have the notion of channels in the 1-D convolution. We want to use more than a single filter even for the
+    input time-series, so the output is a batch with the same size but the number of output channels is equal to the
+    number of input filters.
+
+    :param x: Input data of shape (N, C, W)
+    :param w: Filter weights of shape (F, C, WW)
+    :param b: biases, of shape (F,)
+    :param conv_param: A dictionary with the following keys:
+      - 'stride': The number of pixels between adjacent receptive fields in the
+        horizontal and vertical directions.
+      - 'pad': The number of pixels that will be used to zero-pad the input.
+    :return: a tuple of:
+     - out: output data, of shape (N, W') where W' is given by:
+     W' = 1 + (W + 2*pad - WW) / stride
+     - cache: (x, w, b, conv_param)
+
+     :see:  source: https://stackoverflow.com/questions/40703751/using-fourier-transforms-to-do-convolution?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+     short: https://goo.gl/GwyhXz
+    """
+    # Grab conv parameters
+    pad = conv_param.get('pad')
+    stride = conv_param.get('stride')
+    if stride != 1:
+        raise Exception("convolution via fft can have stride only 1, but given: " + str(stride))
+    N, C, W = x.shape
+    F, C, WW = w.shape
+    xw_size = W + WW - 1
+    # The FFT is faster if the input signal is a power of 2.
+    fftsize = 2 ** np.ceil(np.log2(xw_size)).astype(int)
+    # Zero pad our tensor along the spatial dimensions.
+    # Do not pad N (0,0) and C (0,0) dimensions, but only the 1D array - the W dimension (pad, pad).
+    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
+    # Calculate output spatial/time domain dimensions.
+    out_W = W + 2 * pad - WW + 1
+    # Initialise the output.
+    out = np.zeros([N, F, out_W])
+    for nn in range(N):  # For each time-series in the input batch.
+        for ff in range(F):  # For each filter in w
+            sum_out = np.zeros([out_W])
+            for cc in range(C):
+                xfft = fft(padded_x[nn, cc], fftsize)
+                wfft = fft(w[ff, cc], fftsize)
+                if index_back != None:
+                    xfft = xfft[0:len(xfft) // 2]
+                    xfft = xfft[0:-index_back]
+                    wfft = wfft[0: len(wfft) // 2]
+                    wfft = wfft[0:-index_back]
+                wfft = np.conj(wfft)
+                outfft = xfft * wfft
+                outfft = np.pad(outfft, (0, fftsize - len(outfft)), 'constant')
+                outifft = ifft(outfft)
+                out_real = np.real(outifft)
+                if len(out_real) < out_W:
+                    out_real = np.pad(out_real, (0, out_W - len(out_real)), 'constant')
+                # we discarded half of the signal & probably close to zero coefficients so regain energy * 2
+                sum_out += out_real[:out_W] * 2
+            out[nn, ff] = sum_out + b[ff]
+
+    cache = (x, w, b, conv_param)
+    return out, cache
+
+
 def conv_forward_fft_1D_compress(x, w, b, conv_param, index_back=10, fft_back=0):
     """
     Forward pass of 1D convolution.
@@ -936,6 +1005,9 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, index_back=10, fft_back=0)
                 # plt.ylabel('Amplitude')
                 # plt.show()
 
+                # xfft = xfft / norm(xfft)
+                # filterfft = filterfft / norm(filterfft)
+
                 outfft = xfft * filterfft
                 # if index_back != 0:
                 #     outfft = np.concatenate((outfft, np.conj(np.flip(outfft, axis=0))))
@@ -951,7 +1023,8 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, index_back=10, fft_back=0)
                 # out_real = np.abs(outifft)
                 if len(out_real) < out_W:
                     out_real = np.pad(out_real, (0, out_W - len(out_real)), 'constant')
-                out_real = out_real[:out_W]
+                # we cut off half of the signal and discarded some probably close to zero coefficients
+                out_real = out_real[:out_W] * 2
                 import matplotlib.pyplot as plt
                 plt.plot(range(0, len(out_real)), out_real)
                 plt.title("cross-correlation compressed")
@@ -1359,12 +1432,12 @@ def conv_forward_naive_1D(x, w, b, conv_param):
                     b[ff]
                 # we have a single bias per filter
                 # at the end - sum all the values in the obtained tensor
-    import matplotlib.pyplot as plt
-    plt.plot(range(0, len(out[0, 0])), out[0, 0])
-    plt.title("cross-correlation output direct (naive)")
-    plt.xlabel('time')
-    plt.ylabel('Amplitude')
-    plt.show()
+    # import matplotlib.pyplot as plt
+    # plt.plot(range(0, len(out[0, 0])), out[0, 0])
+    # plt.title("cross-correlation output direct (naive)")
+    # plt.xlabel('time')
+    # plt.ylabel('Amplitude')
+    # plt.show()
 
     ###########################################################################
     #                             END OF YOUR CODE                            #

@@ -51,8 +51,8 @@ for filter_size in filter_sizes:
     conv_param = {'stride': stride, 'pad': padding}
 
     conv_compressed, (result_compressed, _) = timeitrep(
-        wrapper(conv_forward_fft_1D_compress, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param,
-                index_back=250),
+        wrapper(conv_forward_fft_1D_compress_optimized, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param,
+                index_back=50),
         number=exec_number, repetition=repetitions)
 
     conv_naive_time, (result_naive, _) = timeitrep(
@@ -62,10 +62,14 @@ for filter_size in filter_sizes:
     xfft2 = result_compressed[0][0]
     xfft3 = result_naive[0][0]
 
+    # print("xfft2/xfft3: ", xfft2/xfft3)
+
+    print("abs error naive compressed raw: ", abs_error(xfft2, xfft3))
+
     from scipy.stats.mstats import zscore
 
-    xfft2 = zscore(xfft2)
-    xfft3 = zscore(xfft3)
+    # xfft2 = zscore(xfft2)
+    # xfft3 = zscore(xfft3)
 
     import matplotlib.pyplot as plt
 
@@ -77,7 +81,7 @@ for filter_size in filter_sizes:
     plt.ylabel('Amplitude')
     plt.show()
 
-    print("abs error naive compressed: ", abs_error(xfft2, xfft3))
+    print("abs error naive compressed after zscore: ", abs_error(xfft2, xfft3))
 
     conv_kshape, result_john = timeitrep(
         wrapper(cross_corelate_john, x, filters, padding), number=exec_number, repetition=repetitions)
