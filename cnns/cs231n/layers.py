@@ -815,6 +815,33 @@ def conv_forward_fft_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
     cache = (x, w, b, conv_param)
     return out, cache
 
+
+def convolve1D_fft(x, w, fftsize, preserve_energy_rate=1.0):
+    xfft = np.fft.fft(x, fftsize)
+    filterfft = np.fft.fft(w, fftsize)
+    half_fftsize = fftsize // 2
+    xfft = xfft[0:half_fftsize]
+    filterfft = filterfft[0:half_fftsize]
+    if preserve_energy_rate < 1.0:
+        squared_abs = np.abs(xfft) ** 2
+        full_energy = np.sum(squared_abs)
+        current_energy = 0.0
+        preserve_energy = full_energy * preserve_energy_rate
+        index = 0
+        while current_energy < preserve_energy and index < len(squared_abs):
+            current_energy += squared_abs[index]
+            index += 1
+        # print("preserved energy rate: ", preserve_energy_rate, " compression rate: ", 1 - index / fftsize)
+        xfft = xfft[:index]
+        filterfft = filterfft[:index]
+    filterfft = np.conj(filterfft)
+    outfft = xfft * filterfft
+    outfft = np.pad(outfft, (0, fftsize - len(outfft)), 'constant')
+    outifft = np.fft.ifft(outfft)
+    out_real = np.real(outifft) * 2
+    return out_real
+
+
 def conv_forward_fft_1D_compress_compare(x, w, b, conv_param, preserve_energy_rate=1.0):
     """
     Forward pass of 1D convolution.
@@ -840,80 +867,25 @@ def conv_forward_fft_1D_compress_compare(x, w, b, conv_param, preserve_energy_ra
      :see:  source: https://stackoverflow.com/questions/40703751/using-fourier-transforms-to-do-convolution?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
      short: https://goo.gl/GwyhXz
     """
-    # Grab conv parameters
-    # print("conv_param: ", conv_param)
     pad = conv_param.get('pad')
-
+    stride = conv_param.get('stride')
+    if stride != 1:
+        raise ValueError("convolution via fft can have stride only 1, but given: " + str(stride))
     N, C, W = x.shape
     F, C, WW = w.shape
-
     xw_size = W + WW - 1
-    # The FFT is faster if the input signal is a power of 2.
     fftsize = 2 ** np.ceil(np.log2(xw_size)).astype(int)
-    # print("fftsize my cross-correlation: ", fftsize)
-    half_fftsize = fftsize // 2
-    # Zero pad our tensor along the spatial dimensions.
-    # Do not pad N (0,0) and C (0,0) dimensions, but only the 1D array - the W dimension (pad, pad).
     padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
-
-    # Calculate output spatial/time domain dimensions.
     out_W = W + 2 * pad - WW + 1
-
-    # Initialise the output.
     out = np.zeros([N, F, out_W])
-
-    # Naive convolution loop.
     for nn in range(N):  # For each time-series in the input batch.
         for ff in range(F):  # For each filter in w
-            sum_out = np.zeros([out_W])
             for cc in range(C):
-                xfft = np.fft.fft(padded_x[nn, cc], fftsize)
-                filterfft = np.fft.fft(w[ff, cc], xfft.shape[-1])
-                xfft = xfft[0:half_fftsize]
-                filterfft = filterfft[0:half_fftsize]
-                if preserve_energy_rate < 1.0:
-                    squared_abs = np.abs(xfft) ** 2
-                    full_energy = np.sum(squared_abs)
-                    current_energy = 0.0
-                    preserve_energy = full_energy * preserve_energy_rate
-                    index = 0
-                    while current_energy < preserve_energy and index < len(squared_abs):
-                        current_energy += squared_abs[index]
-                        index += 1
-                    print("preserved energy rate: ", preserve_energy_rate, " compression rate: ", 1-index/fftsize)
-                    xfft = xfft[:index]
-                    filterfft = filterfft[:index]
-                # print("xfft: ", xfft)
-                # xfft = xfft[:xfft.shape[0] // 2, :xfft.shape[1] // 2]
-                # print("xfft shape: ", xfft.shape)
-                # filterfft = np.fft.fft(filters, xfft.shape[-1]*2)
-                # filterfft = filterfft[:filterfft.shape[0] // 2, :filterfft.shape[1] // 2]
-                # filterfft = filterfft[:filterfft.shape[-1] // 2]
-                # print("filterfft: ", filterfft)
-                filterfft = np.conj(filterfft)
-                outfft = xfft * filterfft
-                # outfft = np.concatenate(outfft, reversed(outfft))
-                # take the inverse of the output from the frequency domain and return the modules of the complex numbers
-                outfft = np.pad(outfft, (0, fftsize - len(outfft)), 'constant')
-                outifft = np.fft.ifft(outfft)
-                # out[nn, ff] += np.abs(np.fft.ifft2(xfft * filterfft, (out_H, out_W)))
-                # outdouble = np.array(outifft, np.double)
-                out_real = np.real(outifft) * 2
-                # out_real = np.abs(outifft)
+                out_real = convolve1D_fft(padded_x[nn, cc], w[ff, cc], fftsize)
                 if len(out_real) < out_W:
                     out_real = np.pad(out_real, (0, out_W - len(out_real)), 'constant')
-                sum_out += out_real[:out_W]
-
-            # import matplotlib.pyplot as plt
-            # plt.plot(range(0, len(sum_out)), sum_out)
-            # plt.title("cross-correlation output full 1D fft cross-correlation")
-            # plt.xlabel('time')
-            # plt.ylabel('Amplitude')
-            # plt.show()
-            # crop the output to the expected shape
-            # print("shape of expected resuls: ", out[nn, ff].shape)
-            # print("shape of sum_out: ", sum_out.shape)
-            out[nn, ff] = sum_out + b[ff]
+                out[nn, ff] += out_real[:out_W]
+            out[nn, ff] += b[ff]
 
     cache = (x, w, b, conv_param)
     return out, cache
@@ -970,7 +942,7 @@ def conv_forward_fft_1D_compress_perf(x, w, b, conv_param, index_back=0):
                 xfft = fft(padded_x[nn, cc], fftsize)
                 wfft = fft(w[ff, cc], fftsize)
                 if index_back > 0:
-                    index = half_fftsize-index_back
+                    index = half_fftsize - index_back
                     xfft = xfft[0:index]
                     wfft = wfft[0:index]
                 outfft = xfft * np.conj(wfft)
@@ -1168,6 +1140,8 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, index_back=10, fft_back=0)
     # print("conv_param: ", conv_param)
     pad = conv_param.get('pad')
     stride = conv_param.get('stride')
+    if stride != 1:
+        raise ValueError("convolution via fft requires stride = 1, but given: ", stride)
 
     N, C, W = x.shape
     F, C, WW = w.shape
@@ -1303,6 +1277,7 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, index_back=10, fft_back=0)
     cache = (x, w, b, conv_param)
     return out, cache
 
+
 def conv_forward_numpy_1D(x, w, b, conv_param):
     """
     Forward pass of 1D convolution.
@@ -1328,30 +1303,26 @@ def conv_forward_numpy_1D(x, w, b, conv_param):
     # Grab conv parameters
     # print("conv_param: ", conv_param)
     pad = conv_param.get('pad')
-    if pad == 0:
-        mode = "valid"
-    elif pad == (w.shape[-1] - 1):
-        mode = "full"
-    else:
-        raise Exception("The padding has to be 0 or len(w)-1 for convolution with numpy, but given: ", pad)
     stride = conv_param.get('stride')
     if stride != 1:
-        raise Exception("numpy requires stride = 1, but given: ", stride)
+        raise ValueError("numpy requires stride = 1, but given: ", stride)
 
     N, C, W = x.shape
     F, C, WW = w.shape
 
     # Calculate output spatial dimensions.
-    out_W = W + 2*pad - WW + 1
+    out_W = W + 2 * pad - WW + 1
 
     # Initialise the output.
     out = np.zeros([N, F, out_W])
+
+    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
 
     # Naive convolution loop.
     for nn in range(N):  # For each time-series in the input batch.
         for ff in range(F):  # For each filter in w
             for cc in range(C):
-                out[nn, ff] += np.correlate(x[nn, cc], w[ff, cc], mode=mode)
+                out[nn, ff] += np.correlate(padded_x[nn, cc], w[ff, cc], mode="valid")
             # we have a single bias per filter
             # at the end - sum all the values in the obtained tensor
             out[nn, ff] += b[ff]
@@ -1369,7 +1340,7 @@ def conv_backward_numpy_1D(dout, cache):
 
     Inputs:
     - dout: Upstream derivatives.
-    - cache: A tuple of (x, w, b, conv_param) as in conv_forward_naive
+    - cache: A tuple of (x, w, b, conv_param) as in conv_forward_numpy
 
     Returns a tuple of:
     - dx: Gradient with respect to x
@@ -1380,19 +1351,31 @@ def conv_backward_numpy_1D(dout, cache):
     ###########################################################################
     # TODO: Implement the 1D convolutional backward pass.                     #
     ###########################################################################
-
+    # print("cache: ", cache)
+    # print("dout: ", dout)
     # Grab conv parameters and pad x if needed.
     x, w, b, conv_param = cache
     stride = conv_param.get('stride')
+    if stride != 1:
+        raise ValueError("numpy requires stride = 1, but given: ", stride)
     pad = conv_param.get('pad')
-
 
     N, C, W = x.shape
     F, C, WW = w.shape
     N, F, W_out = dout.shape
 
+    padded_x = np.pad(x, ((0, 0), (0, 0), (pad, pad)), mode='constant')
+
+    # W = padded_out_W - WW + 1; padded_out_W = W + WW - 1; pad_out = W + WW - 1 // 2
+    pad_out = (W + WW - 1 - W_out) // 2
+    # print("pad_out: ", pad_out)
+    if pad_out < 0:
+        padded_dout = dout[:, :, abs(pad_out):pad_out]
+    else:
+        padded_dout = np.pad(dout, ((0, 0), (0, 0), (pad_out, pad_out)), mode='constant')
+
     # Initialise gradient output tensors.
-    dx_temp = np.zeros_like(padded_x)
+    dx = np.zeros_like(x)  # the x used for convolution was with padding
     dw = np.zeros_like(w)
     db = np.zeros_like(b)
 
@@ -1401,31 +1384,105 @@ def conv_backward_numpy_1D(dout, cache):
     for ff in range(F):
         db[ff] += np.sum(dout[:, ff, :])
 
+    # print("padded x: ", padded_x)
+    # print("dout: ", dout)
     # Calculate dw.
     # By chain rule dw is dout*x
     for nn in range(N):
         for ff in range(F):
-            for ii in range(W_out):
-                # dF[i] - gradient for the i-th element of the filter
-                # dO[j] - gradient for the j-th output of the convolution
-                # TS[k] - k-th value of the input time-series
-                # dF = convolution(TS, dO)
-                # Note that the filter value F[0] influenced 0 + (output-length - WW + 1 = out) values
-                # dF[0] = TS[0]*dO[0] + TS[1]*d0[1] + ... + TS[out]*d0[out]
-                # dF[1] = TS[1]*dO[0] + TS[2]*dO[1] + ... + TS[out+1]*d0[out]
-                # the below computation is element at a time for both df[0] and dF[1]:
-                # dF[0:1] += dO[0] * TS[0:1]
-                dw[ff, ...] += dout[nn, ff, ii] * padded_x[nn, :, ii * stride: ii * stride + WW]
+            for cc in range(C):
+                # accumulate gradient for a filter from each channel
+                dw[ff, cc] += np.convolve(padded_x[nn, cc], np.flip(dout[nn, ff], axis=0),
+                                          mode="valid")
 
     # Calculate dx.
     # By chain rule dx is dout*w. We need to make dx same shape as padded x for the gradient calculation.
     for nn in range(N):
         for ff in range(F):
-            for ii in range(W_out):
-                dx_temp[nn, :, ii * stride:ii * stride + WW] += dout[nn, ff, ii] * w[ff, ...]
+            for cc in range(C):
+                # print("dout[nn, ff]: ", dout[nn, ff])
+                # print("dout[nn, ff] shape: ", dout[nn, ff].shape)
+                # print("w[ff, cc]: ", w[ff, cc])
+                # print("w[ff, cc] shape: ", w[ff, cc].shape)
+                dx[nn, cc] += np.convolve(padded_dout[nn, ff], w[ff, cc], mode="valid")
 
-    # Remove the padding from dx so it matches the shape of x.
-    dx = dx_temp[:, :, pad_left: W + pad_right]
+    ###########################################################################
+    #                             END OF YOUR CODE                            #
+    ###########################################################################
+    return dx, dw, db
+
+
+def conv_backward_fft_1D(dout, cache):
+    """
+    An fft-based implementation of the backward pass for a 1D convolutional layer.
+
+    Inputs:
+    - dout: Upstream derivatives.
+    - cache: A tuple of (x, w, b, conv_param) as in conv_forward_numpy
+
+    Returns a tuple of:
+    - dx: Gradient with respect to x
+    - dw: Gradient with respect to w
+    - db: Gradient with respect to b
+    """
+    dx, dw, db = None, None, None
+    ###########################################################################
+    # TODO: Implement the 1D convolutional backward pass.                     #
+    ###########################################################################
+    # print("cache: ", cache)
+    # print("dout: ", dout)
+    # Grab conv parameters and pad x if needed.
+    x, w, b, conv_param = cache
+    stride = conv_param.get('stride')
+    if stride != 1:
+        raise ValueError("fft-based backward pass requires stride = 1, but given: ", stride)
+    pad = conv_param.get('pad')
+
+    N, C, W = x.shape
+    F, C, WW = w.shape
+    N, F, W_out = dout.shape
+
+    padded_x = np.pad(x, ((0, 0), (0, 0), (pad, pad)), mode='constant')
+
+    # W = padded_out_W - WW + 1; padded_out_W = W + WW - 1; pad_out = W + WW - 1 // 2
+    pad_out = (W + WW - 1 - W_out) // 2
+    # print("pad_out: ", pad_out)
+    if pad_out < 0:
+        padded_dout = dout[:, :, abs(pad_out):pad_out]
+    else:
+        padded_dout = np.pad(dout, ((0, 0), (0, 0), (pad_out, pad_out)), mode='constant')
+
+    # Initialise gradient output tensors.
+    dx = np.zeros_like(x)  # the x used for convolution was with padding
+    dw = np.zeros_like(w)
+    db = np.zeros_like(b)
+
+    # Calculate dB.
+    # Just like in the affine layer we sum up all the incoming gradients for each filters bias.
+    for ff in range(F):
+        db[ff] += np.sum(dout[:, ff, :])
+
+    # print("padded x: ", padded_x)
+    # print("dout: ", dout)
+    # Calculate dw.
+    # By chain rule dw is dout*x
+    for nn in range(N):
+        for ff in range(F):
+            for cc in range(C):
+                # accumulate gradient for a filter from each channel
+                dw[ff, cc] += np.convolve(padded_x[nn, cc], np.flip(dout[nn, ff], axis=0),
+                                          mode="valid")
+
+    # Calculate dx.
+    # By chain rule dx is dout*w. We need to make dx same shape as padded x for the gradient calculation.
+    for nn in range(N):
+        for ff in range(F):
+            for cc in range(C):
+                # print("dout[nn, ff]: ", dout[nn, ff])
+                # print("dout[nn, ff] shape: ", dout[nn, ff].shape)
+                # print("w[ff, cc]: ", w[ff, cc])
+                # print("w[ff, cc] shape: ", w[ff, cc].shape)
+                dx[nn, cc] += np.convolve(padded_dout[nn, ff], w[ff, cc], mode="valid")
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -1524,7 +1581,8 @@ def conv_backward_naive_1D(dout, cache):
     ###########################################################################
     # TODO: Implement the 1D convolutional backward pass.                     #
     ###########################################################################
-
+    # print("cache: ", cache)
+    # print("dout: ", dout)
     # Grab conv parameters and pad x if needed.
     x, w, b, conv_param = cache
     stride = conv_param.get('stride')
@@ -1536,6 +1594,7 @@ def conv_backward_naive_1D(dout, cache):
         pad_left = pad[0]
         pad_right = pad[1]
     padded_x = (np.pad(x, ((0, 0), (0, 0), (pad_left, pad_right)), 'constant'))
+    # print("padded x:", padded_x)
 
     N, C, W = x.shape
     F, C, WW = w.shape

@@ -204,6 +204,7 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
         "scipy fft," +
         "scipy auto," +
         "fft compress," +
+        "my numpy," +
         "err naive," +
         "err stanford," +
         "err fft," +
@@ -215,6 +216,7 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
         "err scipy fft," +
         "err scipy auto," +
         "err fft compress," +
+        "err my numpy," + 
         "\n")
     scope = [1]
     [scope.append(x) for x in range(10, 2001, 10)]
@@ -291,6 +293,10 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
                     preserve_energy_rate=0.99),
             number=exec_number, repetition=repetitions)
 
+        conv_my_numpy_time, (result_my_numpy, _) = timeitrep(
+            wrapper(conv_forward_numpy_1D, reshaped_x, reshaped_filters, b, conv_param),
+            number=exec_number, repetition=repetitions)
+
         # print("result naive shape: ", result_naive.shape)
         # print("result fft shape: ", result_fft.shape)
         # print("result torch shape: ", result_torch.shape)
@@ -309,6 +315,7 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
                   scipy_fft_time,
                   scipy_auto_time,
                   conv_compress_time,
+                  conv_my_numpy_time,
                   abs_error(result_naive, result_naive),
                   abs_error(result_naive, result_stanford),
                   abs_error(result_naive, result_fft),
@@ -319,7 +326,8 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
                   abs_error(result_naive, result_scipy_direct),
                   abs_error(result_naive, result_scipy_fft),
                   abs_error(result_naive, result_scipy_auto),
-                  abs_error(result_naive, result_compress)
+                  abs_error(result_naive, result_compress),
+                  abs_error(result_naive, result_my_numpy),
                   ]
         out_file.write(",".join([str(x) for x in result]) + "\n")
         out_file.flush()

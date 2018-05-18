@@ -147,6 +147,17 @@ def conv_relu_pool_forward_numpy_1D(x, w, b, conv_param, pool_param):
     return out, cache
 
 
+def conv_relu_pool_backward_numpy_1D(dout, cache):
+    """
+    Backward pass for the conv-relu-pool convenience layer
+    """
+    conv_cache, relu_cache, pool_cache = cache
+    ds = max_pool_backward_naive_1D(dout, pool_cache)
+    da = relu_backward(ds, relu_cache)
+    dx, dw, db = conv_backward_numpy_1D(da, conv_cache)
+    return dx, dw, db
+
+
 def conv_relu_pool_backward_naive_1D(dout, cache):
     """
     Backward pass for the conv-relu-pool convenience layer
