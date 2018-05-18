@@ -51,9 +51,19 @@ for filter_size in filter_sizes:
     conv_param = {'stride': stride, 'pad': padding}
 
     conv_compressed, (result_compressed, _) = timeitrep(
-        wrapper(conv_forward_fft_1D_compress_optimized, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param,
-                index_back=50),
+        wrapper(conv_forward_fft_1D_compress_compare, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param,
+                preserve_energy_rate=1.0),
         number=exec_number, repetition=repetitions)
+
+    # conv_compressed, (result_compressed, _) = timeitrep(
+    #     wrapper(conv_forward_fft_1D_compress_energy, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param,
+    #             energy_rate=0.9985),
+    #     number=exec_number, repetition=repetitions)
+
+    # conv_compressed, (result_compressed, _) = timeitrep(
+    #     wrapper(conv_forward_fft_1D_compress_perf, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param,
+    #             index_back=100),
+    #     number=exec_number, repetition=repetitions)
 
     conv_naive_time, (result_naive, _) = timeitrep(
         wrapper(conv_forward_naive_1D, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param),

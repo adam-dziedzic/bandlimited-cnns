@@ -192,32 +192,34 @@ print("scipy time fft: ", scipy_time_fft, ", abs error fft: ", abs_error(result_
 
 with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime()) + ".csv", "w+") as out_file:
     out_file.write(
-        "filter_size, "
-        "naive time (sec), " +
-        "stanford time (sec), " +
-        "fft time (sec), " +
-        "fftw time (sec), " +
-        "torch cpu time (sec), " +
-        "torch gpu time (sec), " +
-        "numpy time (sec), " +
-        "scipy direct time (sec), " +
-        "scipy fft time (sec), " +
-        "scipy auto time (sec), " +
-        "err naive, " +
-        "err stanford, " +
-        "err fft, " +
-        "err fftw, " +
-        "err torch cpu, " +
-        "err torch gpu, " +
-        "err numpy, " +
-        "err scipy direct, " +
-        "err scipy fft, " +
-        "err scipy auto" +
+        "filter_size,"
+        "naive," +
+        "stanford," +
+        "fft," +
+        "fftw," +
+        "torch cpu," +
+        "torch gpu," +
+        "numpy," +
+        "scipy direct," +
+        "scipy fft," +
+        "scipy auto," +
+        "fft compress," +
+        "err naive," +
+        "err stanford," +
+        "err fft," +
+        "err fftw," +
+        "err torch cpu," +
+        "err torch gpu," +
+        "err numpy," +
+        "err scipy direct," +
+        "err scipy fft," +
+        "err scipy auto," +
+        "err fft compress," +
         "\n")
     scope = [1]
     [scope.append(x) for x in range(10, 2001, 10)]
     # print("scope", scope)
-    for filter_size in range(1, input_size+1): # input size: input_size+1, 10
+    for filter_size in range(1, input_size + 1):  # input size: input_size+1, 10
         print("filter size: ", filter_size)
         filters = np.random.randn(filter_size)
         # filters = np.array(full_filter[:filter_size], dtype=np.float64)
@@ -278,7 +280,17 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
         scipy_fft_time, result_scipy_fft = timeitrep(wrapper(signal.correlate, x, filters, mode=mode, method="fft"),
                                                      number=exec_number, repetition=repetitions)
         scipy_auto_time, result_scipy_auto = timeitrep(wrapper(signal.correlate, x, filters, mode=mode, method="auto"),
-                                                     number=exec_number, repetition=repetitions)
+                                                       number=exec_number, repetition=repetitions)
+        # conv_compress_time, (result_compress, _) = timeitrep(
+        #     wrapper(conv_forward_fft_1D_compress_perf, reshaped_x, reshaped_filters, b, conv_param,
+        #             index_back=100),
+        #     number=exec_number, repetition=repetitions)
+
+        conv_compress_time, (result_compress, _) = timeitrep(
+            wrapper(conv_forward_fft_1D_compress_compare, reshaped_x, reshaped_filters, b, conv_param,
+                    preserve_energy_rate=0.99),
+            number=exec_number, repetition=repetitions)
+
         # print("result naive shape: ", result_naive.shape)
         # print("result fft shape: ", result_fft.shape)
         # print("result torch shape: ", result_torch.shape)
@@ -296,6 +308,7 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
                   scipy_direct_time,
                   scipy_fft_time,
                   scipy_auto_time,
+                  conv_compress_time,
                   abs_error(result_naive, result_naive),
                   abs_error(result_naive, result_stanford),
                   abs_error(result_naive, result_fft),
@@ -306,6 +319,7 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
                   abs_error(result_naive, result_scipy_direct),
                   abs_error(result_naive, result_scipy_fft),
                   abs_error(result_naive, result_scipy_auto),
+                  abs_error(result_naive, result_compress)
                   ]
         out_file.write(",".join([str(x) for x in result]) + "\n")
         out_file.flush()

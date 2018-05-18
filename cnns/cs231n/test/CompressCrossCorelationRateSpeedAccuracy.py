@@ -1,16 +1,15 @@
-import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import numpy as np
+import matplotlib.pyplot as plt
 from pandas import DataFrame
 
-from cs231n.layers import conv_forward_fft_1D_compress, conv_forward_naive_1D
+from cs231n.layers import *
 from cs231n.load_time_series import load_data
 from cs231n.utils.general_utils import reshape_3d_rest, abs_error
 from cs231n.utils.perf_timing import wrapper, timeitrep
 
 np.random.seed(231)
 
-dataset = "Adiac"
+# dataset = "Adiac"
 dataset = "50words"
 # dataset = "Herring"
 # dataset = "InlineSkate"
@@ -26,12 +25,12 @@ full_filter = train_set_x[1]
 filters = full_filter[:filter_size]
 # filters = np.random.randn(filter_size)
 
-repetitions = 20
+repetitions = 1
 exec_number = 1
 
 b = np.array([0])
 
-rates_raw = [1.0, 0.99999, 0.9999, 0.999, 0.99, 0.98, 0.97, 0.96, 0.95, 0.94, 0.93, 0.90, 0.80, 0.70, 0.60, 0.50, 0.40,
+rates_raw = [1.0, 0.99999, 0.9999, 0.9998, 0.9995, 0.999, 0.995, 0.99, 0.98, 0.97, 0.96, 0.95, 0.94, 0.93, 0.90, 0.80, 0.70, 0.60, 0.50, 0.40,
              0.30, 0.20, 0.10, 0.05]
 # rates_raw = [0.98, 0.30, 0.20, 0.10, 0.05]
 rates = np.array(rates_raw)
@@ -54,7 +53,7 @@ conv_naive_time, (result_naive, _) = timeitrep(
 
 for rate in rates:
     conv_fft_time_compressed, (result_fft, _) = timeitrep(
-        wrapper(conv_forward_fft_1D_compress, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param,
+        wrapper(conv_forward_fft_1D_compress_compare, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param,
                 preserve_energy_rate=rate),
         number=exec_number, repetition=repetitions)
     timings.append(conv_fft_time_compressed)
