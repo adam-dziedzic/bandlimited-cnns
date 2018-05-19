@@ -26,7 +26,7 @@ b = np.array([0.0])
 
 stride = 1
 pad = 2
-conv_param = {'stride': stride, 'pad': pad}
+conv_param = {'stride': stride, 'pad': pad, 'preserve_energy_rate': 1.0}
 out_conv = np.int(((W + 2 * pad - WW) // stride) + 1)
 print("out_conv: ", out_conv)
 
@@ -79,6 +79,29 @@ db_num = eval_numerical_gradient_array(lambda b: conv_relu_pool_forward_numpy_1D
                                        dout)
 
 print('Testing numpy conv_relu_pool')
+print('dx error: ', rel_error(dx_num, dx))
+print('dw error: ', rel_error(dw_num, dw))
+print('db error: ', rel_error(db_num, db))
+
+out_fft, cache = conv_relu_pool_forward_fft_1D(x, w, b, conv_param, pool_param)
+print("out fft: ", out_fft)
+dx, dw, db = conv_relu_pool_backward_fft_1D(dout, cache)
+
+are_close = np.allclose(out_naive, out_fft)
+print("are outputs of naive and fft close: ", are_close)
+assert are_close
+
+print("dx numpy: ", dx)
+print("dw numpy: ", dw)
+
+dx_num = eval_numerical_gradient_array(lambda x: conv_relu_pool_forward_fft_1D(x, w, b, conv_param, pool_param)[0], x,
+                                       dout)
+dw_num = eval_numerical_gradient_array(lambda w: conv_relu_pool_forward_fft_1D(x, w, b, conv_param, pool_param)[0], w,
+                                       dout)
+db_num = eval_numerical_gradient_array(lambda b: conv_relu_pool_forward_fft_1D(x, w, b, conv_param, pool_param)[0], b,
+                                       dout)
+
+print('Testing fft conv_relu_pool')
 print('dx error: ', rel_error(dx_num, dx))
 print('dw error: ', rel_error(dw_num, dw))
 print('db error: ', rel_error(db_num, db))

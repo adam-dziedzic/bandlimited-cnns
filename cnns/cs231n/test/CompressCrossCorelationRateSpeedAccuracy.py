@@ -53,8 +53,7 @@ conv_naive_time, (result_naive, _) = timeitrep(
 
 for rate in rates:
     conv_fft_time_compressed, (result_fft, _) = timeitrep(
-        wrapper(conv_forward_fft_1D_compress_compare, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param,
-                preserve_energy_rate=rate),
+        wrapper(conv_forward_fft_1D, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param),
         number=exec_number, repetition=repetitions)
     timings.append(conv_fft_time_compressed)
     errors.append(abs_error(result_naive, result_fft))
