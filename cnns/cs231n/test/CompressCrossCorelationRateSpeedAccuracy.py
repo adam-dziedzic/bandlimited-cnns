@@ -30,9 +30,11 @@ exec_number = 1
 
 b = np.array([0])
 
-rates_raw = [1.0, 0.99999, 0.9999, 0.9998, 0.9995, 0.999, 0.995, 0.99, 0.98, 0.97, 0.96, 0.95, 0.94, 0.93, 0.90, 0.80, 0.70, 0.60, 0.50, 0.40,
-             0.30, 0.20, 0.10, 0.05]
+# rates_raw = [1.0, 0.99999, 0.9999, 0.9998, 0.9995, 0.999, 0.995, 0.99, 0.98, 0.97, 0.96, 0.95, 0.94, 0.93, 0.90, 0.80,
+#              0.70, 0.60, 0.50, 0.40,
+#              0.30, 0.20, 0.10, 0.05]
 # rates_raw = [0.98, 0.30, 0.20, 0.10, 0.05]
+rates_raw = [0.98]
 rates = np.array(rates_raw)
 
 stride = 1
@@ -42,7 +44,7 @@ if mode == "valid":
     padding = 0
 elif mode == "full":
     padding = len(filters) - 1
-conv_param = {'stride': stride, 'pad': padding}
+conv_param = {'stride': stride, 'pad': padding, 'preserve_energy_rate': 1.0}
 
 timings = []
 errors = []
@@ -52,6 +54,7 @@ conv_naive_time, (result_naive, _) = timeitrep(
     number=exec_number, repetition=repetitions)
 
 for rate in rates:
+    conv_param['preserve_energy_rate'] = rate
     conv_fft_time_compressed, (result_fft, _) = timeitrep(
         wrapper(conv_forward_fft_1D, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param),
         number=exec_number, repetition=repetitions)

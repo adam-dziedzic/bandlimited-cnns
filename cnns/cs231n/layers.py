@@ -720,12 +720,12 @@ def convolve1D_fft(x, w, fftsize, out_size, preserve_energy_rate=1.0):
     :param preserve_energy_rate: how much energy of the signal to preserve in the frequency domain
     :return: the output of the convolved signal x and w
     """
-    xfft = np.fft.fft(x, fftsize)
+    xfft = fft(x, fftsize)
     filterfft = np.fft.fft(w, fftsize)
-    half_fftsize = fftsize // 2
-    xfft = xfft[0:half_fftsize]
-    filterfft = filterfft[0:half_fftsize]
     if preserve_energy_rate < 1.0:
+        half_fftsize = fftsize // 2
+        xfft = xfft[0:half_fftsize]
+        filterfft = filterfft[0:half_fftsize]
         squared_abs = np.abs(xfft) ** 2
         full_energy = np.sum(squared_abs)
         current_energy = 0.0
@@ -739,8 +739,10 @@ def convolve1D_fft(x, w, fftsize, out_size, preserve_energy_rate=1.0):
     filterfft = np.conj(filterfft)
     out = xfft * filterfft
     out = np.pad(out, (0, fftsize - len(out)), 'constant')
-    out = np.fft.ifft(out)
-    out = np.real(out) * 2
+    out = ifft(out)
+    out = np.real(out)
+    if preserve_energy_rate < 1.0:
+        out *= 2
     if len(out) < out_size:
         out = np.pad(out, (0, out_size - len(out)), 'constant')
     out = out[:out_size]
@@ -750,7 +752,6 @@ def convolve1D_fft(x, w, fftsize, out_size, preserve_energy_rate=1.0):
     plt.xlabel('time')
     plt.ylabel('Amplitude')
     plt.show()
-    print("finish")
     return out
 
 
@@ -1011,10 +1012,7 @@ def conv_forward_naive_1D(x, w, b, conv_param):
      W' = 1 + (W + 2*pad - WW) / stride
      - cache: (x, w, b, conv_param)
     """
-    # Grab conv parameters
-    # print("conv_param: ", conv_param)
     pad = conv_param.get('pad')
-    # print("pad: ", pad)
     if isinstance(pad, int):
         pad_left = pad
         pad_right = pad
@@ -1055,10 +1053,6 @@ def conv_forward_naive_1D(x, w, b, conv_param):
     plt.xlabel('time')
     plt.ylabel('Amplitude')
     plt.show()
-
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
     cache = (x, w, b, conv_param)
     return out, cache
 

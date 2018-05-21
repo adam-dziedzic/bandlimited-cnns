@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pyfftw
 
+from numpy.fft import fft
+from numpy.fft import ifft
+
 
 def conv_forward_fftw_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
     """
@@ -257,8 +260,9 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, preserve_energy_rate=1.0):
     cache = (x, w, b, conv_param)
     return out, cache
 
+
 def cross_correlation_fft_1D(x, w, pad):
-    N, C, W=x.shape
+    N, C, W = x.shape
     F, C, WW = w.shape
 
     xw_size = W + WW - 1
@@ -982,6 +986,7 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, index_back=10, fft_back=0)
 
     cache = (x, w, b, conv_param)
     return out, cache
+
 
 def conv_forward_fft_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
     """
