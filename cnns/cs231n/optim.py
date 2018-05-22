@@ -72,7 +72,7 @@ def sgd_momentum(w, dw, config=None):
     learning_rate = config.get('learning_rate')
 
     # Momentum update rule
-    v = mu*v - learning_rate*dw
+    v = mu * v - learning_rate * dw
     w += v
 
     next_w = w
@@ -82,7 +82,6 @@ def sgd_momentum(w, dw, config=None):
     config['velocity'] = v
 
     return next_w, config
-
 
 
 def rmsprop(x, dx, config=None):
@@ -114,9 +113,8 @@ def rmsprop(x, dx, config=None):
     epsilon = config.get('epsilon')
     learning_rate = config.get('learning_rate')
 
-    cache = decay_rate*cache + (1-decay_rate) * dx**2
+    cache = decay_rate * cache + (1 - decay_rate) * dx ** 2
     x += -learning_rate * dx / (np.sqrt(cache) + epsilon)
-
 
     next_x = x
 
@@ -166,17 +164,16 @@ def adam(x, dx, config=None):
     learning_rate = config.get('learning_rate')
     epsilon = config.get('epsilon')
 
-    new_m = beta1*m + (1-beta1)*dx
-    mt = new_m / (1-beta1**t)
-    new_v = beta2*v + (1-beta2)*(dx**2)
-    vt = new_v / (1-beta2**t)
+    new_m = beta1 * m + (1 - beta1) * dx
+    mt = new_m / (1 - beta1 ** t)
+    new_v = beta2 * v + (1 - beta2) * (dx ** 2)
+    vt = new_v / (1 - beta2 ** t)
     x += -learning_rate * mt / (np.sqrt(vt) + epsilon)
 
     next_x = x
     config['m'] = new_m
     config['v'] = new_v
     config['t'] = t
-
 
     ###########################################################################
     #                             END OF YOUR CODE                            #

@@ -1,4 +1,6 @@
 import numpy as np
+import pickle
+import time
 
 
 def reshape_3d_rest(x):
@@ -20,3 +22,12 @@ def rel_error(x, y):
 def abs_error(x, y):
     """ returns the absolute error """
     return np.sum(np.abs(x - y))
+
+
+def save_object(obj, filename):
+    with open(filename, "wb") as output:
+        pickle.dump(obj, output)
+
+
+def get_log_time():
+    return time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())

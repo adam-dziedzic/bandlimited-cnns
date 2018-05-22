@@ -91,17 +91,16 @@ are_close = np.allclose(out_naive, out_fft)
 print("are outputs of naive and fft close: ", are_close)
 assert are_close
 
-print("dx numpy: ", dx)
-print("dw numpy: ", dw)
-
 dx_num = eval_numerical_gradient_array(lambda x: conv_relu_pool_forward_fft_1D(x, w, b, conv_param, pool_param)[0], x,
                                        dout)
 dw_num = eval_numerical_gradient_array(lambda w: conv_relu_pool_forward_fft_1D(x, w, b, conv_param, pool_param)[0], w,
                                        dout)
 db_num = eval_numerical_gradient_array(lambda b: conv_relu_pool_forward_fft_1D(x, w, b, conv_param, pool_param)[0], b,
                                        dout)
-
 print('Testing fft conv_relu_pool')
 print('dx error: ', rel_error(dx_num, dx))
 print('dw error: ', rel_error(dw_num, dw))
 print('db error: ', rel_error(db_num, db))
+
+print("dx fft: ", dx)
+print("dw fft: ", dw)

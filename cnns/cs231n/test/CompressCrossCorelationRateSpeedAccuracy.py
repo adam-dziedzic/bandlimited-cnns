@@ -9,8 +9,8 @@ from cs231n.utils.perf_timing import wrapper, timeitrep
 
 np.random.seed(231)
 
-# dataset = "Adiac"
-dataset = "50words"
+dataset = "Adiac"
+# dataset = "50words"
 # dataset = "Herring"
 # dataset = "InlineSkate"
 datasets = load_data(dataset)
@@ -30,11 +30,11 @@ exec_number = 1
 
 b = np.array([0])
 
-# rates_raw = [1.0, 0.99999, 0.9999, 0.9998, 0.9995, 0.999, 0.995, 0.99, 0.98, 0.97, 0.96, 0.95, 0.94, 0.93, 0.90, 0.80,
-#              0.70, 0.60, 0.50, 0.40,
-#              0.30, 0.20, 0.10, 0.05]
+rates_raw = [1.0, 0.99999, 0.9999, 0.9998, 0.9995, 0.999, 0.995, 0.99, 0.98, 0.97, 0.96, 0.95, 0.94, 0.93, 0.90, 0.80,
+             0.70, 0.60, 0.50, 0.40,
+             0.30, 0.20, 0.10, 0.05]
 # rates_raw = [0.98, 0.30, 0.20, 0.10, 0.05]
-rates_raw = [0.98]
+# rates_raw = [0.98]
 rates = np.array(rates_raw)
 
 stride = 1

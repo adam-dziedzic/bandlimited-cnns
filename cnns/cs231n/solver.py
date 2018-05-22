@@ -1,5 +1,5 @@
 from __future__ import print_function, division
-
+import time
 import pickle as pickle
 from builtins import object
 # from future import standard_library
@@ -22,7 +22,7 @@ class Solver(object):
     data to watch out for overfitting.
 
     To train a model, you will first construct a Solver instance, passing the
-    model, dataset, and various optoins (learning rate, batch size, etc) to the
+    model, dataset, and various options (learning rate, batch size, etc) to the
     constructor. You will then call the train() method to run the optimization
     procedure and train the model.
 
@@ -146,7 +146,6 @@ class Solver(object):
 
         self._reset()
 
-
     def _reset(self):
         """
         Set up some book-keeping variables for optimization. Don't call this
@@ -165,7 +164,6 @@ class Solver(object):
         for p in self.model.params:
             d = {k: v for k, v in self.optim_config.items()}
             self.optim_configs[p] = d
-
 
     def _step(self):
         """
@@ -190,28 +188,26 @@ class Solver(object):
             self.model.params[p] = next_w
             self.optim_configs[p] = next_config
 
-
     def _save_checkpoint(self):
         if self.checkpoint_name is None: return
         checkpoint = {
-          'model': self.model,
-          'update_rule': self.update_rule,
-          'lr_decay': self.lr_decay,
-          'optim_config': self.optim_config,
-          'batch_size': self.batch_size,
-          'num_train_samples': self.num_train_samples,
-          'num_val_samples': self.num_val_samples,
-          'epoch': self.epoch,
-          'loss_history': self.loss_history,
-          'train_acc_history': self.train_acc_history,
-          'val_acc_history': self.val_acc_history,
+            'model': self.model,
+            'update_rule': self.update_rule,
+            'lr_decay': self.lr_decay,
+            'optim_config': self.optim_config,
+            'batch_size': self.batch_size,
+            'num_train_samples': self.num_train_samples,
+            'num_val_samples': self.num_val_samples,
+            'epoch': self.epoch,
+            'loss_history': self.loss_history,
+            'train_acc_history': self.train_acc_history,
+            'val_acc_history': self.val_acc_history,
         }
         filename = '%s_epoch_%d.pkl' % (self.checkpoint_name, self.epoch)
         if self.verbose:
             print('Saving checkpoint to "%s"' % filename)
         with open(filename, 'wb') as f:
             pickle.dump(checkpoint, f)
-
 
     def check_accuracy(self, X, y, num_samples=None, batch_size=100):
         """
@@ -253,7 +249,6 @@ class Solver(object):
 
         return acc
 
-
     def train(self):
         """
         Run optimization to train the model.
@@ -262,13 +257,14 @@ class Solver(object):
         iterations_per_epoch = max(num_train // self.batch_size, 1)
         num_iterations = self.num_epochs * iterations_per_epoch
 
+        start = time.time()
         for t in range(num_iterations):
             self._step()
 
             # Maybe print training loss
             if self.verbose and t % self.print_every == 0:
                 print('(Iteration %d / %d) loss: %f' % (
-                       t + 1, num_iterations, self.loss_history[-1]))
+                    t + 1, num_iterations, self.loss_history[-1]))
 
             # At the end of every epoch, increment the epoch counter and decay
             # the learning rate.
@@ -284,17 +280,18 @@ class Solver(object):
             last_it = (t == num_iterations - 1)
             if first_it or last_it or epoch_end:
                 train_acc = self.check_accuracy(self.X_train, self.y_train,
-                    num_samples=self.num_train_samples)
+                                                num_samples=self.num_train_samples)
                 val_acc = self.check_accuracy(self.X_val, self.y_val,
-                    num_samples=self.num_val_samples)
+                                              num_samples=self.num_val_samples)
                 self.train_acc_history.append(train_acc)
                 self.val_acc_history.append(val_acc)
                 self._save_checkpoint()
 
                 if self.verbose:
-                    print('(Epoch %d / %d) train acc: %f; val_acc: %f' % (
-                           self.epoch, self.num_epochs, train_acc, val_acc))
-                    #print("filter 0, channel 0, weights: ", self.model.params["W1"][0][0])
+                    print('(Epoch, %d / %d), train acc: %f; val_acc: %f, epoch time: %f' % (
+                        self.epoch, self.num_epochs, train_acc, val_acc, time.time()-start))
+                    start = time.time()  # reset the timer
+                    # print("filter 0, channel 0, weights: ", self.model.params["W1"][0][0])
 
                 # Keep track of the best model
                 if val_acc > self.best_val_acc:

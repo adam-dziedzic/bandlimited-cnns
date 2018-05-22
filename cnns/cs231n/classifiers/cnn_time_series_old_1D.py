@@ -1,3 +1,8 @@
+"""
+We tried to extend one dimension for time series, and set its height to 0, but it
+doesn't really work.
+"""
+
 from builtins import object
 import numpy as np
 

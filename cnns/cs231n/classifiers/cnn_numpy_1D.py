@@ -1,16 +1,13 @@
 from builtins import object
-import numpy as np
 
-from cs231n.layers import *
-from cs231n.fast_layers import *
 from cs231n.layer_utils import *
 
 
-class ThreeLayerConvNetTimeSeries(object):
+class ThreeLayerConvNetNumpy1D(object):
     """
     A three-layer convolutional network with the following architecture:
 
-    conv - relu - 2x2 max pool - affine - relu - affine - softmax
+    conv - relu - 2 max pool - affine - relu - affine - softmax
 
     The network operates on minibatches of data that have shape (N, C, W)
     consisting of N images, each transformed to an array of W values with C input
@@ -25,7 +22,7 @@ class ThreeLayerConvNetTimeSeries(object):
         Initialize a new network.
 
         Inputs:
-        - input_dim: Tuple (C, H, W) giving size of input data
+        - input_dim: Tuple (C, W) giving size of input data
         - num_filters: Number of filters to use in the convolutional layer
         - filter_size: Size of filters to use in the convolutional layer
         - hidden_dim: Number of units to use in the fully-connected hidden layer
@@ -40,7 +37,7 @@ class ThreeLayerConvNetTimeSeries(object):
         self.dtype = dtype
 
         ############################################################################
-        # TODO: Initialize weights and biases for the three-layer convolutional    #
+        # Initialize weights and biases for the three-layer convolutional          #
         # network. Weights should be initialized from a Gaussian with standard     #
         # deviation equal to weight_scale; biases should be initialized to zero.   #
         # All weights and biases should be stored in the dictionary self.params.   #
@@ -72,10 +69,6 @@ class ThreeLayerConvNetTimeSeries(object):
         self.params['W3'] = np.random.normal(0, weight_scale, [hidden_dim, num_classes])
         self.params['b3'] = np.zeros([num_classes])
 
-        ############################################################################
-        #                             END OF YOUR CODE                             #
-        ############################################################################
-
         for k, v in self.params.items():
             self.params[k] = v.astype(dtype)
 
@@ -89,28 +82,17 @@ class ThreeLayerConvNetTimeSeries(object):
         W2, b2 = self.params['W2'], self.params['b2']
         W3, b3 = self.params['W3'], self.params['b3']
 
-        # pass conv_param to the forward pass for the convolutional layer
-        filter_size = W1.shape[2]
-        # print("filter 0 first channel weights: ", W1[0][0])
-        # conv_param = {'stride': 2, 'pad': (filter_size - 1) // 2}
         conv_param = {'stride': self.stride_convolution, 'pad': self.pad_convolution}
-
-        # pass pool_param to the forward pass for the max-pooling layer
         pool_param = {'pool_width': self.pool_width, 'stride': self.pool_stride}
 
-        scores = None
+
         ############################################################################
-        # TODO: Implement the forward pass for the three-layer convolutional net,  #
+        # Implement the forward pass for the three-layer convolutional net,        #
         # computing the class scores for X and storing them in the scores          #
         # variable.                                                                #
         ############################################################################
 
-        # conv1_out, conv1_cache = conv_forward_naive(X, W1, b1, conv_param)
-        # relu1_out, relu1_cache = relu_forward(conv1_out)
-
-        # maxpool1_out, maxpool1_cache = max_pool_forward_naive(relu1_out, pool_param)
-
-        maxpool1_out, combined_cache = conv_relu_pool_forward_naive_1D(X, W1, b1, conv_param, pool_param)
+        maxpool1_out, combined_cache = conv_relu_pool_forward_numpy_1D(X, W1, b1, conv_param, pool_param)
 
         affine1_out, affine1_cache = affine_forward(maxpool1_out, W2, b2)
         relu2_out, relu2_cache = relu_forward(affine1_out)
@@ -119,16 +101,12 @@ class ThreeLayerConvNetTimeSeries(object):
 
         scores = np.copy(affine2_out)
 
-        ############################################################################
-        #                             END OF YOUR CODE                             #
-        ############################################################################
-
         if y is None:
             return scores
 
         loss, grads = 0, {}
         ############################################################################
-        # TODO: Implement the backward pass for the three-layer convolutional net, #
+        # Implement the backward pass for the three-layer convolutional net,       #
         # storing the loss and gradients in the loss and grads variables. Compute  #
         # data loss using softmax, and make sure that grads[k] holds the gradients #
         # for self.params[k]. Don't forget to add L2 regularization!               #
@@ -141,17 +119,10 @@ class ThreeLayerConvNetTimeSeries(object):
         dx3, dw3, db3 = affine_backward(dsoft, affine2_cache)
         drelu2 = relu_backward(dx3, relu2_cache)
         dx2, dw2, db2 = affine_backward(drelu2, affine1_cache)
-        # dmax1 = max_pool_backward_naive(dx2, maxpool1_cache)
-        # drelu1 = relu_backward(dmax1, relu1_cache)
-        # dx1, dw1, db1 = conv_backward_naive(drelu1, conv1_cache)
-        dx1, dw1, db1 = conv_relu_pool_backward_naive_1D(dx2, combined_cache)
+        dx1, dw1, db1 = conv_relu_pool_backward_numpy_1D(dx2, combined_cache)
 
         grads['W3'], grads['b3'] = dw3 + self.reg * W3, db3
         grads['W2'], grads['b2'] = dw2 + self.reg * W2, db2
         grads['W1'], grads['b1'] = dw1 + self.reg * W1, db1
-
-        ############################################################################
-        #                             END OF YOUR CODE                             #
-        ############################################################################
 
         return loss, grads

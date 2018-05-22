@@ -1,4 +1,4 @@
-from cs231n.classifiers.cnn_time_series_1D import ThreeLayerConvNetTimeSeries
+from cs231n.classifiers.cnn_numpy_1D import ThreeLayerConvNetNumpy1D
 from cs231n.data_utils import get_CIFAR10_data
 from cs231n.solver import Solver
 
@@ -26,13 +26,15 @@ small_data['X_val'] = small_data['X_val'].reshape(
 print("x_val shape: ", small_data['X_val'].shape)
 
 
-model = ThreeLayerConvNetTimeSeries(weight_scale=1e-2)
-
+model = ThreeLayerConvNetNumpy1D(weight_scale=1e-2)
 solver = Solver(model, small_data,
-                num_epochs=15, batch_size=50,
+                num_epochs=2, batch_size=50,
                 update_rule='adam',
                 optim_config={
                   'learning_rate': 1e-3,
                 },
                 verbose=True, print_every=1)
 solver.train()
+
+print("number of epochs: ", solver.num_epochs)
+print("loss history: ", solver.loss_history)
