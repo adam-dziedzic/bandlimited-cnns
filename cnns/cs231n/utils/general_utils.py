@@ -1,6 +1,17 @@
+import time
+
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
 import numpy as np
 import pickle
-import time
+
+
+def next_power2(x):
+    """
+    :param x: an integer number
+    :return: the power of 2 which is the larger than x but the smallest possible
+    """
+    return 2 ** np.ceil(np.log2(x)).astype(int)
 
 
 def reshape_3d_rest(x):
@@ -31,3 +42,31 @@ def save_object(obj, filename):
 
 def get_log_time():
     return time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
+
+
+def plot_signal(signal, title="signal"):
+    plt.plot(range(0, len(signal)), signal)
+    plt.title(title)
+    plt.xlabel('time')
+    plt.ylabel('Amplitude')
+    plt.show()
+
+
+def plot_signals(x, y, title="", xlabel="Time", ylabel="Amplitude", label_x="input", label_y="output"):
+    fontsize = 20
+    linewidth = 2.0
+    plt.plot(range(0, len(x)), x, color="blue", linewidth=linewidth)
+    plt.plot(range(0, len(y)), y, color="red", linewidth=linewidth)
+    # We prepare the plot
+    fig = plt.figure(1)
+    plot = fig.add_subplot(111)
+    # We change the fontsize of minor ticks label
+    plot.tick_params(axis='both', which='major', labelsize=fontsize)
+    plot.tick_params(axis='both', which='minor', labelsize=fontsize)
+    plt.title(title, fontsize=fontsize)
+    red_patch = mpatches.Patch(color='red', label=label_x)
+    blue_patch = mpatches.Patch(color='blue', label=label_y)
+    plt.legend(handles=[red_patch, blue_patch], fontsize=fontsize, loc='upper left')
+    plt.xlabel(xlabel, fontsize=fontsize)
+    plt.ylabel(ylabel, fontsize=fontsize)
+    plt.show()

@@ -1,14 +1,12 @@
 from builtins import range
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pyfftw
-
-from cs231n.layers import convolve1D_fft
-from cs231n.layers import next_power2
-
 from numpy.fft import fft
 from numpy.fft import ifft
+
+from cs231n.layers import convolve1D_fft, plot_signal
+from cs231n.layers import next_power2
 
 
 def conv_forward_fftw_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
@@ -489,12 +487,6 @@ def original_ncc_c(x, y):
     print("x_len: ", x_len)
     cc = np.concatenate((cc[-(x_len - 1):], cc[:x_len]))
     return_value = np.real(cc) / den
-    import matplotlib.pyplot as plt
-    plt.plot(range(0, len(return_value)), return_value)
-    plt.title("cross-correlation output _ncc_c")
-    plt.xlabel('time')
-    plt.ylabel('Amplitude')
-    plt.show()
     return return_value
 
 
@@ -506,6 +498,63 @@ def cross_corelate_john(x, y, pad):
     # fft_size = 1024
     out_W = x_len + 2 * pad - y_len + 1
     cc = ifft(fft(x, fft_size) * np.conj(fft(y, fft_size)))
+    cc = np.concatenate((cc[-(x_len - 1):], cc[:x_len]))
+    return_value = np.real(cc)
+    return_value = return_value[-out_W:]
+    import matplotlib.pyplot as plt
+    plt.plot(range(0, len(return_value)), return_value)
+    plt.title("cross-correlation john")
+    plt.xlabel('time')
+    plt.ylabel('Amplitude')
+    plt.show()
+    return return_value
+
+
+def correlate_signal(x, energy_rate=None):
+    plot_signal(x, "input value")
+    x_len = len(x)
+    fft_size = 1 << (2 * x_len - 1).bit_length()
+    xfft = fft(x, fft_size)
+    if energy_rate is not None:
+        xfft = preserve_energy(xfft, energy_rate)
+    cc = ifft(xfft)
+    cc = np.concatenate((cc[-(x_len - 1):], cc[:x_len]))
+    return_value = np.real(cc)
+    return_value = return_value[-x_len:]
+    plot_signal(return_value, "returned value")
+    return return_value
+
+
+def preserve_energy(xfft, energy_rate=None):
+    if energy_rate is not None:
+        initial_length = len(xfft)
+        half_fftsize = initial_length // 2
+        xfft = xfft[0:half_fftsize]
+        squared_abs = np.abs(xfft) ** 2
+        full_energy = np.sum(squared_abs)
+        current_energy = 0.0
+        preserve_energy = full_energy * energy_rate
+        index = 0
+        while current_energy < preserve_energy and index < len(squared_abs):
+            current_energy += squared_abs[index]
+            index += 1
+        xfft = np.concatenate((xfft[:index], np.zeros(initial_length - index)))
+    return xfft
+
+
+def cross_corelate_john_compressed(x, y, pad, energy_rate=None):
+    x_len = len(x)
+    y_len = len(y)
+    fft_size = 1 << (2 * x_len - 1).bit_length()
+    print("fft_size: ", fft_size)
+    # fft_size = 1024
+    out_W = x_len + 2 * pad - y_len + 1
+    xfft = fft(x, fft_size)
+    filterfft = fft(y, fft_size)
+    if energy_rate is not None:
+        xfft = preserve_energy(xfft, energy_rate)
+        filterfft = preserve_energy(filterfft, energy_rate)
+    cc = ifft(xfft * np.conj(filterfft))
     cc = np.concatenate((cc[-(x_len - 1):], cc[:x_len]))
     return_value = np.real(cc)
     return_value = return_value[-out_W:]
@@ -991,7 +1040,7 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, index_back=10, fft_back=0)
     return out, cache
 
 
-def conv_forward_fft_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
+def conv_forward_fft_1D_old(x, w, b, conv_param, preserve_energy_rate=1.0):
     """
     Forward pass of 1D convolution.
 
@@ -1163,3 +1212,51 @@ def conv_backward_fft_1D_old(dout, cache):
                                              preserve_energy_rate=preserve_energy_rate)
 
     return dx, dw, db
+
+
+def convolve1D_fft_scale(x, w, fftsize, out_size, preserve_energy_rate=1.0):
+    """
+    Convolve inputs x and w using fft.
+
+    :param x: the first signal in time-domain (1 dimensional)
+    :param w: the second signal in time-domain (1 dimensional)
+    :param fftsize: the size of the transformed signals (in the frequency domain)
+    :param out_size: the expected size of the output
+    :param preserve_energy_rate: how much energy of the signal to preserve in the frequency domain
+    :return: the output of the convolved signal x and w
+    """
+    xfft = fft(x, fftsize)
+    filterfft = np.fft.fft(w, fftsize)
+    if preserve_energy_rate < 1.0:
+        half_fftsize = fftsize // 2
+        xfft = xfft[0:half_fftsize]
+        filterfft = filterfft[0:half_fftsize]
+        squared_abs = np.abs(xfft) ** 2
+        full_energy = np.sum(squared_abs)
+        current_energy = 0.0
+        preserve_energy = full_energy * preserve_energy_rate
+        index = 0
+        while current_energy < preserve_energy and index < len(squared_abs):
+            current_energy += squared_abs[index]
+            index += 1
+        xfft = xfft[:index]
+        filterfft = filterfft[:index]
+    # xfft = xfft / norm(xfft)
+    # filterfft = filterfft / norm(filterfft)
+    out = xfft * np.conj(filterfft)
+    out = np.pad(out, (0, fftsize - len(out)), 'constant')
+    out = ifft(out)
+    out = np.real(out)
+    if preserve_energy_rate < 1.0:
+        # out *= len(out)
+        out *= 2
+    if len(out) < out_size:
+        out = np.pad(out, (0, out_size - len(out)), 'constant')
+    out = out[:out_size]
+    # import matplotlib.pyplot as plt
+    # plt.plot(range(0, len(out)), out)
+    # plt.title("cross-correlation output fft")
+    # plt.xlabel('time')
+    # plt.ylabel('Amplitude')
+    # plt.show()
+    return out

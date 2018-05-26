@@ -49,6 +49,7 @@ conv_param = {'stride': stride, 'pad': padding, 'preserve_energy_rate': 1.0}
 timings = []
 errors = []
 
+
 conv_naive_time, (result_naive, _) = timeitrep(
     wrapper(conv_forward_naive_1D, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param),
     number=exec_number, repetition=repetitions)

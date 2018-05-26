@@ -14,9 +14,9 @@ class ThreeLayerConvNetFFT1D(object):
     channels.
     """
 
-    def __init__(self, input_dim=(3, 1024), num_filters=32, filter_size=49,
+    def __init__(self, input_dim=(1, 270), num_filters=32, filter_size=49,
                  hidden_dim=100, num_classes=10, weight_scale=1e-3, reg=0.0,
-                 dtype=np.float32, filter_channels=3, pad_convolution=None,
+                 dtype=np.float32, filter_channels=1, pad_convolution=None,
                  stride_convolution=1, pool_stride=2, pool_width=2, energy_rate_convolution=1.0):
         """
         Initialize a new network.

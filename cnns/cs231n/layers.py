@@ -4,7 +4,7 @@ import numpy as np
 import pyfftw
 from numpy.fft import fft, ifft
 from numpy.linalg import norm
-
+import matplotlib.pyplot as plt
 
 def affine_forward(x, w, b):
     """
@@ -548,8 +548,8 @@ def conv_forward_fft_1D_correct(x, w, b, conv_param, preserve_energy_rate=1.0):
             sum_out = np.zeros([out_W])
             for cc in range(C):
                 xfft = np.fft.fft(padded_x[nn, cc], fftsize)
-                print("first xfft: ", xfft)
-                print("first xfft shape: ", xfft.shape)
+                # print("first xfft: ", xfft)
+                # print("first xfft shape: ", xfft.shape)
                 # the output is symmetric so cut off the second half
                 # xfft = xfft[:np.ceil(len(xfft) / 2).astype(int)]
                 squared_abs = np.abs(xfft) ** 2
@@ -709,10 +709,17 @@ def conv_forward_fftw_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
     return out, cache
 
 
+def plot_signal(signal, title="signal"):
+    plt.plot(range(0, len(signal)), signal)
+    plt.title(title)
+    plt.xlabel('time')
+    plt.ylabel('Amplitude')
+    plt.show()
+
+
 def convolve1D_fft(x, w, fftsize, out_size, preserve_energy_rate=1.0):
     """
     Convolve inputs x and w using fft.
-
     :param x: the first signal in time-domain (1 dimensional)
     :param w: the second signal in time-domain (1 dimensional)
     :param fftsize: the size of the transformed signals (in the frequency domain)
@@ -721,8 +728,8 @@ def convolve1D_fft(x, w, fftsize, out_size, preserve_energy_rate=1.0):
     :return: the output of the convolved signal x and w
     """
     xfft = fft(x, fftsize)
-    filterfft = np.fft.fft(w, fftsize)
-    if preserve_energy_rate < 1.0:
+    filterfft = fft(w, fftsize)
+    if preserve_energy_rate is not None:
         half_fftsize = fftsize // 2
         xfft = xfft[0:half_fftsize]
         filterfft = filterfft[0:half_fftsize]
@@ -742,7 +749,7 @@ def convolve1D_fft(x, w, fftsize, out_size, preserve_energy_rate=1.0):
     out = np.pad(out, (0, fftsize - len(out)), 'constant')
     out = ifft(out)
     out = np.real(out)
-    if preserve_energy_rate < 1.0:
+    if preserve_energy_rate is not None:
         # out *= len(out)
         out *= 2
     if len(out) < out_size:
@@ -754,6 +761,72 @@ def convolve1D_fft(x, w, fftsize, out_size, preserve_energy_rate=1.0):
     # plt.xlabel('time')
     # plt.ylabel('Amplitude')
     # plt.show()
+    return out
+
+
+def convolve1D_fft_new(x, w, fftsize, out_size, preserve_energy_rate=1.0):
+    """
+    Convolve inputs x and w using fft.
+
+    :param x: the first signal in time-domain (1 dimensional)
+    :param w: the second signal in time-domain (1 dimensional)
+    :param fftsize: the size of the transformed signals (in the frequency domain)
+    :param out_size: the expected size of the output
+    :param preserve_energy_rate: how much energy of the signal to preserve in the frequency domain
+    :return: the output of the convolved signal x and w
+    """
+    xfft = fft(x, fftsize)
+    filterfft = np.fft.fft(w, fftsize)
+    plot_signal(np.abs(xfft), "full signal")
+    plot_signal(np.abs(filterfft), "full filter")
+    if preserve_energy_rate is not None:
+        initial_energy = np.sum(np.abs(xfft) ** 2)
+        half_fftsize = fftsize // 2
+        xfft = xfft[0:half_fftsize]
+        filterfft = filterfft[0:half_fftsize]
+        print("initial number of coefficients: ", half_fftsize)
+        squared_abs = np.abs(xfft) ** 2
+        full_energy = np.sum(squared_abs)
+        current_energy = 0.0
+        preserve_energy = full_energy * preserve_energy_rate
+        index = 0
+        currents = []
+        currents.append(0)
+        while current_energy < preserve_energy and index < len(squared_abs):
+            current_energy += squared_abs[index]
+            index += 1
+            currents.append(current_energy)
+        import matplotlib.pyplot as plt
+        plt.plot(range(0, len(currents)), currents / full_energy)
+        plt.title("cumulative energy")
+        plt.xlabel('# of coefficients')
+        plt.ylabel('cumulative energy')
+        plt.show()
+        print("coefficients preserved: ", index)
+        xfft = xfft[:index]
+        filterfft = filterfft[:index]
+        plot_signal(np.abs(xfft), "compressed signal")
+        plot_signal(np.abs(filterfft), "compressed filter")
+    # xfft = xfft / norm(xfft)
+    # filterfft = filterfft / norm(filterfft)
+    out = xfft * np.conj(filterfft)
+    # plot_signal(out, "out after multiplication")
+    # out = np.pad(out, (0, fftsize//2 - len(out)), 'constant')
+    # out = np.concatenate((out, np.flip(out, axis=0)))
+    # plot_signal(out, "out after reversing the signal")
+    out = ifft(out)
+    out = np.real(out)
+    if preserve_energy_rate != None:
+        # out *= len(out)
+        energy_scale = initial_energy / current_energy
+        # print("energy scale:", energy_scale)
+        out *= energy_scale
+    if len(out) < out_size:
+        out = np.pad(out, (0, out_size - len(out)), 'constant')
+    out = out[:out_size]
+    # if preserve_energy_rate is not None:
+    #     print("scale the output signal")
+    #     out *= fftsize
     return out
 
 
@@ -790,6 +863,8 @@ def conv_forward_fft_1D(x, w, b, conv_param):
     N, C, W = x.shape
     F, C, WW = w.shape
     fftsize = next_power2(W + WW - 1)
+    # fftsize = W + WW - 1
+    # print("fftsize: ", fftsize)
     padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
     out_W = W + 2 * pad - WW + 1
     out = np.zeros([N, F, out_W])
