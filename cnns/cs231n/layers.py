@@ -741,8 +741,14 @@ def convolve1D_fft(x, w, fftsize, out_size, preserve_energy_rate=1.0):
         while current_energy < preserve_energy and index < len(squared_abs):
             current_energy += squared_abs[index]
             index += 1
+        print("index: ", index)
         xfft = xfft[:index]
+        plot_signal(np.abs(filterfft), "Before compression in frequency domain")
+        full_energy_filter = np.sum(np.abs(filterfft) ** 2)
         filterfft = filterfft[:index]
+        filter_lost_energy_rate = (full_energy_filter - np.sum(np.abs(filterfft) ** 2)) / full_energy_filter
+        print("filter_lost_energy_rate: ", filter_lost_energy_rate)
+        plot_signal(np.abs(filterfft), "After compression in frequency domain")
     # xfft = xfft / norm(xfft)
     # filterfft = filterfft / norm(filterfft)
     out = xfft * np.conj(filterfft)
