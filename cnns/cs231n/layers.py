@@ -746,7 +746,7 @@ def convolve1D_fft(x, w, fftsize, out_size, preserve_energy_rate=1.0):
         # plot_signal(np.abs(filterfft), "Before compression in frequency domain")
         full_energy_filter = np.sum(np.abs(filterfft) ** 2)
         filterfft = filterfft[:index]
-        filter_lost_energy_rate = (full_energy_filter - np.sum(np.abs(filterfft) ** 2)) / full_energy_filter
+        # filter_lost_energy_rate = (full_energy_filter - np.sum(np.abs(filterfft) ** 2)) / full_energy_filter
         # print("filter_lost_energy_rate: ", filter_lost_energy_rate)
         # plot_signal(np.abs(filterfft), "After compression in frequency domain")
     # xfft = xfft / norm(xfft)
@@ -1199,7 +1199,7 @@ def compress_fft_1D(x, y_len):
     discard_count = (x_len - y_len) // 2
     half_fft_len = len(xfft) // 2
     xfft_first_half = xfft[:half_fft_len - discard_count]
-    if y_len % 2 == 0:
+    if y_len % 2 == x_len % 2:
         xfft_first_half = np.append(xfft_first_half, xfft[half_fft_len])
     xfft = np.append(xfft_first_half, xfft[half_fft_len + 1 + discard_count:])
     # print("energy of compressed xfft: ", energy(np.abs(xfft)))
@@ -1236,7 +1236,7 @@ def compress_fft_1D_gradient(g, x_len):
     half_fft_len = len(gfft) // 2
     gfft_first_half = np.append(gfft[:half_fft_len], np.zeros(discard_count))
     gfft_first_half = np.append(gfft_first_half, gfft[half_fft_len])
-    if g_len % 2 == 1:
+    if g_len % 2 != x_len % 2:
         gfft_first_half = np.append(gfft_first_half, np.zeros(1))
     gfft_second_half = np.append(np.zeros(discard_count), gfft[half_fft_len + 1:])
     gfft_padded = np.append(gfft_first_half, gfft_second_half)

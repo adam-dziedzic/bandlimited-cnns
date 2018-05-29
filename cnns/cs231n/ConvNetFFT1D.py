@@ -49,11 +49,14 @@ small_data['X_val'] = small_data['X_val'].reshape(
 #print("x_val shape: ", small_data['X_val'].shape)
 
 print_every = num_train
-num_epochs = 15
-energy_rates = [1.0, 0.999, 0.99, 0.98, 0.95, 0.9, 0.8, 0.5]
+num_epochs = 1000
+energy_rates = [1.0]
 # num_epochs = 2
 #energy_rates = [1.0, 0.999]
 losses_rate = []
+
+epoch_log = "fft_epoch_log_" + get_log_time() + ".csv"
+loss_log = "fft_loss_log_" + get_log_time() + ".csv"
 
 for energy_rate in energy_rates:
     print("energy rate: ", energy_rate)
@@ -65,7 +68,10 @@ for energy_rate in energy_rates:
                     optim_config={
                         'learning_rate': 1e-3,
                     },
-                    verbose=True, print_every=print_every)
+                    verbose=True, print_every=print_every,
+                    epoch_log=epoch_log,
+                    loss_log=loss_log
+                    )
     solver.train()
     elapsed_time = time.time() - start
     losses_rate.append((solver.train_acc_history, solver.val_acc_history, energy_rate, solver.loss_history,

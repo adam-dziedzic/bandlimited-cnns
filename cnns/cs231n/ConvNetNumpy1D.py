@@ -1,13 +1,14 @@
 from cs231n.classifiers.cnn_numpy_1D import ThreeLayerConvNetNumpy1D
 from cs231n.data_utils import get_CIFAR10_data
 from cs231n.solver import Solver
+from cs231n.utils.general_utils import get_log_time
 
 data = get_CIFAR10_data(cifar10_dir='datasets/cifar-10-batches-py')
 for k, v in data.items():
     print('%s: ' % k, v.shape)
 
-num_train = 10
-num_valid = 10
+num_train = 3000
+num_valid = 300
 small_data = {
     'X_train': data['X_train'][:num_train],
     'y_train': data['y_train'][:num_train],
@@ -25,15 +26,19 @@ small_data['X_val'] = small_data['X_val'].reshape(
     small_data['X_val'].shape[0], small_data['X_val'].shape[1], -1)
 print("x_val shape: ", small_data['X_val'].shape)
 
+epoch_log = "numpy_max_pool_epoch_log_" + get_log_time() + ".csv"
+loss_log = "numpy_max_pool_loss_log_" + get_log_time() + ".csv"
 
 model = ThreeLayerConvNetNumpy1D(weight_scale=1e-2)
 solver = Solver(model, small_data,
-                num_epochs=2, batch_size=50,
+                num_epochs=1000, batch_size=50,
                 update_rule='adam',
                 optim_config={
                   'learning_rate': 1e-3,
                 },
-                verbose=True, print_every=1)
+                verbose=True, print_every=1,
+                epoch_log=epoch_log,
+                loss_log=loss_log)
 solver.train()
 
 print("number of epochs: ", solver.num_epochs)

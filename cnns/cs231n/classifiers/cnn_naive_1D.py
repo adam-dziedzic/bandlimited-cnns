@@ -19,8 +19,8 @@ class ThreeLayerConvNetNaive1D(object):
 
     def __init__(self, input_dim=(3, 1024), num_filters=32, filter_size=49,
                  hidden_dim=100, num_classes=10, weight_scale=1e-3, reg=0.0,
-                 dtype=np.float32, filter_channels=3, pad_convolution=None,
-                 stride_convolution=1, pool_stride=2, pool_width=2):
+                 dtype=np.float64, filter_channels=3, pad_convolution=None,
+                 stride_convolution=1, pool_stride=2, pool_width=5):
         """
         Initialize a new network.
 

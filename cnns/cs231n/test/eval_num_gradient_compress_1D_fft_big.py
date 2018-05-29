@@ -13,7 +13,7 @@ W = 256
 x = np.random.randn(W)
 x = x.reshape(1, 1, -1)
 
-pool_width = 8
+pool_width = 2
 pool_stride = 2
 pool_param = {'pool_width': pool_width, 'stride': pool_stride}
 out_pool = np.int(((W - pool_width) // pool_stride) + 1)
@@ -23,10 +23,10 @@ dout = np.array([[np.ones(out_pool)]])
 print("dout: ", dout)
 
 out, cache = fft_pool_forward_1D(x, pool_param)
-print("out: ", out)
+# print("out: ", out)
 dx = fft_pool_backward_1D(dout, cache)
 
-print("dx: ", dx)
+# print("dx: ", dx)
 
 dx_num = eval_numerical_gradient_array(lambda x: fft_pool_forward_1D(x, pool_param)[0], x, dout)
 

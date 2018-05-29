@@ -1,15 +1,16 @@
 from __future__ import print_function, division
+
 import time
-import pickle as pickle
 from builtins import object
 # from future import standard_library
 # standard_library.install_aliases()
 from builtins import range
 
 import numpy as np
+import pickle as pickle
 
 from cs231n import optim
-
+from cs231n.utils.general_utils import get_log_time
 
 class Solver(object):
     """
@@ -132,6 +133,12 @@ class Solver(object):
         self.checkpoint_name = kwargs.pop('checkpoint_name', None)
         self.print_every = kwargs.pop('print_every', 10)
         self.verbose = kwargs.pop('verbose', True)
+
+        default_epoch_log = "epoch_log_" + get_log_time() + ".csv"
+        self.epoch_log = kwargs.pop('epoch_log', default_epoch_log)
+
+        default_loss_log = "loss_log_" + get_log_time() + ".csv"
+        self.loss_log = kwargs.pop('loss_log', default_loss_log)
 
         # Throw an error if there are extra keyword arguments
         if len(kwargs) > 0:
@@ -266,6 +273,9 @@ class Solver(object):
                 print('(Iteration %d / %d) loss: %f' % (
                     t + 1, num_iterations, self.loss_history[-1]))
 
+                with open(self.loss_log, "a+") as f:
+                    f.write("iteration," + str(t + 1) + ",loss," + str(self.loss_history[-1]) + "\n")
+
             # At the end of every epoch, increment the epoch counter and decay
             # the learning rate.
             epoch_end = (t + 1) % iterations_per_epoch == 0
@@ -288,8 +298,12 @@ class Solver(object):
                 self._save_checkpoint()
 
                 if self.verbose:
+                    elapsed_time = time.time() - start
                     print('(Epoch, %d / %d), train acc: %f; val_acc: %f, epoch time: %f' % (
-                        self.epoch, self.num_epochs, train_acc, val_acc, time.time()-start))
+                        self.epoch, self.num_epochs, train_acc, val_acc, elapsed_time))
+                    with open(self.epoch_log, "a+") as f:
+                        f.write("Epoch," + str(self.epoch) + ",train_acc," + str(train_acc) + ",val_acc," + str(
+                            val_acc) + ",time," + str(time.time() - start) + "\n")
                     start = time.time()  # reset the timer
                     # print("filter 0, channel 0, weights: ", self.model.params["W1"][0][0])
 
