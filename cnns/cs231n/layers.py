@@ -1,10 +1,10 @@
 from builtins import range
 
-import numpy as np
 import pyfftw
 from numpy.fft import fft, ifft
-from numpy.linalg import norm
-import matplotlib.pyplot as plt
+
+from cs231n.utils.general_utils import *
+
 
 def affine_forward(x, w, b):
     """
@@ -741,14 +741,14 @@ def convolve1D_fft(x, w, fftsize, out_size, preserve_energy_rate=1.0):
         while current_energy < preserve_energy and index < len(squared_abs):
             current_energy += squared_abs[index]
             index += 1
-        print("index: ", index)
+        # print("index: ", index)
         xfft = xfft[:index]
-        plot_signal(np.abs(filterfft), "Before compression in frequency domain")
+        # plot_signal(np.abs(filterfft), "Before compression in frequency domain")
         full_energy_filter = np.sum(np.abs(filterfft) ** 2)
         filterfft = filterfft[:index]
         filter_lost_energy_rate = (full_energy_filter - np.sum(np.abs(filterfft) ** 2)) / full_energy_filter
-        print("filter_lost_energy_rate: ", filter_lost_energy_rate)
-        plot_signal(np.abs(filterfft), "After compression in frequency domain")
+        # print("filter_lost_energy_rate: ", filter_lost_energy_rate)
+        # plot_signal(np.abs(filterfft), "After compression in frequency domain")
     # xfft = xfft / norm(xfft)
     # filterfft = filterfft / norm(filterfft)
     out = xfft * np.conj(filterfft)
@@ -941,7 +941,7 @@ def conv_backward_fft_1D(dout, cache):
                 # dw[ff, cc] += convolve1D_fft(padded_x[nn, cc], np.flip(dout[nn, ff], axis=0), fftsize, WW,
                 #                              preserve_energy_rate=preserve_energy_rate)
                 dw[ff, cc] += convolve1D_fft(padded_x[nn, cc], dout[nn, ff], fftsize, WW,
-                preserve_energy_rate=preserve_energy_rate)
+                                             preserve_energy_rate=preserve_energy_rate)
 
     # Calculate dx.
     # By chain rule dx is dout*w. We need to make dx same shape as padded x for the gradient calculation.
@@ -1138,6 +1138,163 @@ def conv_forward_naive_1D(x, w, b, conv_param):
     return out, cache
 
 
+def compress_fft_1D_fast(x, y_len):
+    """
+    Compress the fft signal fast with padding to the next power of 2.
+
+    :param x: input 1D signal
+    :param y_len: the length of the output. Based on this value, we calculate the discard_count: how many
+    coefficients (in the frequency domain) we should discard from both halves of the input x signal
+    :return: compressed signal
+    """
+    x_len = len(x)
+    print("energy of x: ", energy(x))
+    fft_len = next_power2(x_len)
+    # take the Fourier matrix for FFT in its standard form: 1/sqrt(N) * FourierMatrix to preserve scale of energies
+    # in the input and output of the fft
+    xfft = fft(x, fft_len) / np.sqrt(fft_len)
+    # print("energy of uncompressed xfft: ", energy(np.abs(xfft)))
+    plot_signal(np.abs(xfft), title="xfft before compression")
+    discard_count = (x_len - y_len) // 2 + (fft_len - x_len) // 2
+    print("discard count: ", discard_count)
+    half_fft_len = fft_len // 2
+    zeros = np.zeros(discard_count, dtype=complex)
+    xfft[half_fft_len - discard_count:half_fft_len] = zeros
+    xfft[half_fft_len:half_fft_len + discard_count] = zeros
+    print("energy of compressed xfft: ", energy(np.abs(xfft)))
+    plot_signal(np.abs(xfft), title="xfft after compression")
+    # print("xfft len after compression: ", len(xfft))
+    # print("expected y_len: ", y_len)
+    y = ifft(xfft) * np.sqrt(fft_len)
+    # print("size of the output: ", len(y))
+    y = np.real(y)
+    print("energy of y before truncation: ", energy(y))
+    plot_signal(y, "y after ifft and real")
+    y = y[:y_len]
+    plot_signal(y, "y after truncation to y_len")
+    # y = y * energy(x) / energy(y) # scale the signal
+    print("energy ratio: ", energy(y)/energy(x))
+    # print("len ratio: ", x_len / y_len)
+    print("energy of y: ", energy(y))
+    return y
+
+
+def compress_fft_1D(x, y_len):
+    """
+    Compress the fft signal (this the forward step).
+
+    :param x: input 1D signal
+    :param y_len: the length of the output. Based on this value, we calculate the discard_count: how many
+    coefficients (in the frequency domain) we should discard from both halves of the input x signal
+    :return: compressed signal
+    """
+    x_len = len(x)
+    # print("energy of x: ", energy(x))
+    # take the Fourier matrix for FFT in its standard form: 1/sqrt(N) * FourierMatrix to preserve scale of energies
+    # in the input and output of the fft
+    xfft = fft(x) / np.sqrt(x_len)
+    # plot_signal(fft(x, 512), "signal x after fft 512")
+    # print("energy of uncompressed xfft: ", energy(np.abs(xfft)))
+    # plot_signal(np.abs(xfft), title="xfft before compression")
+    discard_count = (x_len - y_len) // 2
+    half_fft_len = len(xfft) // 2
+    xfft_first_half = np.append(xfft[:half_fft_len - discard_count], xfft[half_fft_len])
+    xfft = np.append(xfft_first_half, xfft[half_fft_len + 1 + discard_count:])
+    # print("energy of compressed xfft: ", energy(np.abs(xfft)))
+    # plot_signal(np.abs(xfft), title="xfft after compression")
+    # print("xfft len after compression: ", len(xfft))
+    # print("expected y_len: ", y_len)
+    y = ifft(xfft) * np.sqrt(y_len)
+    # yfft = fft(y, 512)
+    # plot_signal(yfft, "signal y after fft 512")
+    # plot_signal(ifft(yfft), "signal yfft after inverse 512")
+    # print("size of the output: ", len(y))
+    y = np.real(y)
+    # plot_signal(y, "y after ifft and real")
+    # print("energy ratio: ", energy(y)/energy(x))
+    return y
+
+
+def compress_fft_1D_gradient(g, x_len):
+    """
+    Compress the fft signal - this is the backward propagation for fft 1D compression.
+
+    The final returned gradient should be: gradient_out = g (the input gradient) * gradient_fft compression with respect
+    to y - which is just the Fourier (transformation) matrix.
+
+    :param g: the gradient: the gradient of the loss R with respect to the output of the 1D fft compression y
+    \frac{\gradient R}{\gradient of \hat{y}}
+    :param y_len: the length of the output. Based on this value, we calculate the pad_count: how many
+    zeros we should add (in the frequency domain) to both halves of the gradient signal g.
+    :return: gradient of the loss R with respect to x (the input signal to the forward 1D fft compression).
+    """
+    g_len = len(g)
+    gfft = fft(g, g_len)
+    
+
+
+    return dx
+
+
+def fft_pool_forward_1D(x, pool_param):
+    """
+    An fft-based implementation of the forward pass for a pooling layer.
+
+    Inputs:
+    - x: Input data, of shape (N, C, H, W)
+    - pool_param: dictionary with the following keys:
+      - 'pool_height': The height of each pooling region
+      - 'pool_width': The width of each pooling region
+      - 'stride': The distance between adjacent pooling regions
+      - these keys are used to calculate the expected size of the output
+
+    Returns a tuple of:
+    - out: Output data
+    - cache: (x, pool_param)
+    """
+    pool_width = pool_param.get('pool_width')
+    stride = pool_param.get('stride')
+
+    N, C, W = x.shape
+
+    # Calculate output spatial dimensions of the output of max pool.
+    out_W = np.int(((W - pool_width) // stride) + 1)
+
+    # Initialise output.
+    out = np.zeros([N, C, out_W])
+    for n in range(N):
+        for c in range(C):
+            out = compress_fft_1D(x[n, c], out_W)
+
+    cache = (x, pool_param)
+    return out, cache
+
+
+def fft_pool_backward_1D(dout, cache):
+    """
+    An fft base implementation of the backward pass for a 1D fft pooling layer.
+
+    Inputs:
+    - dout: Upstream derivatives
+    - cache: A tuple of (x, pool_param) as in the forward pass.
+
+    Returns:
+    - dx: Gradient with respect to x
+    """
+    x, pool_param = cache
+
+    N, C, W = x.shape
+    N, C, dout_W = dout.shape
+
+    # Initialise dx to be same shape as fft pool input x.
+    dx = np.zeros_like(x)
+
+    for n in range(N):
+        for c in range(C):
+            dx[n, c] = compress_fft_1D_gradient(dx[n, c])
+
+    return dx
+
 def max_pool_forward_naive_1D(x, pool_param):
     """
     A naive implementation of the forward pass for a max pooling layer.
@@ -1180,6 +1337,62 @@ def max_pool_forward_naive_1D(x, pool_param):
     ###########################################################################
     cache = (x, pool_param)
     return out, cache
+
+
+def max_pool_backward_naive_1D(dout, cache):
+    """
+    A naive implementation of the backward pass for a 1D max pooling layer.
+
+    Inputs:
+    - dout: Upstream derivatives
+    - cache: A tuple of (x, pool_param) as in the forward pass.
+
+    Returns:
+    - dx: Gradient with respect to x
+    """
+    dx = None
+    ###########################################################################
+    # TODO: Implement the 1D max pooling backward pass                        #
+    ###########################################################################
+
+    # Grab the pooling parameters.
+    x, pool_param = cache
+    pool_width = pool_param.get('pool_width')
+    stride = pool_param.get('stride')
+
+    N, C, W = x.shape
+    N, C, dout_W = dout.shape
+
+    # Initialise dx to be same shape as maxpool input x.
+    dx = np.zeros_like(x)
+
+    for n in range(N):
+        for c in range(C):
+            for w in range(dout_W):
+                current_vector = x[n, c, w * stride: w * stride + pool_width]
+                current_max = np.max(current_vector)
+                for i in range(pool_width):
+                    if current_vector[i] == current_max:
+                        dx[n, c, w * stride + i] += dout[n, c, w]
+
+    # # Naive loop to backprop dout through maxpool layer.
+    # for n in range(N):  # For each time-series.
+    #     for c in range(C):  # For each channel.
+    #         for i in range(dout_W):  # For each value of the upstream gradient.
+    #             # Using argmax get the linear index of the max of each segment.
+    #             # print(x[n, c, i * stride: i * stride + pool_width])
+    #             max_index = np.argmax(x[n, c, i * stride: i * stride + pool_width])
+    #             # print("backward pool max index: ", max_index)
+    #             # Using unravel_index convert this linear index to matrix coordinate.
+    #             max_coord = np.unravel_index(max_index, [pool_width])
+    #             # print("backward pool max coord: ", max_coord)
+    #             # Only backprop the dout to the max location.
+    #             dx[n, c, i * stride: i * stride + pool_width][max_coord] += dout[n, c, i]
+
+    ###########################################################################
+    #                             END OF YOUR CODE                            #
+    ###########################################################################
+    return dx
 
 
 def conv_backward_naive_1D(dout, cache):
@@ -1258,62 +1471,6 @@ def conv_backward_naive_1D(dout, cache):
     #                             END OF YOUR CODE                            #
     ###########################################################################
     return dx, dw, db
-
-
-def max_pool_backward_naive_1D(dout, cache):
-    """
-    A naive implementation of the backward pass for a 1D max pooling layer.
-
-    Inputs:
-    - dout: Upstream derivatives
-    - cache: A tuple of (x, pool_param) as in the forward pass.
-
-    Returns:
-    - dx: Gradient with respect to x
-    """
-    dx = None
-    ###########################################################################
-    # TODO: Implement the 1D max pooling backward pass                        #
-    ###########################################################################
-
-    # Grab the pooling parameters.
-    x, pool_param = cache
-    pool_width = pool_param.get('pool_width')
-    stride = pool_param.get('stride')
-
-    N, C, W = x.shape
-    N, C, dout_W = dout.shape
-
-    # Initialise dx to be same shape as maxpool input x.
-    dx = np.zeros_like(x)
-
-    for n in range(N):
-        for c in range(C):
-            for w in range(dout_W):
-                current_vector = x[n, c, w * stride: w * stride + pool_width]
-                current_max = np.max(current_vector)
-                for i in range(pool_width):
-                    if current_vector[i] == current_max:
-                        dx[n, c, w * stride + i] += dout[n, c, w]
-
-    # # Naive loop to backprop dout through maxpool layer.
-    # for n in range(N):  # For each time-series.
-    #     for c in range(C):  # For each channel.
-    #         for i in range(dout_W):  # For each value of the upstream gradient.
-    #             # Using argmax get the linear index of the max of each segment.
-    #             # print(x[n, c, i * stride: i * stride + pool_width])
-    #             max_index = np.argmax(x[n, c, i * stride: i * stride + pool_width])
-    #             # print("backward pool max index: ", max_index)
-    #             # Using unravel_index convert this linear index to matrix coordinate.
-    #             max_coord = np.unravel_index(max_index, [pool_width])
-    #             # print("backward pool max coord: ", max_coord)
-    #             # Only backprop the dout to the max location.
-    #             dx[n, c, i * stride: i * stride + pool_width][max_coord] += dout[n, c, i]
-
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
-    return dx
 
 
 def get_conv_shape(x_shape, w_shape, conv_param):

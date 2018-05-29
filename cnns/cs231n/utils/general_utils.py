@@ -6,6 +6,15 @@ import numpy as np
 import pickle
 
 
+def energy(x):
+    """
+    Calculate the energy of the signal.
+
+    :param x: the input signal
+    :return: energy of x
+    """
+    return np.sum(np.power(x, 2))
+
 def next_power2(x):
     """
     :param x: an integer number
