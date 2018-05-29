@@ -1173,7 +1173,7 @@ def compress_fft_1D_fast(x, y_len):
     y = y[:y_len]
     plot_signal(y, "y after truncation to y_len")
     # y = y * energy(x) / energy(y) # scale the signal
-    print("energy ratio: ", energy(y)/energy(x))
+    print("energy ratio: ", energy(y) / energy(x))
     # print("len ratio: ", x_len / y_len)
     print("energy of y: ", energy(y))
     return y
@@ -1198,7 +1198,9 @@ def compress_fft_1D(x, y_len):
     # plot_signal(np.abs(xfft), title="xfft before compression")
     discard_count = (x_len - y_len) // 2
     half_fft_len = len(xfft) // 2
-    xfft_first_half = np.append(xfft[:half_fft_len - discard_count], xfft[half_fft_len])
+    xfft_first_half = xfft[:half_fft_len - discard_count]
+    if y_len % 2 == 0:
+        xfft_first_half = np.append(xfft_first_half, xfft[half_fft_len])
     xfft = np.append(xfft_first_half, xfft[half_fft_len + 1 + discard_count:])
     # print("energy of compressed xfft: ", energy(np.abs(xfft)))
     # plot_signal(np.abs(xfft), title="xfft after compression")
@@ -1222,17 +1224,24 @@ def compress_fft_1D_gradient(g, x_len):
     The final returned gradient should be: gradient_out = g (the input gradient) * gradient_fft compression with respect
     to y - which is just the Fourier (transformation) matrix.
 
-    :param g: the gradient: the gradient of the loss R with respect to the output of the 1D fft compression y
-    \frac{\gradient R}{\gradient of \hat{y}}
+    :param g: the gradient: the gradient of the loss L with respect to the output of the 1D fft compression y
+    \frac{\gradient L}{\gradient of \hat{y}}
     :param y_len: the length of the output. Based on this value, we calculate the pad_count: how many
     zeros we should add (in the frequency domain) to both halves of the gradient signal g.
     :return: gradient of the loss R with respect to x (the input signal to the forward 1D fft compression).
     """
     g_len = len(g)
-    gfft = fft(g, g_len)
-    
-
-
+    gfft = fft(g, g_len) / np.sqrt(g_len)
+    discard_count = (x_len - g_len) // 2
+    half_fft_len = len(gfft) // 2
+    gfft_first_half = np.append(gfft[:half_fft_len], np.zeros(discard_count))
+    gfft_first_half = np.append(gfft_first_half, gfft[half_fft_len])
+    if g_len % 2 == 1:
+        gfft_first_half = np.append(gfft_first_half, np.zeros(1))
+    gfft_second_half = np.append(np.zeros(discard_count), gfft[half_fft_len + 1:])
+    gfft_padded = np.append(gfft_first_half, gfft_second_half)
+    dx = ifft(gfft_padded) * np.sqrt(len(gfft_padded))
+    dx = np.real(dx)
     return dx
 
 
@@ -1241,7 +1250,7 @@ def fft_pool_forward_1D(x, pool_param):
     An fft-based implementation of the forward pass for a pooling layer.
 
     Inputs:
-    - x: Input data, of shape (N, C, H, W)
+    - x: Input data, of shape (N, C, W)
     - pool_param: dictionary with the following keys:
       - 'pool_height': The height of each pooling region
       - 'pool_width': The width of each pooling region
@@ -1264,7 +1273,7 @@ def fft_pool_forward_1D(x, pool_param):
     out = np.zeros([N, C, out_W])
     for n in range(N):
         for c in range(C):
-            out = compress_fft_1D(x[n, c], out_W)
+            out[n, c] = compress_fft_1D(x[n, c], out_W)
 
     cache = (x, pool_param)
     return out, cache
@@ -1291,9 +1300,10 @@ def fft_pool_backward_1D(dout, cache):
 
     for n in range(N):
         for c in range(C):
-            dx[n, c] = compress_fft_1D_gradient(dx[n, c])
+            dx[n, c] = compress_fft_1D_gradient(dout[n, c], W)
 
     return dx
+
 
 def max_pool_forward_naive_1D(x, pool_param):
     """
