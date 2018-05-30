@@ -717,6 +717,74 @@ def plot_signal(signal, title="signal"):
     plt.show()
 
 
+def reconstruct_signal(xfft, fft_size):
+    xfft = np.concatenate((xfft, np.zeros(max(fft_size // 2 - len(xfft) + 1, 0))))
+    xfft = np.concatenate((xfft, np.conj(np.flip(xfft[1:-1], axis=0))))
+    return xfft
+
+
+log_file = "index_back_filter_signal2" + get_log_time() + ".log"
+
+
+def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index_back=None):
+    """
+
+    :param x: input signal
+    :param y: filter
+    :param out_len: required output len
+    :param preserve_energy_rate: compressed to this energy rate
+    :param index_back: how many coefficients to remove
+    :return: output signal after correlation of signals x and y
+    """
+    xfft = fft(x, fft_size)
+    yfft = fft(y, fft_size)
+    if preserve_energy_rate is not None or index_back is not None:
+        index = preserve_energy(xfft, preserve_energy_rate, index_back)
+        # with open(log_file, "a+") as f:
+        #     f.write("index: " + str(index_back) + ";preserved energy input: " + str(
+        #         compute_energy(xfft[:index]) / compute_energy(xfft[:fft_size // 2 + 1])) +
+        #             ";preserved energy filter: " + str(
+        #         compute_energy(yfft[:index]) / compute_energy(yfft[:fft_size // 2 + 1])) + "\n")
+        xfft = xfft[:index]
+        yfft = yfft[:index]
+        xfft = reconstruct_signal(xfft, fft_size)
+        yfft = reconstruct_signal(yfft, fft_size)
+    out = ifft(xfft * np.conj(yfft))
+
+    # plot_signal(out, "out after ifft")
+    out = out[:out_size]
+    # plot_signal(out, "after truncating to xlen: " + str(x_len))
+    return_value = np.real(out)
+    return return_value
+
+
+def compute_energy(xfft):
+    squared_abs = np.abs(xfft) ** 2
+    full_energy = np.sum(squared_abs)
+    return full_energy
+
+
+def preserve_energy(xfft, energy_rate=None, index_back=None):
+    if energy_rate is not None or index_back is not None:
+        initial_length = len(xfft)
+        half_fftsize = initial_length // 2
+        xfft = xfft[0:half_fftsize + 1]
+        # print("input xfft len: ", len(xfft))
+        if energy_rate is not None:
+            squared_abs = np.abs(xfft) ** 2
+            full_energy = np.sum(squared_abs)
+            current_energy = 0.0
+            preserved_energy = full_energy * energy_rate
+            index = 0
+            while current_energy < preserved_energy and index < len(squared_abs):
+                current_energy += squared_abs[index]
+                index += 1
+        elif index_back is not None:
+            index = len(xfft) - index_back
+        # print("index back: ", len(xfft) - index)
+    return index
+
+
 def convolve1D_fft(x, w, fftsize, out_size, preserve_energy_rate=1.0):
     """
     Convolve inputs x and w using fft.
@@ -861,7 +929,8 @@ def conv_forward_fft_1D(x, w, b, conv_param):
      :see:  source: https://stackoverflow.com/questions/40703751/using-fourier-transforms-to-do-convolution?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
      short: https://goo.gl/GwyhXz
     """
-    preserve_energy_rate = conv_param.get('preserve_energy_rate', 1.0)
+    preserve_energy_rate = conv_param.get('preserve_energy_rate', None)
+    index_back = conv_param.get('index_back', None)
     pad = conv_param.get('pad')
     stride = conv_param.get('stride')
     if stride != 1:
@@ -877,8 +946,8 @@ def conv_forward_fft_1D(x, w, b, conv_param):
     for nn in range(N):  # For each time-series in the input batch.
         for ff in range(F):  # For each filter in w
             for cc in range(C):
-                out[nn, ff] += convolve1D_fft(padded_x[nn, cc], w[ff, cc], fftsize, out_size=out_W,
-                                              preserve_energy_rate=preserve_energy_rate)
+                out[nn, ff] += correlate_signals(padded_x[nn, cc], w[ff, cc], fftsize, out_size=out_W,
+                                                 preserve_energy_rate=preserve_energy_rate, index_back=index_back)
             out[nn, ff] += b[ff]
 
     cache = (x, w, b, conv_param)
@@ -899,7 +968,8 @@ def conv_backward_fft_1D(dout, cache):
     - db: Gradient with respect to b
     """
     x, w, b, conv_param = cache
-    preserve_energy_rate = conv_param.get('preserve_energy_rate', 1.0)
+    preserve_energy_rate = conv_param.get('preserve_energy_rate', None)
+    index_back = conv_param.get('index_back', None)
     pad = conv_param.get('pad')
     stride = conv_param.get('stride')
     if stride != 1:
@@ -940,8 +1010,8 @@ def conv_backward_fft_1D(dout, cache):
                 # accumulate gradient for a filter from each channel
                 # dw[ff, cc] += convolve1D_fft(padded_x[nn, cc], np.flip(dout[nn, ff], axis=0), fftsize, WW,
                 #                              preserve_energy_rate=preserve_energy_rate)
-                dw[ff, cc] += convolve1D_fft(padded_x[nn, cc], dout[nn, ff], fftsize, WW,
-                                             preserve_energy_rate=preserve_energy_rate)
+                dw[ff, cc] += correlate_signals(padded_x[nn, cc], dout[nn, ff], fftsize, WW,
+                                                preserve_energy_rate=preserve_energy_rate, index_back=index_back)
 
     # Calculate dx.
     # By chain rule dx is dout*w. We need to make dx same shape as padded x for the gradient calculation.
@@ -953,8 +1023,8 @@ def conv_backward_fft_1D(dout, cache):
                 # print("dout[nn, ff] shape: ", dout[nn, ff].shape)
                 # print("w[ff, cc]: ", w[ff, cc])
                 # print("w[ff, cc] shape: ", w[ff, cc].shape)
-                dx[nn, cc] += convolve1D_fft(padded_dout[nn, ff], np.flip(w[ff, cc], axis=0), fftsize, W,
-                                             preserve_energy_rate=preserve_energy_rate)
+                dx[nn, cc] += correlate_signals(padded_dout[nn, ff], np.flip(w[ff, cc], axis=0), fftsize, W,
+                                                preserve_energy_rate=preserve_energy_rate, index_back=index_back)
 
     return dx, dw, db
 
@@ -1200,7 +1270,7 @@ def compress_fft_1D(x, y_len):
     half_fft_len = len(xfft) // 2
     xfft_first_half = xfft[:half_fft_len - discard_count]
     if y_len % 2 == x_len % 2:
-        xfft_first_half = np.append(xfft_first_half, xfft[half_fft_len])
+        xfft_first_half = np.append(xfft_first_half, np.zeros(1))
     xfft = np.append(xfft_first_half, xfft[half_fft_len + 1 + discard_count:])
     # print("energy of compressed xfft: ", energy(np.abs(xfft)))
     # plot_signal(np.abs(xfft), title="xfft after compression")
@@ -1231,7 +1301,9 @@ def compress_fft_1D_gradient(g, x_len):
     :return: gradient of the loss R with respect to x (the input signal to the forward 1D fft compression).
     """
     g_len = len(g)
+    # plot_signal(g, "g input gradients")
     gfft = fft(g, g_len) / np.sqrt(g_len)
+    # plot_signal(gfft, "first gfft after fft")
     discard_count = (x_len - g_len) // 2
     half_fft_len = len(gfft) // 2
     gfft_first_half = np.append(gfft[:half_fft_len], np.zeros(discard_count))
@@ -1240,8 +1312,10 @@ def compress_fft_1D_gradient(g, x_len):
         gfft_first_half = np.append(gfft_first_half, np.zeros(1))
     gfft_second_half = np.append(np.zeros(discard_count), gfft[half_fft_len + 1:])
     gfft_padded = np.append(gfft_first_half, gfft_second_half)
+    # plot_signal(gfft_padded, "gfft padded: ")
     dx = ifft(gfft_padded) * np.sqrt(len(gfft_padded))
     dx = np.real(dx)
+    # plot_signal(dx, "output of the dx")
     return dx
 
 

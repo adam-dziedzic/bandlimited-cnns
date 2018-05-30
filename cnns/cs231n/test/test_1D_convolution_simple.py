@@ -28,24 +28,24 @@ stride = 1
 pad = 2
 conv_param = {'stride': stride, 'pad': pad, 'preserve_energy_rate': 1.0}
 out_conv = np.int(((W + 2 * pad - WW) // stride) + 1)
-print("out_conv: ", out_conv)
+# print("out_conv: ", out_conv)
 
 pool_width = 2
 pool_stride = 3
 pool_param = {'pool_width': pool_width, 'stride': pool_stride}
 out_pool = np.int(((out_conv - pool_width) // pool_stride) + 1)
-print("out_pool: ", out_pool)
+# print("out_pool: ", out_pool)
 
 # dout = np.random.randn(nr_data, nr_filters, out_pool)
 dout = np.array([[np.ones(out_pool)]])
-print("dout: ", dout)
+# print("dout: ", dout)
 
 out_naive, cache = conv_relu_pool_forward_naive_1D(x, w, b, conv_param, pool_param)
-print("out naive: ", out_naive)
+# print("out naive: ", out_naive)
 dx, dw, db = conv_relu_pool_backward_naive_1D(dout, cache)
 
-print("dx naive: ", dx)
-print("dw naive: ", dw)
+# print("dx naive: ", dx)
+# print("dw naive: ", dw)
 
 dx_num = eval_numerical_gradient_array(lambda x: conv_relu_pool_forward_naive_1D(x, w, b, conv_param, pool_param)[0], x,
                                        dout)

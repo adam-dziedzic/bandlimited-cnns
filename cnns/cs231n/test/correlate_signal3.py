@@ -96,10 +96,18 @@ for energy_rate in [1.0]:
     #                                                            np.array(zscore(returned_signal), dtype=np.float64)))
 
 
-    print("rel error input output signal float32: ", rel_error(np.array(zscore(x), dtype=np.float32),
+    print("zscore rel error input output signal float32: ", rel_error(np.array(zscore(x), dtype=np.float32),
                                                                np.array(zscore(returned_signal), dtype=np.float32)))
-    print("rel error input output signal float64: ", rel_error(np.array(zscore(x), dtype=np.float64),
+    print("zsocre rel error input output signal float64: ", rel_error(np.array(zscore(x), dtype=np.float64),
                                                                np.array(zscore(returned_signal), dtype=np.float64)))
 
-    print("abs error input output signal float64: ", abs_error(np.array(zscore(x), dtype=np.float64),
+    print("zscore abs error input output signal float64: ", abs_error(np.array(zscore(x), dtype=np.float64),
                                                                np.array(zscore(returned_signal), dtype=np.float64)))
+
+    print("rel error input output signal float32: ", rel_error(np.array(x, dtype=np.float32),
+                                                               np.array(returned_signal, dtype=np.float32)))
+    print("rel error input output signal float64: ", rel_error(np.array(x, dtype=np.float64),
+                                                               np.array(returned_signal, dtype=np.float64)))
+
+    print("abs error input output signal float64: ", abs_error(np.array(x, dtype=np.float64),
+                                                               np.array(returned_signal, dtype=np.float64)))

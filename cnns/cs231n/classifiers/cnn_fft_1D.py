@@ -18,7 +18,7 @@ class ThreeLayerConvNetFFT1D(object):
                  hidden_dim=100, num_classes=10, weight_scale=1e-3, reg=0.0,
                  dtype=np.float64, filter_channels=1, pad_convolution=None,
                  stride_convolution=1, pool_stride=2, pool_width=5,
-                 energy_rate_convolution=1.0):
+                 energy_rate_convolution=1.0, index_back=None):
         """
         Initialize a new network.
 
@@ -57,6 +57,7 @@ class ThreeLayerConvNetFFT1D(object):
         self.pool_stride = pool_stride
         self.pool_width = pool_width
         self.energy_rate_convolution = energy_rate_convolution
+        self.index_back = index_back
 
         self.params['W1'] = np.random.normal(0, weight_scale, [num_filters, filter_channels, filter_size])
         self.params['b1'] = np.zeros([num_filters])
@@ -85,9 +86,9 @@ class ThreeLayerConvNetFFT1D(object):
         W3, b3 = self.params['W3'], self.params['b3']
 
         conv_param = {'stride': self.stride_convolution, 'pad': self.pad_convolution,
-                      'preserve_energy_rate': self.energy_rate_convolution}
+                      'preserve_energy_rate': self.energy_rate_convolution,
+                      'index_back': self.index_back}
         pool_param = {'pool_width': self.pool_width, 'stride': self.pool_stride}
-
 
         ############################################################################
         # Implement the forward pass for the three-layer convolutional net,        #

@@ -13,8 +13,8 @@ W = 8
 x = np.array([[[1.0, 2, 3, 4, 5, 6, 7, 8]]])
 x = x.reshape(1, 1, -1)
 
-pool_width = 2
-pool_stride = 2
+pool_width = 3
+pool_stride = 3
 pool_param = {'pool_width': pool_width, 'stride': pool_stride}
 out_pool = np.int(((W - pool_width) // pool_stride) + 1)
 print("out_pool: ", out_pool)
