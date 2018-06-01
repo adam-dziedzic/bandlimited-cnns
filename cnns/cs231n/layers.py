@@ -1,7 +1,7 @@
 from builtins import range
 
 import pyfftw
-from numpy.fft import fft, ifft
+from numpy.fft import fft, ifft, rfft, irfft
 
 from cs231n.utils.general_utils import *
 
@@ -1251,7 +1251,7 @@ def compress_fft_1D_fast(x, y_len):
 
 def compress_fft_1D(x, y_len):
     """
-    Compress the fft signal (this the forward step).
+    Compress the fft signal (this is the forward step).
 
     :param x: input 1D signal
     :param y_len: the length of the output. Based on this value, we calculate the discard_count: how many
@@ -1263,6 +1263,7 @@ def compress_fft_1D(x, y_len):
     # take the Fourier matrix for FFT in its standard form: 1/sqrt(N) * FourierMatrix to preserve scale of energies
     # in the input and output of the fft
     xfft = fft(x) / np.sqrt(x_len)
+    # xfft = rfft(x
     # plot_signal(fft(x, 512), "signal x after fft 512")
     # print("energy of uncompressed xfft: ", energy(np.abs(xfft)))
     # plot_signal(np.abs(xfft), title="xfft before compression")
