@@ -61,11 +61,12 @@ def plot_signal(signal, title="signal"):
     plt.show()
 
 
-def plot_signals(x, y, title="", xlabel="Time", ylabel="Amplitude", label_x="input", label_y="output"):
+def plot_signals(x, y, title="", xlabel="Time", ylabel="Amplitude", label_x="input", label_y="output",
+                 linestyle="solid"):
     fontsize = 20
     linewidth = 2.0
-    plt.plot(range(0, len(x)), x, color="red", linewidth=linewidth)
-    plt.plot(range(0, len(y)), y, color="blue", linewidth=linewidth)
+    plt.plot(range(0, len(x)), x, color="red", linewidth=linewidth, linestyle=linestyle)
+    plt.plot(range(0, len(y)), y, color="blue", linewidth=linewidth, linestyle=linestyle)
     # We prepare the plot
     fig = plt.figure(1)
     plot = fig.add_subplot(111)

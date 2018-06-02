@@ -1258,31 +1258,31 @@ def compress_fft_1D(x, y_len):
     coefficients (in the frequency domain) we should discard from both halves of the input x signal
     :return: compressed signal
     """
-    x_len = len(x)
+    # x_len = len(x)
     # print("energy of x: ", energy(x))
     # take the Fourier matrix for FFT in its standard form: 1/sqrt(N) * FourierMatrix to preserve scale of energies
     # in the input and output of the fft
-    xfft = fft(x) / np.sqrt(x_len)
-    # xfft = rfft(x
-    # plot_signal(fft(x, 512), "signal x after fft 512")
+    # xfft = fft(x) / np.sqrt(x_len)
+    xfft = rfft(x, norm="ortho")
+    # plot_signal(xfft, "signal x after rfft")
     # print("energy of uncompressed xfft: ", energy(np.abs(xfft)))
     # plot_signal(np.abs(xfft), title="xfft before compression")
-    discard_count = (x_len - y_len) // 2
-    half_fft_len = len(xfft) // 2
-    xfft_first_half = xfft[:half_fft_len - discard_count]
-    if y_len % 2 == x_len % 2:
-        xfft_first_half = np.append(xfft_first_half, np.zeros(1))
-    xfft = np.append(xfft_first_half, xfft[half_fft_len + 1 + discard_count:])
+    # discard_count = (x_len - y_len) // 2
+    # half_fft_len = len(xfft) // 2
+    # xfft_first_half = xfft[:half_fft_len - discard_count]
+    # if y_len % 2 == x_len % 2:
+    #     xfft_first_half = np.append(xfft_first_half, np.zeros(1))
+    # xfft = np.append(xfft_first_half, xfft[half_fft_len + 1 + discard_count:])
     # print("energy of compressed xfft: ", energy(np.abs(xfft)))
     # plot_signal(np.abs(xfft), title="xfft after compression")
     # print("xfft len after compression: ", len(xfft))
     # print("expected y_len: ", y_len)
-    y = ifft(xfft) * np.sqrt(y_len)
+    y = irfft(xfft, norm="ortho", n=y_len)
     # yfft = fft(y, 512)
-    # plot_signal(yfft, "signal y after fft 512")
+    # plot_signal(y, "signal y after irfft")
     # plot_signal(ifft(yfft), "signal yfft after inverse 512")
     # print("size of the output: ", len(y))
-    y = np.real(y)
+    # y = np.real(y)
     # plot_signal(y, "y after ifft and real")
     # print("energy ratio: ", energy(y)/energy(x))
     return y
@@ -1301,22 +1301,22 @@ def compress_fft_1D_gradient(g, x_len):
     zeros we should add (in the frequency domain) to both halves of the gradient signal g.
     :return: gradient of the loss R with respect to x (the input signal to the forward 1D fft compression).
     """
-    g_len = len(g)
+    # g_len = len(g)
     # plot_signal(g, "g input gradients")
-    gfft = fft(g, g_len) / np.sqrt(g_len)
-    # plot_signal(gfft, "first gfft after fft")
-    discard_count = (x_len - g_len) // 2
-    half_fft_len = len(gfft) // 2
-    gfft_first_half = np.append(gfft[:half_fft_len], np.zeros(discard_count))
-    gfft_first_half = np.append(gfft_first_half, gfft[half_fft_len])
-    if g_len % 2 != x_len % 2:
-        gfft_first_half = np.append(gfft_first_half, np.zeros(1))
-    gfft_second_half = np.append(np.zeros(discard_count), gfft[half_fft_len + 1:])
-    gfft_padded = np.append(gfft_first_half, gfft_second_half)
+    gfft = rfft(g, norm="ortho")
+    # plot_signal(gfft, "first gfft after rfft")
+    # discard_count = (x_len - g_len) // 2
+    # half_fft_len = len(gfft) // 2
+    # gfft_first_half = np.append(gfft[:half_fft_len], np.zeros(discard_count))
+    # gfft_first_half = np.append(gfft_first_half, gfft[half_fft_len])
+    # if g_len % 2 != x_len % 2:
+    #     gfft_first_half = np.append(gfft_first_half, np.zeros(1))
+    # gfft_second_half = np.append(np.zeros(discard_count), gfft[half_fft_len + 1:])
+    # gfft_padded = np.append(gfft_first_half, gfft_second_half)
     # plot_signal(gfft_padded, "gfft padded: ")
-    dx = ifft(gfft_padded) * np.sqrt(len(gfft_padded))
-    dx = np.real(dx)
-    # plot_signal(dx, "output of the dx")
+    dx = irfft(gfft, norm="ortho", n=x_len)
+    # dx = np.real(dx)
+    # plot_signal(dx, "output of the dx after irfft")
     return dx
 
 
