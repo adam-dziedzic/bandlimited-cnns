@@ -74,7 +74,7 @@ class ThreeLayerConvNet(object):
         # self.params['W2'] = np.random.normal(0, weight_scale, [np.int(H/2)*np.int(W/2)*num_filters, hidden_dim])
         # shape of W2 after convolution
         conv_out_H, conv_out_W = get_conv_shape((H, W), (filter_size, filter_size), self.conv_param)
-        max_pool_out_H, max_pool_out_W = get_max_pool_shape((conv_out_H, conv_out_W), self.pool_param)
+        max_pool_out_H, max_pool_out_W = get_out_pool_shape((conv_out_H, conv_out_W), self.pool_param)
         W2_conv_max_pool_shape = num_filters * max_pool_out_H * max_pool_out_W
 
         self.params['W2'] = np.random.normal(0, weight_scale, (W2_conv_max_pool_shape, hidden_dim))

@@ -1249,6 +1249,23 @@ def compress_fft_1D_fast(x, y_len):
     return y
 
 
+def compress_spectral_1D(x, y_len):
+    """
+    Compress the signal (this is the forward step) in the spectral domain.
+
+    :param x: input 1D signal
+    :param y_len: the length of the output. Based on this value, we calculate the discard_count: how many
+    coefficients (in the frequency domain) we should discard from both halves of the input x signal
+    :return: compressed signal
+    """
+    assert y_len >= 3
+    xfft = fft(x, norm="ortho")
+    if y_len % 2 == 1:
+        n = (y_len - 1) // 2
+
+    return y
+
+
 def compress_fft_1D(x, y_len):
     """
     Compress the fft signal (this is the forward step).
@@ -1863,7 +1880,7 @@ def conv_backward_naive(dout, cache):
     return dx, dw, db
 
 
-def get_max_pool_shape(x_shape, pool_param):
+def get_out_pool_shape(x_shape, pool_param):
     """
     Get the shape of the output of the max pool.
 
@@ -1883,6 +1900,47 @@ def get_max_pool_shape(x_shape, pool_param):
     out_W = np.int(((W - pool_width) / stride) + 1)
 
     return out_H, out_W
+
+
+def fft_pool_forward(x, pool_param):
+    """
+    An fft-based implementation of the forward pass for the spectral pooling layer.
+
+    Inputs:
+    - x: Input data, of shape (N, C, H, W)
+    - pool_param: dictionary with the following keys:
+      - 'pool_height': The height of each pooling region
+      - 'pool_width': The width of each pooling region
+      - 'stride': The distance between adjacent pooling regions
+
+    Returns a tuple of:
+    - out: Output data
+    - cache: (x, pool_param)
+    """
+    pool_height = pool_param.get('pool_height')
+    pool_width = pool_param.get('pool_width')
+    stride = pool_param.get('stride')
+
+    N, C, H, W = x.shape
+    out_H, out_W = get_out_pool_shape((H, W), pool_param)
+    # Initialise output.
+    out = np.zeros([N, C, out_H, out_W])
+
+    # Naive maxpool for loop.
+    for n in range(N):  # For each image.
+        for c in range(C):  # For each channel
+
+
+            for h in range(out_H):  # For each output row.
+                for w in range(out_W):  # For each output col.
+                    out[n, c, h, w] = np.max(
+                        x[n, c, h * stride:h * stride + pool_height, w * stride:w * stride + pool_width])
+
+    ###########################################################################
+    #                             END OF YOUR CODE                            #
+    ###########################################################################
+    cache = (x, pool_param)
+    return out, cache
 
 
 def max_pool_forward_naive(x, pool_param):
@@ -1910,7 +1968,7 @@ def max_pool_forward_naive(x, pool_param):
     stride = pool_param.get('stride')
 
     N, C, H, W = x.shape
-    out_H, out_W = get_max_pool_shape((H, W), pool_param)
+    out_H, out_W = get_out_pool_shape((H, W), pool_param)
     # Initialise output.
     out = np.zeros([N, C, out_H, out_W])
 
