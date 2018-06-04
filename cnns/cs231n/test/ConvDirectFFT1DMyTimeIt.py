@@ -10,9 +10,7 @@ from scipy import signal
 from cs231n.layers import *
 from cs231n.load_time_series import load_data
 
-
 # from cs231n.fast_layers import conv_forward_fft
-
 
 def reshape(x):
     return x.reshape(1, 1, -1)
@@ -52,7 +50,8 @@ np.random.seed(231)
 # filters = np.array(full_filter[:filter_size], dtype=np.float64)
 
 num_channels = 1
-input_size = 256
+# input_size = 256
+input_size = 2048
 # input_size = 4096
 filter_size = 2
 
@@ -132,14 +131,14 @@ def timeitrep(statement, number=1, repetition=1):
     return np.average(timings), statement_result
 
 
-conv_param = {'stride': stride, 'pad': padding}
+conv_param = {'stride': stride, 'pad': padding, 'preserve_energy_rate': None}
 # conv_naive_time, result_naive = timeit(conv_naive, number=exec_number)
 x_naive = reshape(x)
 filters_naive = reshape(filters)
 conv_naive_time, (result_naive, _) = timeit(
     wrapper(conv_forward_naive_1D, x_naive, filters_naive, b, conv_param),
     number=exec_number)
-print("result naive: ", result_naive)
+# print("result naive: ", result_naive)
 print("result naive shape: ", result_naive.shape)
 print("conv naive time: ", conv_naive_time)
 # conv_fft_time, result_fft = timeit(conv_fft, number=exec_number)
@@ -180,7 +179,7 @@ print("torch gpu time: ", torch_gpu_time, ", abs error: ", abs_error(result_torc
 
 numpy_time, result_numpy = timeit(wrapper(np.correlate, x, filters, mode=mode), number=exec_number)
 print("numpy time: ", numpy_time, ", abs error: ", abs_error(result_numpy, result_naive))
-print("numpy result: ", result_numpy)
+# print("numpy result: ", result_numpy)
 print("numpy result shape: ", result_numpy.shape)
 scipy_time, result_scipy = timeit(wrapper(signal.correlate, x, filters, mode=mode), number=exec_number)
 print("scipy time: ", scipy_time, ", abs error: ", abs_error(result_scipy, result_naive))
@@ -289,8 +288,7 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
         #     number=exec_number, repetition=repetitions)
 
         conv_compress_time, (result_compress, _) = timeitrep(
-            wrapper(conv_forward_fft_1D_compress_compare, reshaped_x, reshaped_filters, b, conv_param,
-                    preserve_energy_rate=0.99),
+            wrapper(conv_forward_fft_1D, reshaped_x, reshaped_filters, b, conv_param),
             number=exec_number, repetition=repetitions)
 
         conv_my_numpy_time, (result_my_numpy, _) = timeitrep(
