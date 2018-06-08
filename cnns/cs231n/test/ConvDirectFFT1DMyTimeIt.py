@@ -51,7 +51,7 @@ np.random.seed(231)
 
 num_channels = 1
 # input_size = 256
-input_size = 2048
+input_size = 256
 # input_size = 4096
 filter_size = 2
 

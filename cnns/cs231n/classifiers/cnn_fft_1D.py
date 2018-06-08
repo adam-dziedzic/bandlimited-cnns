@@ -10,7 +10,7 @@ class ThreeLayerConvNetFFT1D(object):
     conv - relu - 2 max pool - affine - relu - affine - softmax
 
     The network operates on minibatches of data that have shape (N, C, W)
-    consisting of N images, each transformed to an array of W values with C input
+    consisting of N inputs (signals), each transformed to an array of W values with C input
     channels.
     """
 
