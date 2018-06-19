@@ -15,6 +15,8 @@ logger.setLevel(logging.DEBUG)
 consoleLog = logging.StreamHandler()
 logger.addHandler(consoleLog)
 
+current_file_name = __file__.split("/")[-1].split(".")[0]
+
 class Result(object):
     def __init__(self, data):
         self.data = data

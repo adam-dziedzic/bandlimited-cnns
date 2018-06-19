@@ -3,7 +3,16 @@ import numpy as np
 import math
 import timeit
 import matplotlib.pyplot as plt
+import logging
+import argparse
 from cs231n.data_utils import load_CIFAR10
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+consoleLog = logging.StreamHandler()
+logger.addHandler(consoleLog)
+
+current_file_name = __file__.split("/")[-1].split(".")[0]
 
 
 def get_CIFAR10_data(num_training=49000, num_validation=1000, num_test=10000):
@@ -72,6 +81,7 @@ def simple_model(X,y):
     y_out = tf.matmul(h1_flat,W1) + b1
     return y_out
 
+
 y_out = simple_model(X,y)
 
 # define our loss
@@ -82,9 +92,11 @@ mean_loss = tf.reduce_mean(total_loss)
 optimizer = tf.train.AdamOptimizer(5e-4) # select optimizer and set learning rate
 train_step = optimizer.minimize(mean_loss)
 
+
 def run_model(session, predict, loss_val, Xd, yd,
               epochs=1, batch_size=64, print_every=100,
               training=None, plot_losses=False):
+    
     # have tensorflow compute accuracy
     correct_prediction = tf.equal(tf.argmax(predict,1), y)
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
@@ -146,9 +158,9 @@ def run_model(session, predict, loss_val, Xd, yd,
             plt.show()
     return total_loss,total_correct
 
+
 # define model
 def complex_model(X,y,is_training):
-    
     # Set up variables
     Wconv1 = tf.get_variable("Wconv1",shape=[7,7,3,32])
     bconv1 = tf.get_variable("bconv1",shape=[32])
@@ -180,6 +192,47 @@ def run_model_cpu():
             run_model(sess,y_out,mean_loss,X_train,y_train,1,64,100,train_step,True)
             print('Validation')
             run_model(sess,y_out,mean_loss,X_val,y_val,1,64)
+
+def run_model_gpu():
+    """
+    Try and start the model under the GPU device, the rest of the code stays unchanged and all our variables and operations will be computed using accelerated code paths. However, if there is no GPU, we get a Python exception and have to rebuild our graph. On a dual-core CPU, you might see around 50-80ms/batch running the above, while the Google Cloud GPUs (run below) should be around 2-5ms/batch.
+    """
+    try:
+        with tf.Session() as sess:
+            with tf.device("/gpu:0") as dev: #"/cpu:0" or "/gpu:0"
+                tf.global_variables_initializer().run()
+
+                ans = sess.run(y_out,feed_dict={X:x,is_training:True})
+                start = time.time()
+                sess.run(y_out,feed_dict={X:x,is_training:True})
+                print("exec time gpu training: ", time.time() - start)
+    except tf.errors.InvalidArgumentError:
+        logger.error("no gpu found")
+        # rebuild the graph
+        # trying to start a GPU throws an exception 
+        # and also trashes the original graph
+        tf.reset_default_graph()
+        X = tf.placeholder(tf.float32, [None, 32, 32, 3])
+        y = tf.placeholder(tf.int64, [None])
+        is_training = tf.placeholder(tf.bool)
+        y_out = complex_model(X,y,is_training)
+
+def degub_mode():
+    msg = "in debug mode: for now do nothing"
+    print("msg: ", msg)
+    logger.debug(msg)
         
 if __name__ == "__main__":
-    run_model_cpu()
+    logger.debug("parse arguments")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("mode", help="which mode to run: run_model_cpu, run_mode_gpu, debug_mode")
+    args = parser.parse_args()
+    run_mode = args.mode
+    if run_mode == "run_model_cpu":
+        run_model_cpu()
+    elif run_mode == "debug_mode":
+        debug_mode()
+    elif run_mode == "run_model_gpu":
+        run_model_gpu()
+    else:
+        logger.error("unknown run mode: " + run_mode)
