@@ -171,6 +171,7 @@ def train(energy_rates=[None]):
 
         # replace the dev set with the full test set
         dev_x = test_x
+        dev_y = test_y
 
         # this is what the solver expects
         small_data = {
