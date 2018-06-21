@@ -1,10 +1,10 @@
 import numpy as np
+import os
 
 database_path = '/TimeSeriesDatasets/'
 
 
 def load_data(dirname, normalization=False, slice_ratio=1, percent_valid=0.2):
-    import os
     dir_path = os.path.dirname(os.path.realpath(__file__))
     # print("current path: ", dir_path)
 
@@ -18,10 +18,10 @@ def load_data(dirname, normalization=False, slice_ratio=1, percent_valid=0.2):
     train_y = np.int_(data[:, 0].astype(np.float32)) - 1  # label starts from 0
     # print("shape of the train_x: ", train_x.shape)
     # print("train size before splitting: ", len(train_y))
-    len_data = train_x.shape[1]
+    len_train_data = train_x.shape[1]
 
     # restrict slice ratio when data length is too large
-    if len_data > 500:
+    if len_train_data > 500:
         slice_ratio = slice_ratio if slice_ratio > 0.98 else 0.98
 
     # shuffle for splitting train set and dataset
@@ -60,14 +60,14 @@ def load_data(dirname, normalization=False, slice_ratio=1, percent_valid=0.2):
     # print("size of the test set: ", len(test_x))
 
     # z-normalization (not done by default - the UCR dataset is normalized already)
-    if normalization == True:
+    if normalization:
         mean_x = train_x.mean(axis=0)
         std_x = train_x.std(axis=0)
         train_x = (train_x - mean_x) / std_x
         valid_x = (valid_x - mean_x) / std_x
         test_x = (test_x - mean_x) / std_x
 
-    return [(train_x, train_y), (valid_x, valid_y), (test_x, test_y), (len_data), (slice_ratio)]
+    return [(train_x, train_y), (valid_x, valid_y), (test_x, test_y), len_train_data, slice_ratio]
 
 
 def slice_data(data_x, data_y, slice_ratio=1):

@@ -1,16 +1,12 @@
 # As usual, a bit of setup
 from __future__ import print_function
 
-import time
-
 import torch
 import torch.nn.functional as F
 from scipy import signal
 
 from cs231n.layers import *
-from cs231n.load_time_series import load_data
 
-# from cs231n.fast_layers import conv_forward_fft
 
 def reshape(x):
     return x.reshape(1, 1, -1)

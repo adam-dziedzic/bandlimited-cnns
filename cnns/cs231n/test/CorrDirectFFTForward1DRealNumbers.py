@@ -1,5 +1,5 @@
-import numpy as np
 from scipy import signal
+
 from cs231n.layers import *
 
 
@@ -53,7 +53,7 @@ out = xfft * filterfft
 # take the inverse of the output from the frequency domain and return the modules of the complex numbers
 out = np.fft.ifft(out)
 output = np.real(out)[:xfft.shape[-1]]
-out_W = np.int(((len(x) + 2*padding - len(filters)) / stride) + 1)
+out_W = np.int(((len(x) + 2 * padding - len(filters)) / stride) + 1)
 # output = np.absolute(out)
 output = output[:out_W]
 
@@ -79,13 +79,8 @@ print("outfff shape: ", outfft.shape)
 print("is the fft cross_correlation for convolution correct with respect to naive: ",
       np.allclose(outfft, outnaive, atol=1e-12))
 print("relative error fft naive: ", rel_error(outfft, outnaive))
-print("absolute error fft: ", np.sum(np.abs(outfft - outnaive)))
-print("absolute error scipy: ", np.sum(np.abs(scipy_correlate - outnaive)))
-print("absolute error numpy: ", np.sum(np.abs(np_correlate - outnaive)))
+print("absolute error fft naive: ", np.sum(np.abs(outfft - outnaive)))
+print("absolute error scipy naive: ", np.sum(np.abs(scipy_correlate - outnaive)))
+print("absolute error numpy naive: ", np.sum(np.abs(np_correlate - outnaive)))
 print("absolute error scipy fft: ", np.sum(np.abs(scipy_fft - outnaive)))
 print("abs error scipy fft: ", abs_error(scipy_fft, outnaive))
-
-outfft_compress, _ = conv_forward_fft_1D_compress(x, filters, b, conv_param, preserve_energy_rate=0.17)
-print("outfff: ", outfft_compress)
-print("outfff shape: ", outfft_compress.shape)
-print("abs error fft compress: ", abs_error(outfft_compress, outnaive))

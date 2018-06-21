@@ -1,14 +1,13 @@
-import matplotlib.patches as mpatches
-import matplotlib.pyplot as plt
-import os
-from pandas import DataFrame
+import argparse
 import logging
+from pandas import DataFrame
+
 from cs231n.classifiers.cnn_fft_1D import ThreeLayerConvNetFFT1D
 from cs231n.data_utils import get_CIFAR10_data
+from cs231n.datasets.data_speech import load_swbd_labelled
 from cs231n.solver import Solver
 from cs231n.utils.general_utils import *
-from cs231n.datasets.data_speech import load_swbd_labelled
-import argparse
+from cs231n.load_time_series import load_data
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -17,14 +16,15 @@ logger.addHandler(consoleLog)
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
 
+
 class Result(object):
     def __init__(self, data):
         self.data = data
 
 
 def train(energy_rates=[None]):
-    #num_train = 49000
-    #num_valid = 1000
+    # num_train = 49000
+    # num_valid = 1000
     # num_train = 10
     # num_valid = 10
     num_train = 3000
@@ -32,7 +32,7 @@ def train(energy_rates=[None]):
     limit_dataset = False
     random_seed = 231
 
-    dataType = "speech"  # can be "speech" or "cifar10"
+    dataType = "ucr"  # can be "speech" or "cifar10" or "ucr"
 
     if dataType == "speech":
         """
@@ -104,7 +104,6 @@ def train(energy_rates=[None]):
         print("number of training examples: ", len(data['X_train']))
         print("number of training examples: ", data['X_train'].shape)
 
-
         """
         Take only subset of the CIFAR-10 data
         """
@@ -115,27 +114,99 @@ def train(energy_rates=[None]):
             'X_val': data['X_val'][:num_valid],
             'y_val': data['y_val'][:num_valid],
         }
-        #print("X_train: ", small_data['X_train'].shape)
-        #print("y_train: ", data['y_train'])
+        # print("X_train: ", small_data['X_train'].shape)
+        # print("y_train: ", data['y_train'])
 
         small_data['X_train'] = small_data['X_train'].reshape(
             small_data['X_train'].shape[0], small_data['X_train'].shape[1], -1)
-        #print("x_train shape: ", small_data['X_train'].shape)
+        # print("x_train shape: ", small_data['X_train'].shape)
 
         small_data['X_val'] = small_data['X_val'].reshape(
             small_data['X_val'].shape[0], small_data['X_val'].shape[1], -1)
-        #print("x_val shape: ", small_data['X_val'].shape)
+        # print("x_val shape: ", small_data['X_val'].shape)
 
         input_dim = (small_data['X_train'].shape[-2], small_data['X_train'].shape[-1])
         print("input_dim from CIFAR10: ", input_dim)
         num_classes = 10
+
+    elif dataType == "ucr":
+        dataset = "ElectricDevices"
+        datasets = load_data(dataset, percent_valid=0.0)
+
+        train_set_x, train_set_y = datasets[0]
+        # do not use the validation set
+        # valid_set_x, valid_set_y = datasets[1]
+        test_set_x, test_set_y = datasets[2]
+
+        def reshape(x):
+            N_data_points = x.shape[0]
+            return np.array(x.reshape(N_data_points, 1, -1))
+
+        train_set_x = reshape(train_set_x)
+        train_set_x = reshape(train_set_x)
+        
+        # train_set_x_reshaped = np.empty([len(train_set_x), 1, len(train_set_x[0])])
+        # valid_set_x_reshaped = np.empty([len(valid_set_x), 1, len(valid_set_x[0])])
+        # test_set_x = np.empty([len(test_set_x), 1, len(test_set_x[0])])
+
+        # for index, x in enumerate(train_set_x):
+        #     train_set_x_reshaped[index] = reshape(x)
+
+        # for index, x in enumerate(valid_set_x):
+        #     valid_set_x_reshaped[index] = reshape(x)
+
+        # for index, x in enumerate(test_set_x):
+        #     test_set_x_reshaped[index] = reshape(x)
+
+        print_num = 5
+        # print some initial data:
+        for set_type in ["train", "test"]:
+            print("samples of {} set: ".format(set_type))
+            for i in range(print_num):
+                if set_type == "train":
+                    x = train_set_x_reshaped[i]
+                    y = train_set_y[i]
+                else:
+                    x = test_set_x_reshaped[i]
+                    y = test_set_y[i]
+                print("x:", x, " y: ", y)
+
+        print("shape of train x: ", train_x.shape)
+        print("shape of train_y: ", train_y.shape)
+        input_dim = (train_x.shape[-2], train_x.shape[-1])
+        print("input dim: ", input_dim)
+        print("size of train: ", len(train_x))
+        print("size of dev: ", len(dev_x))
+        print("size of test: ", len(test_x))
+
+        # this is what the solver expects
+        small_data = {
+            'X_train': train_x,
+            'y_train': train_y,
+            'X_val': dev_x,
+            'y_val': dev_y,
+        }
+        if limit_dataset:
+            small_data = {
+                'X_train': train_x[:num_train],
+                'y_train': train_y[:num_train],
+                'X_val': dev_x[:num_valid],
+                'y_val': dev_y[:num_valid],
+            }
+
+        print("size of small train: ", len(train_x))
+        print("size of small dev: ", len(dev_x))
+        print("size of small test: ", len(test_x))
+
+        num_classes = np.unique(small_data['y_train']).shape[0]
+        logger.debug("num_classes for speech data: " + str(num_classes))
 
     # print_every = num_train
     print_every = 5
     num_epochs = 1000
     energy_rates = energy_rates
     # num_epochs = 2
-    #energy_rates = [1.0, 0.999]
+    # energy_rates = [1.0, 0.999]
     losses_rate = []
 
     for energy_rate in energy_rates:
@@ -143,7 +214,8 @@ def train(energy_rates=[None]):
         epoch_log = "fft_epoch_log_" + get_log_time() + "_energy_rate_" + str(energy_rate) + ".csv"
         loss_log = "fft_loss_log_" + get_log_time() + "_energy_rate_" + str(energy_rate) + ".csv"
         start = time.time()
-        model = ThreeLayerConvNetFFT1D(weight_scale=1e-2, energy_rate_convolution=energy_rate, index_back=None, input_dim=input_dim, num_classes=num_classes)
+        model = ThreeLayerConvNetFFT1D(weight_scale=1e-2, energy_rate_convolution=energy_rate, index_back=None,
+                                       input_dim=input_dim, num_classes=num_classes)
         solver = Solver(model, small_data,
                         num_epochs=num_epochs, batch_size=50,
                         update_rule='adam',
@@ -197,7 +269,7 @@ def train(energy_rates=[None]):
         plt.savefig("graphs/train-val-" + current_file_name + "-" + get_log_time() + ".png")
         plt.gcf().subplots_adjust(bottom=0.10)
         plt.savefig("graphs/train-val-" + current_file_name + "-" + get_log_time() + ".pdf")
-        #plt.show()
+        # plt.show()
 
         fig, ax = plt.subplots()
         for _, _, rate, losses, _ in losses_rate:
@@ -211,7 +283,7 @@ def train(energy_rates=[None]):
         plt.savefig("graphs/losses-" + current_file_name + "-" + get_log_time() + ".png")
         plt.gcf().subplots_adjust(bottom=0.10)
         plt.savefig("graphs/losses-" + current_file_name + "-" + get_log_time() + ".pdf")
-        #plt.show()
+        # plt.show()
 
         # import matplotlib.patches as mpatches
         # import matplotlib.pyplot as plt
@@ -231,8 +303,8 @@ def train(energy_rates=[None]):
         # print("trates: ", trates)
         df_input = {'rates': trates, 'ttimes': ttimes}
         df = DataFrame(data=df_input)
-        df=df.astype(float)
-        #print("df: ", df)
+        df = df.astype(float)
+        # print("df: ", df)
 
         fig = plt.figure()  # create matplot figure
         ax = fig.add_subplot(111)  # create matplotlib axes
@@ -255,7 +327,7 @@ def train(energy_rates=[None]):
         plt.savefig("graphs/timing-" + current_file_name + "-" + get_log_time() + ".png")
         plt.gcf().subplots_adjust(bottom=0.20)
         plt.savefig("graphs/timing-" + current_file_name + "-" + get_log_time() + ".pdf")
-        #plt.show()
+        # plt.show()
 
 
 if __name__ == "__main__":

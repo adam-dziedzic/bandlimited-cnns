@@ -59,7 +59,7 @@ def correlate_signals(x, y, out_len, energy_rate=None, index_back=None):
     plot_signal(np.abs(xfft), "xfft before compression")
     yfft = fft(y, fft_size)
     if energy_rate is not None or index_back is not None:
-        index = preserve_energy(xfft, energy_rate, index_back)
+        index = preserve_energy_index(xfft, energy_rate, index_back)
         with open(log_file, "a+") as f:
             f.write("index: " + str(index_back) + ";preserved energy input: " + str(
                 compute_energy(xfft[:index]) / compute_energy(xfft[:fft_size // 2 + 1])) +

@@ -595,7 +595,7 @@ def conv_forward_fft_1D_correct(x, w, b, conv_param, preserve_energy_rate=1.0):
                     out_real = np.pad(out_real, (0, out_W - len(out_real)), 'constant')
                 sum_out += out_real[:out_W]
             # crop the output to the expected shape
-            # print("shape of expected resuls: ", out[nn, ff].shape)
+            # print("shape of expected results: ", out[nn, ff].shape)
             # print("shape of sum_out: ", sum_out.shape)
             out[nn, ff] = sum_out + b[ff]
 
@@ -728,6 +728,7 @@ log_file = "index_back_filter_signal2" + get_log_time() + ".log"
 
 def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index_back=None):
     """
+    Cross-correlation of the signals: x and y.
 
     :param x: input signal
     :param y: filter
@@ -739,7 +740,7 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index
     xfft = fft(x, fft_size)
     yfft = fft(y, fft_size)
     if preserve_energy_rate is not None or index_back is not None:
-        index = preserve_energy(xfft, preserve_energy_rate, index_back)
+        index = preserve_energy_index(xfft, preserve_energy_rate, index_back)
         # with open(log_file, "a+") as f:
         #     f.write("index: " + str(index_back) + ";preserved energy input: " + str(
         #         compute_energy(xfft[:index]) / compute_energy(xfft[:fft_size // 2 + 1])) +
@@ -764,25 +765,33 @@ def compute_energy(xfft):
     return full_energy
 
 
-def preserve_energy(xfft, energy_rate=None, index_back=None):
-    if energy_rate is not None or index_back is not None:
+def preserve_energy_index(xfft, energy_rate=None, index_back=None):
+    """
+    To which index should we preserve the xfft signal (and discard the remaining coefficients). This is based on the
+    provided energy_rate, or if the energy_rate is not provided, then index_back is applied. If none of the params are
+    provided, we
+
+    :param xfft: the input signal to be truncated
+    :param energy_rate: how much energy should we preserve in the xfft signal
+    :param index_back: how many coefficients of xfft should we discard counting from the back of the xfft
+    :return: calculated index
+    """
+    if energy_rate is not None:
         initial_length = len(xfft)
-        half_fftsize = initial_length // 2
-        xfft = xfft[0:half_fftsize + 1]
-        # print("input xfft len: ", len(xfft))
-        if energy_rate is not None:
-            squared_abs = np.abs(xfft) ** 2
-            full_energy = np.sum(squared_abs)
-            current_energy = 0.0
-            preserved_energy = full_energy * energy_rate
-            index = 0
-            while current_energy < preserved_energy and index < len(squared_abs):
-                current_energy += squared_abs[index]
-                index += 1
-        elif index_back is not None:
-            index = len(xfft) - index_back
-        # print("index back: ", len(xfft) - index)
-    return index
+        half_fftsize = initial_length // 2  # the signal in frequency domain is symmetric so we can discard one half
+        xfft = xfft[0:half_fftsize + 1]  # we preserve the middle element
+        squared = xfft ** 2
+        full_energy = np.sum(squared)  # sum of squared values of the signal
+        current_energy = 0.0
+        preserved_energy = full_energy * energy_rate
+        index = 0
+        while current_energy < preserved_energy and index < len(squared):
+            current_energy += squared[index]
+            index += 1
+        return index
+    elif index_back is not None:
+        return len(xfft) - index_back
+    return len(xfft)  # no truncation applied to xfft
 
 
 def convolve1D_fft(x, w, fftsize, out_size, preserve_energy_rate=1.0):
@@ -914,20 +923,21 @@ def conv_forward_fft_1D(x, w, b, conv_param):
     input time-series, so the output is a batch with the same size but the number of output channels is equal to the
     number of input filters.
 
-    :param x: Input data of shape (N, C, W)
-    :param w: Filter weights of shape (F, C, WW)
+    :param x: Input data of shape (N, C, W), N - number of data points in the batch, C - number of channels, W - the
+    width of the time-series (number of data points in a univariate series)
+    :param w: Filter weights of shape (F, C, WW),F - number of filters, C - number of channels, WW - size of the filter
     :param b: biases, of shape (F,)
     :param conv_param: A dictionary with the following keys:
-      - 'stride': The number of pixels between adjacent receptive fields in the
-        horizontal and vertical directions.
+      - 'stride': The number of pixels between adjacent receptive fields in the horizontal and vertical directions.
       - 'pad': The number of pixels that will be used to zero-pad the input.
     :return: a tuple of:
-     - out: output data, of shape (N, W') where W' is given by:
-     W' = 1 + (W + 2*pad - WW) / stride
+     - out: output data, of shape (N, F, W') where W' is given by: W' = 1 + (W + 2*pad - WW) / stride
      - cache: (x, w, b, conv_param)
 
-     :see:  source: https://stackoverflow.com/questions/40703751/using-fourier-transforms-to-do-convolution?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
-     short: https://goo.gl/GwyhXz
+     :see:  source short: https://goo.gl/GwyhXz
+     full: https://stackoverflow.com/questions/40703751/
+     using-fourier-transforms-to-do-convolution?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+
     """
     preserve_energy_rate = conv_param.get('preserve_energy_rate', None)
     index_back = conv_param.get('index_back', None)
@@ -938,17 +948,17 @@ def conv_forward_fft_1D(x, w, b, conv_param):
     N, C, W = x.shape
     F, C, WW = w.shape
     fftsize = next_power2(W + WW - 1)
-    # fftsize = W + WW - 1
-    # print("fftsize: ", fftsize)
+    # pad only the dimensions for the time-series (and neither data points nor the channels)
     padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
     out_W = W + 2 * pad - WW + 1
     out = np.zeros([N, F, out_W])
     for nn in range(N):  # For each time-series in the input batch.
         for ff in range(F):  # For each filter in w
             for cc in range(C):
-                out[nn, ff] += correlate_signals(padded_x[nn, cc], w[ff, cc], fftsize, out_size=out_W,
-                                                 preserve_energy_rate=preserve_energy_rate, index_back=index_back)
-            out[nn, ff] += b[ff]
+                out[nn, ff] += correlate_signals(padded_x[nn, cc], w[ff, cc], fftsize,
+                                                 out_size=out_W, preserve_energy_rate=preserve_energy_rate,
+                                                 index_back=index_back)
+            out[nn, ff] += b[ff]  # add the bias term
 
     cache = (x, w, b, conv_param)
     return out, cache
@@ -960,7 +970,7 @@ def conv_backward_fft_1D(dout, cache):
 
     Inputs:
     - dout: Upstream derivatives.
-    - cache: A tuple of (x, w, b, conv_param) as in conv_forward_numpy
+    - cache: A tuple of (x, w, b, conv_param) as in conv_forward_fft_1D
 
     Returns a tuple of:
     - dx: Gradient with respect to x
@@ -989,20 +999,20 @@ def conv_backward_fft_1D(dout, cache):
     else:
         padded_dout = np.pad(dout, ((0, 0), (0, 0), (pad_out, pad_out)), mode='constant')
 
-    # Initialise gradient output tensors.
+    # Initialize gradient output tensors.
     dx = np.zeros_like(x)  # the x used for convolution was with padding
     dw = np.zeros_like(w)
     db = np.zeros_like(b)
 
-    # Calculate dB.
-    # Just like in the affine layer we sum up all the incoming gradients for each filters bias.
+    # Calculate dB (the gradient for the bias term).
+    # We sum up all the incoming gradients for each filters bias (as in the affine layer).
     for ff in range(F):
         db[ff] += np.sum(dout[:, ff, :])
 
     # print("padded x: ", padded_x)
     # print("dout: ", dout)
-    # Calculate dw.
-    # By chain rule dw is dout*x
+    # Calculate dw - the gradient for the filters w.
+    # By chain rule dw is computed as: dout*x
     fftsize = next_power2(W + W_out - 1)
     for nn in range(N):
         for ff in range(F):
@@ -1013,9 +1023,12 @@ def conv_backward_fft_1D(dout, cache):
                 dw[ff, cc] += correlate_signals(padded_x[nn, cc], dout[nn, ff], fftsize, WW,
                                                 preserve_energy_rate=preserve_energy_rate, index_back=index_back)
 
-    # Calculate dx.
+    # Calculate dx - the gradient for the input x.
     # By chain rule dx is dout*w. We need to make dx same shape as padded x for the gradient calculation.
-    fftsize = next_power2(W_out + WW - 1)
+    # fftsize = next_power2(W_out + WW - 1)
+    print("padded_dout len: ", padded_dout.shape[-1])
+    print("W_out len: ", W_out)
+    fftsize = next_power2(padded_dout.shape[-1] + WW - 1)
     for nn in range(N):
         for ff in range(F):
             for cc in range(C):
@@ -1023,6 +1036,8 @@ def conv_backward_fft_1D(dout, cache):
                 # print("dout[nn, ff] shape: ", dout[nn, ff].shape)
                 # print("w[ff, cc]: ", w[ff, cc])
                 # print("w[ff, cc] shape: ", w[ff, cc].shape)
+                # dx[nn, cc] += correlate_signals(padded_dout[nn, ff], np.flip(w[ff, cc], axis=0), fftsize, W,
+                #                                 preserve_energy_rate=preserve_energy_rate, index_back=index_back)
                 dx[nn, cc] += correlate_signals(padded_dout[nn, ff], np.flip(w[ff, cc], axis=0), fftsize, W,
                                                 preserve_energy_rate=preserve_energy_rate, index_back=index_back)
 
@@ -1511,9 +1526,6 @@ def conv_backward_naive_1D(dout, cache):
     - db: Gradient with respect to b
     """
     dx, dw, db = None, None, None
-    ###########################################################################
-    # TODO: Implement the 1D convolutional backward pass.                     #
-    ###########################################################################
     # print("cache: ", cache)
     # print("dout: ", dout)
     # Grab conv parameters and pad x if needed.
@@ -1569,9 +1581,6 @@ def conv_backward_naive_1D(dout, cache):
     # Remove the padding from dx so it matches the shape of x.
     dx = dx_temp[:, :, pad_left: W + pad_right]
 
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
     return dx, dw, db
 
 
@@ -1929,7 +1938,6 @@ def fft_pool_forward(x, pool_param):
     # Naive maxpool for loop.
     for n in range(N):  # For each image.
         for c in range(C):  # For each channel
-
 
             for h in range(out_H):  # For each output row.
                 for w in range(out_W):  # For each output col.

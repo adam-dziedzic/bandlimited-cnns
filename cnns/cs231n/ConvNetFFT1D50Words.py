@@ -30,12 +30,10 @@ def reshape(x):
 train_set_x_reshaped = np.empty([len(train_set_x), 1, len(train_set_x[0])])
 valid_set_x_reshaped = np.empty([len(valid_set_x), 1, len(valid_set_x[0])])
 
-index = 0
-for x in train_set_x:
+for index, x in enumerate(train_set_x):
     train_set_x_reshaped[index] = reshape(x)
 
-index = 0
-for x in valid_set_x:
+for index, x in enumerate(valid_set_x):
     valid_set_x_reshaped[index] = reshape(x)
 
 # small_data = {
