@@ -25,16 +25,16 @@ class Result(object):
 def train(energy_rates=[None]):
     # num_train = 49000
     # num_valid = 1000
-    # num_train = 10
-    # num_valid = 10
-    num_train = 3000
-    num_valid = 300
+    num_train = 10
+    num_valid = 10
+    #num_train = 3000
+    #num_valid = 300
     limit_dataset = False
     random_seed = 231
 
-    dataType = "ucr"  # can be "speech" or "cifar10" or "ucr"
+    dataset_type = "ucr"  # can be "speech" or "cifar10" or "ucr"
 
-    if dataType == "speech":
+    if dataset_type == "speech":
         """
         Speech data.
         """
@@ -89,7 +89,7 @@ def train(energy_rates=[None]):
         num_classes = np.unique(small_data['y_train']).shape[0]
         logger.debug("num_classes for speech data: " + str(num_classes))
 
-    elif dataType == "cifar10":
+    elif dataset_type == "cifar10":
         """
         CIFAR 10 data
         """
@@ -129,34 +129,24 @@ def train(energy_rates=[None]):
         print("input_dim from CIFAR10: ", input_dim)
         num_classes = 10
 
-    elif dataType == "ucr":
+    elif dataset_type == "ucr":
         dataset = "ElectricDevices"
         datasets = load_data(dataset, percent_valid=0.0)
 
-        train_set_x, train_set_y = datasets[0]
+        train_x, train_y = datasets[0]
         # do not use the validation set
-        # valid_set_x, valid_set_y = datasets[1]
-        test_set_x, test_set_y = datasets[2]
+        dev_x, dev_y = datasets[1]
+        test_x, test_y = datasets[2]
 
         def reshape(x):
+            if x.shape[0] == 0:  # an empty array
+                return x
             N_data_points = x.shape[0]
             return np.array(x.reshape(N_data_points, 1, -1))
 
-        train_set_x = reshape(train_set_x)
-        train_set_x = reshape(train_set_x)
-        
-        # train_set_x_reshaped = np.empty([len(train_set_x), 1, len(train_set_x[0])])
-        # valid_set_x_reshaped = np.empty([len(valid_set_x), 1, len(valid_set_x[0])])
-        # test_set_x = np.empty([len(test_set_x), 1, len(test_set_x[0])])
-
-        # for index, x in enumerate(train_set_x):
-        #     train_set_x_reshaped[index] = reshape(x)
-
-        # for index, x in enumerate(valid_set_x):
-        #     valid_set_x_reshaped[index] = reshape(x)
-
-        # for index, x in enumerate(test_set_x):
-        #     test_set_x_reshaped[index] = reshape(x)
+        train_x = reshape(train_x)
+        dev_x = reshape(dev_x)
+        test_x = reshape(test_x)
 
         print_num = 5
         # print some initial data:
@@ -164,11 +154,11 @@ def train(energy_rates=[None]):
             print("samples of {} set: ".format(set_type))
             for i in range(print_num):
                 if set_type == "train":
-                    x = train_set_x_reshaped[i]
-                    y = train_set_y[i]
+                    x = train_x[i]
+                    y = train_y[i]
                 else:
-                    x = test_set_x_reshaped[i]
-                    y = test_set_y[i]
+                    x = test_x[i]
+                    y = test_y[i]
                 print("x:", x, " y: ", y)
 
         print("shape of train x: ", train_x.shape)
@@ -178,6 +168,9 @@ def train(energy_rates=[None]):
         print("size of train: ", len(train_x))
         print("size of dev: ", len(dev_x))
         print("size of test: ", len(test_x))
+
+        # replace the dev set with the full test set
+        dev_x = test_x
 
         # this is what the solver expects
         small_data = {
@@ -199,7 +192,7 @@ def train(energy_rates=[None]):
         print("size of small test: ", len(test_x))
 
         num_classes = np.unique(small_data['y_train']).shape[0]
-        logger.debug("num_classes for speech data: " + str(num_classes))
+        logger.debug("num_classes for {} data: ".format(dataset_type) + str(num_classes))
 
     # print_every = num_train
     print_every = 5

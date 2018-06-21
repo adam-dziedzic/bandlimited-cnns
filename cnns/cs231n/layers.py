@@ -1026,8 +1026,8 @@ def conv_backward_fft_1D(dout, cache):
     # Calculate dx - the gradient for the input x.
     # By chain rule dx is dout*w. We need to make dx same shape as padded x for the gradient calculation.
     # fftsize = next_power2(W_out + WW - 1)
-    print("padded_dout len: ", padded_dout.shape[-1])
-    print("W_out len: ", W_out)
+    # print("padded_dout len: ", padded_dout.shape[-1])
+    # print("W_out len: ", W_out)
     fftsize = next_power2(padded_dout.shape[-1] + WW - 1)
     for nn in range(N):
         for ff in range(F):

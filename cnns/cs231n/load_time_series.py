@@ -34,17 +34,18 @@ def load_data(dirname, normalization=False, slice_ratio=1, percent_valid=0.2):
         valid_last_index = int(percent_valid * n)
         valid_x = train_x[ind[:valid_last_index]]
         valid_y = train_y[ind[:valid_last_index]]
-
         ind = np.delete(ind, (range(0, int(valid_last_index))))
+        valid_x, valid_y = slice_data(valid_x, valid_y, slice_ratio)
+    else:
+        valid_x = np.array([])
+        valid_y = np.array([])
 
-        train_x = train_x[ind]
-        train_y = train_y[ind]
+    train_x = train_x[ind]
+    train_y = train_y[ind]
+    train_x, train_y = slice_data(train_x, train_y, slice_ratio)
 
     # print("size of train set: ", len(train_y))
     # print("size of validation set: ", len(valid_y))
-
-    train_x, train_y = slice_data(train_x, train_y, slice_ratio)
-    valid_x, valid_y = slice_data(valid_x, valid_y, slice_ratio)
 
     # shuffle again
     n = train_x.shape[0]
