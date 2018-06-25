@@ -67,6 +67,19 @@ def train(energy_rates=[None]):
         print("size of dev: ", len(dev_x))
         print("size of test: ", len(test_x))
 
+        print_num = 5
+        # print some initial data:
+        for set_type in ["train", "test"]:
+            print("samples of {} set: ".format(set_type))
+            for i in range(print_num):
+                if set_type == "train":
+                    x = train_x[i]
+                    y = train_y[i]
+                else:
+                    x = test_x[i]
+                    y = test_y[i]
+                print("x:", x, " y: ", y)
+
         # this is what the solver expects
         small_data = {
             'X_train': train_x,
@@ -130,7 +143,8 @@ def train(energy_rates=[None]):
         num_classes = 10
 
     elif dataset_type == "ucr":
-        dataset = "ElectricDevices"
+        # dataset = "ElectricDevices"
+        dataset = "StarLightCurves"
         datasets = load_data(dataset, percent_valid=0.0)
 
         train_x, train_y = datasets[0]

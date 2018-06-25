@@ -1032,15 +1032,15 @@ def conv_backward_fft_1D(dout, cache):
     # print("W_out len: ", W_out)
     # fftsize = W
     fftsize = next_power2(padded_dout.shape[-1] + WW - 1)
-    print("fftsize: ", fftsize)
+    # print("fftsize: ", fftsize)
     for nn in range(N):
         for ff in range(F):
             for cc in range(C):
                 # print("dout[nn, ff]: ", dout[nn, ff])
-                print("dout[nn, ff] shape: ", dout[nn, ff].shape)
-                print("padded_dout[nn, ff] shape: ", padded_dout[nn, ff].shape)
+                # print("dout[nn, ff] shape: ", dout[nn, ff].shape)
+                # print("padded_dout[nn, ff] shape: ", padded_dout[nn, ff].shape)
                 # print("w[ff, cc]: ", w[ff, cc])
-                print("w[ff, cc] shape: ", w[ff, cc].shape)
+                # print("w[ff, cc] shape: ", w[ff, cc].shape)
                 # dx[nn, cc] += correlate_signals(padded_dout[nn, ff], np.flip(w[ff, cc], axis=0), fftsize, W,
                 #                                 preserve_energy_rate=preserve_energy_rate, index_back=index_back)
                 dx[nn, cc] += correlate_signals(padded_dout[nn, ff], np.flip(w[ff, cc], axis=0),
@@ -1239,7 +1239,7 @@ def compress_fft_1D_fast(x, y_len):
     :return: compressed signal
     """
     x_len = len(x)
-    print("energy of x: ", energy(x))
+    # print("energy of x: ", energy(x))
     fft_len = next_power2(x_len)
     # take the Fourier matrix for FFT in its standard form: 1/sqrt(N) * FourierMatrix to preserve scale of energies
     # in the input and output of the fft
@@ -1247,26 +1247,26 @@ def compress_fft_1D_fast(x, y_len):
     # print("energy of uncompressed xfft: ", energy(np.abs(xfft)))
     plot_signal(np.abs(xfft), title="xfft before compression")
     discard_count = (x_len - y_len) // 2 + (fft_len - x_len) // 2
-    print("discard count: ", discard_count)
+    # print("discard count: ", discard_count)
     half_fft_len = fft_len // 2
     zeros = np.zeros(discard_count, dtype=complex)
     xfft[half_fft_len - discard_count:half_fft_len] = zeros
     xfft[half_fft_len:half_fft_len + discard_count] = zeros
-    print("energy of compressed xfft: ", energy(np.abs(xfft)))
+    # print("energy of compressed xfft: ", energy(np.abs(xfft)))
     plot_signal(np.abs(xfft), title="xfft after compression")
     # print("xfft len after compression: ", len(xfft))
     # print("expected y_len: ", y_len)
     y = ifft(xfft) * np.sqrt(fft_len)
     # print("size of the output: ", len(y))
     y = np.real(y)
-    print("energy of y before truncation: ", energy(y))
+    # print("energy of y before truncation: ", energy(y))
     plot_signal(y, "y after ifft and real")
     y = y[:y_len]
     plot_signal(y, "y after truncation to y_len")
     # y = y * energy(x) / energy(y) # scale the signal
-    print("energy ratio: ", energy(y) / energy(x))
+    # print("energy ratio: ", energy(y) / energy(x))
     # print("len ratio: ", x_len / y_len)
-    print("energy of y: ", energy(y))
+    # print("energy of y: ", energy(y))
     return y
 
 
