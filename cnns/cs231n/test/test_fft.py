@@ -34,3 +34,5 @@ plot_signal(xfft, "xfft")
 sum_xfft = sum(xfft[1:len(xfft)//2] + xfft[len(xfft)//2 + 1:])
 print("sum xfft: ", sum_xfft)
 print("the middle element of xfft: ", xfft[len(xfft)//2])
+
+
