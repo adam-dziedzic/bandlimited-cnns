@@ -1,6 +1,6 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[cod]
+*.py[cod~]
 *$py.class
 
 # C extensions
@@ -103,3 +103,17 @@ ENV/
 # idea
 .idea/
 cnns/cs231n/.idea/
+
+*.txt
+*.csv
+*.png
+*.csv#
+*.pdf
+*.ods
+*.py#
+*.txt~
+*.ods#
+*.xlsm#
+*.xlsx
+*.sh~
+*.xlsm
