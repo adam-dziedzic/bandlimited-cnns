@@ -31,14 +31,30 @@ def load_data(y_name='Species'):
 
 def train_input_fn(features, labels, batch_size):
     """An input function for training"""
+    print("in train_input_fn")
+    # Convert the inputs to a Dataset.
+    dataset = tf.data.Dataset.from_tensor_slices((dict(features), labels))
+    print("dataset: ", dataset)
+
+    # Shuffle, repeat, and batch the examples.
+    dataset = dataset.shuffle(1000).repeat().batch(batch_size)
+    print("dataset: ", dataset)
+    # the type of the dataset is changed to BatchDataset
+
+    # Return the dataset.
+    return dataset
+
+
+def train_input_fn_one_shot(features, labels, batch_size):
+    """An input function for training"""
     # Convert the inputs to a Dataset.
     dataset = tf.data.Dataset.from_tensor_slices((dict(features), labels))
 
     # Shuffle, repeat, and batch the examples.
     dataset = dataset.shuffle(1000).repeat().batch(batch_size)
 
-    # Return the dataset.
-    return dataset
+    # Return the read end of the pipeline.
+    return dataset.make_one_shot_iterator().get_next()
 
 
 def eval_input_fn(features, labels, batch_size):
