@@ -261,9 +261,15 @@ echo "thrift"
 # ./configure
 # make
 # sudo make install
+
 dir=`pwd`
 git clone https://github.com/facebook/fbthrift
 cd fbthrift
+# echo "set(CMAKE_CXX_FLAGS "-fPIC")" >> CMakeLists.txt 
+# echo "set(CMAKE_C_FLAGS "-fPIC")" >> CMakeLists.txt
+sed -i '6s/^/set(CMAKE_CXX_FLAGS "-fPIC")\n/' CMakeLists.txt
+sed -i '7s/^/set(CMAKE_C_FLAGS "-fPIC")\n/' CMakeLists.txt
+
 cd build
 cmake .. # Add -DOPENSSL_ROOT_DIR for macOS. Usually in /usr/local/ssl
 # make # or make -j $(nproc), or make install.
@@ -279,6 +285,25 @@ cp -a fbthrift/thrift/compiler/py tmp/
 cd tmp/py
 sudo python setup.py install
 cd ${init_dir}
+
+# more problems with thrift
+# in ~/fbthrift/thrift/compiler/py$
+init_dir=`pwd`
+cd fbthrift/thrift/compiler/py
+sudo g++ -I /usr/include/python2.7 -I /home/${USER}/fbthrift -std=c++14 -fpic -shared -o frontend.so compiler.cc -lboost_python -lpython2.7 -L/build/lib -lcompiler_base -lcompiler_ast -lboost_system -lboost_filesystem -lssl -lcrypto
+cd ${init_dir}
+
+init_dir=`pwd`
+cd fbthrift
+echo "set(CMAKE_CXX_FLAGS "-fPIC")" >> CMakeLists.txt 
+echo "set(CMAKE_C_FLAGS "-fPIC")" >> CMakeLists.txt
+cd ${init_dir}
+
+# added the two "set command" in the libs_only section of the fbthrift CMakeList.txt
+#set(CMAKE_CXX_FLAGS "-fPIC")
+# set(CMAKE_C_FLAGS "-fPIC")
+
+
 
 echo
 echo 'Installing TH++'

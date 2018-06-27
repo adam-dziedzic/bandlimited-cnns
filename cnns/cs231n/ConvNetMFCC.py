@@ -143,8 +143,8 @@ def train(energy_rates=[None]):
         num_classes = 10
 
     elif dataset_type == "ucr":
-        dataset = "ElectricDevices"
-        # dataset = "StarLightCurves"
+        # dataset = "ElectricDevices"
+        dataset = "StarLightCurves"
         datasets = load_data(dataset, percent_valid=0.0)
 
         train_x, train_y = datasets[0]
