@@ -2,6 +2,14 @@ echo "Download libraries from ady ryerson for GPU and CUDA"
 
 init_dir=`pwd`
 
+# echo "install anaconda"
+# yes | wget https://repo.anaconda.com/archive/Anaconda3-5.2.0-Linux-x86_64.sh
+# source ~/.bashrc
+# y | conda install -c anaconda thrift
+# sudo su
+# echo 'export PATH="/home/cc/anaconda3/bin:$PATH"' >> ~/.bashrc
+# su cc
+
 echo "install emacs"
 sudo apt-get -y install emacs
 
@@ -47,6 +55,7 @@ sudo su
 export TORCH_NVCC_FLAGS="-D__CUDA_NO_HALF_OPERATORS__"
 bash install-deps
 yes | bash ./install.sh
+ldconfig
 su ${main_user}
 cd ${current_dir}
 . /home/${main_user}/torch/install/bin/torch-activate
@@ -83,4 +92,212 @@ cd ${init_dir}
 
 sudo apt-get install libgflags-dev
 
+#!/bin/bash -e
+#
+#  Copyright (c) 2014, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under the BSD-style license found in the
+#  LICENSE file in the root directory of this source tree. An additional grant
+#  of patent rights can be found in the PATENTS file in the same directory.
+#
+init_dir=`pwd`
+echo
+echo This script will install fblualib and all its dependencies.
+echo It has been tested on Ubuntu 13.10 and Ubuntu 14.04, Linux x86_64.
+echo
+
+set -e
+set -x
+
+if [[ $(arch) != 'x86_64' ]]; then
+    echo "x86_64 required" >&2
+    exit 1
+fi
+
+issue=$(cat /etc/issue)
+extra_packages=
+if [[ $issue =~ ^Ubuntu\ 13\.10 ]]; then
+    :
+elif [[ $issue =~ ^Ubuntu\ 14 ]]; then
+    extra_packages=libiberty-dev
+elif [[ $issue =~ ^Ubuntu\ 16 ]]; then
+    extra_packages=libiberty-dev
+    echo "Trying to install on ubuntu 16.04"
+    echo
+else
+    echo "Ubuntu 13.10 or 14.* required" >&2
+    exit 1
+fi
+
+dir=$(mktemp --tmpdir -d fblualib-build.XXXXXX)
+
+echo Working in $dir
+echo
+cd $dir
+
+echo Installing required packages
+echo
+sudo apt-get install -y \
+    git \
+    curl \
+    wget \
+    g++ \
+    cmake \
+    libboost-all-dev \
+    automake \
+    autoconf \
+    autoconf-archive \
+    libtool \
+    libevent-dev \
+    libdouble-conversion-dev \
+    libgoogle-glog-dev \
+    libgflags-dev \
+    liblz4-dev \
+    liblzma-dev \
+    libsnappy-dev \
+    make \
+    zlib1g-dev \
+    binutils-dev \
+    libjemalloc-dev \
+    libssl-dev \
+    $extra_packages \
+    flex \
+    bison \
+    libkrb5-dev \
+    libsasl2-dev \
+    libnuma-dev \
+    pkg-config \
+    libssl-dev \
+    libedit-dev \
+    libmatio-dev \
+    libpython-dev \
+    libpython3-dev \
+    python-numpy \
+    libunwind8-dev \
+    libelf-dev \
+    libdwarf-dev
+
+echo
+echo Cloning repositories
+echo
+# git clone -b v0.35.0  --depth 1 https://github.com/facebook/folly.git
+# git clone -b v0.24.0  --depth 1 https://github.com/facebook/fbthrift.git
+git clone https://github.com/facebook/thpp
+git clone https://github.com/soumith/fblualib
+
+echo
+echo Building folly
+echo
+
+# cd $dir/folly/folly
+# autoreconf -ivf
+# ./configure
+# make
+# sudo make install
+# sudo ldconfig # reload the lib paths after freshly installed folly. fbthrift needs it.
+
+dir=`pwd`
+wget https://github.com/google/googletest/archive/release-1.8.0.tar.gz && \
+tar zxf release-1.8.0.tar.gz && \
+rm -f release-1.8.0.tar.gz && \
+cd googletest-release-1.8.0 && \
+cmake configure . && \
+make && \
+sudo make install
+sudo ldconfig # reload the lib paths after freshly installed folly. fbthrift needs it.  
+cd ${dir}
+
+init_dir=`pwd`
+wget https://github.com/facebook/folly/archive/v2018.06.18.00.tar.gz
+tar -xf v2018.06.18.00.tar.gz
+cd folly-2018.06.18.00
+mkdir _build && cd _build
+cmake configure ..
+make -j $(nproc)
+sudo make install
+sudo ldconfig
+cd ${init_dir}
+
+echo
+echo Building fbthrift
+echo
+
+echo "mstch"
+git clone https://github.com/no1msd/mstch
+cd mstch
+mkdir build
+cd build
+cmake ..
+make
+sudo make install
+sudo ldconfig
+cd ${init_dir}
+
+echo "wangle"
+git clone https://github.com/facebook/wangle
+cd wangle/wangle
+cmake .
+make
+ctest
+sudo make install
+sudo ldconfig
+cd ${init_dir}
+
+echo "zstd"
+init_dir=`pwd`
+wget https://github.com/facebook/zstd/archive/v1.3.4.tar.gz
+tar -xf v1.3.4.tar.gz 
+vm v1.3.4.tar.gz
+cd zstd-1.3.4
+make
+sudo make install
+sudo ldconfig
+cd ${init_dir}
+
+echo "thrift"
+# cd $dir/fbthrift/thrift
+# autoreconf -ivf
+# ./configure
+# make
+# sudo make install
+dir=`pwd`
+git clone https://github.com/facebook/fbthrift
+cd fbthrift
+cd build
+cmake .. # Add -DOPENSSL_ROOT_DIR for macOS. Usually in /usr/local/ssl
+# make # or make -j $(nproc), or make install.
+make -j $(nproc)
+sudo make install
+sudo ldconfig
+cd ${dir}
+
+init_dir=`pwd`
+# it has to be python 2.7
+mkdir tmp
+cp -a fbthrift/thrift/compiler/py tmp/
+cd tmp/py
+sudo python setup.py install
+cd ${init_dir}
+
+echo
+echo 'Installing TH++'
+echo
+
+cd $dir/thpp/thpp
+sudo ./build.sh
+
+echo
+echo 'Installing FBLuaLib'
+echo
+
+
+cd $dir/fblualib/fblualib
+sudo ./build.sh
+
+echo
+echo 'All done!'
+echo
+
+cd ${init_dir}
 
