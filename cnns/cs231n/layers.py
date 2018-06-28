@@ -737,6 +737,8 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index
     :param index_back: how many coefficients to remove
     :return: output signal after correlation of signals x and y
     """
+    # print("x input size: ", x)
+    # print("fft size: ", fft_size)
     xfft = fft(x, fft_size)
     yfft = fft(y, fft_size)
     if preserve_energy_rate is not None or index_back is not None:
@@ -748,6 +750,7 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index
         #         compute_energy(yfft[:index]) / compute_energy(yfft[:fft_size // 2 + 1])) + "\n")
         xfft = xfft[:index]
         yfft = yfft[:index]
+        # print("the signal size after compression: ", index)
         xfft = reconstruct_signal(xfft, fft_size)
         yfft = reconstruct_signal(yfft, fft_size)
     out = ifft(xfft * np.conj(yfft))

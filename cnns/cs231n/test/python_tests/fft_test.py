@@ -9,6 +9,16 @@ print("fft(x_even): ", fft(x_even, norm=norm))
 fft_x_even = fft(x_even, norm=norm)
 print("middle average: ", np.average([fft_x_even[1], fft_x_even[-1]]))
 
+print("inverse fft of the signal with first and middle real numbers:")
+print(ifft(fft_x_even))
+
+fft_x_even_not_real_middle = np.array(fft_x_even)
+fft_x_even_not_real_middle[2] += 1.j
+print("fft_x_even_not_real_middle: ", fft_x_even_not_real_middle)
+
+print("inverse fft of the signal with first real number and middle not real (proper complex) number:")
+print(ifft(fft_x_even_not_real_middle))
+
 x_odd = np.array([8, 9, 1, 3, 5])
 print("fft(x_odd): ", fft(x_odd, norm=norm))
 # fft(x_odd):  [26.+0.j 9.09016994-2.62865556j -2.09016994-4.25325404j -2.09016994+4.25325404j  9.09016994+2.62865556j]

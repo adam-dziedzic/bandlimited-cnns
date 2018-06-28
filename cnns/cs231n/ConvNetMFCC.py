@@ -206,8 +206,11 @@ def train(energy_rates=[None]):
         print("size of small dev: ", len(dev_x))
         print("size of small test: ", len(test_x))
 
-        num_classes = np.unique(small_data['y_train']).shape[0]
-        logger.debug("num_classes for {} data: ".format(dataset_type) + str(num_classes))
+        num_classes_train = np.unique(small_data['y_train']).shape[0]
+        logger.debug("num_classes for {} train data: ".format(dataset_type) + str(num_classes_train))
+
+        num_classes_dev = np.unique(small_data['y_val']).shape[0]
+        logger.debug("num_classes for {} val data: ".format(dataset_type) + str(num_classes_dev))
 
     # print_every = num_train
     print_every = 5

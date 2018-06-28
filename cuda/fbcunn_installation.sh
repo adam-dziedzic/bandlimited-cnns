@@ -59,6 +59,7 @@ ldconfig
 su ${main_user}
 cd ${current_dir}
 . /home/${main_user}/torch/install/bin/torch-activate
+source torch/install/bin/torch-activate
 echo ". /home/${USER}/torch/install/bin/torch-activate" >> ~/.bashrc
 
 source ~/.bashrc
@@ -183,7 +184,7 @@ echo Cloning repositories
 echo
 # git clone -b v0.35.0  --depth 1 https://github.com/facebook/folly.git
 # git clone -b v0.24.0  --depth 1 https://github.com/facebook/fbthrift.git
-git clone https://github.com/facebook/thpp
+# git clone https://github.com/facebook/thpp
 git clone https://github.com/soumith/fblualib
 
 echo
@@ -267,6 +268,8 @@ git clone https://github.com/facebook/fbthrift
 cd fbthrift
 # echo "set(CMAKE_CXX_FLAGS "-fPIC")" >> CMakeLists.txt 
 # echo "set(CMAKE_C_FLAGS "-fPIC")" >> CMakeLists.txt
+# https://stackoverflow.com/questions/9533679/how-to-insert-a-text-at-the-beginning-of-a-file
+# https://github.com/facebook/fbthrift/issues/249
 sed -i '6s/^/set(CMAKE_CXX_FLAGS "-fPIC")\n/' CMakeLists.txt
 sed -i '7s/^/set(CMAKE_C_FLAGS "-fPIC")\n/' CMakeLists.txt
 
@@ -278,14 +281,6 @@ sudo make install
 sudo ldconfig
 cd ${dir}
 
-init_dir=`pwd`
-# it has to be python 2.7
-mkdir tmp
-cp -a fbthrift/thrift/compiler/py tmp/
-cd tmp/py
-sudo python setup.py install
-cd ${init_dir}
-
 # more problems with thrift
 # in ~/fbthrift/thrift/compiler/py$
 init_dir=`pwd`
@@ -294,23 +289,31 @@ sudo g++ -I /usr/include/python2.7 -I /home/${USER}/fbthrift -std=c++14 -fpic -s
 cd ${init_dir}
 
 init_dir=`pwd`
-cd fbthrift
-echo "set(CMAKE_CXX_FLAGS "-fPIC")" >> CMakeLists.txt 
-echo "set(CMAKE_C_FLAGS "-fPIC")" >> CMakeLists.txt
+# it has to be python 2.7
+mkdir tmp
+cp -a fbthrift/thrift/compiler/py tmp/
+cd tmp/py
+sudo python setup.py install
 cd ${init_dir}
 
 # added the two "set command" in the libs_only section of the fbthrift CMakeList.txt
-#set(CMAKE_CXX_FLAGS "-fPIC")
+# set(CMAKE_CXX_FLAGS "-fPIC")
 # set(CMAKE_C_FLAGS "-fPIC")
-
-
 
 echo
 echo 'Installing TH++'
 echo
 
-cd $dir/thpp/thpp
-sudo ./build.sh
+init_dir=`pwd`
+cd ~/
+source ~/torch/install/bin/activate-tource
+git clone https://github.com/facebook/thpp
+cd thpp/thpp
+# git reset --hard ce40d2704267f33098a595f9f9f612c6e06e330e
+git reset --hard 2b285e3e89bdd27bebc5d13135b13943b028ac89
+sed -i '6s/^/set(CMAKE_CXX_STANDARD 14)\n/' CMakeLists.txt
+./build.sh
+cd ${init_dir}
 
 echo
 echo 'Installing FBLuaLib'
@@ -325,4 +328,15 @@ echo 'All done!'
 echo
 
 cd ${init_dir}
+
+# install fbcunn
+
+git clone https://github.com/torch/nn && ( cd nn && git checkout getParamsByDevice && luarocks make rocks/nn-scm-1.rockspec )
+
+git clone https://github.com/facebook/fbtorch.git && ( cd fbtorch && luarocks make rocks/fbtorch-scm-1.rockspec )
+
+git clone https://github.com/facebook/fbnn.git && ( cd fbnn && luarocks make rocks/fbnn-scm-1.rockspec )
+
+# go get a coffee
+git clone https://github.com/facebook/fbcunn.git && ( cd fbcunn && luarocks make rocks/fbcunn-scm-1.rockspec )
 
