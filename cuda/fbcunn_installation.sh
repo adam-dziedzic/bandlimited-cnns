@@ -49,8 +49,9 @@ sudo apt-get -y install cmake
 
 echo "Install Torch distro in a local folder"
 current_dir=`pwd`
-git clone https://github.com/torch/distro.git ~/torch --recursive
-cd ~/torch
+main_user=${USER}
+git clone https://github.com/torch/distro.git torch --recursive
+cd torch
 sudo su
 export TORCH_NVCC_FLAGS="-D__CUDA_NO_HALF_OPERATORS__"
 bash install-deps
@@ -61,8 +62,12 @@ cd ${current_dir}
 . /home/${main_user}/torch/install/bin/torch-activate
 source torch/install/bin/torch-activate
 echo ". /home/${USER}/torch/install/bin/torch-activate" >> ~/.bashrc
-
 source ~/.bashrc
+
+# install lua optim
+sudo su
+luarocks install optim
+su ${main_user}
 
 echo "install boost"
 # https://coderwall.com/p/0atfug/installing-boost-1-55-from-source-on-ubuntu-12-04
