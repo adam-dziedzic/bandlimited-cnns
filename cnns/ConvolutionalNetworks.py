@@ -1,5 +1,5 @@
 import numpy as np
-from cs231n.classifiers.cnn import *
+from nnlib.classifiers.cnn import *
 
 model = ThreeLayerConvNet()
 
