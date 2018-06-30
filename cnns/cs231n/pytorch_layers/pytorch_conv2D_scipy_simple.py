@@ -3,7 +3,7 @@ import torch
 from numpy import flip
 from scipy.signal import correlate2d, convolve2d
 from torch.autograd import Function
-from torch.nn.modules.module import Module
+from torch.nn import Module
 from torch.nn.parameter import Parameter
 
 
