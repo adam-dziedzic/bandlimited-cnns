@@ -16,7 +16,7 @@ elif [ "${with_cuda}" == "FALSE" ]; then
     export NO_SYSTEM_NCCL=1
 fi
 
-echo "conda environment for intallation: "${conda_env}
+echo "conda environment for installation: "${conda_env}
 source activate ${conda_env}
 
 export CMAKE_PREFIX_PATH="$(dirname $(which conda))/../" # [anaconda root directory]

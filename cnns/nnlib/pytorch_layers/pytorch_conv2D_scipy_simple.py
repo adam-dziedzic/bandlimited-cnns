@@ -1,3 +1,7 @@
+"""
+Implement the forward and backward passes for convolution using scipy and numpy libraries. It requires us to go back and
+forth between the tensors in numpy and tensors in PyTorch, which is not efficient.
+"""
 import numpy as np
 import torch
 from numpy import flip
@@ -6,6 +10,14 @@ from torch.autograd import Function
 from torch.nn import Module
 from torch.nn.parameter import Parameter
 
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+consoleLog = logging.StreamHandler()
+logger.addHandler(consoleLog)
+
+current_file_name = __file__.split("/")[-1].split(".")[0]
 
 class ScipyConv2dFunction(Function):
     @staticmethod
@@ -23,26 +35,33 @@ class ScipyConv2dFunction(Function):
         input, filter, bias = ctx.saved_tensors
         grad_output = grad_output.numpy()
         grad_bias = np.sum(grad_output, keepdims=True)
-        grad_input = convolve2d(grad_output, filter.numpy(), mode='full')
+        # grad_input = convolve2d(grad_output, filter.numpy(), mode='full')
         # the previous line can be expressed equivalently as:
-        # grad_input = correlate2d(grad_output, flip(flip(filter.numpy(), axis=0), axis=1), mode='full')
+        flipped_filter = flip(flip(filter.numpy(), axis=0), axis=1)
+        # logger.debug("flipped filter: " + str(flipped_filter))
+        grad_input = correlate2d(grad_output, flipped_filter, mode='full')
         grad_filter = correlate2d(input.numpy(), grad_output, mode='valid')
         return torch.from_numpy(grad_input), torch.from_numpy(grad_filter), torch.from_numpy(grad_bias)
 
 
 class ScipyConv2d(Module):
-    def __init__(self, filter_width, filter_height):
+    def __init__(self, filter_width, filter_height, filter=None, bias=None):
         super(ScipyConv2d, self).__init__()
-        self.filter = Parameter(torch.randn(filter_width, filter_height))
-        self.bias = Parameter(torch.randn(1, 1))
+        if filter is None:
+            self.filter = Parameter(torch.randn(filter_width, filter_height))
+        else:
+            self.filter = filter
+        if bias is None:
+            self.bias = Parameter(torch.randn(1, 1))
+        else:
+            self.bias = bias
 
     def forward(self, input):
         return ScipyConv2dFunction.apply(input, self.filter, self.bias)
 
 
 if __name__ == "__main__":
-    from torch.autograd.gradcheck import gradcheck
-
+    torch.manual_seed(231)
     module = ScipyConv2d(3, 3)
     print("filter and bias parameters: ", list(module.parameters()))
     input = torch.randn(10, 10, requires_grad=True)
@@ -50,14 +69,3 @@ if __name__ == "__main__":
     print("forward output: ", output)
     output.backward(torch.randn(8, 8))
     print("gradient for the input: ", input.grad)
-
-    # check the gradient
-    # gradcheck takes a tuple of tensors as input, check if your gradient
-    # evaluated with these tensors are close enough to numerical
-    # approximations and returns True if they all fulfill this condition
-
-    moduleConv = ScipyConv2d(3, 3)
-
-    input = [torch.randn(20, 20, dtype=torch.double, requires_grad=True)]
-    test = gradcheck(moduleConv, input, eps=1e-6, atol=1e-4)
-    print("Are the gradients correct: ", test)

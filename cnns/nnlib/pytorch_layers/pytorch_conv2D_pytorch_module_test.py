@@ -3,7 +3,7 @@ import unittest
 from torch.autograd.gradcheck import gradcheck
 from torch.nn.parameter import Parameter
 
-from nnlib.pytorch_layers.pytorch_conv2D_pytorch_simple import PyTorchConv2d
+from nnlib.pytorch_layers.pytorch_conv2D_pytorch_module import PyTorchConv2d
 
 
 class TestPytorchConv2DPytorchSimple(unittest.TestCase):
