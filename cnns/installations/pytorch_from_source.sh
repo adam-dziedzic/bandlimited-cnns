@@ -2,7 +2,7 @@
 # install pytorch framework from the source code
 
 with_cuda=${1:-"FALSE"} # set to true to install for GPU
-conda_env=${2:-"base"} # we use pytorch mainly
+conda_env=${2:-"pytorch"} # we use pytorch mainly
 
 if [ "${with_cuda}" == "TRUE" ]; then
     echo "installation with CUDA support "
@@ -16,28 +16,29 @@ elif [ "${with_cuda}" == "FALSE" ]; then
     export NO_SYSTEM_NCCL=1
 fi
 
+echo "prepare python/conda for the installation"
 echo "conda environment for installation: "${conda_env}
 source activate ${conda_env}
 
 export CMAKE_PREFIX_PATH="$(dirname $(which conda))/../" # [anaconda root directory]
 
 # Install basic dependencies
-conda install -n ${conda_env} --yes -c anaconda pyyaml 
-conda install -n ${conda_env} --yes numpy pyyaml mkl mkl-include setuptools cmake cffi typing
+conda install -n ${conda_env} --yes libgcc numpy pyyaml mkl mkl-include setuptools cmake cffi typing
 conda install -n ${conda_env} --yes -c mingfeima mkldnn
-conda install -n ${conda_env} --yes libgcc
 conda install -n ${conda_env} --yes -c caffe2 caffe
 
 if [ "${with_cuda}" == "TRUE" ]; then
     # Add LAPACK support for the GPU
-    conda install -n ${conda_env} --yes c pytorch magma-cuda90 # or magma-cuda90 if CUDA 9, magma-cuda80 if CUDA 8
+    conda install -n ${conda_env} --yes -c pytorch magma-cuda90 # or magma-cuda90 if CUDA 9, magma-cuda80 if CUDA 8
 fi
 
+echo "clone or update the source code and install it"
 echo "go to the home directory"
 cd
 echo `pwd`
 code_dir="code/pytorch/pytorch"
-if [ -d ${code_dir} ]; then
+# -L denots a symbolic link
+if [[ -d ${code_dir} ]] || [[ -L ${code_dir} ]]; then
     echo "The pytorch was already cloned from github"
     cd ${code_dir}
     git pull

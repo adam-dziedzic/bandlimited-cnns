@@ -1,10 +1,12 @@
+"""
+Custom FFT based convolution that relies on the autograd (a tape-based automatic differentiation library that supports
+all differentiable Tensor operations in torch).
+"""
+
 import logging
 import torch
-from torch.autograd import Function
 from torch.nn import Module
 from torch.nn.parameter import Parameter
-
-from nnlib.pytorch_layers.pytorch_utils import flip
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -79,42 +81,61 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index
     return return_value
 
 
-class PyTorchConv1dFunction(Function):
-    @staticmethod
-    def forward(ctx, input, filter, bias, conv_param):
+class PyTorchConv1d(Module):
+    def __init__(self, filter_width, filter_height, filter=None, bias=None, padding=None, preserve_energy_rate=None):
+        """
+        1D convolution using FFT implemented fully in PyTorch.
+
+        :param filter_width: the width of the filter
+        :param filter_height: the height of the filter
+        :param filter: you can provide the initial filter, i.e. filter weights of shape (F, C, WW), where
+        F - number of filters, C - number of channels, WW - size of the filter
+        :param bias: you can provide the initial value of the bias, of shape (F,)
+        :param padding: the padding added to the front and back of the input signal
+        :param preserve_energy_rate: the energy of the input to the convolution (both, the input map and filter) that
+        have to be preserved (the final length is the length of the longer signal that preserves the set energy rate).
+
+        Regarding, the stride parameter: the number of pixels between adjacent receptive fields in the horizontal and
+        vertical directions, it is 1 for the FFT based convolution.
+        """
+        super(PyTorchConv1d, self).__init__()
+        if filter is None:
+            self.filter = Parameter(torch.randn(1, 1, filter_width, filter_height))
+        else:
+            self.filter = filter
+        if bias is None:
+            self.bias = Parameter(torch.randn(1))
+        else:
+            self.bias = bias
+        self.padding = padding
+        self.preserve_energy_rate = preserve_energy_rate
+
+    def forward(self, input):
         """
         Forward pass of 1D convolution.
 
-        The input consists of N data points with each data point representing a time-series of length W.
+        The input consists of N data points with each data point representing a signal (e.g., time-series) of length W.
 
-        We also have the notion of channels in the 1-D convolution. We want to use more than a single filter even for the
-        input time-series, so the output is a batch with the same size but the number of output channels is equal to the
+        We also have the notion of channels in the 1-D convolution. We want to use more than a single filter even for
+        the input signal, so the output is a batch with the same size but the number of output channels is equal to the
         number of input filters.
 
         :param x: Input data of shape (N, C, W), N - number of data points in the batch, C - number of channels, W - the
-        width of the time-series (number of data points in a univariate series)
-        :param w: Filter weights of shape (F, C, WW),F - number of filters, C - number of channels, WW - size of the filter
-        :param b: biases, of shape (F,)
+        width of the signal or time-series (number of data points in a univariate series)
+        :param w:
+        :param b: biases
         :param conv_param: A dictionary with the following keys:
           - 'stride': The number of pixels between adjacent receptive fields in the horizontal and vertical directions.
           - 'pad': The number of pixels that will be used to zero-pad the input.
-        :return: a tuple of:
-         - out: output data, of shape (N, F, W') where W' is given by: W' = 1 + (W + 2*pad - WW) / stride
-         - cache: (x, w, b, conv_param)
+        :return: output data, of shape (N, F, W') where W' is given by: W' = 1 + (W + 2*pad - WW)
 
          :see:  source short: https://goo.gl/GwyhXz
          full: https://stackoverflow.com/questions/40703751/
          using-fourier-transforms-to-do-convolution?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
 
         """
-        preserve_energy_rate = conv_param.get('preserve_energy_rate', None)
-        index_back = conv_param.get('index_back', None)
-        pad = conv_param.get('pad')
-        stride = conv_param.get('stride')
-        if stride != 1:
-            raise ValueError("convolution via fft can have stride only 1, but given: " + str(stride))
-        N, C, W = x.shape
-        F, C, WW = w.shape
+        N, C, W = input.size()
+        F, C, WW = self.filter.size()
         fftsize = next_power2(W + WW - 1)
         # pad only the dimensions for the time-series (and neither data points nor the channels)
         padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
@@ -134,43 +155,7 @@ class PyTorchConv1dFunction(Function):
         result = conv1d(input, filter)
 
         result += bias
-        ctx.save_for_backward(input, filter, bias, padding)
-        return result
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        input, filter, bias, padding = ctx.saved_tensors
-        grad_bias = torch.sum(grad_output)
-        flipped_filter = flip(flip(filter, dim=2), dim=3)
-        # logger.debug("flipped filter: " + str(flipped_filter))
-        grad_input = conv2d(grad_output, flipped_filter, padding=(filter.size(2) - 1, filter.size(3) - 1))
-        grad_filter = conv2d(input, grad_output)
-        return grad_input, grad_filter, grad_bias
-
-
-class PyTorchConv1d(Module):
-    def __init__(self, filter_width, filter_height, filter=None, bias=None, padding=None):
-        """
-
-        :param filter_width: the width of the filter
-        :param filter_height: the height of the filter
-        :param filter: you can provide the initial filter
-        :param bias: you can provide the initial value of the bias
-        :param padding: the padding added to the front and back of the input signal
-        """
-        super(PyTorchConv1d, self).__init__()
-        if filter is None:
-            self.filter = Parameter(torch.randn(1, 1, filter_width, filter_height))
-        else:
-            self.filter = filter
-        if bias is None:
-            self.bias = Parameter(torch.randn(1))
-        else:
-            self.bias = bias
-        self.padding = padding
-
-    def forward(self, input):
-        return PyTorchConv1dFunction.apply(input, self.filter, self.bias, self.padding)
+        return output
 
 
 if __name__ == "__main__":
