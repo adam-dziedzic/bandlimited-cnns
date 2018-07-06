@@ -30,13 +30,18 @@ import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
 
+# switch backend to be able to save the graphic files on the servers
+plt.switch_backend('agg')
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--iterations", default=1, type=int, help="number of iterations for the training")
 parser.add_argument("-b", "--batchsize", default=64, type=int,
                     help="the size of the batch (number of data points for a single forward and batch passes")
 parser.add_argument("-s", "--startsize", default=16, type=int, help="the start size of the input")
-parser.add_argument("-e", "--endsize", default=512, type=int, help="the end size of the input")
-
+parser.add_argument("-e", "--endsize", default=2048, type=int, help="the end size of the input")
+parser.add_argument("-w", "--workers", default=0, type=int,
+                    help="number of workers to fetch data for pytorch data loader, 0 means that the data will be "
+                         "loaded in the main process")
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
 print("current file name: ", current_file_name)
@@ -90,7 +95,7 @@ def define_net(input_size=32, batch_size=64):
     return net
 
 
-def load_data(input_size=32, batch_size=64, num_workers=2):
+def load_data(input_size=32, batch_size=64, num_workers=0):
     """
     Loading and normalizing CIFAR10
     """
@@ -302,6 +307,7 @@ def plot_figure(forward_times, backward_times, input_sizes):
     ax.legend()
     plt.xticks(input_sizes)
     plt.title('Compare execution time of forward and backward passes for different sizes of input')
+    plt.suptitle('batch size: ' + str(batch_size) + ' iteration number: ' + str(iter_number_total), fontsize=12)
     plt.xlabel('Input size (size x size image)')
     plt.ylabel('Execution time (sec)')
     plt.savefig("graphs/train-val-" + current_file_name + "-" + get_log_time() + ".png")
@@ -325,7 +331,8 @@ def main_test():
         net = define_net(input_size=input_size, batch_size=batch_size)
         net.to(device)
 
-        trainloader, testloader, classes = load_data(input_size=input_size, batch_size=batch_size)
+        trainloader, testloader, classes = load_data(input_size=input_size, batch_size=batch_size,
+                                                     num_workers=num_workers)
 
         # Define a Loss function and optimizer
         # Use a Classification Cross-Entropy loss and SGD with momentum.
@@ -340,6 +347,7 @@ def main_test():
         optimizer_times.append(optimizer_time)
 
         input_size *= 2
+        torch.cuda.empty_cache()
 
     print("forward times: ", forward_times)
     print("backward times: ", backward_times)
@@ -355,6 +363,7 @@ if __name__ == "__main__":
     batch_size = args.batchsize
     start_size = args.startsize
     end_size = args.endsize
+    num_workers = args.workers
 
     # main()
     main_test()
