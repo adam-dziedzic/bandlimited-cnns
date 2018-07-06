@@ -37,7 +37,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--iterations", default=1, type=int, help="number of iterations for the training")
 parser.add_argument("-i", "--initbatchsize", default=64, type=int,
                     help="the initial size of the batch (number of data points for a single forward and batch passes")
-parser.add_argument("-m", "--maxbatchsize", default=64, type=int,
+parser.add_argument("-m", "--maxbatchsize", default=64, type=int64,
                     help="the max size of the batch (number of data points for a single forward and batch passes")
 parser.add_argument("-s", "--startsize", default=64, type=int, help="the start size of the input")
 parser.add_argument("-e", "--endsize", default=1000000, type=int, help="the end size of the input")
