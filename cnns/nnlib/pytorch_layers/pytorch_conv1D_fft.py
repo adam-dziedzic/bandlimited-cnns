@@ -16,6 +16,13 @@ logger.addHandler(consoleLog)
 current_file_name = __file__.split("/")[-1].split(".")[0]
 signal_ndim = 1
 
+def next_power2(x):
+    """
+    :param x: an integer number
+    :return: the power of 2 which is the larger than x but the smallest possible
+    """
+    return torch.pow(2, torch.ceil(torch.log2(torch.tensor(x))))
+
 
 def preserve_energy_index(xfft, energy_rate=None, index_back=None):
     """

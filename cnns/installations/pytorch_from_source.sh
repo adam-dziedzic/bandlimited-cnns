@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # install pytorch framework from the source code
 
-with_cuda=${1:-"FALSE"} # set to true to install for GPU
-conda_env=${2:-"pytorch"} # we use pytorch mainly
+with_cuda=${1:-"TRUE"} # set to true to install for GPU
+conda_env=${2:-"base"} # we use pytorch mainly
 
 if [ "${with_cuda}" == "TRUE" ]; then
-    echo "installation with CUDA support "
+    echo "installation with CUDA support: it requires cuda and libdnn installed from NVIDIA!!!"
+    echo "read: https://github.com/pytorch/pytorch"
 elif [ "${with_cuda}" == "FALSE" ]; then
     echo "installation without CUDA support"
     export NO_CUDA=1
