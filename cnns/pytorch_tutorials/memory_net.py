@@ -399,20 +399,16 @@ def main_test():
         batch_sizes.append(batch_size)
         batch_size *= 2
 
-        print("forward times: ", forward_times)
-        print("backward times: ", backward_times)
-        print("optimizer times: ", optimizer_times)
-
         batch_forward_times.append(forward_times)
         batch_backward_times.append(backward_times)
         batch_optimizer_times.append(optimizer_times)
         batch_input_sizes.append(input_sizes)
 
-    print("batch_sizes=", batch_sizes)
-    print("batch_input_sizes=", batch_input_sizes)
-    print("batch_forward_times=", batch_forward_times)
-    print("batch_backward_times=", batch_backward_times)
-    print("batch_optimizer_times=", batch_optimizer_times)
+        print("batch_sizes=", batch_sizes)
+        print("batch_input_sizes=", batch_input_sizes)
+        print("batch_forward_times=", batch_forward_times)
+        print("batch_backward_times=", batch_backward_times)
+        print("batch_optimizer_times=", batch_optimizer_times)
 
     plot_figure(batch_forward_times=batch_forward_times, batch_backward_times=batch_backward_times,
                 batch_input_sizes=batch_input_sizes, batch_sizes=batch_sizes, iter_number_total=iter_number_total)
