@@ -356,7 +356,6 @@ def main_test():
     batch_size = init_batch_size
     while batch_size <= max_batch_size:
         print("batch size: ", batch_size)
-        batch_sizes.append(batch_size)
         forward_times = []
         backward_times = []
         optimizer_times = []
@@ -366,7 +365,6 @@ def main_test():
             input_size = start_size
             while input_size <= end_size:
                 # print("input size: ", input_size)
-                input_sizes.append(input_size)
                 net = define_net(input_size=input_size, batch_size=batch_size)
                 net.to(device)
 
@@ -386,11 +384,15 @@ def main_test():
                 backward_times.append(backward_time)
                 optimizer_times.append(optimizer_time)
 
+                input_sizes.append(input_size)
                 input_size *= 2
+
                 torch.cuda.empty_cache()
+
         except RuntimeError:
             print("Out of memory")
 
+        batch_sizes.append(batch_size)
         batch_size *= 2
 
         print("forward times: ", forward_times)
