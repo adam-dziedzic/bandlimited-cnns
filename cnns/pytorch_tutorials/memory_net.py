@@ -100,7 +100,7 @@ def load_data(input_size=32, batch_size=64, num_workers=2):
 
     root = "./data"
     shuffle = False
-    download = False
+    download = True
 
     transform = transforms.Compose(
         [transforms.Scale(input_size),
