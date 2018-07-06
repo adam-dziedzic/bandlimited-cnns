@@ -299,7 +299,7 @@ def main():
     test_network(net=net, testloader=testloader, classes=classes, device=device)
 
 
-def plot_figure(batch_forward_times, batch_backward_times, batch_input_sizes, batch_sizes):
+def plot_figure(batch_forward_times, batch_backward_times, batch_input_sizes, batch_sizes, iter_number_total):
     fig, ax = plt.subplots()
     for batch_index, batch_size in enumerate(batch_sizes):
         input_sizes = batch_input_sizes[batch_index]
@@ -327,9 +327,11 @@ def plot_figure(batch_forward_times, batch_backward_times, batch_input_sizes, ba
     plt.ylabel('Execution time (sec)')
     file_name = "graphs/mem-forward-backward-" + current_file_name + "-" + get_log_time() + "-iterations-" + str(
         iter_number_total)
+    plt.gcf().subplots_adjust(left=0.1)
+    # plt.gcf().subplots_adjust(right=0.60)
+    plt.gcf().subplots_adjust(bottom=0.15)
+    plt.tight_layout()
     plt.savefig(file_name + ".png")
-    plt.gcf().subplots_adjust(left=0.40)
-    plt.gcf().subplots_adjust(bottom=0.10)
     plt.savefig(file_name + ".pdf")
     with open(file_name, "w+") as f:
         f.write("batch_sizes=")
@@ -406,8 +408,12 @@ def main_test():
         batch_optimizer_times.append(optimizer_times)
         batch_input_sizes.append(input_sizes)
 
+    print("batch forward times: ", batch_forward_times)
+    print("batch backward times: ", batch_backward_times)
+    print("batch optimizer times: ", batch_optimizer_times)
+
     plot_figure(batch_forward_times=batch_forward_times, batch_backward_times=batch_backward_times,
-                batch_input_sizes=batch_input_sizes, batch_sizes=batch_sizes)
+                batch_input_sizes=batch_input_sizes, batch_sizes=batch_sizes, iter_number_total=iter_number_total)
 
 
 if __name__ == "__main__":
