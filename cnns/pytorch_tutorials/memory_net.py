@@ -367,36 +367,36 @@ def main_test():
         optimizer_times = []
         input_sizes = []
 
-        # try:
-        input_size = start_size
-        while input_size <= end_size:
-            # print("input size: ", input_size)
-            net = define_net(input_size=input_size, batch_size=batch_size)
-            net.to(device)
+        try:
+            input_size = start_size
+            while input_size <= end_size:
+                # print("input size: ", input_size)
+                net = define_net(input_size=input_size, batch_size=batch_size)
+                net.to(device)
 
-            trainloader, testloader, classes = load_data(input_size=input_size, batch_size=batch_size,
-                                                         num_workers=num_workers)
+                trainloader, testloader, classes = load_data(input_size=input_size, batch_size=batch_size,
+                                                             num_workers=num_workers)
 
-            # Define a Loss function and optimizer
-            # Use a Classification Cross-Entropy loss and SGD with momentum.
-            optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-            criterion = nn.CrossEntropyLoss()
+                # Define a Loss function and optimizer
+                # Use a Classification Cross-Entropy loss and SGD with momentum.
+                optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+                criterion = nn.CrossEntropyLoss()
 
-            forward_time, backward_time, optimizer_time = train_network(net=net, optimizer=optimizer,
-                                                                        criterion=criterion,
-                                                                        trainloader=trainloader, device=device)
+                forward_time, backward_time, optimizer_time = train_network(net=net, optimizer=optimizer,
+                                                                            criterion=criterion,
+                                                                            trainloader=trainloader, device=device)
 
-            forward_times.append(forward_time)
-            backward_times.append(backward_time)
-            optimizer_times.append(optimizer_time)
+                forward_times.append(forward_time)
+                backward_times.append(backward_time)
+                optimizer_times.append(optimizer_time)
 
-            input_sizes.append(input_size)
-            input_size *= 2
+                input_sizes.append(input_size)
+                input_size *= 2
 
-            torch.cuda.empty_cache()
+                torch.cuda.empty_cache()
 
-        # except RuntimeError as err:
-        #     print("Runtime error: " + str(err))
+        except RuntimeError as err:
+            print("Runtime error: " + str(err))
 
         batch_sizes.append(batch_size)
         batch_size *= 2
