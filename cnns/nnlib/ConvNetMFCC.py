@@ -344,7 +344,7 @@ def train(energy_rates=[None]):
 if __name__ == "__main__":
     print("parse arguments")
     parser = argparse.ArgumentParser(description='Process parameters.')
-    parser.add_argument('energy_rates', metavar='N', type=np.double, nargs='+',
+    parser.add_argument('energy_rates', metavar='N', type=np.double, nargs='+', default=[1.0, 0.99, 0.98],
                         help='energy rates for the compression in the frequency domain')
 
     args = parser.parse_args()

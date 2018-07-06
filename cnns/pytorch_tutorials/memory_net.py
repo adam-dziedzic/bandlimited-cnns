@@ -17,8 +17,10 @@ We will do the following steps in order:
 5. Test the network on the test data
 """
 
+import sys
 import time
 
+import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -27,6 +29,21 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--iterations", default=1, type=int, help="number of iterations for the training")
+parser.add_argument("-b", "--batchsize", default=64, type=int,
+                    help="the size of the batch (number of data points for a single forward and batch passes")
+parser.add_argument("-s", "--startsize", default=16, type=int, help="the start size of the input")
+parser.add_argument("-e", "--endsize", default=512, type=int, help="the end size of the input")
+
+
+current_file_name = __file__.split("/")[-1].split(".")[0]
+print("current file name: ", current_file_name)
+
+
+def get_log_time():
+    return time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
 
 
 def define_net(input_size=32, batch_size=64):
@@ -51,16 +68,16 @@ def define_net(input_size=32, batch_size=64):
             self.conv2 = nn.Conv2d(self.conv1_channels, self.conv2_channels, self.conv2_filter_size)
             self.size = self.size - self.conv2_filter_size + 1
             self.size = self.size // 2
-            print("self.size in net: ", self.size)
+            # print("self.size in net: ", self.size)
             self.fc1 = nn.Linear(self.conv2_channels * self.size * self.size, 120)
             self.fc2 = nn.Linear(120, 84)
             self.fc3 = nn.Linear(84, 10)
 
         def forward(self, x):
             x = self.pool(F.relu(self.conv1(x)))
-            print("x shape after conv1 and pool: ", x.shape)
+            # print("x shape after conv1 and pool: ", x.shape)
             x = self.pool(F.relu(self.conv2(x)))
-            print("x shape after conv2 and pool: ", x.shape)
+            # print("x shape after conv2 and pool: ", x.shape)
             x = x.view(x.shape[0], -1)
             x = F.relu(self.fc1(x))
             x = F.relu(self.fc2(x))
@@ -92,13 +109,13 @@ def load_data(input_size=32, batch_size=64, num_workers=2):
 
     trainset = torchvision.datasets.CIFAR10(root=root, train=True,
                                             download=download, transform=transform)
-    print("The size of the train dataset: ", len(trainset))
+    # print("The size of the train dataset: ", len(trainset))
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                               shuffle=shuffle, num_workers=num_workers)
 
     testset = torchvision.datasets.CIFAR10(root='./data', train=False,
                                            download=download, transform=transform)
-    print("The size of the test dataset: ", len(trainset))
+    # print("The size of the test dataset: ", len(trainset))
     testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
                                              shuffle=shuffle, num_workers=num_workers)
 
@@ -113,8 +130,11 @@ def train_network(net, trainloader, optimizer, criterion, device=torch.device("c
     Loop over the data iterator, and feed the inputs to the network and optimize.
     """
     # optimization
-    iter_number_print = 1
-    iter_number_total = 100
+    iter_number_print = iter_number_total
+    forward_time = []
+    backward_time = []
+    optimizer_time = []
+    aggregator = lambda array: np.median(array, overwrite_input=False)
 
     for epoch in range(1):  # loop over the dataset multiple times
 
@@ -132,29 +152,32 @@ def train_network(net, trainloader, optimizer, criterion, device=torch.device("c
             start = time.time()
             outputs = net(inputs)
             loss = criterion(outputs, labels)
-            forward_time = time.time() - start
+            forward_time.append(time.time() - start)
 
             # backward
             start = time.time()
             loss.backward()
-            backward_time = time.time() - start
+            backward_time.append(time.time() - start)
 
             # optimize
             start = time.time()
             optimizer.step()
-            optimizer_time = time.time() - start
+            optimizer_time.append(time.time() - start)
 
             # print statistics
             running_loss += loss.item()
             if i % iter_number_print == iter_number_print - 1:  # print every 1 mini-batch
-                print('[%d, %5d],forward time,%f,backward_time,%f,optimizer_time,%f,loss,%.3f,' %
-                      (epoch + 1, i + 1, forward_time, backward_time, optimizer_time, running_loss / iter_number_print))
+                print('[%d, %5d],forward time,%f,backward_time,%f,optimizer_time,%f,loss,%.3f,input_size,%d' %
+                      (
+                          epoch + 1, i + 1, aggregator(forward_time), aggregator(backward_time),
+                          aggregator(optimizer_time),
+                          running_loss / iter_number_print,
+                          inputs.shape[-1]))
                 running_loss = 0.0
-                if i + 1 == iter_number_total:
-                    break
+            if i + 1 == iter_number_total:
+                break
 
-            print('Finished Training')
-            return net
+    return aggregator(forward_time), aggregator(backward_time), aggregator(optimizer_time)
 
 
 def imshow(img):
@@ -195,7 +218,7 @@ def test_network(net, testloader, classes, device):
     print('GroundTruth: ', ' '.join('%5s' % classes[labels[j]] for j in range(4)))
 
     ########################################################################
-    # Okay, now let us see what the neural network thinks these examples above are:
+    # Let us see what the neural network thinks these examples above are:
 
     outputs = net(images)
 
@@ -206,8 +229,7 @@ def test_network(net, testloader, classes, device):
     # So, let's get the index of the highest energy:
     _, predicted = torch.max(outputs, 1)
 
-    print('Predicted: ', ' '.join('%5s' % classes[predicted[j]]
-                                  for j in range(4)))
+    print('Predicted: ', ' '.join('%5s' % classes[predicted[j]] for j in range(4)))
 
     ########################################################################
     # The results seem pretty good.
@@ -243,15 +265,13 @@ def test_network(net, testloader, classes, device):
                 class_total[label] += 1
 
     for i in range(10):
-        print('Accuracy of %5s : %2d %%' % (
-            classes[i], 100 * class_correct[i] / class_total[i]))
+        print('Accuracy of %5s : %2d %%' % (classes[i], 100 * class_correct[i] / class_total[i]))
 
     return final_accuracy
 
 
 def main():
     input_size = 64
-    batch_size = 64
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # if we are on a CUDA machine, then this should print a CUDA device (otherwise it prints cpu):
     print("Currently used device: ", device)
@@ -267,9 +287,74 @@ def main():
     criterion = nn.CrossEntropyLoss()
 
     train_network(net=net, optimizer=optimizer, criterion=criterion, trainloader=trainloader, device=device)
+    print('Finished Training')
 
     test_network(net=net, testloader=testloader, classes=classes, device=device)
 
 
+def plot_figure(forward_times, backward_times, input_sizes):
+    fig, ax = plt.subplots()
+    forward_label = "forward pass"
+    ax.plot(input_sizes, forward_times, label=forward_label)
+    backward_label = "backward pass"
+    ax.plot(input_sizes, backward_times, label=backward_label)
+
+    ax.legend()
+    plt.xticks(input_sizes)
+    plt.title('Compare execution time of forward and backward passes for different sizes of input')
+    plt.xlabel('Input size (size x size image)')
+    plt.ylabel('Execution time (sec)')
+    plt.savefig("graphs/train-val-" + current_file_name + "-" + get_log_time() + ".png")
+    plt.gcf().subplots_adjust(bottom=0.10)
+    plt.savefig("graphs/train-val-" + current_file_name + "-" + get_log_time() + ".pdf")
+    # plt.show()
+
+
+def main_test():
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # if we are on a CUDA machine, then this should print a CUDA device (otherwise it prints cpu):
+    print("Currently used device: ", device)
+    forward_times = []
+    backward_times = []
+    optimizer_times = []
+    input_sizes = []
+
+    input_size = start_size
+    while input_size <= end_size:
+        input_sizes.append(input_size)
+        net = define_net(input_size=input_size, batch_size=batch_size)
+        net.to(device)
+
+        trainloader, testloader, classes = load_data(input_size=input_size, batch_size=batch_size)
+
+        # Define a Loss function and optimizer
+        # Use a Classification Cross-Entropy loss and SGD with momentum.
+        optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+        criterion = nn.CrossEntropyLoss()
+
+        forward_time, backward_time, optimizer_time = train_network(net=net, optimizer=optimizer, criterion=criterion,
+                                                                    trainloader=trainloader, device=device)
+
+        forward_times.append(forward_time)
+        backward_times.append(backward_time)
+        optimizer_times.append(optimizer_time)
+
+        input_size *= 2
+
+    print("forward times: ", forward_times)
+    print("backward times: ", backward_times)
+    print("optimizer times: ", optimizer_times)
+
+    plot_figure(forward_times=forward_times, backward_times=backward_times, input_sizes=input_sizes)
+
+
 if __name__ == "__main__":
-    main()
+    args = parser.parse_args(sys.argv[1:])
+
+    iter_number_total = args.iterations
+    batch_size = args.batchsize
+    start_size = args.startsize
+    end_size = args.endsize
+
+    # main()
+    main_test()
