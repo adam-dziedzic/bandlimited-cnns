@@ -35,12 +35,12 @@ plt.switch_backend('agg')
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--iterations", default=1, type=int, help="number of iterations for the training")
-parser.add_argument("-i", "--initbatchsize", default=64, type=int,
+parser.add_argument("-i", "--initbatchsize", default=2, type=int,
                     help="the initial size of the batch (number of data points for a single forward and batch passes")
-parser.add_argument("-m", "--maxbatchsize", default=64, type=int,
+parser.add_argument("-m", "--maxbatchsize", default=128, type=int,
                     help="the max size of the batch (number of data points for a single forward and batch passes")
 parser.add_argument("-s", "--startsize", default=16, type=int, help="the start size of the input")
-parser.add_argument("-e", "--endsize", default=2048, type=int, help="the end size of the input")
+parser.add_argument("-e", "--endsize", default=512, type=int, help="the end size of the input")
 parser.add_argument("-w", "--workers", default=0, type=int,
                     help="number of workers to fetch data for pytorch data loader, 0 means that the data will be "
                          "loaded in the main process")
@@ -328,7 +328,7 @@ def plot_figure(batch_forward_times, batch_backward_times, batch_input_sizes, ba
     file_name = "graphs/mem-forward-backward-" + current_file_name + "-" + get_log_time() + "-iterations-" + str(
         iter_number_total)
     plt.savefig(file_name + ".png")
-    plt.gcf().subplots_adjust(left=0.10)
+    plt.gcf().subplots_adjust(left=0.40)
     plt.gcf().subplots_adjust(bottom=0.10)
     plt.savefig(file_name + ".pdf")
     with open(file_name, "w+") as f:
