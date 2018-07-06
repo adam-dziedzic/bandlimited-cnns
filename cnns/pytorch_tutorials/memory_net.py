@@ -388,8 +388,8 @@ def main_test():
 
                 input_size *= 2
                 torch.cuda.empty_cache()
-        except RuntimeError as err:
-            print("Out of memory: " + err.strerror)
+        except RuntimeError:
+            print("Out of memory")
 
         batch_size *= 2
 
