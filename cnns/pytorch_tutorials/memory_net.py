@@ -94,8 +94,8 @@ def define_net(input_size=32, batch_size=64):
     # from torchvision.models import AlexNet
     from pytorch_tutorials.memory_net_alex import AlexNet
     # print("input size: ", input_size)
-    net = AlexNet(input_size=input_size)
-    # net = Net()
+    # net = AlexNet(input_size=input_size)
+    net = Net()
     return net
 
 
@@ -309,7 +309,7 @@ def plot_figure(batch_forward_times, batch_backward_times, batch_input_sizes, ba
         backward_times = batch_backward_times[batch_index]
 
         forward_label = "forward pass for batch size " + str(batch_size)
-        ax.plot(input_sizes, forward_times, label=forward_label)
+        # ax.plot(input_sizes, forward_times, label=forward_label)
         backward_label = "backward pass for batch size " + str(batch_size)
         ax.plot(input_sizes, backward_times, label=backward_label)
 
