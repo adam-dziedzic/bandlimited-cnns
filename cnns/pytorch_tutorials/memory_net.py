@@ -35,12 +35,12 @@ plt.switch_backend('agg')
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--iterations", default=1, type=int, help="number of iterations for the training")
-parser.add_argument("-i", "--initbatchsize", default=2, type=int,
+parser.add_argument("-i", "--initbatchsize", default=64, type=int,
                     help="the initial size of the batch (number of data points for a single forward and batch passes")
-parser.add_argument("-m", "--maxbatchsize", default=128, type=int,
+parser.add_argument("-m", "--maxbatchsize", default=64, type=int,
                     help="the max size of the batch (number of data points for a single forward and batch passes")
 parser.add_argument("-s", "--startsize", default=16, type=int, help="the start size of the input")
-parser.add_argument("-e", "--endsize", default=512, type=int, help="the end size of the input")
+parser.add_argument("-e", "--endsize", default=128, type=int, help="the end size of the input")
 parser.add_argument("-w", "--workers", default=0, type=int,
                     help="number of workers to fetch data for pytorch data loader, 0 means that the data will be "
                          "loaded in the main process")
@@ -335,13 +335,13 @@ def plot_figure(batch_forward_times, batch_backward_times, batch_input_sizes, ba
     plt.savefig(file_name + ".pdf")
     with open(file_name, "w+") as f:
         f.write("batch_sizes=")
-        f.write(np.array_str(np.array(batch_sizes)))
+        f.write(str(batch_sizes))
         f.write("\nbatch_forward_times=")
-        f.write(np.array_str(np.array(batch_forward_times)))
+        f.write(str(batch_forward_times))
         f.write("\nbatch_backward_times=")
-        f.write(np.array_str(np.array(batch_backward_times)))
+        f.write(str(batch_backward_times))
         f.write("\nbatch_input_sizes=")
-        f.write(np.array_str(np.array(batch_input_sizes)))
+        f.write(str(batch_input_sizes))
         f.write("\n")
 
     # plt.show()
@@ -409,6 +409,7 @@ def main_test():
         batch_input_sizes.append(input_sizes)
 
     print("batch_sizes=", batch_sizes)
+    print("batch_input_sizes=", batch_input_sizes)
     print("batch_forward_times=", batch_forward_times)
     print("batch_backward_times=", batch_backward_times)
     print("batch_optimizer_times=", batch_optimizer_times)
