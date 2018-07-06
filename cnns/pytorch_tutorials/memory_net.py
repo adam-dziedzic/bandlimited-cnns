@@ -34,9 +34,11 @@ import torchvision.transforms as transforms
 plt.switch_backend('agg')
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--iterations", default=1, type=int, help="number of iterations for the training")
-parser.add_argument("-b", "--batchsize", default=64, type=int,
-                    help="the size of the batch (number of data points for a single forward and batch passes")
+parser.add_argument("-t", "--iterations", default=1, type=int, help="number of iterations for the training")
+parser.add_argument("-i", "--initbatchsize", default=64, type=int,
+                    help="the initial size of the batch (number of data points for a single forward and batch passes")
+parser.add_argument("-m", "--maxbatchsize", default=64, type=int,
+                    help="the max size of the batch (number of data points for a single forward and batch passes")
 parser.add_argument("-s", "--startsize", default=16, type=int, help="the start size of the input")
 parser.add_argument("-e", "--endsize", default=2048, type=int, help="the end size of the input")
 parser.add_argument("-w", "--workers", default=0, type=int,
@@ -277,10 +279,10 @@ def test_network(net, testloader, classes, device):
 
 def main():
     input_size = 64
+    batch_size = 64
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # if we are on a CUDA machine, then this should print a CUDA device (otherwise it prints cpu):
     print("Currently used device: ", device)
-
     net = define_net(input_size=input_size, batch_size=batch_size)
     net.to(device)
 
@@ -297,22 +299,47 @@ def main():
     test_network(net=net, testloader=testloader, classes=classes, device=device)
 
 
-def plot_figure(forward_times, backward_times, input_sizes):
+def plot_figure(batch_forward_times, batch_backward_times, batch_input_sizes, batch_sizes):
     fig, ax = plt.subplots()
-    forward_label = "forward pass"
-    ax.plot(input_sizes, forward_times, label=forward_label)
-    backward_label = "backward pass"
-    ax.plot(input_sizes, backward_times, label=backward_label)
+    for batch_index, batch_size in enumerate(batch_sizes):
+        input_sizes = batch_input_sizes[batch_index]
+        forward_times = batch_forward_times[batch_index]
+        backward_times = batch_backward_times[batch_index]
+
+        forward_label = "forward pass for batch size " + str(batch_size)
+        ax.plot(input_sizes, forward_times, label=forward_label)
+        backward_label = "backward pass for batch size " + str(batch_size)
+        ax.plot(input_sizes, backward_times, label=backward_label)
 
     ax.legend()
-    plt.xticks(input_sizes)
-    plt.title('Compare execution time of forward and backward passes for different sizes of input')
-    plt.suptitle('batch size: ' + str(batch_size) + ' iteration number: ' + str(iter_number_total), fontsize=12)
+    input_sizes_example = batch_input_sizes[0]
+    # fig.set_xticklables(input_sizes_example)
+
+    ax.set_yscale('log')
+    ax.set_xscale('log')
+
+    plt.xticks(input_sizes_example)
+
+    # plt.setp(ax.get_xticklabels(), rotation=30, horizontalalignment='right')
+    plt.title('Compare execution time of forward and backward passes')
+    # plt.suptitle('iteration number per training: ' + str(iter_number_total), fontsize=12)
     plt.xlabel('Input size (size x size image)')
     plt.ylabel('Execution time (sec)')
-    plt.savefig("graphs/train-val-" + current_file_name + "-" + get_log_time() + ".png")
+    file_name = "graphs/mem-forward-backward-" + current_file_name + "-" + get_log_time() + "-iterations-" + str(
+        iter_number_total)
+    plt.savefig(file_name + ".png")
     plt.gcf().subplots_adjust(bottom=0.10)
-    plt.savefig("graphs/train-val-" + current_file_name + "-" + get_log_time() + ".pdf")
+    plt.savefig(file_name + ".pdf")
+    with open(file_name, "w+") as f:
+        f.write("batch_sizes: ")
+        f.write(np.array_str(np.array(batch_sizes)))
+        f.write("\nbatch_forward_times: ")
+        f.write(np.array_str(np.array(batch_forward_times)))
+        f.write("\nbatch_backward_times: ")
+        f.write(np.array_str(np.array(batch_backward_times)))
+        f.write("\nbatch_input_sizes: ")
+        f.write(np.array_str(np.array(batch_input_sizes)))
+
     # plt.show()
 
 
@@ -320,47 +347,71 @@ def main_test():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # if we are on a CUDA machine, then this should print a CUDA device (otherwise it prints cpu):
     print("Currently used device: ", device)
-    forward_times = []
-    backward_times = []
-    optimizer_times = []
-    input_sizes = []
+    batch_sizes = []
+    batch_forward_times = []
+    batch_backward_times = []
+    batch_optimizer_times = []
+    batch_input_sizes = []
 
-    input_size = start_size
-    while input_size <= end_size:
-        input_sizes.append(input_size)
-        net = define_net(input_size=input_size, batch_size=batch_size)
-        net.to(device)
+    batch_size = init_batch_size
+    while batch_size <= max_batch_size:
+        print("batch size: ", batch_size)
+        batch_sizes.append(batch_size)
+        forward_times = []
+        backward_times = []
+        optimizer_times = []
+        input_sizes = []
 
-        trainloader, testloader, classes = load_data(input_size=input_size, batch_size=batch_size,
-                                                     num_workers=num_workers)
+        try:
+            input_size = start_size
+            while input_size <= end_size:
+                # print("input size: ", input_size)
+                input_sizes.append(input_size)
+                net = define_net(input_size=input_size, batch_size=batch_size)
+                net.to(device)
 
-        # Define a Loss function and optimizer
-        # Use a Classification Cross-Entropy loss and SGD with momentum.
-        optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-        criterion = nn.CrossEntropyLoss()
+                trainloader, testloader, classes = load_data(input_size=input_size, batch_size=batch_size,
+                                                             num_workers=num_workers)
 
-        forward_time, backward_time, optimizer_time = train_network(net=net, optimizer=optimizer, criterion=criterion,
-                                                                    trainloader=trainloader, device=device)
+                # Define a Loss function and optimizer
+                # Use a Classification Cross-Entropy loss and SGD with momentum.
+                optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+                criterion = nn.CrossEntropyLoss()
 
-        forward_times.append(forward_time)
-        backward_times.append(backward_time)
-        optimizer_times.append(optimizer_time)
+                forward_time, backward_time, optimizer_time = train_network(net=net, optimizer=optimizer,
+                                                                            criterion=criterion,
+                                                                            trainloader=trainloader, device=device)
 
-        input_size *= 2
-        torch.cuda.empty_cache()
+                forward_times.append(forward_time)
+                backward_times.append(backward_time)
+                optimizer_times.append(optimizer_time)
 
-    print("forward times: ", forward_times)
-    print("backward times: ", backward_times)
-    print("optimizer times: ", optimizer_times)
+                input_size *= 2
+                torch.cuda.empty_cache()
+        except RuntimeError as err:
+            print("Out of memory: " + err.strerror)
 
-    plot_figure(forward_times=forward_times, backward_times=backward_times, input_sizes=input_sizes)
+        batch_size *= 2
+
+        print("forward times: ", forward_times)
+        print("backward times: ", backward_times)
+        print("optimizer times: ", optimizer_times)
+
+        batch_forward_times.append(forward_times)
+        batch_backward_times.append(backward_times)
+        batch_optimizer_times.append(optimizer_times)
+        batch_input_sizes.append(input_sizes)
+
+    plot_figure(batch_forward_times=batch_forward_times, batch_backward_times=batch_backward_times,
+                batch_input_sizes=batch_input_sizes, batch_sizes=batch_sizes)
 
 
 if __name__ == "__main__":
     args = parser.parse_args(sys.argv[1:])
 
     iter_number_total = args.iterations
-    batch_size = args.batchsize
+    init_batch_size = args.initbatchsize
+    max_batch_size = args.maxbatchsize
     start_size = args.startsize
     end_size = args.endsize
     num_workers = args.workers
