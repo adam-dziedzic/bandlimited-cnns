@@ -318,7 +318,7 @@ def plot_figure(batch_forward_times, batch_backward_times, batch_input_sizes, ba
     ax.set_yscale('log')
     ax.set_xscale('log')
 
-    plt.xticks(input_sizes_example)
+    # plt.xticks(input_sizes_example)
 
     # plt.setp(ax.get_xticklabels(), rotation=30, horizontalalignment='right')
     plt.title('Compare execution time of forward and backward passes')
@@ -328,17 +328,19 @@ def plot_figure(batch_forward_times, batch_backward_times, batch_input_sizes, ba
     file_name = "graphs/mem-forward-backward-" + current_file_name + "-" + get_log_time() + "-iterations-" + str(
         iter_number_total)
     plt.savefig(file_name + ".png")
+    plt.gcf().subplots_adjust(left=0.10)
     plt.gcf().subplots_adjust(bottom=0.10)
     plt.savefig(file_name + ".pdf")
     with open(file_name, "w+") as f:
-        f.write("batch_sizes: ")
+        f.write("batch_sizes=")
         f.write(np.array_str(np.array(batch_sizes)))
-        f.write("\nbatch_forward_times: ")
+        f.write("\nbatch_forward_times=")
         f.write(np.array_str(np.array(batch_forward_times)))
-        f.write("\nbatch_backward_times: ")
+        f.write("\nbatch_backward_times=")
         f.write(np.array_str(np.array(batch_backward_times)))
-        f.write("\nbatch_input_sizes: ")
+        f.write("\nbatch_input_sizes=")
         f.write(np.array_str(np.array(batch_input_sizes)))
+        f.write("\n")
 
     # plt.show()
 
