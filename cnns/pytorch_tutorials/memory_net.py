@@ -39,8 +39,8 @@ parser.add_argument("-i", "--initbatchsize", default=64, type=int,
                     help="the initial size of the batch (number of data points for a single forward and batch passes")
 parser.add_argument("-m", "--maxbatchsize", default=64, type=int,
                     help="the max size of the batch (number of data points for a single forward and batch passes")
-parser.add_argument("-s", "--startsize", default=16, type=int, help="the start size of the input")
-parser.add_argument("-e", "--endsize", default=128, type=int, help="the end size of the input")
+parser.add_argument("-s", "--startsize", default=64, type=int, help="the start size of the input")
+parser.add_argument("-e", "--endsize", default=1000000, type=int, help="the end size of the input")
 parser.add_argument("-w", "--workers", default=0, type=int,
                     help="number of workers to fetch data for pytorch data loader, 0 means that the data will be "
                          "loaded in the main process")
@@ -92,8 +92,10 @@ def define_net(input_size=32, batch_size=64):
             return x
 
     # from torchvision.models import AlexNet
-    # net = AlexNet()
-    net = Net()
+    from pytorch_tutorials.memory_net_alex import AlexNet
+    # print("input size: ", input_size)
+    net = AlexNet(input_size=input_size)
+    # net = Net()
     return net
 
 
@@ -365,36 +367,36 @@ def main_test():
         optimizer_times = []
         input_sizes = []
 
-        try:
-            input_size = start_size
-            while input_size <= end_size:
-                # print("input size: ", input_size)
-                net = define_net(input_size=input_size, batch_size=batch_size)
-                net.to(device)
+        # try:
+        input_size = start_size
+        while input_size <= end_size:
+            # print("input size: ", input_size)
+            net = define_net(input_size=input_size, batch_size=batch_size)
+            net.to(device)
 
-                trainloader, testloader, classes = load_data(input_size=input_size, batch_size=batch_size,
-                                                             num_workers=num_workers)
+            trainloader, testloader, classes = load_data(input_size=input_size, batch_size=batch_size,
+                                                         num_workers=num_workers)
 
-                # Define a Loss function and optimizer
-                # Use a Classification Cross-Entropy loss and SGD with momentum.
-                optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-                criterion = nn.CrossEntropyLoss()
+            # Define a Loss function and optimizer
+            # Use a Classification Cross-Entropy loss and SGD with momentum.
+            optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+            criterion = nn.CrossEntropyLoss()
 
-                forward_time, backward_time, optimizer_time = train_network(net=net, optimizer=optimizer,
-                                                                            criterion=criterion,
-                                                                            trainloader=trainloader, device=device)
+            forward_time, backward_time, optimizer_time = train_network(net=net, optimizer=optimizer,
+                                                                        criterion=criterion,
+                                                                        trainloader=trainloader, device=device)
 
-                forward_times.append(forward_time)
-                backward_times.append(backward_time)
-                optimizer_times.append(optimizer_time)
+            forward_times.append(forward_time)
+            backward_times.append(backward_time)
+            optimizer_times.append(optimizer_time)
 
-                input_sizes.append(input_size)
-                input_size *= 2
+            input_sizes.append(input_size)
+            input_size *= 2
 
-                torch.cuda.empty_cache()
+            torch.cuda.empty_cache()
 
-        except RuntimeError:
-            print("Out of memory")
+        # except RuntimeError as err:
+        #     print("Runtime error: " + str(err))
 
         batch_sizes.append(batch_size)
         batch_size *= 2
