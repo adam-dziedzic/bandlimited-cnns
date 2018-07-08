@@ -29,6 +29,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
+from PIL import Image
 
 # switch backend to be able to save the graphic files on the servers
 plt.switch_backend('agg')
@@ -40,7 +41,7 @@ parser.add_argument("-i", "--initbatchsize", default=64, type=int,
 parser.add_argument("-m", "--maxbatchsize", default=64, type=int,
                     help="the max size of the batch (number of data points for a single forward and batch passes")
 parser.add_argument("-s", "--startsize", default=64, type=int, help="the start size of the input")
-parser.add_argument("-e", "--endsize", default=1000000, type=int, help="the end size of the input")
+parser.add_argument("-e", "--endsize", default=256, type=int, help="the end size of the input")
 parser.add_argument("-w", "--workers", default=0, type=int,
                     help="number of workers to fetch data for pytorch data loader, 0 means that the data will be "
                          "loaded in the main process")
@@ -53,7 +54,7 @@ def get_log_time():
     return time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
 
 
-def define_net(input_size=32, batch_size=64):
+def define_net(input_size=32, batch_size=64, num_classes=10):
     """
     Define your model: a deep neural network.
 
@@ -62,11 +63,12 @@ def define_net(input_size=32, batch_size=64):
 
     class Net(nn.Module):
         def __init__(self):
-            super(Net, self).__init__()
+            self.input_channel = 3
+            super(Net, self, num_classes=10).__init__()
             self.size = input_size
             self.conv1_filter_size = 5
             self.conv1_channels = 6
-            self.conv1 = nn.Conv2d(3, self.conv1_channels, self.conv1_filter_size)
+            self.conv1 = nn.Conv2d(self.input_channel, self.conv1_channels, self.conv1_filter_size)
             self.size = self.size - self.conv1_filter_size + 1
             self.pool = nn.MaxPool2d(2, 2)
             self.size = self.size // 2
@@ -78,7 +80,7 @@ def define_net(input_size=32, batch_size=64):
             # print("self.size in net: ", self.size)
             self.fc1 = nn.Linear(self.conv2_channels * self.size * self.size, 120)
             self.fc2 = nn.Linear(120, 84)
-            self.fc3 = nn.Linear(84, 10)
+            self.fc3 = nn.Linear(84, num_classes)
 
         def forward(self, x):
             x = self.pool(F.relu(self.conv1(x)))
@@ -92,14 +94,78 @@ def define_net(input_size=32, batch_size=64):
             return x
 
     # from torchvision.models import AlexNet
-    from pytorch_tutorials.memory_net_alex import AlexNet
     # print("input size: ", input_size)
-    # net = AlexNet(input_size=input_size)
-    net = Net()
+    # 1st conv2d Alex Net
+    # from pytorch_tutorials.memory_net_alex_1_conv2d import AlexNet
+    from pytorch_tutorials.memory_net_alex_2_conv2d import AlexNet
+    net = AlexNet(num_classes=num_classes, input_size=input_size)
+    # net = Net()
     return net
 
 
-def load_data(input_size=32, batch_size=64, num_workers=0):
+class ScaleChannel(object):
+    """Scale the channel of the image to the required size."""
+
+    def __init__(self, size, interpolation=Image.BILINEAR):
+        """
+        Rescales the input PIL.Image to the given 'size'.
+        'size' - number of channels
+        :param size: the required size of channels
+        :param interpolation: Default: PIL.Image.BILINEAR
+        """
+        self.size = size
+        self.interpolation = interpolation
+
+    def __call__(self, img):
+        """
+        Rescale the channels.
+
+        :param image: the input image
+        :return: rescaled image with the required number of channels:return:
+        """
+        # swap color axis because
+        # numpy image: H x W x C
+        # torch image: C X H X W
+        print("image type: ", type(img), " (is it a numpy array?)")
+        # image = image.transpose((2, 0, 1))
+        # image.resize((self.size, 0), self.interpolation)
+        # image = image.transpose((1, 2, 0))
+        img = transforms.ToTensor()(img)
+        img = img.numpy()
+        img = np.swapaxes(img, 0, 2)
+        # img = img.view(img.size[1], img.size[2], img.size[0])
+        img = transforms.ToPILImage()(img),  # go back to img to do the interpolation
+        img = img.resize((0, self.size), self.interpolation)
+        img = transforms.ToTensor()(img)
+        # img = img.view(img.size[], img.size[2], img.size[0])
+        img = img.numpy()
+        img = np.swapaxes(img, 0, 2)
+        img = transforms.ToPILImage()(img),  # go back to the typical pipeline
+        return img
+
+class ScaleChannel2(object):
+    """Scale the channel of the image to the required size."""
+
+    def __init__(self, size):
+        """
+        Rescales the input PIL.Image to the given 'size'.
+        'size' - number of channels
+        :param size: the required size of channels
+        :param interpolation: Default: PIL.Image.BILINEAR
+        """
+        self.size = size
+
+    def __call__(self, img):
+        """
+        Rescale the channels.
+
+        :param image: the input image
+        :return: rescaled image with the required number of channels:return:
+        """
+        return img[1, ...].expand(self.size, -1, -1)
+
+
+def load_data(input_size=32, batch_size=64, num_workers=0, channel_size=3):
     """
     Loading and normalizing CIFAR10
     """
@@ -112,8 +178,11 @@ def load_data(input_size=32, batch_size=64, num_workers=0):
     download = False
 
     transform = transforms.Compose(
-        [transforms.Scale(input_size),
+        [
+         # ScaleChannel(channel_size),  # this is a hack - to be able to scale the channel size
+         transforms.Scale(input_size),  # scale the input image HxW to the required size
          transforms.ToTensor(),
+         ScaleChannel2(channel_size),
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
     trainset = torchvision.datasets.CIFAR10(root=root, train=True,
@@ -285,10 +354,11 @@ def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # if we are on a CUDA machine, then this should print a CUDA device (otherwise it prints cpu):
     print("Currently used device: ", device)
-    net = define_net(input_size=input_size, batch_size=batch_size)
-    net.to(device)
 
     trainloader, testloader, classes = load_data(input_size=input_size, batch_size=batch_size)
+
+    net = define_net(num_classes=len(classes), input_size=input_size, batch_size=batch_size)
+    net.to(device)
 
     # Define a Loss function and optimizer
     # Use a Classification Cross-Entropy loss and SGD with momentum.
@@ -371,11 +441,14 @@ def main_test():
             input_size = start_size
             while input_size <= end_size:
                 # print("input size: ", input_size)
-                net = define_net(input_size=input_size, batch_size=batch_size)
+                num_classes = 10
+                net = define_net(num_classes=num_classes, input_size=input_size, batch_size=batch_size)
                 net.to(device)
 
                 trainloader, testloader, classes = load_data(input_size=input_size, batch_size=batch_size,
-                                                             num_workers=num_workers)
+                                                             num_workers=num_workers, channel_size=net.input_channel)
+
+                assert num_classes == len(classes)
 
                 # Define a Loss function and optimizer
                 # Use a Classification Cross-Entropy loss and SGD with momentum.
@@ -394,8 +467,8 @@ def main_test():
                 input_size *= 2
 
                 torch.cuda.empty_cache()
-
-        except RuntimeError as err:
+        # except RuntimeError as err:
+        except NotImplementedError as err:
             print("Runtime error: " + str(err))
 
         batch_sizes.append(batch_size)
