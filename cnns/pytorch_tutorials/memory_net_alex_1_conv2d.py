@@ -13,8 +13,9 @@ model_urls = {
 class AlexNet(nn.Module):
 
     def __init__(self, num_classes=10, input_size=256):
-        self.input_channel = 3
         super(AlexNet, self).__init__()
+        self.input_channel = 3
+        self.img_size_to_features = input_size  # the size of the image to the first layer is the size of the input
         self.features = nn.Sequential(
             nn.Conv2d(self.input_channel, 64, kernel_size=11, stride=4, padding=2),
             nn.ReLU(inplace=True),
@@ -30,7 +31,8 @@ class AlexNet(nn.Module):
 
         size = conv(input_size, 11, 4, 2)
         size = max_pool(size)
-        print("size: ", size)
+        self.img_size_after_features = size
+        # print("size: ", size)
 
         self.classifier = nn.Sequential(
             nn.Linear(64 * size * size, num_classes),
