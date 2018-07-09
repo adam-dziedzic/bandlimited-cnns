@@ -40,8 +40,8 @@ parser.add_argument("-i", "--initbatchsize", default=64, type=int,
                     help="the initial size of the batch (number of data points for a single forward and batch passes")
 parser.add_argument("-m", "--maxbatchsize", default=64, type=int,
                     help="the max size of the batch (number of data points for a single forward and batch passes")
-parser.add_argument("-s", "--startsize", default=64, type=int, help="the start size of the input")
-parser.add_argument("-e", "--endsize", default=256, type=int, help="the end size of the input")
+parser.add_argument("-s", "--startsize", default=224, type=int, help="the start size of the input")
+parser.add_argument("-e", "--endsize", default=224, type=int, help="the end size of the input")
 parser.add_argument("-w", "--workers", default=0, type=int,
                     help="number of workers to fetch data for pytorch data loader, 0 means that the data will be "
                          "loaded in the main process")
@@ -63,8 +63,8 @@ def define_net(input_size=32, batch_size=64, num_classes=10):
 
     class Net(nn.Module):
         def __init__(self):
-            self.input_channel = 3
             super(Net, self, num_classes=10).__init__()
+            self.input_channel = 3
             self.size = input_size
             self.conv1_filter_size = 5
             self.conv1_channels = 6
@@ -95,14 +95,74 @@ def define_net(input_size=32, batch_size=64, num_classes=10):
 
     # from torchvision.models import AlexNet
     # print("input size: ", input_size)
-    # from pytorch_tutorials.memory_net_alex import AlexNet
+    from pytorch_tutorials.memory_net_alex import AlexNet
     # 1st conv2d Alex Net
     # from pytorch_tutorials.memory_net_alex_1_conv2d import AlexNet
     # from pytorch_tutorials.memory_net_alex_2_conv2d import AlexNet
-    from pytorch_tutorials.memory_net_alex_fc import AlexNet
+    # from pytorch_tutorials.memory_net_alex_fc import AlexNet
     net = AlexNet(num_classes=num_classes, input_size=input_size)
     # net = Net()
     return net
+
+
+class MeasureSizePIL(object):
+    """Measure the size of the image."""
+
+    def __init__(self):
+        super(MeasureSizePIL, self).__init__()
+        self.counter = 0
+
+    def __call__(self, img):
+        """
+        Rescale the channels.
+
+        :param image: the input image
+        :return: image size in bytes
+        """
+        from io import BytesIO
+        img_file = BytesIO()
+        img.save(img_file, 'png')
+        img_file_size_png = img_file.tell()
+        img_file = BytesIO()
+        img.save(img_file, 'jpeg')
+        img_file_size_jpeg = img_file.tell()
+        print("img_file_size png: ", img_file_size_png)
+        print("img_file_size jpeg: ", img_file_size_jpeg)
+        print("img type: ", type(img))
+        print("img size in memory in bytes: ", sys.getsizeof(img.tobytes()))
+        # print("img in memory: ", img.tobytes())
+        print("img mode: ", img.mode)
+        print("img size w=%d, h=%d", img.size)
+        self.counter += 1
+        print("counter: ", self.counter)
+        return img
+
+
+class MeasureSizeTensor(object):
+    """Measure the size of the image."""
+
+    def __init__(self):
+        super(MeasureSizeTensor, self).__init__()
+        self.counter = 0
+
+    def __call__(self, img_tensor):
+        """
+        Rescale the channels.
+
+        :param image: the input image
+        :return: image size in bytes
+
+        :see https://pytorch.org/docs/stable/torch.html?highlight=save#torch.save
+        """
+        from io import BytesIO
+        buffer = BytesIO()
+        torch.save(img_tensor, buffer)
+        torch_size = buffer.tell()
+        print("torch object size: ", torch_size)
+        print("tensor img size in bytes in memory: ", sys.getsizeof(torch_size))
+        self.counter += 1
+        print("counter: ", self.counter)
+        return img_tensor
 
 
 class ScaleChannel(object):
@@ -168,7 +228,7 @@ class ScaleChannel2(object):
         return img[1, ...].expand(self.size, -1, -1)
 
 
-def load_data(input_size=32, batch_size=64, num_workers=0, channel_size=3):
+def load_data_CIFAR10(input_size=32, batch_size=64, num_workers=0, channel_size=3):
     """
     Loading and normalizing CIFAR10
     """
@@ -184,19 +244,22 @@ def load_data(input_size=32, batch_size=64, num_workers=0, channel_size=3):
         [
             # ScaleChannel(channel_size),  # this is a hack - to be able to scale the channel size
             transforms.Scale(input_size),  # scale the input image HxW to the required size
+            MeasureSizePIL(),
             transforms.ToTensor(),
             # ScaleChannel2(channel_size),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+            MeasureSizeTensor(),
+        ])
 
     trainset = torchvision.datasets.CIFAR10(root=root, train=True,
                                             download=download, transform=transform)
-    # print("The size of the train dataset: ", len(trainset))
+    print("The size of the train dataset: ", len(trainset))
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                               shuffle=shuffle, num_workers=num_workers)
 
     testset = torchvision.datasets.CIFAR10(root=root, train=False,
                                            download=download, transform=transform)
-    # print("The size of the test dataset: ", len(trainset))
+    print("The size of the test dataset: ", len(testset))
     testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
                                              shuffle=shuffle, num_workers=num_workers)
 
@@ -232,7 +295,8 @@ def train_network(net, trainloader, optimizer, criterion, batch_size, input_size
                 # shrink to 1 layer and then expand to the required number of channels
                 # inputs = torch.tensor(inputs[:, 0:1, ...].expand(-1, net.input_channel, -1, -1))
                 # generate the random data of required image size and the number of channels
-                inputs = torch.randn(batch_size, net.input_channel, net.img_size_to_features, net.img_size_to_features).to(device)
+                inputs = torch.randn(batch_size, net.input_channel, net.img_size_to_features,
+                                     net.img_size_to_features).to(device)
 
             start_total = time.time()
 
@@ -372,7 +436,7 @@ def main():
     # if we are on a CUDA machine, then this should print a CUDA device (otherwise it prints cpu):
     print("Currently used device: ", device)
 
-    trainloader, testloader, classes = load_data(input_size=input_size, batch_size=batch_size)
+    trainloader, testloader, classes = load_data_CIFAR10(input_size=input_size, batch_size=batch_size)
 
     net = define_net(num_classes=len(classes), input_size=input_size, batch_size=batch_size)
     net.to(device)
@@ -388,7 +452,8 @@ def main():
     test_network(net=net, testloader=testloader, classes=classes, device=device)
 
 
-def plot_figure(batch_forward_times, batch_backward_times, batch_total_times, batch_input_sizes, batch_sizes, iter_number_total):
+def plot_figure(batch_forward_times, batch_backward_times, batch_total_times, batch_input_sizes, batch_sizes,
+                iter_number_total):
     fig, ax = plt.subplots()
     for batch_index, batch_size in enumerate(batch_sizes):
         input_sizes = batch_input_sizes[batch_index]
@@ -467,8 +532,9 @@ def main_test():
                 net = define_net(num_classes=num_classes, input_size=input_size, batch_size=batch_size)
                 net.to(device)
 
-                trainloader, testloader, classes = load_data(input_size=input_size, batch_size=batch_size,
-                                                             num_workers=num_workers, channel_size=net.input_channel)
+                trainloader, testloader, classes = load_data_CIFAR10(input_size=input_size, batch_size=batch_size,
+                                                                     num_workers=num_workers,
+                                                                     channel_size=net.input_channel)
 
                 assert num_classes == len(classes)
 
