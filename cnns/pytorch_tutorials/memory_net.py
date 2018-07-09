@@ -244,11 +244,11 @@ def load_data_CIFAR10(input_size=32, batch_size=64, num_workers=0, channel_size=
         [
             # ScaleChannel(channel_size),  # this is a hack - to be able to scale the channel size
             transforms.Scale(input_size),  # scale the input image HxW to the required size
-            MeasureSizePIL(),
+            # MeasureSizePIL(),
             transforms.ToTensor(),
             # ScaleChannel2(channel_size),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-            MeasureSizeTensor(),
+            # MeasureSizeTensor(),
         ])
 
     trainset = torchvision.datasets.CIFAR10(root=root, train=True,
@@ -326,12 +326,12 @@ def train_network(net, trainloader, optimizer, criterion, batch_size, input_size
 
             if i % iter_number_print == iter_number_print - 1:  # print every 1 mini-batch
                 print(
-                    '[%d, %5d],forward time,%f,backward_time,%f,optimizer_time,%f,total_time,%f,loss,%.3f,input_size,%d' %
+                    '[%d, %5d],forward time,%f,backward_time,%f,optimizer_time,%f,total_time,%f,loss,%.3f,'
+                    'input_size,%d,img_size,%d,batch_size,%d' %
                     (
                         epoch + 1, i + 1, aggregator(forward_time), aggregator(backward_time),
-                        aggregator(optimizer_time), aggregator(total_time),
-                        running_loss / iter_number_print,
-                        inputs.shape[-1]))
+                        aggregator(optimizer_time), aggregator(total_time), running_loss / iter_number_print,
+                        input_size, inputs.shape[-1], batch_size))
                 running_loss = 0.0
             if i + 1 == iter_number_total:
                 break
