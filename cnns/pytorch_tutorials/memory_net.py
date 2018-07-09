@@ -98,7 +98,8 @@ def define_net(input_size=32, batch_size=64, num_classes=10):
     # from pytorch_tutorials.memory_net_alex import AlexNet
     # 1st conv2d Alex Net
     # from pytorch_tutorials.memory_net_alex_1_conv2d import AlexNet
-    from pytorch_tutorials.memory_net_alex_2_conv2d import AlexNet
+    # from pytorch_tutorials.memory_net_alex_2_conv2d import AlexNet
+    from pytorch_tutorials.memory_net_alex_fc import AlexNet
     net = AlexNet(num_classes=num_classes, input_size=input_size)
     # net = Net()
     return net
