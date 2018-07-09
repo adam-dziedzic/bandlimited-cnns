@@ -40,8 +40,8 @@ parser.add_argument("-i", "--initbatchsize", default=64, type=int,
                     help="the initial size of the batch (number of data points for a single forward and batch passes")
 parser.add_argument("-m", "--maxbatchsize", default=64, type=int,
                     help="the max size of the batch (number of data points for a single forward and batch passes")
-parser.add_argument("-s", "--startsize", default=224, type=int, help="the start size of the input")
-parser.add_argument("-e", "--endsize", default=224, type=int, help="the end size of the input")
+parser.add_argument("-s", "--startsize", default=64, type=int, help="the start size of the input")
+parser.add_argument("-e", "--endsize", default=512, type=int, help="the end size of the input")
 parser.add_argument("-w", "--workers", default=0, type=int,
                     help="number of workers to fetch data for pytorch data loader, 0 means that the data will be "
                          "loaded in the main process")
@@ -253,13 +253,13 @@ def load_data_CIFAR10(input_size=32, batch_size=64, num_workers=0, channel_size=
 
     trainset = torchvision.datasets.CIFAR10(root=root, train=True,
                                             download=download, transform=transform)
-    print("The size of the train dataset: ", len(trainset))
+    # print("The size of the train dataset: ", len(trainset))
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                               shuffle=shuffle, num_workers=num_workers)
 
     testset = torchvision.datasets.CIFAR10(root=root, train=False,
                                            download=download, transform=transform)
-    print("The size of the test dataset: ", len(testset))
+    # print("The size of the test dataset: ", len(testset))
     testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
                                              shuffle=shuffle, num_workers=num_workers)
 
@@ -482,7 +482,7 @@ def plot_figure(batch_forward_times, batch_backward_times, batch_total_times, ba
     # plt.suptitle('iteration number per training: ' + str(iter_number_total), fontsize=12)
     plt.xlabel('Input size (size x size image)')
     plt.ylabel('Execution time (sec)')
-    file_name = "graphs/mem-forward-backward-" + current_file_name + "-" + get_log_time() + "-iterations-" + str(
+    file_name = "Graphs/mem-forward-backward-" + current_file_name + "-" + get_log_time() + "-iterations-" + str(
         iter_number_total)
     plt.gcf().subplots_adjust(left=0.1)
     # plt.gcf().subplots_adjust(right=0.60)
