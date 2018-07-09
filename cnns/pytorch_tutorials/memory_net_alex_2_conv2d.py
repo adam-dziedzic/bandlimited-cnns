@@ -35,7 +35,7 @@ class AlexNet(nn.Module):
 
         size = conv(size, 5, 1, 2)
         size = max_pool(size)
-        print("size after features: ", size)
+        # print("size after features: ", size)
         self.img_size_after_features = size   # size of the image (Height and Width - they are the same)
 
         self.classifier = nn.Sequential(

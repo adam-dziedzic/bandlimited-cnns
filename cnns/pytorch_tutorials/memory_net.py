@@ -95,10 +95,10 @@ def define_net(input_size=32, batch_size=64, num_classes=10):
 
     # from torchvision.models import AlexNet
     # print("input size: ", input_size)
-    # 1st conv2d Alex Net
     # from pytorch_tutorials.memory_net_alex import AlexNet
-    from pytorch_tutorials.memory_net_alex_1_conv2d import AlexNet
-    # from pytorch_tutorials.memory_net_alex_2_conv2d import AlexNet
+    # 1st conv2d Alex Net
+    # from pytorch_tutorials.memory_net_alex_1_conv2d import AlexNet
+    from pytorch_tutorials.memory_net_alex_2_conv2d import AlexNet
     net = AlexNet(num_classes=num_classes, input_size=input_size)
     # net = Net()
     return net
@@ -227,11 +227,11 @@ def train_network(net, trainloader, optimizer, criterion, batch_size, input_size
             inputs, labels = inputs.to(device), labels.to(device)
 
             if net.input_channel != 3:
-                print("input channel: ", net.input_channel)
+                # print("input channel: ", net.input_channel)
                 # shrink to 1 layer and then expand to the required number of channels
                 # inputs = torch.tensor(inputs[:, 0:1, ...].expand(-1, net.input_channel, -1, -1))
                 # generate the random data of required image size and the number of channels
-                inputs = torch.randn(batch_size, net.input_channel, net.img_size_to_features, net.img_size_to_features)
+                inputs = torch.randn(batch_size, net.input_channel, net.img_size_to_features, net.img_size_to_features).to(device)
 
             start_total = time.time()
 
