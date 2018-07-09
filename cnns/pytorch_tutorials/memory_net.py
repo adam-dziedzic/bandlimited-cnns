@@ -193,7 +193,7 @@ def load_data(input_size=32, batch_size=64, num_workers=0, channel_size=3):
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                               shuffle=shuffle, num_workers=num_workers)
 
-    testset = torchvision.datasets.CIFAR10(root='./data', train=False,
+    testset = torchvision.datasets.CIFAR10(root=root, train=False,
                                            download=download, transform=transform)
     # print("The size of the test dataset: ", len(trainset))
     testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
@@ -214,6 +214,7 @@ def train_network(net, trainloader, optimizer, criterion, batch_size, input_size
     forward_time = []
     backward_time = []
     optimizer_time = []
+    total_time = []
     aggregator = lambda array: np.median(array, overwrite_input=False)
 
     for epoch in range(1):  # loop over the dataset multiple times
@@ -231,6 +232,8 @@ def train_network(net, trainloader, optimizer, criterion, batch_size, input_size
                 # inputs = torch.tensor(inputs[:, 0:1, ...].expand(-1, net.input_channel, -1, -1))
                 # generate the random data of required image size and the number of channels
                 inputs = torch.randn(batch_size, net.input_channel, net.img_size_to_features, net.img_size_to_features)
+
+            start_total = time.time()
 
             # zero the parameter gradients
             optimizer.zero_grad()
@@ -253,18 +256,22 @@ def train_network(net, trainloader, optimizer, criterion, batch_size, input_size
 
             # print statistics
             running_loss += loss.item()
+
+            total_time = time.time() - start_total
+
             if i % iter_number_print == iter_number_print - 1:  # print every 1 mini-batch
-                print('[%d, %5d],forward time,%f,backward_time,%f,optimizer_time,%f,loss,%.3f,input_size,%d' %
-                      (
-                          epoch + 1, i + 1, aggregator(forward_time), aggregator(backward_time),
-                          aggregator(optimizer_time),
-                          running_loss / iter_number_print,
-                          inputs.shape[-1]))
+                print(
+                    '[%d, %5d],forward time,%f,backward_time,%f,optimizer_time,%f,total_time,%f,loss,%.3f,input_size,%d' %
+                    (
+                        epoch + 1, i + 1, aggregator(forward_time), aggregator(backward_time),
+                        aggregator(optimizer_time), aggregator(total_time),
+                        running_loss / iter_number_print,
+                        inputs.shape[-1]))
                 running_loss = 0.0
             if i + 1 == iter_number_total:
                 break
 
-    return aggregator(forward_time), aggregator(backward_time), aggregator(optimizer_time)
+    return aggregator(forward_time), aggregator(backward_time), aggregator(optimizer_time), aggregator(total_time)
 
 
 def imshow(img):
@@ -380,17 +387,20 @@ def main():
     test_network(net=net, testloader=testloader, classes=classes, device=device)
 
 
-def plot_figure(batch_forward_times, batch_backward_times, batch_input_sizes, batch_sizes, iter_number_total):
+def plot_figure(batch_forward_times, batch_backward_times, batch_total_times, batch_input_sizes, batch_sizes, iter_number_total):
     fig, ax = plt.subplots()
     for batch_index, batch_size in enumerate(batch_sizes):
         input_sizes = batch_input_sizes[batch_index]
         forward_times = batch_forward_times[batch_index]
         backward_times = batch_backward_times[batch_index]
+        total_times = batch_total_times[batch_index]
 
-        forward_label = "forward pass for batch size " + str(batch_size)
+        # forward_label = "forward pass for batch size " + str(batch_size)
         # ax.plot(input_sizes, forward_times, label=forward_label)
-        backward_label = "backward pass for batch size " + str(batch_size)
-        ax.plot(input_sizes, backward_times, label=backward_label)
+        # backward_label = "backward pass for batch size " + str(batch_size)
+        # ax.plot(input_sizes, backward_times, label=backward_label)
+        total_label = "forward and backward pass (total) for batch size " + str(batch_size)
+        ax.plot(input_sizes, total_times, label=total_label)
 
     ax.legend()
     input_sizes_example = batch_input_sizes[0]
@@ -402,7 +412,7 @@ def plot_figure(batch_forward_times, batch_backward_times, batch_input_sizes, ba
     # plt.xticks(input_sizes_example)
 
     # plt.setp(ax.get_xticklabels(), rotation=30, horizontalalignment='right')
-    plt.title('Compare execution time of forward and backward passes')
+    # plt.title('Compare execution time of forward and backward passes')
     # plt.suptitle('iteration number per training: ' + str(iter_number_total), fontsize=12)
     plt.xlabel('Input size (size x size image)')
     plt.ylabel('Execution time (sec)')
@@ -436,6 +446,7 @@ def main_test():
     batch_forward_times = []
     batch_backward_times = []
     batch_optimizer_times = []
+    batch_total_times = []
     batch_input_sizes = []
 
     batch_size = init_batch_size
@@ -444,6 +455,7 @@ def main_test():
         forward_times = []
         backward_times = []
         optimizer_times = []
+        total_times = []
         input_sizes = []
 
         try:
@@ -464,15 +476,17 @@ def main_test():
                 optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
                 criterion = nn.CrossEntropyLoss()
 
-                forward_time, backward_time, optimizer_time = train_network(net=net, optimizer=optimizer,
-                                                                            criterion=criterion,
-                                                                            trainloader=trainloader,
-                                                                            batch_size=batch_size,
-                                                                            input_size=input_size, device=device)
+                forward_time, backward_time, optimizer_time, total_time = train_network(net=net, optimizer=optimizer,
+                                                                                        criterion=criterion,
+                                                                                        trainloader=trainloader,
+                                                                                        batch_size=batch_size,
+                                                                                        input_size=input_size,
+                                                                                        device=device)
 
                 forward_times.append(forward_time)
                 backward_times.append(backward_time)
                 optimizer_times.append(optimizer_time)
+                total_times.append(total_time)
 
                 input_sizes.append(input_size)
                 input_size *= 2
@@ -488,6 +502,7 @@ def main_test():
         batch_forward_times.append(forward_times)
         batch_backward_times.append(backward_times)
         batch_optimizer_times.append(optimizer_times)
+        batch_total_times.append(total_times)
         batch_input_sizes.append(input_sizes)
 
         print("batch_sizes=", batch_sizes)
@@ -495,9 +510,11 @@ def main_test():
         print("batch_forward_times=", batch_forward_times)
         print("batch_backward_times=", batch_backward_times)
         print("batch_optimizer_times=", batch_optimizer_times)
+        print("batch_total_times=", batch_total_times)
 
     plot_figure(batch_forward_times=batch_forward_times, batch_backward_times=batch_backward_times,
-                batch_input_sizes=batch_input_sizes, batch_sizes=batch_sizes, iter_number_total=iter_number_total)
+                batch_total_times=batch_total_times, batch_input_sizes=batch_input_sizes, batch_sizes=batch_sizes,
+                iter_number_total=iter_number_total)
 
 
 if __name__ == "__main__":
