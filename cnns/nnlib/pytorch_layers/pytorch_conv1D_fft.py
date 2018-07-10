@@ -83,9 +83,9 @@ def complex_mul(x, y):
     uc = add(ud, mul(ua, -1))
     vc = add(va, vb)
     uavc = mul(ua, vc)
-    result_rel = add(uavc, mul(mul(ub, vb), -1))
-    result_im = add(mul(uc, va), uavc)
-    result = cat((result_rel, result_im), -1)
+    result_rel = add(uavc, mul(mul(ub, vb), -1))  # relational part of the complex number
+    result_im = add(mul(uc, va), uavc)  # imaginary part of the complex number
+    result = cat(seq=(result_rel, result_im), dim=-1)  # use the last dimension
     return result
 
 
@@ -239,8 +239,8 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index
         xfft = xfft.narrow(-1, 0, index)
         yfft = yfft.narrow(-1, 0, index)
         # print("the signal size after compression: ", index)
-        xfft = xfft.pad(xfft, (0, fft_size - index), 'constant', 0)
-        yfft = yfft.pad(yfft, (0, fft_size - index), 'constant', 0)
+        xfft = xfft.pad(input=xfft, pad=(0, fft_size - index), mode='constant', value=0)
+        yfft = yfft.pad(input=yfft, pad=(0, fft_size - index), mode='constant', value=0)
     out = torch.irfft(complex_mul(xfft, pytorch_conjugate(yfft)))
 
     # plot_signal(out, "out after ifft")

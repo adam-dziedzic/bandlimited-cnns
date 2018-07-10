@@ -300,7 +300,7 @@ def train_network(net, trainloader, optimizer, criterion, batch_size, input_size
 
             start_total = time.time()
 
-            # zero the parameter gradients
+            # zero the parameter gradients before computing gradient for the new batch
             optimizer.zero_grad()
 
             # forward

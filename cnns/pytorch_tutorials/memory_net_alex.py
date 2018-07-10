@@ -51,12 +51,12 @@ class AlexNet(nn.Module):
         self.img_size_after_features = size
 
         self.classifier = nn.Sequential(
+            nn.Dropout(),  # a regularization method that implicitly creates an ensemble of neural networks
+            nn.Linear(256 * size * size, 4096),  # maps from 256 * size * size to 4096 dimensional vector
+            nn.ReLU(inplace=True),  # the standard non-linearity
             nn.Dropout(),
-            nn.Linear(256 * size * size, 4096),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
-            nn.Linear(4096, 4096),
-            nn.ReLU(inplace=True),
+            nn.Linear(4096, 4096),  # maps from 4096 to another 4096 vector
+            nn.ReLU(inplace=True),  # the standard non-linearity
             nn.Linear(4096, num_classes),
         )
 
