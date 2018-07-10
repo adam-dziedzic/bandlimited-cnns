@@ -783,7 +783,7 @@ def preserve_energy_index(xfft, energy_rate=None, index_back=None):
         initial_length = len(xfft)
         half_fftsize = initial_length // 2  # the signal in frequency domain is symmetric so we can discard one half
         xfft = xfft[0:half_fftsize + 1]  # we preserve the middle element
-        squared = xfft ** 2
+        squared = np.pow(np.absolute(xfft), 2)
         full_energy = np.sum(squared)  # sum of squared values of the signal
         current_energy = 0.0
         preserved_energy = full_energy * energy_rate

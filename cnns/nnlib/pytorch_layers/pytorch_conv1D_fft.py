@@ -1,11 +1,16 @@
 """
 Custom FFT based convolution that relies on the autograd (a tape-based automatic differentiation library that supports
-all differentiable Tensor operations in torch).
+all differentiable Tensor operations in pytorch).
 """
 
+import math
+
 import logging
+import numpy as np
 import torch
+from torch import cat, mul, add, tensor
 from torch.nn import Module
+from torch.nn.functional import pad
 from torch.nn.parameter import Parameter
 
 logger = logging.getLogger(__name__)
@@ -14,15 +19,134 @@ consoleLog = logging.StreamHandler()
 logger.addHandler(consoleLog)
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
-signal_ndim = 1
 
 
 def next_power2(x):
     """
     :param x: an integer number
     :return: the power of 2 which is the larger than x but the smallest possible
+
+    >>> result = next_power2(5)
+    >>> np.testing.assert_equal(result, 8)
+    >>> result = next_power2(1)
+    >>> np.testing.assert_equal(result, 1)
+    >>> result = next_power2(2)
+    >>> np.testing.assert_equal(result, 2)
+    >>> result = next_power2(7)
+    >>> np.testing.assert_equal(result, 8)
+    >>> result = next_power2(9)
+    >>> np.testing.assert_equal(result, 16)
     """
-    return torch.pow(2, torch.ceil(torch.log2(torch.tensor(x))))
+    return math.pow(2, math.ceil(math.log2(x)))
+
+
+def complex_mul(x, y):
+    """
+    Multiply arrays of complex numbers (it also handles multidimensional arrays of complex numbers). Each complex
+    number is expressed as a pair of real and imaginary parts.
+
+    :param x: the first array of complex numbers
+    :param y: the second array complex numbers
+    :return: result of multiplication (an array with complex numbers)
+    # based on the paper: Fast Algorithms for Convolutional Neural Networks (https://arxiv.org/pdf/1509.09308.pdf)
+    >>> x = tensor([[ 6.,  0.], [0., -2.], [1., 0.], [ 1.,  1.], [1., 2.]])
+    >>> y = tensor([[2.,  0.], [0., -6.], [0., 1.], [ 1.,  1.], [2., 3.]])
+    >>> np.testing.assert_array_equal(complex_mul(x, y), tensor([[12.,   0.], [-12., 0.], [0., 1.], [ 0.,   2.], [-4., 7.]]))
+    >>> # x = torch.rfft(torch.tensor([1., 2., 3., 0.]), 1)
+    >>> x = tensor([[ 6.,  0.], [-2., -2.], [ 2.,  0.]])
+    >>> # y = torch.rfft(torch.tensor([5., 6., 7., 0.]), 1)
+    >>> y = tensor([[18.,  0.], [-2., -6.], [ 6.,  0.]])
+    >>> # torch.equal(tensor1, tensor2): True if two tensors have the same size and elements, False otherwise.
+    >>> np.testing.assert_array_equal(complex_mul(x, y), tensor([[108.,   0.], [ -8.,  16.], [ 12.,   0.]]))
+    >>> x = tensor([[1., 2.]])
+    >>> y = tensor([[2., 3.]])
+    >>> xy = complex_mul(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[-4., 7.]]))
+    >>> x = tensor([[[1., 2.]]])
+    >>> y = tensor([[[2., 3.]]])
+    >>> xy = complex_mul(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[[-4., 7.]]]))
+    >>> x = tensor([[[1., 2.], [3., 1.]]])
+    >>> y = tensor([[[2., 3.], [1., 2.]]])
+    >>> xy = complex_mul(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[[-4., 7.], [1., 7.]]]))
+    >>> x = tensor([[[1., 2.], [3., 1.]], [[ 6.,  0.], [-2., -2.]]])
+    >>> y = tensor([[[2., 3.], [1., 2.]], [[18.,  0.], [-2., -6.]]])
+    >>> xy = complex_mul(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[[-4., 7.], [1., 7.]], [[108.,   0.], [ -8.,  16.]]]))
+    """
+    ua = x.narrow(-1, 0, 1)
+    ud = x.narrow(-1, 1, 1)
+    va = y.narrow(-1, 0, 1)
+    vb = y.narrow(-1, 1, 1)
+    ub = add(ua, ud)
+    uc = add(ud, mul(ua, -1))
+    vc = add(va, vb)
+    uavc = mul(ua, vc)
+    result_rel = add(uavc, mul(mul(ub, vb), -1))
+    result_im = add(mul(uc, va), uavc)
+    result = cat((result_rel, result_im), -1)
+    return result
+
+
+def pytorch_conjugate(x):
+    """
+    Conjugate all the complex numbers in tensor x in place.
+
+    :param x: PyTorch tensor with complex numbers
+    :return: conjugated numbers in x
+
+    >>> x = tensor([[1, 2]])
+    >>> x = pytorch_conjugate(x)
+    >>> np.testing.assert_array_equal(x, tensor([[1, -2]]))
+    >>> x = tensor([[1, 2], [3, 4]])
+    >>> x = pytorch_conjugate(x)
+    >>> np.testing.assert_array_equal(x, tensor([[1, -2], [3, -4]]))
+    >>> x = tensor([[[1, 2], [3, 4]], [[0.0, 0.0], [0., 1.]]])
+    >>> x = pytorch_conjugate(x)
+    >>> np.testing.assert_array_equal(x, tensor([[[1, -2], [3, -4]], [[0., 0.], [0., -1]]]))
+    """
+    x.narrow(-1, 1, 1).mul_(-1)
+    return x
+
+
+def get_full_energy(x):
+    """
+    Return the full energy of the signal. The energy E(xfft) of a sequence xfft is defined as the sum of energies
+    (squares of the amplitude |x|) at every point of the sequence.
+
+    see: http://www.cs.cmu.edu/~christos/PUBLICATIONS.OLDER/sigmod94.pdf (equation 7)
+
+    :param x: an array of complex numbers
+    :return: the full energy of signal x
+
+    >>> x = torch.tensor([1.2, 1.0])
+    >>> full_energy, squared = get_full_energy(x)
+    >>> np.testing.assert_almost_equal(full_energy, 2.4400, decimal=4)
+    >>> np.testing.assert_array_almost_equal(squared, torch.tensor([2.4400]))
+
+    >>> x_torch = torch.tensor([[1.2, 1.0], [0.5, 1.4]])
+    >>> # change the x_torch to a typical numpy array with complex numbers; compare the results from numpy and pytorch
+    >>> x_numpy = x_torch[...,0].numpy() + 1.0j * x_torch[...,1].numpy()
+    >>> full_energy, squared = get_full_energy(x_torch)
+    >>> expected_squared = np.power(np.absolute(np.array(x_numpy)), 2)
+    >>> expected_full_energy = np.sum(expected_squared)
+    >>> np.testing.assert_almost_equal(full_energy, expected_full_energy, decimal=4)
+    >>> np.testing.assert_array_almost_equal(squared, expected_squared, decimal=4)
+
+    >>> x_torch = torch.tensor([[-10.0, 1.5], [2.5, 1.8], [1.0, -9.0]])
+    >>> # change the x_torch to a typical numpy array with complex numbers; compare the results from numpy and pytorch
+    >>> x_numpy = x_torch[...,0].numpy() + 1.0j * x_torch[...,1].numpy()
+    >>> full_energy, squared = get_full_energy(x_torch)
+    >>> expected_squared = np.power(np.absolute(np.array(x_numpy)), 2)
+    >>> expected_full_energy = np.sum(expected_squared)
+    >>> np.testing.assert_almost_equal(full_energy, expected_full_energy, decimal=4)
+    >>> np.testing.assert_array_almost_equal(squared, expected_squared, decimal=4)
+    """
+    # the signal in frequency domain is symmetric and pytorch already discards second half of the signal
+    squared = torch.add(torch.pow(x.narrow(-1, 0, 1), 2), torch.pow(x.narrow(-1, 1, 1), 2)).squeeze()
+    full_energy = torch.sum(squared).item()  # sum of squared values of the signal
+    return full_energy, squared
 
 
 def preserve_energy_index(xfft, energy_rate=None, index_back=None):
@@ -34,28 +158,65 @@ def preserve_energy_index(xfft, energy_rate=None, index_back=None):
     :param xfft: the input signal to be truncated
     :param energy_rate: how much energy should we preserve in the xfft signal
     :param index_back: how many coefficients of xfft should we discard counting from the back of the xfft
-    :return: calculated index
+    :return: calculated index, no truncation applied to xfft itself, returned at least the index of first coefficient
+    >>> xfft = torch.tensor([])
+    >>> result = preserve_energy_index(xfft, energy_rate=1.0)
+    >>> np.testing.assert_equal(result, None)
+
+    >>> xfft = torch.tensor([[1., 2.], [3., 4.], [0.1, 0.1]])
+    >>> result = preserve_energy_index(xfft, energy_rate=1.0)
+    >>> np.testing.assert_equal(result, 3)
+
+    >>> xfft = [[1., 2.], [3., 4.]]
+    >>> result = preserve_energy_index(xfft)
+    >>> np.testing.assert_equal(result, 2)
+
+    >>> xfft = [[1., 2.], [3., 4.], [5., 6.]]
+    >>> result = preserve_energy_index(xfft, index_back=1)
+    >>> np.testing.assert_equal(result, 2)
+
+    >>> xfft = torch.tensor([[1., 2.], [3., 4.], [0.1, 0.1]])
+    >>> result = preserve_energy_index(xfft, energy_rate=0.9)
+    >>> np.testing.assert_equal(result, 2)
+
+    >>> xfft = torch.tensor([[3., 10.], [1., 1.], [0.1, 0.1]])
+    >>> result = preserve_energy_index(xfft, energy_rate=0.5)
+    >>> np.testing.assert_equal(result, 1)
+
+    >>> xfft = torch.tensor([[3., 10.], [1., 1.], [0.1, 0.1]])
+    >>> result = preserve_energy_index(xfft, energy_rate=0.0)
+    >>> np.testing.assert_equal(result, 1)
+
+    >>> x_torch = torch.tensor([[3., 10.], [1., 1.], [0.1, 0.1]])
+    >>> x_numpy = x_torch[...,0].numpy() + 1.0j * x_torch[...,1].numpy()
+    >>> squared_numpy = np.power(np.absolute(np.array(x_numpy)), 2)
+    >>> full_energy_numpy = np.sum(squared_numpy)
+    >>> # set energy rate to preserve only the first and second coefficients
+    >>> energy_rate = squared_numpy[0]/full_energy_numpy + 0.0001
+    >>> result = preserve_energy_index(x_torch, energy_rate=energy_rate)
+    >>> np.testing.assert_equal(result, 2)
+    >>> # set energy rate to preserved only the first coefficient
+    >>> energy_rate = squared_numpy[0]/full_energy_numpy - 0.0001
+    >>> result = preserve_energy_index(x_torch, energy_rate=energy_rate)
+    >>> np.testing.assert_equal(result, 1)
     """
+    if xfft is None or len(xfft) == 0:
+        return None
     if energy_rate is not None:
-        initial_length = xfft.size(0)
-        # the signal in frequency domain is symmetric so we can discard one half
-        half_fftsize = torch.div(initial_length, 2)
-        xfft = xfft[0:half_fftsize + 1]  # we preserve the middle element
-        squared = torch.power(xfft, 2)
-        full_energy = torch.sum(squared)  # sum of squared values of the signal
+        full_energy, squared = get_full_energy(xfft)
         current_energy = 0.0
         preserved_energy = full_energy * energy_rate
         index = 0
         while current_energy < preserved_energy and index < len(squared):
             current_energy += squared[index]
             index += 1
-        return index
+        return max(index, 1)
     elif index_back is not None:
         return len(xfft) - index_back
-    return len(xfft)  # no truncation applied to xfft
+    return len(xfft)
 
 
-def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index_back=None):
+def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index_back=None, signal_ndim=1):
     """
     Cross-correlation of the signals: x and y.
 
@@ -75,18 +236,17 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index
         #         compute_energy(xfft[:index]) / compute_energy(xfft[:fft_size // 2 + 1])) +
         #             ";preserved energy filter: " + str(
         #         compute_energy(yfft[:index]) / compute_energy(yfft[:fft_size // 2 + 1])) + "\n")
-        xfft = xfft[:index]
-        yfft = yfft[:index]
+        xfft = xfft.narrow(-1, 0, index)
+        yfft = yfft.narrow(-1, 0, index)
         # print("the signal size after compression: ", index)
-        xfft = reconstruct_signal(xfft, fft_size)
-        yfft = reconstruct_signal(yfft, fft_size)
-    out = ifft(xfft * np.conj(yfft))
+        xfft = xfft.pad(xfft, (0, fft_size - index), 'constant', 0)
+        yfft = yfft.pad(yfft, (0, fft_size - index), 'constant', 0)
+    out = torch.irfft(complex_mul(xfft, pytorch_conjugate(yfft)))
 
     # plot_signal(out, "out after ifft")
     out = out[:out_size]
     # plot_signal(out, "after truncating to xlen: " + str(x_len))
-    return_value = np.real(out)
-    return return_value
+    return out
 
 
 class PyTorchConv1d(Module):
@@ -144,29 +304,24 @@ class PyTorchConv1d(Module):
         """
         N, C, W = input.size()
         F, C, WW = self.filter.size()
-        fftsize = int(next_power2(float(W + WW - 1)))
+        fftsize = next_power2(W + WW - 1)
         # pad only the dimensions for the time-series (and neither data points nor the channels)
-        padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
+        padded_x = pad(input, (self.padding, self.padding), 'constant', 0)
+
         out_W = W + 2 * pad - WW + 1
-        out = np.zeros([N, F, out_W])
+        out = torch.empty([N, F, out_W])
         for nn in range(N):  # For each time-series in the input batch.
             for ff in range(F):  # For each filter in w
                 for cc in range(C):
-                    out[nn, ff] += correlate_signals(padded_x[nn, cc], w[ff, cc], fftsize,
-                                                     out_size=out_W, preserve_energy_rate=preserve_energy_rate,
-                                                     index_back=index_back)
-                out[nn, ff] += b[ff]  # add the bias term
+                    out[nn, ff] += correlate_signals(padded_x[nn, cc], self.filter[ff, cc], fftsize,
+                                                     out_size=out_W, preserve_energy_rate=self.preserve_energy_rate,
+                                                     index_back=self.index_back)
+                out[nn, ff] += self.bias[ff]  # add the bias term
 
-        cache = (x, w, b, conv_param)
-        return out, cache
-        # detach so we can cast to NumPy
-        result = conv1d(input, filter)
-
-        result += bias
-        return output
+        return out
 
 
-if __name__ == "__main__":
+def test_run():
     torch.manual_seed(231)
     module = PyTorchConv1d(3)
     print("filter and bias parameters: ", list(module.parameters()))
@@ -175,6 +330,14 @@ if __name__ == "__main__":
     print("forward output: ", output)
     output.backward(torch.randn(1, 1, 8))
     print("gradient for the input: ", input.grad)
+
+
+if __name__ == "__main__":
+    import sys
+    import doctest
+
+    test_run()
+    sys.exit(doctest.testmod()[0])
 
 """
 expected gradient for the input:  tensor([[[[-0.2478, -0.7275, -1.0670,  1.3629,  1.7458, -0.5786, -0.2722,
