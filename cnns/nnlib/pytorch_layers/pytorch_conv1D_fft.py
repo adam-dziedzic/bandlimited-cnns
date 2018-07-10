@@ -16,6 +16,7 @@ logger.addHandler(consoleLog)
 current_file_name = __file__.split("/")[-1].split(".")[0]
 signal_ndim = 1
 
+
 def next_power2(x):
     """
     :param x: an integer number
@@ -89,7 +90,7 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index
 
 
 class PyTorchConv1d(Module):
-    def __init__(self, filter_width, filter_height, filter=None, bias=None, padding=None, preserve_energy_rate=None):
+    def __init__(self, filter_width, filter=None, bias=None, padding=None, preserve_energy_rate=None):
         """
         1D convolution using FFT implemented fully in PyTorch.
 
@@ -107,7 +108,7 @@ class PyTorchConv1d(Module):
         """
         super(PyTorchConv1d, self).__init__()
         if filter is None:
-            self.filter = Parameter(torch.randn(1, 1, filter_width, filter_height))
+            self.filter = Parameter(torch.randn(1, 1, filter_width))
         else:
             self.filter = filter
         if bias is None:
@@ -143,7 +144,7 @@ class PyTorchConv1d(Module):
         """
         N, C, W = input.size()
         F, C, WW = self.filter.size()
-        fftsize = next_power2(W + WW - 1)
+        fftsize = int(next_power2(float(W + WW - 1)))
         # pad only the dimensions for the time-series (and neither data points nor the channels)
         padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
         out_W = W + 2 * pad - WW + 1
@@ -167,12 +168,12 @@ class PyTorchConv1d(Module):
 
 if __name__ == "__main__":
     torch.manual_seed(231)
-    module = PyTorchConv1d(3, 3)
+    module = PyTorchConv1d(3)
     print("filter and bias parameters: ", list(module.parameters()))
-    input = torch.randn(1, 1, 10, 10, requires_grad=True)
+    input = torch.randn(1, 1, 10, requires_grad=True)
     output = module(input)
     print("forward output: ", output)
-    output.backward(torch.randn(1, 1, 8, 8))
+    output.backward(torch.randn(1, 1, 8))
     print("gradient for the input: ", input.grad)
 
 """
