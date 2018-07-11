@@ -85,7 +85,7 @@ def complex_mul(x, y):
     uavc = mul(ua, vc)
     result_rel = add(uavc, mul(mul(ub, vb), -1))  # relational part of the complex number
     result_im = add(mul(uc, va), uavc)  # imaginary part of the complex number
-    result = cat(seq=(result_rel, result_im), dim=-1)  # use the last dimension
+    result = cat(tensors=(result_rel, result_im), dim=-1)  # use the last dimension
     return result
 
 
@@ -219,6 +219,13 @@ def preserve_energy_index(xfft, energy_rate=None, index_back=None):
 def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index_back=None, signal_ndim=1):
     """
     Cross-correlation of the signals: x and y.
+    Theory: X(f) = fft(x(t)). The first sample X(0) of the transformed series is the DC component, more commonly known
+    as the average of the input series. For the normalized fft (both sums are multiplied by $\frac{1}{\sqrt{N}}$.
+    $$
+    \begin{align}
+        X(0) = \frac{1}{\sqrt{N}} \sum_{n=0}^{n=N-1} x(n)
+    \end{align}
+    $$
 
     :param x: input signal
     :param y: filter
@@ -226,9 +233,20 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index
     :param preserve_energy_rate: compressed to this energy rate
     :param index_back: how many coefficients to remove
     :return: output signal after correlation of signals x and y
+
+    >>> x = tensor([1.0,2.0,3.0,4.0])
+    >>> y = tensor([1.0,3.0])
+    >>> result = correlate_signals(x=x, y=y, fft_size=len(x), out_size=(len(x)-len(y) + 1))
+    >>> np.testing.assert_array_almost_equal(result, np.array([7.0, 11.0, 15.0]))
     """
-    xfft = torch.rfft(x, signal_ndim)
-    yfft = torch.rfft(y, signal_ndim)
+    index = len(x)  # it is the size of the input x (the last index of the array x, it can be decreased by compression)
+    # pad the signals to the fft size
+    x = pad(x, (0, fft_size - len(x)), 'constant', 0)
+    y = pad(y, (0, fft_size - len(y)), 'constant', 0)
+    # onesided=True: only the frequency coefficients to the Nyquist frequency are retained (about half the length of the
+    # input signal) so the original signal can be still exactly reconstructed from the frequency samples.
+    xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=True)
+    yfft = torch.rfft(y, signal_ndim=signal_ndim, onesided=True)
     if preserve_energy_rate is not None or index_back is not None:
         index = preserve_energy_index(xfft, preserve_energy_rate, index_back)
         # with open(log_file, "a+") as f:
@@ -241,7 +259,7 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index
         # print("the signal size after compression: ", index)
         xfft = xfft.pad(input=xfft, pad=(0, fft_size - index), mode='constant', value=0)
         yfft = yfft.pad(input=yfft, pad=(0, fft_size - index), mode='constant', value=0)
-    out = torch.irfft(complex_mul(xfft, pytorch_conjugate(yfft)))
+    out = torch.irfft(input=complex_mul(xfft, pytorch_conjugate(yfft)), signal_ndim=signal_ndim, signal_sizes=index)
 
     # plot_signal(out, "out after ifft")
     out = out[:out_size]
@@ -306,7 +324,9 @@ class PyTorchConv1d(Module):
         F, C, WW = self.filter.size()
         fftsize = next_power2(W + WW - 1)
         # pad only the dimensions for the time-series (and neither data points nor the channels)
-        padded_x = pad(input, (self.padding, self.padding), 'constant', 0)
+        padded_x = input
+        if self.padding is not None:
+            padded_x = pad(input, (self.padding, self.padding), 'constant', 0)
 
         out_W = W + 2 * pad - WW + 1
         out = torch.empty([N, F, out_W])
@@ -336,7 +356,7 @@ if __name__ == "__main__":
     import sys
     import doctest
 
-    test_run()
+    # test_run()
     sys.exit(doctest.testmod()[0])
 
 """

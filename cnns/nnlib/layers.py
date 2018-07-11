@@ -736,6 +736,11 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index
     :param preserve_energy_rate: compressed to this energy rate
     :param index_back: how many coefficients to remove
     :return: output signal after correlation of signals x and y
+
+    >>> x = [1.0,2.0,3.0,4.0]
+    >>> y = [1.0,3.0]
+    >>> result = correlate_signals(x=x, y=y, fft_size=len(x), out_size=(len(x)-len(y) + 1))
+    >>> np.testing.assert_array_almost_equal(result, np.array([7.0, 11.0, 15.0]))
     """
     # print("x input size: ", x)
     # print("fft size: ", fft_size)
@@ -2195,3 +2200,10 @@ def softmax_loss(x, y):
     dx[np.arange(N), y] -= 1
     dx /= N
     return loss, dx
+
+
+if __name__ == "__main__":
+    import sys
+    import doctest
+
+    sys.exit(doctest.testmod()[0])
