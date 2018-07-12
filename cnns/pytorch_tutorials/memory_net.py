@@ -45,10 +45,12 @@ parser.add_argument("-e", "--endsize", default=512, type=int, help="the end size
 parser.add_argument("-w", "--workers", default=0, type=int,
                     help="number of workers to fetch data for pytorch data loader, 0 means that the data will be "
                          "loaded in the main process")
+parser.add_argument("-d", "--device", default="cuda:0", help="the type of device, e.g.: cpu, cuda:0, cuda:1, etc.")
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
 print("current file name: ", current_file_name)
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def get_log_time():
     return time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
@@ -432,7 +434,6 @@ def test_network(net, testloader, classes, device):
 def main():
     input_size = 64
     batch_size = 64
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # if we are on a CUDA machine, then this should print a CUDA device (otherwise it prints cpu):
     print("Currently used device: ", device)
 
@@ -505,7 +506,6 @@ def plot_figure(batch_forward_times, batch_backward_times, batch_total_times, ba
 
 
 def main_test():
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # if we are on a CUDA machine, then this should print a CUDA device (otherwise it prints cpu):
     print("Currently used device: ", device)
     batch_sizes = []

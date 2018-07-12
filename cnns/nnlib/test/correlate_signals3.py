@@ -62,9 +62,9 @@ def correlate_signals(x, y, out_len, energy_rate=None, index_back=None):
         index = preserve_energy_index(xfft, energy_rate, index_back)
         with open(log_file, "a+") as f:
             f.write("index: " + str(index_back) + ";preserved energy input: " + str(
-                compute_energy(xfft[:index]) / compute_energy(xfft[:fft_size // 2 + 1])) +
+                get_full_energy(xfft[:index]) / get_full_energy(xfft[:fft_size // 2 + 1])) +
                     ";preserved energy filter: " + str(
-                compute_energy(yfft[:index]) / compute_energy(yfft[:fft_size // 2 + 1])) + "\n")
+                get_full_energy(yfft[:index]) / get_full_energy(yfft[:fft_size // 2 + 1])) + "\n")
         xfft = xfft[:index]
         yfft = yfft[:index]
         xfft = reconstruct_signal(xfft, fft_size)

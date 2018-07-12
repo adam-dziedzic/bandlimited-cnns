@@ -1,7 +1,8 @@
 from builtins import range
 
+# from numpy.fft import fft, ifft, rfft, irfft
 import pyfftw
-from numpy.fft import fft, ifft, rfft, irfft
+from pyfftw.interfaces.numpy_fft import fft, ifft, rfft, irfft
 
 from nnlib.utils.general_utils import *
 
@@ -469,6 +470,9 @@ def next_power2(x):
     """
     :param x: an integer number
     :return: the power of 2 which is the larger than x but the smallest possible
+
+    >>> result = next_power2(5)
+    >>> np.testing.assert_equal(result, 8)
     """
     return 2 ** np.ceil(np.log2(x)).astype(int)
 
@@ -709,14 +713,6 @@ def conv_forward_fftw_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
     return out, cache
 
 
-def plot_signal(signal, title="signal"):
-    plt.plot(range(0, len(signal)), signal)
-    plt.title(title)
-    plt.xlabel('time')
-    plt.ylabel('Amplitude')
-    plt.show()
-
-
 def reconstruct_signal(xfft, fft_size):
     xfft = np.concatenate((xfft, np.zeros(max(fft_size // 2 - len(xfft) + 1, 0))))
     xfft = np.concatenate((xfft, np.conj(np.flip(xfft[1:-1], axis=0))))
@@ -740,19 +736,34 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index
     >>> x = [1.0,2.0,3.0,4.0]
     >>> y = [1.0,3.0]
     >>> result = correlate_signals(x=x, y=y, fft_size=len(x), out_size=(len(x)-len(y) + 1))
-    >>> np.testing.assert_array_almost_equal(result, np.array([7.0, 11.0, 15.0]))
+    >>> expected_result = np.correlate(x, y, mode='valid')
+    >>> np.testing.assert_array_almost_equal(result, expected_result)
+
+    >>> x = np.random.rand(10)
+    >>> y = np.random.rand(3)
+    >>> result = correlate_signals(x=x, y=y, fft_size=len(x), out_size=(len(x)-len(y) + 1))
+    >>> expected_result = np.correlate(x, y, mode='valid')
+    >>> np.testing.assert_array_almost_equal(result, expected_result)
+
+    >>> x = np.random.rand(100)
+    >>> y = np.random.rand(11)
+    >>> result = correlate_signals(x=x, y=y, fft_size=len(x), out_size=(len(x)-len(y) + 1))
+    >>> expected_result = np.correlate(x, y, mode='valid')
+    >>> np.testing.assert_array_almost_equal(result, expected_result)
     """
     # print("x input size: ", x)
     # print("fft size: ", fft_size)
     xfft = fft(x, fft_size)
     yfft = fft(y, fft_size)
     if preserve_energy_rate is not None or index_back is not None:
-        index = preserve_energy_index(xfft, preserve_energy_rate, index_back)
+        index_xfft = half_preserve_energy_index(xfft, preserve_energy_rate, index_back)
+        index_yfft = half_preserve_energy_index(yfft, preserve_energy_rate, index_back)
         # with open(log_file, "a+") as f:
         #     f.write("index: " + str(index_back) + ";preserved energy input: " + str(
         #         compute_energy(xfft[:index]) / compute_energy(xfft[:fft_size // 2 + 1])) +
         #             ";preserved energy filter: " + str(
         #         compute_energy(yfft[:index]) / compute_energy(yfft[:fft_size // 2 + 1])) + "\n")
+        index = max(index_xfft, index_yfft)
         xfft = xfft[:index]
         yfft = yfft[:index]
         # print("the signal size after compression: ", index)
@@ -767,10 +778,50 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index
     return return_value
 
 
-def compute_energy(xfft):
-    squared_abs = np.abs(xfft) ** 2
-    full_energy = np.sum(squared_abs)
-    return full_energy
+def get_full_energy(xfft):
+    """
+    Return the full energy of the signal. The energy E(xfft) of a sequence xfft is defined as the sum of energies
+    (squares of the amplitude |x|) at every point of the sequence.
+
+    see: http://www.cs.cmu.edu/~christos/PUBLICATIONS.OLDER/sigmod94.pdf (equation 7)
+
+    :param x: an array of complex numbers
+    :return: the full energy of signal x
+
+    >>> x = np.array([1.2 + 1.0j])
+    >>> full_energy, squared = get_full_energy(x)
+    >>> np.testing.assert_almost_equal(full_energy, 2.4400, decimal=4)
+    >>> np.testing.assert_array_almost_equal(squared, np.array([2.4400]))
+
+    >>> x = np.array([1.2 + 1.0j, 0.5 + 1.4j])
+    >>> full_energy, squared = get_full_energy(x)
+    >>> expected_squared = np.power(np.absolute(np.array(x)), 2)
+    >>> expected_full_energy = np.sum(expected_squared)
+    >>> np.testing.assert_almost_equal(full_energy, expected_full_energy, decimal=4)
+    >>> np.testing.assert_array_almost_equal(squared, expected_squared, decimal=4)
+
+    >>> x = np.array([-10.0 + 1.5j, 2.5 + 1.8j, 1.0 -9.0j])
+    >>> full_energy, squared = get_full_energy(x)
+    >>> expected_squared = np.power(np.absolute(np.array(x)), 2)
+    >>> expected_full_energy = np.sum(expected_squared)
+    >>> np.testing.assert_almost_equal(full_energy, expected_full_energy, decimal=4)
+    >>> np.testing.assert_array_almost_equal(squared, expected_squared, decimal=4)
+    """
+    # squared = np.abs(xfft) ** 2
+    squared = np.imag(xfft) ** 2 + np.real(xfft) ** 2
+    full_energy = np.sum(squared)
+    return full_energy, squared
+
+
+def half_preserve_energy_index(xfft, energy_rate=None, index_back=None):
+    """
+    The same as the function preserve_energy_index but we discard half of the input signal since it is Hermitian
+    symmetric.
+    """
+    initial_length = len(xfft)
+    half_fftsize = initial_length // 2  # the signal in frequency domain is symmetric so we can discard one half
+    xfft = xfft[0:half_fftsize + 1]  # we preserve the middle element
+    return preserve_energy_index(xfft, energy_rate, index_back)
 
 
 def preserve_energy_index(xfft, energy_rate=None, index_back=None):
@@ -782,13 +833,54 @@ def preserve_energy_index(xfft, energy_rate=None, index_back=None):
     :param xfft: the input signal to be truncated
     :param energy_rate: how much energy should we preserve in the xfft signal
     :param index_back: how many coefficients of xfft should we discard counting from the back of the xfft
-    :return: calculated index
+    :return: calculated index, no truncation applied to xfft itself, returned at least the index of first coefficient
+
+    >>> xfft = np.array([3.+10.j, 1.+1.j, 0.1+0.1j])
+    >>> squared_numpy = np.power(np.absolute(xfft), 2)
+    >>> full_energy_numpy = np.sum(squared_numpy)
+    >>> # set energy rate to preserve only the first and second coefficients
+    >>> energy_rate = squared_numpy[0]/full_energy_numpy + 0.0001
+    >>> result = preserve_energy_index(xfft, energy_rate=energy_rate)
+    >>> np.testing.assert_equal(result, 2)
+    >>> # set energy rate to preserved only the first coefficient
+    >>> energy_rate = squared_numpy[0]/full_energy_numpy - 0.0001
+    >>> result = preserve_energy_index(xfft, energy_rate=energy_rate)
+    >>> np.testing.assert_equal(result, 1)
+
+    >>> xfft = np.array([1.+2.j, 3.+ 4.j, 0.1 + 0.1j])
+    >>> result = preserve_energy_index(xfft, energy_rate=1.0)
+    >>> np.testing.assert_equal(result, 3)
+
+    >>> xfft = np.array([])
+    >>> result = preserve_energy_index(xfft, energy_rate=1.0)
+    >>> np.testing.assert_equal(result, None)
+
+    >>> xfft = [1.+2.j, 3.+4.j]
+    >>> result = preserve_energy_index(xfft)
+    >>> np.testing.assert_equal(result, 2)
+
+    >>> xfft = [1.+2.j, 3. + 4.j, 5.+6.j]
+    >>> result = preserve_energy_index(xfft, index_back=1)
+    >>> np.testing.assert_equal(result, 2)
+
+    >>> xfft = np.array([1.+2.j, 3.+4.j, 0.1+0.1j])
+    >>> result = preserve_energy_index(xfft, energy_rate=0.9)
+    >>> np.testing.assert_equal(result, 2)
+
+    >>> xfft = np.array([3.+10.j, 1.+1.j, 0.1+0.1j])
+    >>> result = preserve_energy_index(xfft, energy_rate=0.5)
+    >>> np.testing.assert_equal(result, 1)
+
+    >>> xfft = np.array([3.+10.j, 1.+1.j, 0.1+0.1j])
+    >>> result = preserve_energy_index(xfft, energy_rate=0.0)
+    >>> np.testing.assert_equal(result, 1)
+
     """
+    if xfft is None or len(xfft) == 0:
+        return None
     if energy_rate is not None:
-        initial_length = len(xfft)
-        half_fftsize = initial_length // 2  # the signal in frequency domain is symmetric so we can discard one half
-        xfft = xfft[0:half_fftsize + 1]  # we preserve the middle element
-        squared = np.pow(np.absolute(xfft), 2)
+        # squared = np.power(np.absolute(xfft), 2)
+        squared = np.imag(xfft) ** 2 + np.real(xfft) ** 2
         full_energy = np.sum(squared)  # sum of squared values of the signal
         current_energy = 0.0
         preserved_energy = full_energy * energy_rate
@@ -796,7 +888,7 @@ def preserve_energy_index(xfft, energy_rate=None, index_back=None):
         while current_energy < preserved_energy and index < len(squared):
             current_energy += squared[index]
             index += 1
-        return index
+        return max(index, 1)
     elif index_back is not None:
         return len(xfft) - index_back
     return len(xfft)  # no truncation applied to xfft
@@ -946,6 +1038,13 @@ def conv_forward_fft_1D(x, w, b, conv_param):
      full: https://stackoverflow.com/questions/40703751/
      using-fourier-transforms-to-do-convolution?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
 
+    >>> x = np.array([[[1., 2., 3.]]])
+    >>> y = np.array([[[2., 1.]]])
+    >>> b = np.array([0.0])
+    >>> conv_param = {'pad' : 0, 'stride' :1}
+    >>> result, cache = conv_forward_fft_1D(x, y, b, conv_param)
+    >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:], mode="valid")
+    >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
     """
     preserve_energy_rate = conv_param.get('preserve_energy_rate', None)
     index_back = conv_param.get('index_back', None)
@@ -984,6 +1083,28 @@ def conv_backward_fft_1D(dout, cache):
     - dx: Gradient with respect to x
     - dw: Gradient with respect to w
     - db: Gradient with respect to b
+
+    >>> x = np.array([[[1., 2., 3.]]])
+    >>> y = np.array([[[2., 1.]]])
+    >>> b = np.array([0.0])
+    >>> conv_param = {'pad' : 0, 'stride' :1}
+    >>> dout = np.array([[[0.1, -0.2]]])
+    >>> # first, get the expected results from direct naive approach to convolution
+    >>> result, cache = conv_forward_naive_1D(x, y, b, conv_param)
+    >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:], mode="valid")
+    >>> # is the forward naive convolution correct?
+    >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
+    >>> expected_dx, expected_dw, expected_db = conv_backward_naive_1D(dout, cache)
+    >>> # get the results from the backward pass
+    >>> result, cache = conv_forward_fft_1D(x, y, b, conv_param)
+    >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:], mode="valid")
+    >>> # is the FFT based forward convolution correct?
+    >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
+    >>> # finally: are the gradients correct?
+    >>> dx, dw, db = conv_backward_fft_1D(dout, cache)
+    >>> np.testing.assert_array_almost_equal(dx, expected_dx)
+    >>> np.testing.assert_array_almost_equal(dw, expected_dw)
+    >>> np.testing.assert_array_almost_equal(db, expected_db)
     """
     x, w, b, conv_param = cache
     preserve_energy_rate = conv_param.get('preserve_energy_rate', None)
@@ -1080,6 +1201,14 @@ def conv_forward_numpy_1D(x, w, b, conv_param):
      - out: output data, of shape (N, W') where W' is given by:
      W' = 1 + (W + 2*pad - WW) / stride
      - cache: (x, w, b, conv_param)
+
+    >>> x = np.array([[[1., 2., 3.]]])
+    >>> y = np.array([[[2., 1.]]])
+    >>> b = np.array([0.0])
+    >>> conv_param = {'pad' : 0, 'stride' :1}
+    >>> result, cache = conv_forward_numpy_1D(x, y, b, conv_param)
+    >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:], mode="valid")
+    >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
     """
     pad = conv_param.get('pad')
     stride = conv_param.get('stride')
@@ -1114,6 +1243,28 @@ def conv_backward_numpy_1D(dout, cache):
     - dx: Gradient with respect to x
     - dw: Gradient with respect to w
     - db: Gradient with respect to b
+
+    >>> x = np.array([[[1., 2., 3.]]])
+    >>> y = np.array([[[2., 1.]]])
+    >>> b = np.array([0.0])
+    >>> conv_param = {'pad' : 0, 'stride' :1}
+    >>> dout = np.array([[[0.1, -0.2]]])
+    >>> # first, get the expected results from direct naive approach to convolution
+    >>> result, cache = conv_forward_naive_1D(x, y, b, conv_param)
+    >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:], mode="valid")
+    >>> # is the forward naive convolution correct?
+    >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
+    >>> expected_dx, expected_dw, expected_db = conv_backward_naive_1D(dout, cache)
+    >>> # get the results from the backward pass
+    >>> result, cache = conv_forward_numpy_1D(x, y, b, conv_param)
+    >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:], mode="valid")
+    >>> # is the FFT based forward convolution correct?
+    >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
+    >>> # finally: are the gradients correct?
+    >>> dx, dw, db = conv_backward_numpy_1D(dout, cache)
+    >>> np.testing.assert_array_almost_equal(dx, expected_dx)
+    >>> np.testing.assert_array_almost_equal(dw, expected_dw)
+    >>> np.testing.assert_array_almost_equal(db, expected_db)
     """
     dx, dw, db = None, None, None
     x, w, b, conv_param = cache
@@ -1192,6 +1343,14 @@ def conv_forward_naive_1D(x, w, b, conv_param):
      - out: output data, of shape (N, W') where W' is given by:
      W' = 1 + (W + 2*pad - WW) / stride
      - cache: (x, w, b, conv_param)
+
+    >>> x = np.array([[[1., 2., 3.]]])
+    >>> y = np.array([[[2., 1.]]])
+    >>> b = np.array([0.0])
+    >>> conv_param = {'pad' : 0, 'stride' :1}
+    >>> result, cache = conv_forward_fft_1D(x, y, b, conv_param)
+    >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:], mode="valid")
+    >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
     """
     pad = conv_param.get('pad')
     if isinstance(pad, int):
@@ -1291,8 +1450,7 @@ def compress_spectral_1D(x, y_len):
     xfft = fft(x, norm="ortho")
     if y_len % 2 == 1:
         n = (y_len - 1) // 2
-
-    return y
+    #TODO
 
 
 def compress_fft_1D(x, y_len):
@@ -1309,7 +1467,8 @@ def compress_fft_1D(x, y_len):
     # take the Fourier matrix for FFT in its standard form: 1/sqrt(N) * FourierMatrix to preserve scale of energies
     # in the input and output of the fft
     # xfft = fft(x) / np.sqrt(x_len)
-    xfft = rfft(x, norm="ortho")
+    # xfft = rfft(x, norm="ortho")
+    xfft = rfft(x)
     # plot_signal(xfft, "signal x after rfft")
     # print("energy of uncompressed xfft: ", energy(np.abs(xfft)))
     # plot_signal(np.abs(xfft), title="xfft before compression")
@@ -1323,7 +1482,8 @@ def compress_fft_1D(x, y_len):
     # plot_signal(np.abs(xfft), title="xfft after compression")
     # print("xfft len after compression: ", len(xfft))
     # print("expected y_len: ", y_len)
-    y = irfft(xfft, norm="ortho", n=y_len)
+    # y = irfft(xfft, norm="ortho", n=y_len)
+    y = irfft(xfft, n=y_len)
     # yfft = fft(y, 512)
     # plot_signal(y, "signal y after irfft")
     # plot_signal(ifft(yfft), "signal yfft after inverse 512")
@@ -1349,7 +1509,8 @@ def compress_fft_1D_gradient(g, x_len):
     """
     # g_len = len(g)
     # plot_signal(g, "g input gradients")
-    gfft = rfft(g, norm="ortho")
+    # gfft = rfft(g, norm="ortho")
+    gfft = rfft(g)
     # plot_signal(gfft, "first gfft after rfft")
     # discard_count = (x_len - g_len) // 2
     # half_fft_len = len(gfft) // 2
@@ -1360,7 +1521,8 @@ def compress_fft_1D_gradient(g, x_len):
     # gfft_second_half = np.append(np.zeros(discard_count), gfft[half_fft_len + 1:])
     # gfft_padded = np.append(gfft_first_half, gfft_second_half)
     # plot_signal(gfft_padded, "gfft padded: ")
-    dx = irfft(gfft, norm="ortho", n=x_len)
+    # dx = irfft(gfft, norm="ortho", n=x_len)
+    dx = irfft(gfft, n=x_len)
     # dx = np.real(dx)
     # plot_signal(dx, "output of the dx after irfft")
     return dx
@@ -1538,6 +1700,19 @@ def conv_backward_naive_1D(dout, cache):
     - dx: Gradient with respect to x
     - dw: Gradient with respect to w
     - db: Gradient with respect to b
+
+    >>> x = np.array([[[1., 2., 3.]]])
+    >>> y = np.array([[[2., 1.]]])
+    >>> b = np.array([0.0])
+    >>> conv_param = {'pad' : 0, 'stride' :1}
+    >>> result, cache = conv_forward_naive_1D(x, y, b, conv_param)
+    >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:], mode="valid")
+    >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
+    >>> dout = np.array([[[0.1, -0.2]]])
+    >>> dx, dw, db = conv_backward_naive_1D(dout, cache)
+    >>> np.testing.assert_array_almost_equal(dx, np.array([[[ 0.2, -0.3, -0.2]]]))
+    >>> np.testing.assert_array_almost_equal(dw, np.array([[[-0.3, -0.4]]]))
+    >>> np.testing.assert_array_almost_equal(db, np.array([-0.1]))
     """
     dx, dw, db = None, None, None
     # print("cache: ", cache)

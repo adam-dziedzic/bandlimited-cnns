@@ -238,6 +238,24 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index
     >>> y = tensor([1.0,3.0])
     >>> result = correlate_signals(x=x, y=y, fft_size=len(x), out_size=(len(x)-len(y) + 1))
     >>> np.testing.assert_array_almost_equal(result, np.array([7.0, 11.0, 15.0]))
+
+    >>> x = tensor([1.0,2.0,3.0,4.0])
+    >>> y = tensor([1.0,3.0])
+    >>> result = correlate_signals(x=x, y=y, fft_size=len(x), out_size=(len(x)-len(y) + 1))
+    >>> expected_result = np.correlate(x, y, mode='valid')
+    >>> np.testing.assert_array_almost_equal(result, expected_result)
+
+    >>> x = torch.from_numpy(np.random.rand(10))
+    >>> y = torch.from_numpy(np.random.rand(3))
+    >>> result = correlate_signals(x=x, y=y, fft_size=len(x), out_size=(len(x)-len(y) + 1))
+    >>> expected_result = np.correlate(x, y, mode='valid')
+    >>> np.testing.assert_array_almost_equal(result, expected_result)
+
+    >>> x = torch.from_numpy(np.random.rand(100))
+    >>> y = torch.from_numpy(np.random.rand(11))
+    >>> result = correlate_signals(x=x, y=y, fft_size=len(x), out_size=(len(x)-len(y) + 1))
+    >>> expected_result = np.correlate(x, y, mode='valid')
+    >>> np.testing.assert_array_almost_equal(result, expected_result)
     """
     index = len(x)  # it is the size of the input x (the last index of the array x, it can be decreased by compression)
     # pad the signals to the fft size
@@ -259,7 +277,7 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index
         # print("the signal size after compression: ", index)
         xfft = xfft.pad(input=xfft, pad=(0, fft_size - index), mode='constant', value=0)
         yfft = yfft.pad(input=yfft, pad=(0, fft_size - index), mode='constant', value=0)
-    out = torch.irfft(input=complex_mul(xfft, pytorch_conjugate(yfft)), signal_ndim=signal_ndim, signal_sizes=index)
+    out = torch.irfft(input=complex_mul(xfft, pytorch_conjugate(yfft)), signal_ndim=signal_ndim, signal_sizes=(index,))
 
     # plot_signal(out, "out after ifft")
     out = out[:out_size]
