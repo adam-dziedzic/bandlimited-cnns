@@ -1044,6 +1044,15 @@ def conv_forward_fft_1D(x, w, b, conv_param):
     >>> conv_param = {'pad' : 0, 'stride' :1}
     >>> result, cache = conv_forward_fft_1D(x, y, b, conv_param)
     >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:], mode="valid")
+    >>> # expected_result = [4., 7.]
+    >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
+
+    >>> x = np.array([[[1., 2., 3.]]])
+    >>> y = np.array([[[2., 1.]]])
+    >>> b = np.array([0.0])
+    >>> conv_param = {'pad' : 0, 'stride' :1, 'preserve_energy_rate' :0.9}
+    >>> result, cache = conv_forward_fft_1D(x, y, b, conv_param)
+    >>> expected_result = [3.5, 7.5]
     >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
     """
     preserve_energy_rate = conv_param.get('preserve_energy_rate', None)
@@ -1348,7 +1357,7 @@ def conv_forward_naive_1D(x, w, b, conv_param):
     >>> y = np.array([[[2., 1.]]])
     >>> b = np.array([0.0])
     >>> conv_param = {'pad' : 0, 'stride' :1}
-    >>> result, cache = conv_forward_fft_1D(x, y, b, conv_param)
+    >>> result, cache = conv_forward_naive_1D(x, y, b, conv_param)
     >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:], mode="valid")
     >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
     """
