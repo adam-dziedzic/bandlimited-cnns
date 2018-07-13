@@ -2,9 +2,6 @@
 Custom FFT based convolution that relies on the autograd (a tape-based automatic differentiation library that supports
 all differentiable Tensor operations in pytorch).
 """
-
-import math
-
 import logging
 import numpy as np
 import torch
@@ -37,7 +34,8 @@ def next_power2(x):
     >>> result = next_power2(9)
     >>> np.testing.assert_equal(result, 16)
     """
-    return math.pow(2, math.ceil(math.log2(x)))
+    # return math.pow(2, math.ceil(math.log2(x)))
+    return int(2 ** np.ceil(np.log2(x)))
 
 
 def complex_mul(x, y):
@@ -229,7 +227,7 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index
 
     :param x: input signal
     :param y: filter
-    :param out_len: required output len
+    :param out_size: required output len (size)
     :param preserve_energy_rate: compressed to this energy rate
     :param index_back: how many coefficients to remove
     :return: output signal after correlation of signals x and y
@@ -257,16 +255,18 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index
     >>> expected_result = np.correlate(x, y, mode='valid')
     >>> np.testing.assert_array_almost_equal(result, expected_result)
     """
-    index = len(x)  # it is the size of the input x (the last index of the array x, it can be decreased by compression)
     # pad the signals to the fft size
-    x = pad(x, (0, fft_size - len(x)), 'constant', 0)
-    y = pad(y, (0, fft_size - len(y)), 'constant', 0)
+    x = pad(x, (0, fft_size - len(x)), 'constant', 0.0)
+    y = pad(y, (0, fft_size - len(y)), 'constant', 0.0)
+    index = len(x)  # it is the size of the input x (the last index of the array x, it can be decreased by compression)
     # onesided=True: only the frequency coefficients to the Nyquist frequency are retained (about half the length of the
     # input signal) so the original signal can be still exactly reconstructed from the frequency samples.
     xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=True)
     yfft = torch.rfft(y, signal_ndim=signal_ndim, onesided=True)
     if preserve_energy_rate is not None or index_back is not None:
-        index = preserve_energy_index(xfft, preserve_energy_rate, index_back)
+        index_xfft = preserve_energy_index(xfft, preserve_energy_rate, index_back)
+        index_yfft = preserve_energy_index(yfft, preserve_energy_rate, index_back)
+        index = max(index_xfft, index_yfft)
         # with open(log_file, "a+") as f:
         #     f.write("index: " + str(index_back) + ";preserved energy input: " + str(
         #         compute_energy(xfft[:index]) / compute_energy(xfft[:fft_size // 2 + 1])) +
@@ -286,12 +286,12 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index
 
 
 class PyTorchConv1d(Module):
-    def __init__(self, filter_width, filter=None, bias=None, padding=None, preserve_energy_rate=None):
+    def __init__(self, filter_width=None, filter=None, bias=None, padding=None, preserve_energy_rate=None,
+                 index_back=None):
         """
         1D convolution using FFT implemented fully in PyTorch.
 
         :param filter_width: the width of the filter
-        :param filter_height: the height of the filter
         :param filter: you can provide the initial filter, i.e. filter weights of shape (F, C, WW), where
         F - number of filters, C - number of channels, WW - size of the filter
         :param bias: you can provide the initial value of the bias, of shape (F,)
@@ -304,6 +304,9 @@ class PyTorchConv1d(Module):
         """
         super(PyTorchConv1d, self).__init__()
         if filter is None:
+            if filter_width is None:
+                logger.error("The filter and filter_width cannot be both None, provide one of them!")
+                sys.exit(1)
             self.filter = Parameter(torch.randn(1, 1, filter_width))
         else:
             self.filter = filter
@@ -313,6 +316,7 @@ class PyTorchConv1d(Module):
             self.bias = bias
         self.padding = padding
         self.preserve_energy_rate = preserve_energy_rate
+        self.index_back = index_back
 
     def forward(self, input):
         """
@@ -337,24 +341,35 @@ class PyTorchConv1d(Module):
          full: https://stackoverflow.com/questions/40703751/
          using-fourier-transforms-to-do-convolution?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
 
+        >>> x = np.array([[[1., 2., 3.]]])
+        >>> y = np.array([[[2., 1.]]])
+        >>> b = np.array([0.0])
+        >>> conv_param = {'pad' : 0, 'stride' :1}
+        >>> dout = np.array([[[0.1, -0.2]]])
+        >>> # first, get the expected results from the numpy correlate function
+        >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:], mode="valid")
+        >>> conv = PyTorchConv1d(filter=torch.from_numpy(y), bias=torch.from_numpy(b))
+        >>> result = conv.forward(input=torch.from_numpy(x))
+        >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
         """
         N, C, W = input.size()
         F, C, WW = self.filter.size()
         fftsize = next_power2(W + WW - 1)
         # pad only the dimensions for the time-series (and neither data points nor the channels)
         padded_x = input
+        out_W = W - WW + 1
         if self.padding is not None:
             padded_x = pad(input, (self.padding, self.padding), 'constant', 0)
+            out_W += 2 * self.padding
 
-        out_W = W + 2 * pad - WW + 1
-        out = torch.empty([N, F, out_W])
+        out = torch.empty([N, F, out_W], dtype=input.dtype, device=input.device)
         for nn in range(N):  # For each time-series in the input batch.
-            for ff in range(F):  # For each filter in w
-                for cc in range(C):
+            for ff in range(F):  # For each filter
+                for cc in range(C):  # For each channel (depth)
                     out[nn, ff] += correlate_signals(padded_x[nn, cc], self.filter[ff, cc], fftsize,
                                                      out_size=out_W, preserve_energy_rate=self.preserve_energy_rate,
                                                      index_back=self.index_back)
-                out[nn, ff] += self.bias[ff]  # add the bias term
+                out[nn, ff] += self.bias[ff]  # add the bias term for a given filter
 
         return out
 
@@ -371,10 +386,11 @@ def test_run():
 
 
 if __name__ == "__main__":
+    test_run()
+
     import sys
     import doctest
 
-    # test_run()
     sys.exit(doctest.testmod()[0])
 
 """
