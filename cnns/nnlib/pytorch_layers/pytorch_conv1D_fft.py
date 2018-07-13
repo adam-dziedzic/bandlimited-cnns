@@ -3,6 +3,7 @@ Custom FFT based convolution that relies on the autograd (a tape-based automatic
 all differentiable Tensor operations in pytorch).
 """
 import logging
+
 import numpy as np
 import torch
 from torch import cat, mul, add, tensor
@@ -81,9 +82,12 @@ def complex_mul(x, y):
     uc = add(ud, mul(ua, -1))
     vc = add(va, vb)
     uavc = mul(ua, vc)
-    result_rel = add(uavc, mul(mul(ub, vb), -1))  # relational part of the complex number
-    result_im = add(mul(uc, va), uavc)  # imaginary part of the complex number
-    result = cat(tensors=(result_rel, result_im), dim=-1)  # use the last dimension
+    result_rel = add(uavc, mul(mul(ub, vb),
+                               -1))  # relational part of the complex number
+    result_im = add(mul(uc, va),
+                    uavc)  # imaginary part of the complex number
+    result = cat(tensors=(result_rel, result_im),
+                 dim=-1)  # use the last dimension
     return result
 
 
@@ -142,8 +146,10 @@ def get_full_energy(x):
     >>> np.testing.assert_array_almost_equal(squared, expected_squared, decimal=4)
     """
     # the signal in frequency domain is symmetric and pytorch already discards second half of the signal
-    squared = torch.add(torch.pow(x.narrow(-1, 0, 1), 2), torch.pow(x.narrow(-1, 1, 1), 2)).squeeze()
-    full_energy = torch.sum(squared).item()  # sum of squared values of the signal
+    squared = torch.add(torch.pow(x.narrow(-1, 0, 1), 2),
+                        torch.pow(x.narrow(-1, 1, 1), 2)).squeeze()
+    full_energy = torch.sum(
+        squared).item()  # sum of squared values of the signal
     return full_energy, squared
 
 
@@ -186,16 +192,20 @@ def preserve_energy_index(xfft, energy_rate=None, index_back=None):
     >>> np.testing.assert_equal(result, 1)
 
     >>> x_torch = torch.tensor([[3., 10.], [1., 1.], [0.1, 0.1]])
-    >>> x_numpy = x_torch[...,0].numpy() + 1.0j * x_torch[...,1].numpy()
+    >>> x_numpy =
+    ... x_torch[...,0].numpy() + 1.0j * x_torch[...,1].numpy()
     >>> squared_numpy = np.power(np.absolute(np.array(x_numpy)), 2)
     >>> full_energy_numpy = np.sum(squared_numpy)
-    >>> # set energy rate to preserve only the first and second coefficients
+    >>> # set energy rate to preserve only the first and second
+    >>> # coefficients
     >>> energy_rate = squared_numpy[0]/full_energy_numpy + 0.0001
-    >>> result = preserve_energy_index(x_torch, energy_rate=energy_rate)
+    >>> result = preserve_energy_index(x_torch,
+    ... energy_rate=energy_rate)
     >>> np.testing.assert_equal(result, 2)
     >>> # set energy rate to preserved only the first coefficient
     >>> energy_rate = squared_numpy[0]/full_energy_numpy - 0.0001
-    >>> result = preserve_energy_index(x_torch, energy_rate=energy_rate)
+    >>> result = preserve_energy_index(x_torch,
+    ... energy_rate=energy_rate)
     >>> np.testing.assert_equal(result, 1)
     """
     if xfft is None or len(xfft) == 0:
@@ -205,7 +215,8 @@ def preserve_energy_index(xfft, energy_rate=None, index_back=None):
         current_energy = 0.0
         preserved_energy = full_energy * energy_rate
         index = 0
-        while current_energy < preserved_energy and index < len(squared):
+        while current_energy < preserved_energy and index < len(
+                squared):
             current_energy += squared[index]
             index += 1
         return max(index, 1)
@@ -214,11 +225,15 @@ def preserve_energy_index(xfft, energy_rate=None, index_back=None):
     return len(xfft)
 
 
-def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index_back=None, signal_ndim=1):
+def correlate_signals(x, y, fft_size, out_size,
+                      preserve_energy_rate=None, index_back=None,
+                      signal_ndim=1):
     """
     Cross-correlation of the signals: x and y.
-    Theory: X(f) = fft(x(t)). The first sample X(0) of the transformed series is the DC component, more commonly known
-    as the average of the input series. For the normalized fft (both sums are multiplied by $\frac{1}{\sqrt{N}}$.
+    Theory: X(f) = fft(x(t)). The first sample X(0) of the
+    transformed series is the DC component, more commonly known
+    as the average of the input series. For the normalized fft
+    (both sums are multiplied by $\frac{1}{\sqrt{N}}$.
     $$
     \begin{align}
         X(0) = \frac{1}{\sqrt{N}} \sum_{n=0}^{n=N-1} x(n)
@@ -258,33 +273,48 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index
     # pad the signals to the fft size
     x = torch_pad(x, (0, fft_size - len(x)), 'constant', 0.0)
     y = torch_pad(y, (0, fft_size - len(y)), 'constant', 0.0)
-    # onesided=True: only the frequency coefficients to the Nyquist frequency are retained (about half the length of the
-    # input signal) so the original signal can be still exactly reconstructed from the frequency samples.
+    # onesided=True: only the frequency coefficients to the Nyquist
+    # frequency are retained (about half the length of the
+    # input signal) so the original signal can be still exactly
+    # reconstructed from the frequency samples.
     xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=True)
     yfft = torch.rfft(y, signal_ndim=signal_ndim, onesided=True)
     if preserve_energy_rate is not None or index_back is not None:
-        index_xfft = preserve_energy_index(xfft, preserve_energy_rate, index_back)
-        index_yfft = preserve_energy_index(yfft, preserve_energy_rate, index_back)
+        index_xfft = preserve_energy_index(xfft, preserve_energy_rate,
+                                           index_back)
+        index_yfft = preserve_energy_index(yfft, preserve_energy_rate,
+                                           index_back)
         index = max(index_xfft, index_yfft)
         # with open(log_file, "a+") as f:
-        #     f.write("index: " + str(index_back) + ";preserved energy input: " + str(
-        #         compute_energy(xfft[:index]) / compute_energy(xfft[:fft_size // 2 + 1])) +
+        #     f.write("index: " + str(index_back) +
+        # ";preserved energy input: " + str(
+        #         compute_energy(xfft[:index]) / compute_energy(
+        # xfft[:fft_size // 2 + 1])) +
         #             ";preserved energy filter: " + str(
-        #         compute_energy(yfft[:index]) / compute_energy(yfft[:fft_size // 2 + 1])) + "\n")
+        #         compute_energy(yfft[:index]) / compute_energy(
+        # yfft[:fft_size // 2 + 1])) + "\n")
 
-        # complex numbers are represented as the pair of numbers in the last dimension so we have to narrow the length
+        # complex numbers are represented as the pair of numbers in
+        # the last dimension so we have to narrow the length
         # of the last but one dimension
         xfft = xfft.narrow(dim=-2, start=0, length=index)
         yfft = yfft.narrow(dim=-2, start=0, length=index)
         # print("the signal size after compression: ", index)
 
-        # we need to pad complex numbers expressed as a pair of real numbers in the last dimension
-        # xfft = torch_pad(input=xfft, pad=(0, fft_size - index), mode='constant', value=0)
-        # yfft = torch_pad(input=yfft, pad=(0, fft_size - index), mode='constant', value=0)
-        complex_pad = torch.zeros((fft_size // 2 + 1) - index, 2, dtype=xfft.dtype, device=xfft.device)
+        # we need to pad complex numbers expressed as a pair of real
+        # numbers in the last dimension
+        # xfft = torch_pad(input=xfft, pad=(0, fft_size - index),
+        # mode='constant', value=0)
+        # yfft = torch_pad(input=yfft, pad=(0, fft_size - index),
+        # mode='constant', value=0)
+        complex_pad = torch.zeros((fft_size // 2 + 1) - index, 2,
+                                  dtype=xfft.dtype,
+                                  device=xfft.device)
         xfft = torch.cat((xfft, complex_pad), dim=0)
         yfft = torch.cat((yfft, complex_pad), dim=0)
-    out = torch.irfft(input=complex_mul(xfft, pytorch_conjugate(yfft)), signal_ndim=signal_ndim, signal_sizes=(len(x),))
+    out = torch.irfft(
+        input=complex_mul(xfft, pytorch_conjugate(yfft)),
+        signal_ndim=signal_ndim, signal_sizes=(len(x),))
 
     # plot_signal(out, "out after ifft")
     out = out[:out_size]
@@ -292,31 +322,131 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index
     return out
 
 
+class MyReLU(torch.autograd.Function):
+    """
+    We can implement our own custom autograd Functions by subclassing
+    torch.autograd.Function and implementing the forward and backward
+    passes which operate on Tensors.
+    """
+
+    @staticmethod
+    def forward(ctx, input):
+        """
+        In the forward pass we receive a Tensor containing the input
+        and return a Tensor containing the output. ctx is a context
+        object that can be used to stash information for backward
+        computation. You can cache arbitrary objects for use in the
+        backward pass using the ctx.save_for_backward method.
+        """
+        ctx.save_for_backward(input)
+        return input.clamp(min=0)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        """
+        In the backward pass we receive a Tensor containing the
+        gradient of the loss with respect to the output, and we need
+        to compute the gradient of the loss with respect to the input.
+        """
+        input, = ctx.saved_tensors
+        grad_input = grad_output.clone()
+        grad_input[input < 0] = 0
+        return grad_input
+
+
+class PyTorchConv1dFunction(torch.autograd.Function):
+    """
+    Implement the 1D convolution via FFT with compression of the
+    input map and the filter.
+    """
+
+    @staticmethod
+    def forward(ctx, input, filter=None, bias=None, padding=None,
+                preserve_energy_rate=None, index_back=None,
+                out_size=None, filter_width=None):
+        N, C, W = input.size()
+        F, C, WW = filter.size()
+        fftsize = next_power2(W + WW - 1)
+        # pad only the dimensions for the time-series
+        # (and neither data points nor the channels)
+        padded_x = input
+        out_W = W - WW + 1
+        if padding is not None:
+            padded_x = torch_pad(input, (padding, padding),
+                                 'constant', 0)
+            out_W += 2 * padding
+
+        if out_size is not None:
+            out_W = out_size
+            if index_back is not None:
+                logger.error(
+                    "index_back cannot be set when out_size is used")
+                sys.exit(1)
+            index_back = len(input) - out_W
+
+        out = torch.empty([N, F, out_W], dtype=input.dtype,
+                          device=input.device)
+        for nn in range(
+                N):  # For each time-series in the input batch.
+            for ff in range(F):  # For each filter
+                for cc in range(C):  # For each channel (depth)
+                    out[nn, ff] += \
+                        correlate_signals(padded_x[nn, cc],
+                                         filter[ff, cc],
+                                         fftsize,
+                                         out_size=out_W,
+                                         preserve_energy_rate=
+                                          preserve_energy_rate,
+                                         index_back=index_back)
+                    out[nn, ff] += bias[
+                    ff]  # add the bias term for a given filter
+
+        return out
+
+    @staticmethod
+    def backward(ctx, output_grad):
+        pass
+
+
 class PyTorchConv1d(Module):
-    def __init__(self, filter_width=None, filter=None, bias=None, padding=None, preserve_energy_rate=None,
-                 index_back=None, out_size=None):
+    def __init__(self, filter=None, bias=None, padding=None,
+                 preserve_energy_rate=None, index_back=None,
+                 out_size=None, filter_width=None):
         """
         1D convolution using FFT implemented fully in PyTorch.
 
         :param filter_width: the width of the filter
-        :param filter: you can provide the initial filter, i.e. filter weights of shape (F, C, WW), where
-        F - number of filters, C - number of channels, WW - size of the filter
-        :param bias: you can provide the initial value of the bias, of shape (F,)
-        :param padding: the padding added to the front and back of the input signal
-        :param preserve_energy_rate: the energy of the input to the convolution (both, the input map and filter) that
-        have to be preserved (the final length is the length of the longer signal that preserves the set energy rate).
-        :param index_back: how many frequency coefficients should be discarded
-        :param out_size: what is the expected output size of the operation (when compression is used and the out_size is
-        smaller than the size of the input to the convolution, then the max pooling can be omitted and the compression
-        in this layer can serve as the frequency-based (spectral) pooling.
+        :param filter: you can provide the initial filter, i.e.
+        filter weights of shape (F, C, WW), where
+        F - number of filters, C - number of channels, WW - size of
+        the filter
+        :param bias: you can provide the initial value of the bias,
+        of shape (F,)
+        :param padding: the padding added to the front and back of
+        the input signal
+        :param preserve_energy_rate: the energy of the input to the
+        convolution (both, the input map and filter) that
+        have to be preserved (the final length is the length of the
+        longer signal that preserves the set energy rate).
+        :param index_back: how many frequency coefficients should be
+        discarded
+        :param out_size: what is the expected output size of the
+        operation (when compression is used and the out_size is
+        smaller than the size of the input to the convolution, then
+        the max pooling can be omitted and the compression
+        in this layer can serve as the frequency-based (spectral)
+        pooling.
 
-        Regarding, the stride parameter: the number of pixels between adjacent receptive fields in the horizontal and
-        vertical directions, it is 1 for the FFT based convolution.
+        Regarding, the stride parameter: the number of pixels between
+        adjacent receptive fields in the horizontal and vertical
+        directions, it is 1 for the FFT based convolution.
         """
         super(PyTorchConv1d, self).__init__()
         if filter is None:
             if filter_width is None:
-                logger.error("The filter and filter_width cannot be both None, provide one of them!")
+                logger.error(
+                    "The filter and filter_width cannot be both "
+                    "None, provide one of them!")
                 sys.exit(1)
             self.filter = Parameter(torch.randn(1, 1, filter_width))
         else:
@@ -329,39 +459,53 @@ class PyTorchConv1d(Module):
         self.preserve_energy_rate = preserve_energy_rate
         self.index_back = index_back
         self.out_size = out_size
+        self.filter_width = filter_width
 
     def forward(self, input):
         """
         Forward pass of 1D convolution.
 
-        The input consists of N data points with each data point representing a signal (e.g., time-series) of length W.
+        The input consists of N data points with each data point
+        representing a signal (e.g., time-series) of length W.
 
-        We also have the notion of channels in the 1-D convolution. We want to use more than a single filter even for
-        the input signal, so the output is a batch with the same size but the number of output channels is equal to the
+        We also have the notion of channels in the 1-D convolution.
+        We want to use more than a single filter even for
+        the input signal, so the output is a batch with the same size
+        but the number of output channels is equal to the
         number of input filters.
 
-        :param x: Input data of shape (N, C, W), N - number of data points in the batch, C - number of channels, W - the
-        width of the signal or time-series (number of data points in a univariate series)
+        :param x: Input data of shape (N, C, W), N - number of data
+        points in the batch, C - number of channels, W - the
+        width of the signal or time-series (number of data points in
+        a univariate series)
         :param w:
         :param b: biases
         :param conv_param: A dictionary with the following keys:
-          - 'stride': The number of pixels between adjacent receptive fields in the horizontal and vertical directions.
-          - 'pad': The number of pixels that will be used to zero-pad the input.
-        :return: output data, of shape (N, F, W') where W' is given by: W' = 1 + (W + 2*pad - WW)
+          - 'stride': The number of pixels between adjacent receptive
+          fields in the horizontal and vertical directions.
+          - 'pad': The number of pixels that will be used to zero-pad
+          the input.
+        :return: output data, of shape (N, F, W') where W' is given
+        by: W' = 1 + (W + 2*pad - WW)
 
          :see:  source short: https://goo.gl/GwyhXz
          full: https://stackoverflow.com/questions/40703751/
-         using-fourier-transforms-to-do-convolution?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+         using-fourier-transforms-to-do-convolution?utm_medium=
+         organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
 
         >>> # test with compression
         >>> x = np.array([[[1., 2., 3.]]])
         >>> y = np.array([[[2., 1.]]])
         >>> b = np.array([0.0])
-        >>> conv_param = {'pad' : 0, 'stride' :1, 'preserve_energy_rate' :0.9}
+        >>> conv_param = {'pad' : 0, 'stride' :1,
+        ... 'preserve_energy_rate' :0.9}
         >>> expected_result = [3.5, 7.5]
-        >>> conv = PyTorchConv1d(filter=torch.from_numpy(y), bias=torch.from_numpy(b), preserve_energy_rate=conv_param['preserve_energy_rate'])
+        >>> conv = PyTorchConv1d(filter=torch.from_numpy(y),
+        ... bias=torch.from_numpy(b),
+        ... preserve_energy_rate=conv_param['preserve_energy_rate'])
         >>> result = conv.forward(input=torch.from_numpy(x))
-        >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
+        >>> np.testing.assert_array_almost_equal(result,
+        ... np.array([[expected_result]]))
 
         >>> # test without compression
         >>> x = np.array([[[1., 2., 3.]]])
@@ -369,39 +513,22 @@ class PyTorchConv1d(Module):
         >>> b = np.array([0.0])
         >>> conv_param = {'pad' : 0, 'stride' :1}
         >>> dout = np.array([[[0.1, -0.2]]])
-        >>> # first, get the expected results from the numpy correlate function
-        >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:], mode="valid")
-        >>> conv = PyTorchConv1d(filter=torch.from_numpy(y), bias=torch.from_numpy(b))
+        >>> # first, get the expected results from the numpy
+        >>> # correlate function
+        >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:],
+        ... mode="valid")
+        >>> conv = PyTorchConv1d(filter=torch.from_numpy(y),
+        ... bias=torch.from_numpy(b))
         >>> result = conv.forward(input=torch.from_numpy(x))
-        >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
+        >>> np.testing.assert_array_almost_equal(result,
+        ... np.array([[expected_result]]))
         """
-        N, C, W = input.size()
-        F, C, WW = self.filter.size()
-        fftsize = next_power2(W + WW - 1)
-        # pad only the dimensions for the time-series (and neither data points nor the channels)
-        padded_x = input
-        out_W = W - WW + 1
-        if self.padding is not None:
-            padded_x = pad(input, (self.padding, self.padding), 'constant', 0)
-            out_W += 2 * self.padding
-
-        if self.out_size is not None:
-            out_W = self.out_size
-            if self.index_back is not None:
-                logger.error("index_back cannot be set when out_size is used")
-                sys.exit(1)
-            self.index_back = len(input) - out_W
-
-        out = torch.empty([N, F, out_W], dtype=input.dtype, device=input.device)
-        for nn in range(N):  # For each time-series in the input batch.
-            for ff in range(F):  # For each filter
-                for cc in range(C):  # For each channel (depth)
-                    out[nn, ff] += correlate_signals(padded_x[nn, cc], self.filter[ff, cc], fftsize,
-                                                     out_size=out_W, preserve_energy_rate=self.preserve_energy_rate,
-                                                     index_back=self.index_back)
-                out[nn, ff] += self.bias[ff]  # add the bias term for a given filter
-
-        return out
+        return PyTorchConv1dFunction.apply(input, self.filter,
+                                           self.bias, self.padding,
+                                           self.preserve_energy_rate,
+                                           self.index_back,
+                                           self.out_size,
+                                           self.filter_width)
 
 
 def test_run():
@@ -422,26 +549,3 @@ if __name__ == "__main__":
     import doctest
 
     sys.exit(doctest.testmod()[0])
-
-"""
-expected gradient for the input:  tensor([[[[-0.2478, -0.7275, -1.0670,  1.3629,  1.7458, -0.5786, -0.2722,
-          0.5767,  0.7379, -0.6335],
-        [-1.7113,  0.1839,  1.0434, -3.5176, -1.7056,  1.0892,  2.0054,
-          2.3190, -1.6143, -1.3427],
-        [-2.4303, -0.1218,  1.9863, -1.6753, -0.3529, -2.4454,  0.4331,
-          1.8996,  1.5348, -0.3813],
-        [-1.7727, -1.4130,  2.8780, -0.1220, -1.1942,  0.9997, -2.8926,
-         -1.4083,  1.1635,  0.9641],
-        [ 0.2487,  0.0023,  0.3793, -0.4038,  1.3017,  0.1421, -0.9947,
-          0.5084,  0.1511, -2.1860],
-        [-0.1263,  1.7602,  3.3994,  0.7883,  0.6831, -0.7291, -0.3211,
-          1.8856,  0.3729, -1.2780],
-        [-2.1050,  1.8296,  2.4018,  0.5756,  1.3364, -2.9692, -0.4314,
-          3.3727,  3.1612, -1.0387],
-        [-0.5624, -1.0603,  0.8454,  0.2767,  0.3005,  0.3977, -1.1085,
-         -2.7611, -0.4906, -0.1018],
-        [ 0.4603, -0.7684,  1.0566, -0.8825,  0.8468,  1.0482,  1.2088,
-          0.2836,  0.0993, -0.0322],
-        [ 0.0131,  0.4351, -0.3529,  0.2088, -0.3471,  0.3255,  1.6812,
-          0.1925, -0.6875,  0.1037]]]])
-"""

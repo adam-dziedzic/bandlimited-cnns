@@ -4,7 +4,9 @@ from builtins import range
 import pyfftw
 from pyfftw.interfaces.numpy_fft import fft, ifft, rfft, irfft
 
-from nnlib.utils.general_utils import *
+from cnns.nnlib.utils.general_utils import *
+
+import numpy as np
 
 
 def affine_forward(x, w, b):
@@ -1076,7 +1078,7 @@ def conv_forward_fft_1D(x, w, b, conv_param):
                                                  index_back=index_back)
             out[nn, ff] += b[ff]  # add the bias term
 
-    cache = (x, w, b, conv_param)
+    cache = (x, w, b, conv_param, fftsize)
     return out, cache
 
 
@@ -1115,7 +1117,7 @@ def conv_backward_fft_1D(dout, cache):
     >>> np.testing.assert_array_almost_equal(dw, expected_dw)
     >>> np.testing.assert_array_almost_equal(db, expected_db)
     """
-    x, w, b, conv_param = cache
+    x, w, b, conv_param, fftsize = cache
     preserve_energy_rate = conv_param.get('preserve_energy_rate', None)
     index_back = conv_param.get('index_back', None)
     pad = conv_param.get('pad')
@@ -1127,7 +1129,7 @@ def conv_backward_fft_1D(dout, cache):
     F, C, WW = w.shape
     N, F, W_out = dout.shape
 
-    padded_x = np.pad(x, ((0, 0), (0, 0), (pad, pad)), mode='constant')
+    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
 
     # W = padded_out_W - WW + 1; padded_out_W = W + WW - 1; pad_out = W + WW - 1 // 2
     pad_out = (W + WW - 1 - W_out) // 2

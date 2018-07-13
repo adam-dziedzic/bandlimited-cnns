@@ -1,9 +1,10 @@
-import torch
 import unittest
+
+import torch
 from torch.autograd.gradcheck import gradcheck
 from torch.nn.parameter import Parameter
 
-from nnlib.pytorch_layers.pytorch_conv2D_scipy_simple import ScipyConv2d
+from cnns.nnlib.pytorch_layers.pytorch_conv2D_scipy_simple import ScipyConv2d
 
 
 class TestScipyConv2d(unittest.TestCase):
@@ -23,11 +24,13 @@ class TestScipyConv2d(unittest.TestCase):
         """
         Check the output of convolution and the computed gradient.
         """
-        module = ScipyConv2d(3, 3, filter=Parameter(torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])),
+        module = ScipyConv2d(3, 3, filter=Parameter(
+            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])),
                              bias=Parameter(torch.tensor([0])))
         print("filter and bias parameters: ", list(module.parameters()))
         # input = torch.arange(end=16, dtype=torch.int32, requires_grad=True).view(4, 4)
-        input = torch.tensor([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]], requires_grad=True)
+        input = torch.tensor([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12],
+                              [13, 14, 15, 16]], requires_grad=True)
         output = module(input)
         print("forward output: ", output)
         expected_output = torch.tensor([[348, 393],
