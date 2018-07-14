@@ -73,10 +73,10 @@ class PyTorchConv1dFunction(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, output_grad):
-        pass
+        raise NotImplementedError
 
 
-class PyTorchConv1d(Module):
+class PyTorchConv1dAutograd(Module):
     def __init__(self, filter=None, bias=None, padding=None,
                  preserve_energy_rate=None, index_back=None,
                  out_size=None, filter_width=None):
@@ -109,7 +109,7 @@ class PyTorchConv1d(Module):
         adjacent receptive fields in the horizontal and vertical
         directions, it is 1 for the FFT based convolution.
         """
-        super(PyTorchConv1d, self).__init__()
+        super(PyTorchConv1dAutograd, self).__init__()
         if filter is None:
             if filter_width is None:
                 logger.error(
@@ -191,6 +191,32 @@ class PyTorchConv1d(Module):
         >>> result = conv.forward(input=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(result,
         ... np.array([[expected_result]]))
+        """
+        return PyTorchConv1dFunction.forward(
+            ctx=None, input=input, filter=self.filter, bias=self.bias,
+            padding=self.padding,
+            preserve_energy_rate=self.preserve_energy_rate,
+            index_back=self.index_back, out_size=self.out_size,
+            filter_width=self.filter_width)
+
+
+class PyTorchConv1d(PyTorchConv1dAutograd):
+    def __init__(self, filter=None, bias=None, padding=None,
+                 preserve_energy_rate=None, index_back=None,
+                 out_size=None, filter_width=None):
+        super(PyTorchConv1d, self).__init__(
+            self, filter=filter, bias=bias, padding=padding,
+            preserve_energy_rate=preserve_energy_rate,
+            index_back=index_back, out_size=out_size,
+            filter_width=filter_width)
+
+    def forward(self, input):
+        """
+        This is the manual implementation of the forward and
+        backward passes via the Function.
+
+        :param input: the input map (image)
+        :return: the result of 1D convolution
         """
         return PyTorchConv1dFunction.apply(input, self.filter,
                                            self.bias, self.padding,
