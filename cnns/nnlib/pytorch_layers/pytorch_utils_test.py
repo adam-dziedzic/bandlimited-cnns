@@ -1,6 +1,6 @@
 import torch
 import unittest
-from nnlib.pytorch_layers.pytorch_utils import flip
+from cnns.nnlib.pytorch_layers.pytorch_utils import flip
 
 
 class TestPytorchUtils(unittest.TestCase):
