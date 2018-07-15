@@ -4,9 +4,9 @@ Custom FFT based convolution that can rely on the autograd
 all differentiable Tensor operations in pytorch).
 """
 import logging
-
 import numpy as np
 import torch
+from torch import tensor
 from torch.nn import Module
 from torch.nn.functional import pad as torch_pad
 from torch.nn.parameter import Parameter
@@ -29,9 +29,18 @@ class PyTorchConv1dFunction(torch.autograd.Function):
     """
 
     @staticmethod
-    def forward(ctx, input, filter=None, bias=None, padding=None,
+    def forward(ctx, input, filter, bias, padding=None,
                 preserve_energy_rate=None, index_back=None,
-                out_size=None, filter_width=None):
+                out_size=None):
+        """
+        Compute the forward pass for the 1D convolution.
+
+        :param ctx: context to save intermediate results
+        :param input: the input map to the convolution
+        The other parameters are the same as in the
+        PyTorchConv1dAutograd class.
+        :return: the result of convolution
+        """
         N, C, W = input.size()
         F, C, WW = filter.size()
         fftsize = next_power2(W + WW - 1)
@@ -54,26 +63,103 @@ class PyTorchConv1dFunction(torch.autograd.Function):
 
         out = torch.empty([N, F, out_W], dtype=input.dtype,
                           device=input.device)
-        for nn in range(
-                N):  # For each time-series in the input batch.
+        for nn in range(N):  # For each time-series in the batch
             for ff in range(F):  # For each filter
                 for cc in range(C):  # For each channel (depth)
                     out[nn, ff] += \
-                        correlate_signals(padded_x[nn, cc],
-                                          filter[ff, cc],
-                                          fftsize,
-                                          out_size=out_W,
-                                          preserve_energy_rate=
-                                          preserve_energy_rate,
-                                          index_back=index_back)
+                        correlate_signals(
+                            padded_x[nn, cc], filter[ff, cc],
+                            fftsize, out_size=out_W,
+                            preserve_energy_rate=preserve_energy_rate,
+                            index_back=index_back)
                     # add the bias term for a given filter
                     out[nn, ff] += bias[ff]
-
+        if ctx:
+            ctx.save_for_backward(input, filter, bias,
+                                  tensor([padding]),
+                                  tensor(preserve_energy_rate),
+                                  tensor(index_back),
+                                  tensor(out_size), tensor(fftsize))
         return out
 
     @staticmethod
-    def backward(ctx, output_grad):
-        raise NotImplementedError
+    def backward(ctx, dout):
+        """
+        Compute the gradient using FFT.
+
+        :param ctx: context with saved variables
+        :param dout: output gradient
+        :return: gradients for input map x, filter w and bias b
+        """
+        x, w, b, conv_param, fftsize = ctx.save_tensors
+        preserve_energy_rate = conv_param.get('preserve_energy_rate',
+                                              None)
+        index_back = conv_param.get('index_back', None)
+        pad = conv_param.get('pad')
+        stride = conv_param.get('stride')
+        if stride != 1:
+            raise ValueError("fft requires stride = 1, but given: ",
+                             stride)
+
+        N, C, W = x.shape
+        F, C, WW = w.shape
+        N, F, W_out = dout.shape
+
+        padded_x = (
+            np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
+
+        # W = padded_out_W - WW + 1; padded_out_W = W + WW - 1; pad_out = W + WW - 1 // 2
+        pad_out = (W + WW - 1 - W_out) // 2
+        # print("pad_out: ", pad_out)
+        if pad_out < 0:
+            padded_dout = dout[:, :, abs(pad_out):pad_out]
+        else:
+            padded_dout = np.pad(dout,
+                                 ((0, 0), (0, 0), (pad_out, pad_out)),
+                                 mode='constant')
+
+        # Initialize gradient output tensors.
+        # the x used for convolution was with padding
+        dx = np.zeros_like(x)
+        dw = np.zeros_like(w)
+        db = np.zeros_like(b)
+
+        # Calculate dB (the gradient for the bias term).
+        # We sum up all the incoming gradients for each filters bias
+        # (as in the affine layer).
+        for ff in range(F):
+            db[ff] += np.sum(dout[:, ff, :])
+
+        # print("padded x: ", padded_x)
+        # print("dout: ", dout)
+        # Calculate dw - the gradient for the filters w.
+        # By chain rule dw is computed as: dout*x
+        fftsize = next_power2(W + W_out - 1)
+        for nn in range(N):
+            for ff in range(F):
+                for cc in range(C):
+                    # accumulate gradient for a filter from each channel
+                    # dw[ff, cc] += convolve1D_fft(padded_x[nn, cc], np.flip(dout[nn, ff], axis=0), fftsize, WW,
+                    #                              preserve_energy_rate=preserve_energy_rate)
+                    dw[ff, cc] += correlate_signals(padded_x[nn, cc],
+                                                    dout[nn, ff],
+                                                    fftsize, WW,
+                                                    preserve_energy_rate=preserve_energy_rate,
+                                                    index_back=index_back)
+                    # print("dw fft: ", dw[ff, cc])
+
+        # Calculate dx - the gradient for the input x.
+        # By chain rule dx is dout*w. We need to make dx same shape as padded x for the gradient calculation.
+        fftsize = next_power2(padded_dout.shape[-1] + WW - 1)
+        for nn in range(N):
+            for ff in range(F):
+                for cc in range(C):
+                    dx[nn, cc] += correlate_signals(
+                        padded_dout[nn, ff],
+                        np.flip(w[ff, cc], axis=0), fftsize, W,
+                        preserve_energy_rate=preserve_energy_rate,
+                        index_back=index_back)
+        return dx, dw, db
 
 
 class PyTorchConv1dAutograd(Module):
@@ -142,6 +228,9 @@ class PyTorchConv1dAutograd(Module):
         but the number of output channels is equal to the
         number of input filters.
 
+        We want to use the auto-grad (auto-differentiation so call the
+        forward method directly).
+
         :param x: Input data of shape (N, C, W), N - number of data
         points in the batch, C - number of channels, W - the
         width of the signal or time-series (number of data points in
@@ -169,7 +258,7 @@ class PyTorchConv1dAutograd(Module):
         >>> conv_param = {'pad' : 0, 'stride' :1,
         ... 'preserve_energy_rate' :0.9}
         >>> expected_result = [3.5, 7.5]
-        >>> conv = PyTorchConv1d(filter=torch.from_numpy(y),
+        >>> conv = PyTorchConv1dAutograd(filter=torch.from_numpy(y),
         ... bias=torch.from_numpy(b),
         ... preserve_energy_rate=conv_param['preserve_energy_rate'])
         >>> result = conv.forward(input=torch.from_numpy(x))
@@ -186,7 +275,7 @@ class PyTorchConv1dAutograd(Module):
         >>> # correlate function
         >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:],
         ... mode="valid")
-        >>> conv = PyTorchConv1d(filter=torch.from_numpy(y),
+        >>> conv = PyTorchConv1dAutograd(filter=torch.from_numpy(y),
         ... bias=torch.from_numpy(b))
         >>> result = conv.forward(input=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(result,
@@ -196,8 +285,7 @@ class PyTorchConv1dAutograd(Module):
             ctx=None, input=input, filter=self.filter, bias=self.bias,
             padding=self.padding,
             preserve_energy_rate=self.preserve_energy_rate,
-            index_back=self.index_back, out_size=self.out_size,
-            filter_width=self.filter_width)
+            index_back=self.index_back, out_size=self.out_size)
 
 
 class PyTorchConv1d(PyTorchConv1dAutograd):
@@ -222,8 +310,7 @@ class PyTorchConv1d(PyTorchConv1dAutograd):
                                            self.bias, self.padding,
                                            self.preserve_energy_rate,
                                            self.index_back,
-                                           self.out_size,
-                                           self.filter_width)
+                                           self.out_size)
 
 
 def test_run():

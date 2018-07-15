@@ -4,10 +4,10 @@ Pytorch utils.
 The latest version of Pytorch (in the main branch 2018.06.30)
 supports tensor flipping.
 """
-import torch
-from torch import cat, mul, add, tensor
-from torch.nn.functional import pad as torch_pad
 import numpy as np
+import torch
+from torch import tensor
+from torch.nn.functional import pad as torch_pad
 
 
 def flip(x, dim):
@@ -22,7 +22,6 @@ def flip(x, dim):
     indices[dim] = torch.arange(x.size(dim) - 1, -1, -1,
                                 dtype=torch.long, device=x.device)
     return x[tuple(indices)]
-
 
 
 def next_power2(x):
@@ -91,6 +90,10 @@ def complex_mul(x, y):
     >>> np.testing.assert_array_equal(xy,
     ... tensor([[[-4., 7.], [1., 7.]], [[108.,   0.], [ -8.,  16.]]]))
     """
+    mul = torch.mul
+    add = torch.add
+    cat = torch.cat
+
     ua = x.narrow(-1, 0, 1)
     ud = x.narrow(-1, 1, 1)
     va = y.narrow(-1, 0, 1)
@@ -134,10 +137,12 @@ def pytorch_conjugate(x):
 
 def get_full_energy(x):
     """
-    Return the full energy of the signal. The energy E(xfft) of a sequence xfft is defined as the sum of energies
+    Return the full energy of the signal. The energy E(xfft) of a
+    sequence xfft is defined as the sum of energies
     (squares of the amplitude |x|) at every point of the sequence.
 
-    see: http://www.cs.cmu.edu/~christos/PUBLICATIONS.OLDER/sigmod94.pdf (equation 7)
+    see: http://www.cs.cmu.edu/~christos/PUBLICATIONS.OLDER/
+    sigmod94.pdf (equation 7)
 
     :param x: an array of complex numbers
     :return: the full energy of signal x
@@ -165,7 +170,8 @@ def get_full_energy(x):
     >>> np.testing.assert_almost_equal(full_energy, expected_full_energy, decimal=4)
     >>> np.testing.assert_array_almost_equal(squared, expected_squared, decimal=4)
     """
-    # the signal in frequency domain is symmetric and pytorch already discards second half of the signal
+    # the signal in frequency domain is symmetric and pytorch already
+    # discards second half of the signal
     squared = torch.add(torch.pow(x.narrow(-1, 0, 1), 2),
                         torch.pow(x.narrow(-1, 1, 1), 2)).squeeze()
     full_energy = torch.sum(
