@@ -104,6 +104,8 @@ ENV/
 .idea/
 cnns/cs231n/.idea/
 
+cnns/pytorch_tutorials/graphs/
+
 *.txt
 *.csv
 *.png
