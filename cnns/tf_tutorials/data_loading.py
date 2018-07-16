@@ -1,10 +1,12 @@
-import iris_data
-import tensorflow as tf
-import argparse
 import sys
 
+import argparse
+import iris_data
+import tensorflow as tf
+
 parser = argparse.ArgumentParser()
-parser.add_argument("--batch_size", default=100, type=int, help="batch size")
+parser.add_argument("--batch_size", default=100, type=int,
+                    help="batch size")
 
 args = parser.parse_args(sys.argv[1:])
 print("given or default batch size: ", args.batch_size)
@@ -16,11 +18,13 @@ print("type of mnist_x: ", type(mnist_x))
 print("shape of mnist_x: ", mnist_x.shape)
 
 mnist_ds = tf.data.Dataset.from_tensor_slices(mnist_x)
-print(mnist_ds)
+print("mnist_ds: ", mnist_ds)
+print("type of mnist_ds: ", type(mnist_ds))
 
 # add batching to the dataset
-# the dataset has an unknown batch size because the last batch will have fewer elements
-print(mnist_ds.batch(100))
+# the dataset has an unknown batch size because the last batch will
+# have fewer elements
+print(mnist_ds.batch(args.batch_size))
 
 ## handle CSV data
 
@@ -47,6 +51,7 @@ def _parse_line(line):
     label = features.pop('label')
 
     return features, label
+
 
 # with tf.Session() as sess:
 #     for line in ds:
@@ -98,7 +103,31 @@ for pred_dict, expec in zip(predictions, expected):
 
 print("Evaluate the model.")
 (train_x, train_y), (test_x, test_y) = iris_data.load_data()
-eval_result = est.evaluate(input_fn=lambda: iris_data.eval_input_fn(test_x, test_y, args.batch_size))
+eval_result = est.evaluate(
+    input_fn=lambda: iris_data.eval_input_fn(test_x, test_y,
+                                             args.batch_size))
 # eval_result = est.evaluate(input_fn=lambda: iris_data.csv_input_fn(test_path, args.batch_size))
 
 print('\nTest set accuracy: {accuracy:0.3f}\n'.format(**eval_result))
+
+print("Load the cifar-10 dataset")
+(x_train, y_train), (
+    x_test, y_test) = tf.keras.datasets.cifar10.load_data()
+
+print("len of x_train cifar-10: ", len(x_train))
+print("type of x_train cifar-10: ", type(x_train))
+print("shape of x_train cifar-10: ", x_train.shape)
+
+# cifar data set
+cifar_ds = tf.data.Dataset.from_tensor_slices(x_train)
+print("cifar_ds: ", cifar_ds)
+print("type of cifar_ds: ", type(cifar_ds))
+
+# add batching to the dataset
+# the dataset has an unknown batch size because the last batch will
+# have fewer elements
+print("cifar output shapes before batching: ", cifar_ds.output_shapes)
+print("cifar-10 add batching: ", cifar_ds.batch(args.batch_size))
+
+print("cifar output types: ", cifar_ds.output_types)
+print("cifar output shapes: ", cifar_ds.output_shapes)

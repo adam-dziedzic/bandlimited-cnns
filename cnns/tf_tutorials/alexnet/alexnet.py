@@ -1,10 +1,13 @@
-"""This is an TensorFLow implementation of AlexNet by Alex Krizhevsky at all.
+"""This is an TensorFLow implementation of AlexNet by Alex Krizhevsky
+at all.
 
 Paper:
-(http://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf)
+(http://papers.nips.cc/paper/4824-imagenet-classification-with-deep-
+convolutional-neural-networks.pdf)
 
 Explanation can be found in the blog post:
-https://kratzert.github.io/2017/02/24/finetuning-alexnet-with-tensorflow.html
+https://kratzert.github.io/2017/02/24/finetuning-alexnet-with-
+tensorflow.html
 
 This script enables finetuning AlexNet on any given Dataset with any number of
 classes. The structure of this script is strongly inspired by the fast.ai
@@ -14,15 +17,15 @@ Link:
 - https://github.com/fastai/courses/blob/master/deeplearning1/nbs/vgg16.py
 
 
-The pretrained weights can be downloaded here and should be placed in the same
-folder as this file:
+The pretrained weights can be downloaded here and should be placed in
+the same folder as this file:
 - http://www.cs.toronto.edu/~guerzhoy/tf_alexnet/
 
 @author: Frederik Kratzert (contact: f.kratzert(at)gmail.com)
 """
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
 
 class AlexNet(object):
@@ -52,21 +55,25 @@ class AlexNet(object):
         else:
             self.WEIGHTS_PATH = weights_path
 
-        # Call the create function to build the computational graph of AlexNet
+        # Call the create function to build the computational graph of
+        # AlexNet
         self.create()
 
     def create(self):
         """Create the network graph."""
         # 1st Layer: Conv (w ReLu) -> Lrn -> Pool
-        conv1 = conv(self.X, 11, 11, 96, 4, 4, padding='VALID', name='conv1')
+        conv1 = conv(self.X, 11, 11, 96, 4, 4, padding='VALID',
+                     name='conv1')
         norm1 = lrn(conv1, 2, 1e-04, 0.75, name='norm1')
-        pool1 = max_pool(norm1, 3, 3, 2, 2, padding='VALID', name='pool1')
-        
+        pool1 = max_pool(norm1, 3, 3, 2, 2, padding='VALID',
+                         name='pool1')
+
         # 2nd Layer: Conv (w ReLu)  -> Lrn -> Pool with 2 groups
         conv2 = conv(pool1, 5, 5, 256, 1, 1, groups=2, name='conv2')
         norm2 = lrn(conv2, 2, 1e-04, 0.75, name='norm2')
-        pool2 = max_pool(norm2, 3, 3, 2, 2, padding='VALID', name='pool2')
-        
+        pool2 = max_pool(norm2, 3, 3, 2, 2, padding='VALID',
+                         name='pool2')
+
         # 3rd Layer: Conv (w ReLu)
         conv3 = conv(pool2, 3, 3, 384, 1, 1, name='conv3')
 
@@ -75,11 +82,12 @@ class AlexNet(object):
 
         # 5th Layer: Conv (w ReLu) -> Pool splitted into two groups
         conv5 = conv(conv4, 3, 3, 256, 1, 1, groups=2, name='conv5')
-        pool5 = max_pool(conv5, 3, 3, 2, 2, padding='VALID', name='pool5')
+        pool5 = max_pool(conv5, 3, 3, 2, 2, padding='VALID',
+                         name='pool5')
 
         # 6th Layer: Flatten -> FC (w ReLu) -> Dropout
-        flattened = tf.reshape(pool5, [-1, 6*6*256])
-        fc6 = fc(flattened, 6*6*256, 4096, name='fc6')
+        flattened = tf.reshape(pool5, [-1, 6 * 6 * 256])
+        fc6 = fc(flattened, 6 * 6 * 256, 4096, name='fc6')
         dropout6 = dropout(fc6, self.KEEP_PROB)
 
         # 7th Layer: FC (w ReLu) -> Dropout
@@ -87,7 +95,8 @@ class AlexNet(object):
         dropout7 = dropout(fc7, self.KEEP_PROB)
 
         # 8th Layer: FC and return unscaled activations
-        self.fc8 = fc(dropout7, 4096, self.NUM_CLASSES, relu=False, name='fc8')
+        self.fc8 = fc(dropout7, 4096, self.NUM_CLASSES, relu=False,
+                      name='fc8')
 
     def load_initial_weights(self, session):
         """Load weights from file into network.
@@ -98,7 +107,8 @@ class AlexNet(object):
         'biases') we need a special load function
         """
         # Load the weights into memory
-        weights_dict = np.load(self.WEIGHTS_PATH, encoding='bytes').item()
+        weights_dict = np.load(self.WEIGHTS_PATH,
+                               encoding='bytes').item()
 
         # Loop over all layer names stored in the weights dict
         for op_name in weights_dict:
@@ -113,16 +123,19 @@ class AlexNet(object):
 
                         # Biases
                         if len(data.shape) == 1:
-                            var = tf.get_variable('biases', trainable=False)
+                            var = tf.get_variable('biases',
+                                                  trainable=False)
                             session.run(var.assign(data))
 
                         # Weights
                         else:
-                            var = tf.get_variable('weights', trainable=False)
+                            var = tf.get_variable('weights',
+                                                  trainable=False)
                             session.run(var.assign(data))
 
 
-def conv(x, filter_height, filter_width, num_filters, stride_y, stride_x, name,
+def conv(x, filter_height, filter_width, num_filters, stride_y,
+         stride_x, name,
          padding='SAME', groups=1):
     """Create a convolution layer.
 
@@ -133,14 +146,15 @@ def conv(x, filter_height, filter_width, num_filters, stride_y, stride_x, name,
 
     # Create lambda function for the convolution
     convolve = lambda i, k: tf.nn.conv2d(i, k,
-                                         strides=[1, stride_y, stride_x, 1],
+                                         strides=[1, stride_y,
+                                                  stride_x, 1],
                                          padding=padding)
 
     with tf.variable_scope(name) as scope:
         # Create tf variables for the weights and biases of the conv layer
         weights = tf.get_variable('weights', shape=[filter_height,
                                                     filter_width,
-                                                    input_channels/groups,
+                                                    input_channels / groups,
                                                     num_filters])
         biases = tf.get_variable('biases', shape=[num_filters])
 
@@ -150,10 +164,12 @@ def conv(x, filter_height, filter_width, num_filters, stride_y, stride_x, name,
     # In the cases of multiple groups, split inputs & weights and
     else:
         # Split input and weights and convolve them separately
-        input_groups = tf.split(axis=3, num_or_size_splits=groups, value=x)
+        input_groups = tf.split(axis=3, num_or_size_splits=groups,
+                                value=x)
         weight_groups = tf.split(axis=3, num_or_size_splits=groups,
                                  value=weights)
-        output_groups = [convolve(i, k) for i, k in zip(input_groups, weight_groups)]
+        output_groups = [convolve(i, k) for i, k in
+                         zip(input_groups, weight_groups)]
 
         # Concat the convolved output together again
         conv = tf.concat(axis=3, values=output_groups)
@@ -190,7 +206,8 @@ def fc(x, num_in, num_out, name, relu=True):
 def max_pool(x, filter_height, filter_width, stride_y, stride_x, name,
              padding='SAME'):
     """Create a max pooling layer."""
-    return tf.nn.max_pool(x, ksize=[1, filter_height, filter_width, 1],
+    return tf.nn.max_pool(x,
+                          ksize=[1, filter_height, filter_width, 1],
                           strides=[1, stride_y, stride_x, 1],
                           padding=padding, name=name)
 

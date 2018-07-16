@@ -17,9 +17,10 @@ import os
 import numpy as np
 import tensorflow as tf
 
-from tf_tutorials.alexnet.alexnet import AlexNet
-from tf_tutorials.alexnet.datagenerator import ImageDataGenerator
+from alexnet import AlexNet
+from datagenerator import ImageDataGenerator
 from datetime import datetime
+from tensorflow.contrib.data import Iterator
 
 """
 Configuration Part.
@@ -43,8 +44,8 @@ train_layers = ['fc8', 'fc7', 'fc6']
 display_step = 20
 
 # Path for tf.summary.FileWriter and to store model checkpoints
-filewriter_path = "tmp/finetune_alexnet/tensorboard"
-checkpoint_path = "tmp/finetune_alexnet/checkpoints"
+filewriter_path = "/tmp/finetune_alexnet/tensorboard"
+checkpoint_path = "/tmp/finetune_alexnet/checkpoints"
 
 """
 Main Part of the finetuning Script.
@@ -56,22 +57,19 @@ if not os.path.isdir(checkpoint_path):
 
 # Place data loading and preprocessing on the cpu
 with tf.device('/cpu:0'):
-    # tr_data = ImageDataGenerator(train_file,
-    #                              mode='training',
-    #                              batch_size=batch_size,
-    #                              num_classes=num_classes,
-    #                              shuffle=True)
-    # val_data = ImageDataGenerator(val_file,
-    #                               mode='inference',
-    #                               batch_size=batch_size,
-    #                               num_classes=num_classes,
-    #                               shuffle=False)
-
-    # (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
-    tr_data = tf.data.Dataset.from_tensor_slices(tf.random_uniform([224, 224, 3]))
+    tr_data = ImageDataGenerator(train_file,
+                                 mode='training',
+                                 batch_size=batch_size,
+                                 num_classes=num_classes,
+                                 shuffle=True)
+    val_data = ImageDataGenerator(val_file,
+                                  mode='inference',
+                                  batch_size=batch_size,
+                                  num_classes=num_classes,
+                                  shuffle=False)
 
     # create an reinitializable iterator given the dataset structure
-    iterator = tf.data.Iterator.from_structure(tr_data.data.output_types,
+    iterator = Iterator.from_structure(tr_data.data.output_types,
                                        tr_data.data.output_shapes)
     next_batch = iterator.get_next()
 
