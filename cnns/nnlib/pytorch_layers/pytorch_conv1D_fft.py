@@ -10,9 +10,9 @@ from torch import tensor
 from torch.nn import Module
 from torch.nn.functional import pad as torch_pad
 from torch.nn.parameter import Parameter
-from cnns.nnlib.pytorch_layers.pytorch_utils import flip
 
 from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_signals
+from cnns.nnlib.pytorch_layers.pytorch_utils import flip
 from cnns.nnlib.pytorch_layers.pytorch_utils import next_power2
 
 logger = logging.getLogger(__name__)
@@ -87,7 +87,7 @@ class PyTorchConv1dFunction(torch.autograd.Function):
                 sys.exit(1)
             index_back = len(input) - out_W
 
-        out = torch.empty([N, F, out_W], dtype=input.dtype,
+        out = torch.zeros([N, F, out_W], dtype=input.dtype,
                           device=input.device)
         for nn in range(N):  # For each time-series in the batch
             for ff in range(F):  # For each filter
@@ -114,6 +114,17 @@ class PyTorchConv1dFunction(torch.autograd.Function):
     def backward(ctx, dout):
         """
         Compute the gradient using FFT.
+
+        Requirements from PyTorch: backward() - gradient formula.
+        It will be given as many Variable arguments as there were
+        outputs, with each of them representing gradient w.r.t. that
+        output. It should return as many Variable s as there were
+        inputs, with each of them containing the gradient w.r.t. its
+        corresponding input. If your inputs didn’t require gradient
+        (see needs_input_grad), or were non-Variable objects, you can
+        return None. Also, if you have optional arguments to forward()
+        you can return more gradients than there were inputs, as long
+        as they’re all None.
 
         :param ctx: context with saved variables
         :param dout: output gradient
@@ -145,16 +156,14 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         if pad_out < 0:
             padded_dout = dout[:, :, abs(pad_out):pad_out]
         else:
-            padded_dout = np.pad(dout,
-                                 ((0, 0), (0, 0),
-                                  (pad_out, pad_out)),
-                                 mode='constant')
+            padded_dout = torch_pad(dout, (pad_out, pad_out),
+                                    'constant', 0)
 
         # Initialize gradient output tensors.
         # the x used for convolution was with padding
-        dx = torch.empty_like(x)
-        dw = torch.empty_like(w)
-        db = torch.empty_like(b)
+        dx = torch.zeros_like(x)
+        dw = torch.zeros_like(w)
+        db = torch.zeros_like(b)
 
         # Calculate dB (the gradient for the bias term).
         # We sum up all the incoming gradients for each filters bias
@@ -191,7 +200,7 @@ class PyTorchConv1dFunction(torch.autograd.Function):
                         flip(w[ff, cc], dim=0), fftsize, W,
                         preserve_energy_rate=preserve_energy_rate,
                         index_back=index_back)
-        return dx, dw, db
+        return dx, dw, db, None, None, None, None
 
 
 class PyTorchConv1dAutograd(Module):

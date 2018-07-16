@@ -1360,6 +1360,7 @@ def conv_forward_naive_1D(x, w, b, conv_param):
     >>> b = np.array([0.0])
     >>> conv_param = {'pad' : 0, 'stride' :1}
     >>> result, cache = conv_forward_naive_1D(x, y, b, conv_param)
+    >>> # print("result: ", result)
     >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:], mode="valid")
     >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
     """
