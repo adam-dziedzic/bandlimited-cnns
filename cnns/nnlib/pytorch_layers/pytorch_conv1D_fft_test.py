@@ -14,6 +14,7 @@ class MockContext(object):
     def __init__(self):
         super(MockContext, self).__init__()
         self.args = None
+        self.needs_input_grad = None
 
     def save_for_backward(self, *args):
         self.args = args
@@ -21,6 +22,9 @@ class MockContext(object):
     @property
     def saved_tensors(self):
         return self.args
+
+    def set_needs_input_grad(self, number_needed):
+        self.needs_input_grad = [True for _ in range(number_needed)]
 
 
 class TestPyTorchConv1d(unittest.TestCase):
@@ -39,6 +43,22 @@ class TestPyTorchConv1d(unittest.TestCase):
         np.testing.assert_array_almost_equal(
             result, np.array([[expected_result]]))
 
+    def test_FunctionForwardNoCompression(self):
+        x = np.array(
+            [[[1., 2., 3.], [4, 5, 6]], [[1, -1, 0], [2, 5, 6]]])
+        y = np.array([[[2., 1.], [1, 3]], [[0, 1], [-1, -1]]])
+        b = np.array([0.0, 1.0])
+        # get the expected result
+        conv_param = {'pad': 0, 'stride': 1}
+        expected_result, _ = conv_forward_naive_1D(x, y, b,
+                                                   conv_param)
+        conv = PyTorchConv1dFunction()
+        result = conv.forward(ctx=None, input=torch.from_numpy(x),
+                              filter=torch.from_numpy(y),
+                              bias=torch.from_numpy(b))
+        np.testing.assert_array_almost_equal(
+            result, np.array(expected_result))
+
     def test_FunctionBackwardNoCompressionCrude(self):
         x = np.array([[[1.0, 2.0, 3.0]]])
         y = np.array([[[2.0, 1.0]]])
@@ -52,6 +72,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         expected_result, cache = conv_forward_naive_1D(x, y, b,
                                                        conv_param)
         ctx = MockContext()
+        ctx.set_needs_input_grad(3)
         result_torch = PyTorchConv1dFunction.forward(ctx, x_torch,
                                                      y_torch, b_torch)
         result = result_torch.detach().numpy()

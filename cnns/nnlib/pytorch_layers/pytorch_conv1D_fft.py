@@ -61,7 +61,9 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         """
         Compute the forward pass for the 1D convolution.
 
-        :param ctx: context to save intermediate results
+        :param ctx: context to save intermediate results, it other
+        words, a context object that can be used to stash information
+        for backward computation
         :param input: the input map to the convolution
         The other parameters are the same as in the
         PyTorchConv1dAutograd class.
@@ -98,8 +100,8 @@ class PyTorchConv1dFunction(torch.autograd.Function):
                             fftsize, out_size=out_W,
                             preserve_energy_rate=preserve_energy_rate,
                             index_back=index_back)
-                    # add the bias term for a given filter
-                    out[nn, ff] += bias[ff]
+                # add the bias term for a given filter
+                out[nn, ff] += bias[ff]
 
         if ctx:
             ctx.save_for_backward(
@@ -125,6 +127,8 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         return None. Also, if you have optional arguments to forward()
         you can return more gradients than there were inputs, as long
         as they’re all None.
+        In short, backward() should return as many tensors, as there
+        were inputs to forward().
 
         :param ctx: context with saved variables
         :param dout: output gradient
@@ -142,64 +146,68 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         F, C, WW = w.shape
         N, F, W_out = dout.shape
 
-        padded_x = x
-        if padding:
-            padded_x = torch_pad(input, (padding, padding),
-                                 'constant', 0)
+        dx = dw = db = None
 
-        # W = padded_out_W - WW + 1;
-        # padded_out_W = W + WW - 1;
-        # pad_out = W + WW - 1 // 2  # // 2 - for both sides
-        # extend the dout to get the proper final size of dx
-        pad_out = (W + WW - 1 - W_out) // 2
-        # print("pad_out: ", pad_out)
-        if pad_out < 0:
-            padded_dout = dout[:, :, abs(pad_out):pad_out]
-        else:
-            padded_dout = torch_pad(dout, (pad_out, pad_out),
-                                    'constant', 0)
+        if ctx.needs_input_grad[0]:
+            # Initialize gradient output tensors.
+            # the x used for convolution was with padding
+            dx = torch.zeros_like(x)
+            # W = padded_out_W - WW + 1;
+            # padded_out_W = W + WW - 1;
+            # pad_out = W + WW - 1 // 2  # // 2 - for both sides
+            # extend the dout to get the proper final size of dx
+            pad_out = (W + WW - 1 - W_out) // 2
+            # print("pad_out: ", pad_out)
+            if pad_out < 0:
+                padded_dout = dout[:, :, abs(pad_out):pad_out]
+            else:
+                padded_dout = torch_pad(dout, (pad_out, pad_out),
+                                        'constant', 0)
+            # Calculate dx - the gradient for the input x.
+            # By chain rule dx is dout*w. We need to make dx same
+            # shape as padded x for the gradient calculation.
+            fftsize = next_power2(padded_dout.shape[-1] + WW - 1)
+            for nn in range(N):
+                for ff in range(F):
+                    for cc in range(C):
+                        dx[nn, cc] += correlate_signals(
+                            padded_dout[nn, ff],
+                            flip(w[ff, cc], dim=0), fftsize, W,
+                            preserve_energy_rate=preserve_energy_rate,
+                            index_back=index_back)
 
-        # Initialize gradient output tensors.
-        # the x used for convolution was with padding
-        dx = torch.zeros_like(x)
-        dw = torch.zeros_like(w)
-        db = torch.zeros_like(b)
+        if ctx.needs_input_grad[1]:
+            dw = torch.zeros_like(w)
+            padded_x = x
+            if padding:
+                padded_x = torch_pad(input, (padding, padding),
+                                     'constant', 0)
+            # print("padded x: ", padded_x)
+            # print("dout: ", dout)
+            # Calculate dw - the gradient for the filters w.
+            # By chain rule dw is computed as: dout*x
+            # fftsize = next_power2(W + W_out - 1)
+            for nn in range(N):
+                for ff in range(F):
+                    for cc in range(C):
+                        # accumulate gradient for a filter from each
+                        # channel
+                        dw[ff, cc] += correlate_signals(
+                            padded_x[nn, cc], dout[nn, ff],
+                            fftsize, WW,
+                            preserve_energy_rate=preserve_energy_rate,
+                            index_back=index_back)
+                        # print("dw fft: ", dw[ff, cc])
 
-        # Calculate dB (the gradient for the bias term).
-        # We sum up all the incoming gradients for each filters bias
-        # (as in the affine layer).
-        for ff in range(F):
-            db[ff] += torch.sum(dout[:, ff, :])
+        if ctx.needs_input_grad[2]:
+            db = torch.zeros_like(b)
 
-        # print("padded x: ", padded_x)
-        # print("dout: ", dout)
-        # Calculate dw - the gradient for the filters w.
-        # By chain rule dw is computed as: dout*x
-        # fftsize = next_power2(W + W_out - 1)
-        for nn in range(N):
+            # Calculate dB (the gradient for the bias term).
+            # We sum up all the incoming gradients for each filters
+            # bias (as in the affine layer).
             for ff in range(F):
-                for cc in range(C):
-                    # accumulate gradient for a filter from each
-                    # channel
-                    dw[ff, cc] += correlate_signals(
-                        padded_x[nn, cc], dout[nn, ff],
-                        fftsize, WW,
-                        preserve_energy_rate=preserve_energy_rate,
-                        index_back=index_back)
-                    # print("dw fft: ", dw[ff, cc])
+                db[ff] += torch.sum(dout[:, ff, :])
 
-        # Calculate dx - the gradient for the input x.
-        # By chain rule dx is dout*w. We need to make dx same shape
-        # as padded x for the gradient calculation.
-        fftsize = next_power2(padded_dout.shape[-1] + WW - 1)
-        for nn in range(N):
-            for ff in range(F):
-                for cc in range(C):
-                    dx[nn, cc] += correlate_signals(
-                        padded_dout[nn, ff],
-                        flip(w[ff, cc], dim=0), fftsize, W,
-                        preserve_energy_rate=preserve_energy_rate,
-                        index_back=index_back)
         return dx, dw, db, None, None, None, None
 
 
