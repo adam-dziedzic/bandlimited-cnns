@@ -256,7 +256,8 @@ def main(device):
     val_batches_per_epoch = int(np.floor(data_size / batch_size))
 
     # Start Tensorflow session
-    with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
+    # with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
+    with tf.Session() as sess:
         if args.debug:
             sess = tf_debug.LocalCLIDebugWrapperSession(sess)
         # Initialize all variables
