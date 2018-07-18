@@ -38,7 +38,7 @@ parser.add_argument("-i", "--initbatchsize", default=32, type=int,
                     help="the initial size of the batch (number of "
                          "data points for a single forward and batch "
                          "passes")
-parser.add_argument("-m", "--maxbatchsize", default=8192, type=int,
+parser.add_argument("-m", "--maxbatchsize", default=64, type=int,
                     help="the max size of the batch (number of data "
                          "points for a single forward and batch "
                          "passes")
@@ -49,8 +49,8 @@ parser.add_argument("-e", "--endsize", default=512, type=int,
 parser.add_argument("-w", "--workers", default=0, type=int,
                     help="number of workers to fetch data for pytorch data loader, 0 means that the data will be "
                          "loaded in the main process")
-parser.add_argument("-d", "--device", default="cuda:0",
-                    help="the type of device, e.g.: cpu, cuda:0, cuda:1, etc.")
+parser.add_argument("-d", "--device", default="/device:GPU:0",
+                    help="the type of device, e.g.: cpu, /cpu:0, /device:GPU:1, etc.")
 parser.add_argument("-b", "--debug", default=False,
                     help="the type of device, e.g.: cpu, cuda:0, cuda:1, etc.")
 
@@ -114,13 +114,14 @@ if not os.path.isdir(checkpoint_path):
 batch_sizes = []
 times = []
 
-def main():
+
+def main(device):
     print("batch size: ", batch_size)
     batch_sizes.append(batch_size)
     print("reset default graph")
     tf.reset_default_graph()
     # Place data loading and preprocessing on the cpu
-    with tf.device('/cpu:0'):
+    with tf.device(device):
         # tr_data = ImageDataGenerator(train_file,
         #                              mode='training',
         #                              batch_size=batch_size,
@@ -255,7 +256,7 @@ def main():
     val_batches_per_epoch = int(np.floor(data_size / batch_size))
 
     # Start Tensorflow session
-    with tf.Session() as sess:
+    with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
         if args.debug:
             sess = tf_debug.LocalCLIDebugWrapperSession(sess)
         # Initialize all variables
@@ -354,12 +355,17 @@ def main():
                     datetime.now(), checkpoint_name))
     return batch_sizes, times
 
+
 if __name__ == "__main__":
     args = parser.parse_args(sys.argv[1:])
-
     batch_size = args.initbatchsize
+    device = args.device
+    if tf.test.is_gpu_available() is False and (
+            "GPU" in device or "gpu" in device):
+        print("GPU is not available")
+        device = "cpu:0"
     while batch_size <= args.maxbatchsize:
-        batch_sizes, total_times = main()
+        batch_sizes, total_times = main(device)
         print("batch_sizes: ", batch_sizes)
         print("total_times: ", total_times)
         batch_size *= 2
