@@ -37,13 +37,13 @@ plt.switch_backend('agg')
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--iterations", default=1, type=int,
                     help="number of iterations for the training")
-parser.add_argument("-i", "--initbatchsize", default=64, type=int,
+parser.add_argument("-i", "--initbatchsize", default=16384, type=int,
                     help="the initial size of the batch (number of data points for a single forward and batch passes")
-parser.add_argument("-m", "--maxbatchsize", default=64, type=int,
+parser.add_argument("-m", "--maxbatchsize", default=16384, type=int,
                     help="the max size of the batch (number of data points for a single forward and batch passes")
-parser.add_argument("-s", "--startsize", default=64, type=int,
+parser.add_argument("-s", "--startsize", default=227, type=int,
                     help="the start size of the input")
-parser.add_argument("-e", "--endsize", default=512, type=int,
+parser.add_argument("-e", "--endsize", default=227, type=int,
                     help="the end size of the input")
 parser.add_argument("-w", "--workers", default=0, type=int,
                     help="number of workers to fetch data for pytorch data loader, 0 means that the data will be "

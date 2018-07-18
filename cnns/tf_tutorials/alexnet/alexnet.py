@@ -104,7 +104,7 @@ class AlexNet(object):
         size = conv_cal(size)
         size = conv_cal(size)
         size = max_pool_cal(size)
-        print("size: ", size)
+        # print("width/length of output of convolutions: ", size)
 
         # 6th Layer: Flatten -> FC (w ReLu) -> Dropout
         flattened = tf.reshape(pool5, [-1, size * size * 256])
