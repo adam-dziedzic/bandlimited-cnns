@@ -17,8 +17,8 @@ import os
 import numpy as np
 import tensorflow as tf
 
-from alexnet import AlexNet
-from datagenerator import ImageDataGenerator
+from cnns.tf_tutorials.alexnet.alexnet import AlexNet
+from cnns.tf_tutorials.alexnet.datagenerator import ImageDataGenerator
 from datetime import datetime
 from tensorflow.contrib.data import Iterator
 

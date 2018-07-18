@@ -32,21 +32,22 @@ class AlexNet(nn.Module):
             nn.MaxPool2d(kernel_size=3, stride=2),
         )
 
-        # calculate the size of the output from convolution part before moving to the first fully connected layer
-        def max_pool(size, kernel=3, stride=2):
+        # calculate the size of the output from convolution part
+        # before moving to the first fully connected layer
+        def max_pool_cal(size, kernel=3, stride=2):
             return (size - kernel) // stride + 1
 
-        def conv(size, kernel=3, stride=1, padding=1):
+        def conv_cal(size, kernel=3, stride=1, padding=1):
             return 1 + (size + 2 * padding - kernel) // stride
 
-        size = conv(input_size, 11, 4, 2)
-        size = max_pool(size)
-        size = conv(size, 5, 1, 2)
-        size = max_pool(size)
-        size = conv(size)
-        size = conv(size)
-        size = conv(size)
-        size = max_pool(size)
+        size = conv_cal(input_size, 11, 4, 2)
+        size = max_pool_cal(size)
+        size = conv_cal(size, 5, 1, 2)
+        size = max_pool_cal(size)
+        size = conv_cal(size)
+        size = conv_cal(size)
+        size = conv_cal(size)
+        size = max_pool_cal(size)
         # print("size: ", size)
         self.img_size_after_features = size
 

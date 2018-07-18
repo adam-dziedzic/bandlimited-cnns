@@ -10,8 +10,10 @@ SPECIES = ['Setosa', 'Versicolor', 'Virginica']
 
 
 def maybe_download():
-    train_path = tf.keras.utils.get_file(TRAIN_URL.split('/')[-1], TRAIN_URL)
-    test_path = tf.keras.utils.get_file(TEST_URL.split('/')[-1], TEST_URL)
+    train_path = tf.keras.utils.get_file(TRAIN_URL.split('/')[-1],
+                                         TRAIN_URL)
+    test_path = tf.keras.utils.get_file(TEST_URL.split('/')[-1],
+                                        TEST_URL)
 
     return train_path, test_path
 
@@ -33,7 +35,8 @@ def train_input_fn(features, labels, batch_size):
     """An input function for training"""
     print("in train_input_fn")
     # Convert the inputs to a Dataset.
-    dataset = tf.data.Dataset.from_tensor_slices((dict(features), labels))
+    dataset = tf.data.Dataset.from_tensor_slices(
+        (dict(features), labels))
     print("dataset: ", dataset)
 
     # Shuffle, repeat, and batch the examples.
@@ -48,7 +51,8 @@ def train_input_fn(features, labels, batch_size):
 def train_input_fn_one_shot(features, labels, batch_size):
     """An input function for training"""
     # Convert the inputs to a Dataset.
-    dataset = tf.data.Dataset.from_tensor_slices((dict(features), labels))
+    dataset = tf.data.Dataset.from_tensor_slices(
+        (dict(features), labels))
 
     # Shuffle, repeat, and batch the examples.
     dataset = dataset.shuffle(1000).repeat().batch(batch_size)
@@ -88,12 +92,16 @@ CSV_TYPES = [[0.0], [0.0], [0.0], [0.0], [0]]
 def _parse_line(line):
     # Decode the line into its fields
     fields = tf.decode_csv(line, record_defaults=CSV_TYPES)
+    print("CSV_TYPES: ", CSV_TYPES)
+    print("fields: ", fields)
+    print("fields 0: ", fields[0])
 
     # Pack the result into a dictionary
     features = dict(zip(CSV_COLUMN_NAMES, fields))
 
     # Separate the label from the features
     label = features.pop('Species')
+    print("label: ", label)
 
     return features, label
 
@@ -110,3 +118,22 @@ def csv_input_fn(csv_path, batch_size):
 
     # Return the dataset.
     return dataset
+
+
+if __name__ == "__main__":
+    train_path, test_path = maybe_download()
+    dataset = csv_input_fn(train_path, 4)
+    # iter = tf.data.Iterator.from_structure(dataset.output_types,
+    #                                        dataset.output_shapes)
+    # next_elem = iter.get_next()
+    # iter.make_initializer(dataset)
+
+    # A one-shot iterator is the simplest form of iterator, which
+    # only supports iterating once through a dataset, with no need for
+    # explicit initialization. One-shot iterators handle almost all of the
+    # cases that the existing queue-based input pipelines support, but they do
+    # not support parameterization.
+    next_elem = dataset.make_one_shot_iterator().get_next()
+
+    with tf.Session() as sess:
+        print("next elem: ", sess.run(next_elem))
