@@ -69,7 +69,6 @@ val_file = '/path/to/val.txt'
 learning_rate = 0.01
 num_epochs = 1
 batch_size = 32
-data_size = 8192
 input_size = 227
 channel_size = 3
 
@@ -118,6 +117,7 @@ times = []
 def main(device):
     print("batch size: ", batch_size)
     batch_sizes.append(batch_size)
+    data_size = batch_size
     print("reset default graph")
     tf.reset_default_graph()
     # Place data loading and preprocessing on the cpu
