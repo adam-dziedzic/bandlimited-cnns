@@ -121,71 +121,71 @@ def main(device):
     print("reset default graph")
     tf.reset_default_graph()
     # Place data loading and preprocessing on the cpu
-    with tf.device(device):
-        # tr_data = ImageDataGenerator(train_file,
-        #                              mode='training',
-        #                              batch_size=batch_size,
-        #                              num_classes=num_classes,
-        #                              shuffle=True)
-        # val_data = ImageDataGenerator(val_file,
-        #                               mode='inference',
-        #                               batch_size=batch_size,
-        #                               num_classes=num_classes,
-        #                               shuffle=False)
 
-        # (x_train, y_train), (
-        # x_test, y_test) = tf.keras.datasets.cifar10.load_data()
-        # the input data: training data
-        print("Generate the training data: ")
-        data_x_train = tf.random_uniform(
-            shape=[data_size, input_size, input_size, channel_size],
-            seed=seed)
-        # the input labels
-        data_y_train = tf.random_uniform(shape=[data_size],
-                                         minval=0,
-                                         maxval=num_classes,
-                                         dtype=tf.int32, seed=seed)
-        # make the column as a one-hot vector
-        # data_y_train = tf.feature_column.indicator_column(data_y_train)
+    # tr_data = ImageDataGenerator(train_file,
+    #                              mode='training',
+    #                              batch_size=batch_size,
+    #                              num_classes=num_classes,
+    #                              shuffle=True)
+    # val_data = ImageDataGenerator(val_file,
+    #                               mode='inference',
+    #                               batch_size=batch_size,
+    #                               num_classes=num_classes,
+    #                               shuffle=False)
+
+    # (x_train, y_train), (
+    # x_test, y_test) = tf.keras.datasets.cifar10.load_data()
+    # the input data: training data
+    print("Generate the training data: ")
+    data_x_train = tf.random_uniform(
+        shape=[data_size, input_size, input_size, channel_size],
+        seed=seed)
+    # the input labels
+    data_y_train = tf.random_uniform(shape=[data_size],
+                                     minval=0,
+                                     maxval=num_classes,
+                                     dtype=tf.int32, seed=seed)
+    # make the column as a one-hot vector
+    # data_y_train = tf.feature_column.indicator_column(data_y_train)
+    # convert label number into one-hot-encoding
+    data_y_train = tf.one_hot(data_y_train, num_classes)
+    # print("data_y_train shape: ", data_y_train)
+
+    tr_data = tf.data.Dataset.from_tensor_slices(
+        (data_x_train, data_y_train))
+    tr_data = tr_data.map(_resize_function)
+
+    # add batching to the data sources
+    tr_data = tr_data.batch(batch_size)
+
+    # create an reinitializable iterator given the dataset structure
+    iterator = tf.data.Iterator.from_structure(
+        tr_data.output_types,
+        tr_data.output_shapes)
+    next_batch = iterator.get_next()
+
+    # Ops for initializing the two different iterators
+    training_init_op = iterator.make_initializer(tr_data)
+
+    if is_validation:
+        # validation data
+        print("Generate the validation data:")
+        data_x_val = tf.random_uniform(
+            [data_size, input_size, input_size, channel_size], seed=seed)
+        data_y_val = tf.random_uniform(shape=[data_size], minval=0,
+                                       maxval=num_classes,
+                                       dtype=tf.int32, seed=seed)
+        # data_y_val = tf.feature_column.indicator_column(data_y_val)
         # convert label number into one-hot-encoding
-        data_y_train = tf.one_hot(data_y_train, num_classes)
-        # print("data_y_train shape: ", data_y_train)
-
-        tr_data = tf.data.Dataset.from_tensor_slices(
-            (data_x_train, data_y_train))
-        tr_data = tr_data.map(_resize_function)
+        data_y_val = tf.one_hot(data_y_val, num_classes)
+        val_data = tf.data.Dataset.from_tensor_slices(
+            (data_x_val, data_y_val))
+        val_data = val_data.map(_resize_function)
 
         # add batching to the data sources
-        tr_data = tr_data.batch(batch_size)
+        val_data = val_data.batch(batch_size)
 
-        # create an reinitializable iterator given the dataset structure
-        iterator = tf.data.Iterator.from_structure(
-            tr_data.output_types,
-            tr_data.output_shapes)
-        next_batch = iterator.get_next()
-
-        # Ops for initializing the two different iterators
-        training_init_op = iterator.make_initializer(tr_data)
-
-        if is_validation:
-            # validation data
-            print("Generate the validation data:")
-            data_x_val = tf.random_uniform(
-                [data_size, input_size, input_size, channel_size], seed=seed)
-            data_y_val = tf.random_uniform(shape=[data_size], minval=0,
-                                           maxval=num_classes,
-                                           dtype=tf.int32, seed=seed)
-            # data_y_val = tf.feature_column.indicator_column(data_y_val)
-            # convert label number into one-hot-encoding
-            data_y_val = tf.one_hot(data_y_val, num_classes)
-            val_data = tf.data.Dataset.from_tensor_slices(
-                (data_x_val, data_y_val))
-            val_data = val_data.map(_resize_function)
-
-            # add batching to the data sources
-            val_data = val_data.batch(batch_size)
-
-            validation_init_op = iterator.make_initializer(val_data)
+        validation_init_op = iterator.make_initializer(val_data)
 
     # TF placeholder for graph input and output
     x = tf.placeholder(tf.float32,
@@ -364,8 +364,10 @@ if __name__ == "__main__":
             "GPU" in device or "gpu" in device):
         print("GPU is not available")
         device = "cpu:0"
-    while batch_size <= args.maxbatchsize:
-        batch_sizes, total_times = main(device)
-        print("batch_sizes: ", batch_sizes)
-        print("total_times: ", total_times)
-        batch_size *= 2
+
+    with tf.device(device):
+        while batch_size <= args.maxbatchsize:
+            batch_sizes, total_times = main(device)
+            print("batch_sizes: ", batch_sizes)
+            print("total_times: ", total_times)
+            batch_size *= 2

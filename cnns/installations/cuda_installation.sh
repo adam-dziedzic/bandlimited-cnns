@@ -27,3 +27,10 @@ sudo dpkg -i --force-overwrite libcudnn7-dev_7.1.4.18-1+cuda9.2_amd64.deb
 
 
 sudo apt-get install build-essential gcc-multilib dkms
+
+
+# install tensorflow-gpu
+sudo pip install -U pip
+pip install -U tensorflow-gpu
+
+

@@ -37,7 +37,7 @@ plt.switch_backend('agg')
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--iterations", default=1, type=int,
                     help="number of iterations for the training")
-parser.add_argument("-i", "--initbatchsize", default=16384, type=int,
+parser.add_argument("-i", "--initbatchsize", default=128, type=int,
                     help="the initial size of the batch (number of data points for a single forward and batch passes")
 parser.add_argument("-m", "--maxbatchsize", default=16384, type=int,
                     help="the max size of the batch (number of data points for a single forward and batch passes")
@@ -110,8 +110,17 @@ def define_net(input_size=32, batch_size=64, num_classes=10):
     # from pytorch_tutorials.memory_net_alex_1_conv2d import AlexNet
     # from pytorch_tutorials.memory_net_alex_2_conv2d import AlexNet
     # from pytorch_tutorials.memory_net_alex_fc import AlexNet
-    net = AlexNet(num_classes=num_classes, input_size=input_size)
+    # net = AlexNet(num_classes=num_classes, input_size=input_size)
+    # from torchvision.models import DenseNet
+    # from cnns.pytorch_tutorials.memory_net_densenet import DenseNet
+    # net = DenseNet()
+    from cnns.pytorch_tutorials.memory_net_densenet import densenet201
+    net = densenet201()
     # net = Net()
+    # from torchvision.models import resnet152
+    # from cnns.pytorch_tutorials.memory_net_resnet import resnet152
+    # net = resnet152()
+
     return net
 
 
