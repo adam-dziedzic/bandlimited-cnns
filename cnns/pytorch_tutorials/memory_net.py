@@ -109,18 +109,18 @@ def define_net(input_size=32, batch_size=64, num_classes=10):
     # 1st conv2d Alex Net
     # from pytorch_tutorials.memory_net_alex_1_conv2d import AlexNet
     # from pytorch_tutorials.memory_net_alex_2_conv2d import AlexNet
-    # from pytorch_tutorials.memory_net_alex_fc import AlexNet
-    # net = AlexNet(num_classes=num_classes, input_size=input_size)
+    from cnns.pytorch_tutorials.memory_net_alex_fc import AlexNet
+    net = AlexNet(num_classes=num_classes, input_size=input_size)
     # from torchvision.models import DenseNet
     # from cnns.pytorch_tutorials.memory_net_densenet import DenseNet
     # net = DenseNet()
-    from cnns.pytorch_tutorials.memory_net_densenet import densenet201
-    net = densenet201()
+    # from cnns.pytorch_tutorials.memory_net_densenet import densenet201
+    # net = densenet201()
     # net = Net()
     # from torchvision.models import resnet152
     # from cnns.pytorch_tutorials.memory_net_resnet import resnet152
     # net = resnet152()
-
+    print("net used: ", net.__class__.__name__)
     return net
 
 
