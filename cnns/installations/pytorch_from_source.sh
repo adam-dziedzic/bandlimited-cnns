@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# first install the distributed version
+conda install pytorch torchvision cuda91 -c pytorch --yes
+
 # install pytorch framework from the source code
 
 with_cuda=${1:-"TRUE"} # set to true to install for GPU

@@ -2,10 +2,17 @@
 
 sudo apt-get install emacs --yes
 
+git config --global credential.helper cache
+mkdir code
+cd code
+git clone https://github.com/adam-dziedzic/time-series-ml.git
+
 cd /home/${USER}/Downloads
 
-bash cuda_installation.sh
-bash anaconda_installation.sh
-bash pytorch_from_source.sh
-bash tensorflow_installation.sh
+code_path=/home/cc/code/time-series-ml/cnns/installations/
+
+bash ${code_path}cuda_installation.sh
+bash ${code_path}anaconda_installation.sh
+bash ${code_path}pytorch_from_source.sh
+bash ${code_path}tensorflow_installation.sh
 
