@@ -64,7 +64,7 @@ class AlexNet(object):
         """Create the network graph."""
         # 1st Layer: Conv (w ReLu) -> Lrn -> Pool
         self.conv1 = conv(self.X, 11, 11, 96, 4, 4, padding='VALID',
-                     name='conv1')
+                          name='conv1')
         # norm1 = lrn(conv1, 2, 1e-04, 0.75, name='norm1')
         norm1 = self.conv1  # disable the normalization layer
         pool1 = max_pool(norm1, 3, 3, 2, 2, padding='VALID',
@@ -158,8 +158,7 @@ class AlexNet(object):
                             session.run(var.assign(data))
 
 
-def conv(x, filter_height, filter_width, num_filters, stride_y,
-         stride_x, name,
+def conv(x, filter_height, filter_width, num_filters, stride_y, stride_x, name,
          padding='SAME', groups=1):
     """Create a convolution layer.
 

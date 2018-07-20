@@ -12,15 +12,14 @@ Author: Frederik Kratzert
 contact: f.kratzert(at)gmail.com
 """
 
-import os
-
 import numpy as np
+import os
 import tensorflow as tf
+from datetime import datetime
+from tensorflow.contrib.data import Iterator
 
 from cnns.tf_tutorials.alexnet.alexnet import AlexNet
 from cnns.tf_tutorials.alexnet.datagenerator import ImageDataGenerator
-from datetime import datetime
-from tensorflow.contrib.data import Iterator
 
 """
 Configuration Part.
@@ -77,7 +76,7 @@ with tf.device('/cpu:0'):
 training_init_op = iterator.make_initializer(tr_data.data)
 validation_init_op = iterator.make_initializer(val_data.data)
 
-# TF placeholder for graph input and output
+# TF placeholder for graph input and output (expected class in one-hot encoding)
 x = tf.placeholder(tf.float32, [batch_size, 227, 227, 3])
 y = tf.placeholder(tf.float32, [batch_size, num_classes])
 keep_prob = tf.placeholder(tf.float32)
@@ -89,7 +88,8 @@ model = AlexNet(x, keep_prob, num_classes, train_layers)
 score = model.fc8
 
 # List of trainable variables of the layers we want to train
-var_list = [v for v in tf.trainable_variables() if v.name.split('/')[0] in train_layers]
+var_list = [v for v in tf.trainable_variables() if
+            v.name.split('/')[0] in train_layers]
 
 # Op for calculating the loss
 with tf.name_scope("cross_ent"):
@@ -117,7 +117,6 @@ for var in var_list:
 # Add the loss to summary
 tf.summary.scalar('cross_entropy', loss)
 
-
 # Evaluation op: Accuracy of the model
 with tf.name_scope("accuracy"):
     correct_pred = tf.equal(tf.argmax(score, 1), tf.argmax(y, 1))
@@ -136,12 +135,11 @@ writer = tf.summary.FileWriter(filewriter_path)
 saver = tf.train.Saver()
 
 # Get the number of training/validation steps per epoch
-train_batches_per_epoch = int(np.floor(tr_data.data_size/batch_size))
+train_batches_per_epoch = int(np.floor(tr_data.data_size / batch_size))
 val_batches_per_epoch = int(np.floor(val_data.data_size / batch_size))
 
 # Start Tensorflow session
 with tf.Session() as sess:
-
     # Initialize all variables
     sess.run(tf.global_variables_initializer())
 
@@ -158,7 +156,7 @@ with tf.Session() as sess:
     # Loop over number of epochs
     for epoch in range(num_epochs):
 
-        print("{} Epoch number: {}".format(datetime.now(), epoch+1))
+        print("{} Epoch number: {}".format(datetime.now(), epoch + 1))
 
         # Initialize iterator with the training dataset
         sess.run(training_init_op)
@@ -179,7 +177,7 @@ with tf.Session() as sess:
                                                         y: label_batch,
                                                         keep_prob: 1.})
 
-                writer.add_summary(s, epoch*train_batches_per_epoch + step)
+                writer.add_summary(s, epoch * train_batches_per_epoch + step)
 
         # Validate the model on the entire validation set
         print("{} Start validation".format(datetime.now()))
@@ -187,7 +185,6 @@ with tf.Session() as sess:
         test_acc = 0.
         test_count = 0
         for _ in range(val_batches_per_epoch):
-
             img_batch, label_batch = sess.run(next_batch)
             acc = sess.run(accuracy, feed_dict={x: img_batch,
                                                 y: label_batch,
@@ -201,7 +198,7 @@ with tf.Session() as sess:
 
         # save checkpoint of the model
         checkpoint_name = os.path.join(checkpoint_path,
-                                       'model_epoch'+str(epoch+1)+'.ckpt')
+                                       'model_epoch' + str(epoch + 1) + '.ckpt')
         save_path = saver.save(sess, checkpoint_name)
 
         print("{} Model checkpoint saved at {}".format(datetime.now(),
