@@ -24,3 +24,5 @@ with tf.Session() as sess:
 
     print("prediction after training: ", sess.run(y_pred))
 
+    tf.saved_model.simple_save(sess, "./model_save_2", inputs={"x": x},
+                               outputs={"y_pred": y_pred})
