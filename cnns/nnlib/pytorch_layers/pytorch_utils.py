@@ -277,13 +277,21 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None,
     :param signal_ndim: what is the dimension of the input data
     :return: output signal after correlation of signals x and y
 
-    >>> x = tensor([[[1.0,2.0,3.0,4.0], [1.0,2.0,3.0,4.0]]])
+    >>> x = tensor([[[1.0,2.0,3.0,4.0], [1.0,0.0,4.0,4.0]]])
+    >>> # x.shape is torch.Size([1, 2, 4])
     >>> # two filters
-    >>> y = tensor([[[1.0,3.0], [1.0,3.0]], [[1.0,3.0], [1.0,3.0]]])
-    >>> result = correlate_signals(x=x, y=y, fft_size=x.shape[-1],
-    ... out_size=(x.shape[-1]-y.shape[-1] + 1))
-    >>> np.testing.assert_array_almost_equal(result,
-    ... np.array([[[7.0, 11.0, 15.0], [7.0, 11.0, 15.0]]]))
+    >>> y = tensor([[[1.0,3.0], [1.0,3.0]], [[2.0,1.0], [0.0,1.0]]])
+    >>> # y.shape is torch.Size([2, 2, 2])
+    >>> # W - width of input signals (time-series)
+    >>> W = x.shape[-1]
+    >>> # WW - width of the filter
+    >>> WW = y.shape[-1]
+    >>> out_size = W - WW + 1
+    >>> result = correlate_signals(x=x, y=y, fft_size=W, out_size=out_size)
+    >>> # print("result: ", result)
+    >>> expected = np.array([[[7.0, 11.0, 15.0], [1.0, 12.0, 16.0]],
+    ... [[4.0, 7.0, 10.0], [0.0, 4.0, 4.0]]])
+    >>> np.testing.assert_array_almost_equal(result, expected)
 
     >>> x = tensor([[[1.0,2.0,3.0,4.0], [1.0,2.0,3.0,4.0]]])
     >>> y = tensor([[[1.0,3.0], [1.0,3.0]]])
@@ -291,13 +299,6 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None,
     ... out_size=(x.shape[-1]-y.shape[-1] + 1))
     >>> np.testing.assert_array_almost_equal(result,
     ... np.array([[[7.0, 11.0, 15.0], [7.0, 11.0, 15.0]]]))
-
-    >>> x = tensor([1.0,2.0,3.0,4.0])
-    >>> y = tensor([1.0,3.0])
-    >>> result = correlate_signals(x=x, y=y, fft_size=len(x),
-    ... out_size=(len(x)-len(y) + 1))
-    >>> np.testing.assert_array_almost_equal(result,
-    ... np.array([7.0, 11.0, 15.0]))
 
     >>> x = tensor([1.0,2.0,3.0,4.0])
     >>> y = tensor([1.0,3.0])
@@ -316,6 +317,13 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None,
     >>> result = correlate_signals(x=x, y=y, fft_size=len(x), out_size=(len(x)-len(y) + 1))
     >>> expected_result = np.correlate(x, y, mode='valid')
     >>> np.testing.assert_array_almost_equal(result, expected_result)
+
+    >>> x = tensor([[[1.0,2.0,3.0,4.0]]])
+    >>> y = tensor([[[1.0,3.0]]])
+    >>> s = x.shape[-1]- y.shape[-1] + 1
+    >>> result = correlate_signals(x=x, y=y, fft_size=x.shape[-1], out_size=s)
+    >>> expect = np.array([[[7.0, 11.0, 15.0]]])
+    >>> np.testing.assert_array_almost_equal(result, expect)
     """
     # pad the signals to the fft size
     x = torch_pad(x, (0, fft_size - x.shape[-1]), 'constant', 0.0)
@@ -348,6 +356,7 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None,
         yfft = yfft.narrow(dim=-2, start=0, length=index)
         # print("the signal size after compression: ", index)
 
+        input = complex_mul(xfft, pytorch_conjugate(yfft))
         # we need to pad complex numbers expressed as a pair of real
         # numbers in the last dimension
         # xfft = torch_pad(input=xfft, pad=(0, fft_size - index),
@@ -361,20 +370,23 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None,
         pad_shape[-2] = (fft_size // 2 + 1) - index
         complex_pad = torch.zeros(*pad_shape, dtype=xfft.dtype,
                                   device=xfft.device)
-        xfft = torch.cat((xfft, complex_pad), dim=-2)
-        yfft = torch.cat((yfft, complex_pad), dim=-2)
-    out = torch.irfft(
-        input=complex_mul(xfft, pytorch_conjugate(yfft)),
-        signal_ndim=signal_ndim, signal_sizes=(x.shape[-1],))
+        input = torch.cat((input, complex_pad), dim=-2)
+    else:
+        input = complex_mul(xfft, pytorch_conjugate(yfft))
+    out = torch.irfft(input, signal_ndim=signal_ndim,
+                      signal_sizes=(x.shape[-1],))
 
     # plot_signal(out, "out after ifft")
     out = out[..., :out_size]
     # plot_signal(out, "after truncating to xlen: " + str(x_len))
+
+    # sum the values across the computed layers (for each filter)
+    # out = torch.sum(out, dim=-2, keepdim=True)
     return out
 
 
 def correlate_fft_signals(x, y, fft_size, out_size, preserve_energy_rate=None,
-                      index_back=None, signal_ndim=1):
+                          index_back=None, signal_ndim=1):
     """
     Similar to 'correlate_signal' function but the signals are provided in the
     frequency domain (after fft) for the reuse of the maps.
@@ -393,8 +405,8 @@ def correlate_fft_signals(x, y, fft_size, out_size, preserve_energy_rate=None,
     \end{align}
     $$
 
-    :param x: input signal
-    :param y: filter
+    :param x: input fft-ed signal
+    :param y: fft-ed filter
     :param fft_size: the size of the signal in the frequency domain
     :param out_size: required output len (size)
     :param preserve_energy_rate: compressed to this energy rate

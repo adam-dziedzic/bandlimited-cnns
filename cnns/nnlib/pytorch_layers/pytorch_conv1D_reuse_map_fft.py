@@ -59,7 +59,7 @@ class PyTorchConv1dFunction(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input, filter, bias, padding=None,
                 preserve_energy_rate=None, index_back=None,
-                out_size=None):
+                out_size=None, signal_ndim=1):
         """
         Compute the forward pass for the 1D convolution.
 
@@ -73,13 +73,17 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         """
         N, C, W = input.size()
         F, C, WW = filter.size()
-        fftsize = next_power2(W + WW - 1)
+        # we have to pad input with WW - 1 to execute fft correctly (no
+        # overlapping signals) and optimize it by extending the signal to the
+        # next power of 2
+        fftsize = next_power2(W + 2*padding + WW - 1)
+        fft_padding = fftsize - 2*padding - W
         # pad only the dimensions for the time-series
         # (and neither data points nor the channels)
         padded_x = input
         out_W = W - WW + 1
         if padding is not None:
-            padded_x = torch_pad(input, (padding, padding),
+            padded_x = torch_pad(input, (padding, padding + fft_padding),
                                  'constant', 0)
             out_W += 2 * padding
 
@@ -93,11 +97,18 @@ class PyTorchConv1dFunction(torch.autograd.Function):
 
         out = torch.zeros([N, F, out_W], dtype=input.dtype,
                           device=input.device)
+
+        # fft of the input and filters
+        input_fft = torch.rfft(input, signal_ndim=signal_ndim, onesided=True)
+        filter_fft = torch.rfft(filter, signal_ndim=signal_ndim, onesided=True)
+
+
+
         for nn in range(N):  # For each time-series in the batch
             for ff in range(F):  # For each filter
                 for cc in range(C):  # For each channel (depth)
                     out[nn, ff] += \
-                        correlate_signals(
+                        correlate_fft_signals(
                             padded_x[nn, cc], filter[ff, cc],
                             fftsize, out_size=out_W,
                             preserve_energy_rate=preserve_energy_rate,
