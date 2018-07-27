@@ -3,6 +3,8 @@ Custom FFT based convolution that can rely on the autograd
 (a tape-based automatic differentiation library that supports
 all differentiable Tensor operations in pytorch).
 """
+import sys
+
 import logging
 import numpy as np
 import torch
@@ -134,6 +136,7 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         :param dout: output gradient
         :return: gradients for input map x, filter w and bias b
         """
+        logger.debug("execute backward")
         x, w, b, padding, preserve_energy_rate, index_back, \
         out_size, fftsize = ctx.saved_tensors
         padding = from_tensor(padding)
@@ -218,7 +221,6 @@ class PyTorchConv1dAutograd(Module):
         """
         1D convolution using FFT implemented fully in PyTorch.
 
-        :param filter_width: the width of the filter
         :param filter: you can provide the initial filter, i.e.
         filter weights of shape (F, C, WW), where
         F - number of filters, C - number of channels, WW - size of
@@ -239,6 +241,7 @@ class PyTorchConv1dAutograd(Module):
         the max pooling can be omitted and the compression
         in this layer can serve as the frequency-based (spectral)
         pooling.
+        :param filter_width: the width of the filter
 
         Regarding, the stride parameter: the number of pixels between
         adjacent receptive fields in the horizontal and vertical
@@ -337,7 +340,7 @@ class PyTorchConv1d(PyTorchConv1dAutograd):
                  preserve_energy_rate=None, index_back=None,
                  out_size=None, filter_width=None):
         super(PyTorchConv1d, self).__init__(
-            self, filter=filter, bias=bias, padding=padding,
+            filter=filter, bias=bias, padding=padding,
             preserve_energy_rate=preserve_energy_rate,
             index_back=index_back, out_size=out_size,
             filter_width=filter_width)
@@ -360,9 +363,10 @@ class PyTorchConv1d(PyTorchConv1dAutograd):
 
 def test_run():
     torch.manual_seed(231)
-    module = PyTorchConv1d(3)
-    print("filter and bias parameters: ",
-          list(module.parameters()))
+    filter = np.array([[[1., 2., 3.]]], dtype=np.float32)
+    filter = torch.from_numpy(filter)
+    module = PyTorchConv1d(filter)
+    print("filter and bias parameters: ", list(module.parameters()))
     input = torch.randn(1, 1, 10, requires_grad=True)
     output = module(input)
     print("forward output: ", output)
@@ -371,9 +375,8 @@ def test_run():
 
 
 if __name__ == "__main__":
-    # test_run()
+    test_run()
 
-    import sys
     import doctest
 
     sys.exit(doctest.testmod()[0])
