@@ -83,7 +83,11 @@ parser.add_argument("-o", "--optimizer_type", default="ADAM",
 current_file_name = __file__.split("/")[-1].split(".")[0]
 print("current file name: ", current_file_name)
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+    torch.set_default_tensor_type('torch.cuda.FloatTensor')
+else:
+    device = torch.device("cpu")
 
 
 def get_log_time():
@@ -777,6 +781,8 @@ if __name__ == "__main__":
     optimizer_type = args.optimizer_type
     is_data_augmentation = args.is_data_augmentation
     device = args.device
+
+    if device.
 
     log_file = get_log_time() + ".log"
 
