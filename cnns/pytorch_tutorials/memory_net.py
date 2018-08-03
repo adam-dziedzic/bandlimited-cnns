@@ -2,15 +2,17 @@
 """
 Find cliffs in the execution of neural networks.
 Go to the level of C++ and cuda.
-Find for what input size the memory size is not sufficient.
+Find for what input size, the memory size is not sufficient.
 Run a single forward pass and a subsequent backward pass.
 
-Define neural network, compute loss and make updates to the weights of the network.
+Define neural network, compute loss and make updates to the weights of the
+network.
 
 
 We will do the following steps in order:
 
-1. Load and normalizing the CIFAR10 training and test datasets using ``torchvision``
+1. Load and normalizing the CIFAR10 training and test datasets using
+   ``torchvision``
 2. Define a Convolution Neural Network
 3. Define a loss function
 4. Train the network on the training data
@@ -31,30 +33,57 @@ import torchvision
 import torchvision.transforms as transforms
 from PIL import Image
 
+from cnns.nnlib.utils.general_utils import ConvType
+from cnns.nnlib.utils.general_utils import OptimizerType
+
 # switch backend to be able to save the graphic files on the servers
 plt.switch_backend('agg')
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--iterations", default=1, type=int,
                     help="number of iterations for the training")
-parser.add_argument("-i", "--initbatchsize", default=128, type=int,
-                    help="the initial size of the batch (number of data points for a single forward and batch passes")
-parser.add_argument("-m", "--maxbatchsize", default=16384, type=int,
-                    help="the max size of the batch (number of data points for a single forward and batch passes")
-parser.add_argument("-s", "--startsize", default=227, type=int,
-                    help="the start size of the input")
-parser.add_argument("-e", "--endsize", default=227, type=int,
-                    help="the end size of the input")
-parser.add_argument("-w", "--workers", default=0, type=int,
-                    help="number of workers to fetch data for pytorch data loader, 0 means that the data will be "
+parser.add_argument("-i", "--initbatchsize", default=64, type=int,
+                    help="the initial size of the batch (number of data points "
+                         "for a single forward and batch passes")
+parser.add_argument("-m", "--maxbatchsize", default=64, type=int,
+                    help="the max size of the batch (number of data points for "
+                         "a single forward and batch passes")
+parser.add_argument("-s", "--startsize", default=32, type=int,
+                    help="the start size of the input image")
+parser.add_argument("-e", "--endsize", default=32, type=int,
+                    help="the end size of the input image")
+parser.add_argument("-w", "--workers", default=4, type=int,
+                    help="number of workers to fetch data for pytorch data "
+                         "loader, 0 means that the data will be "
                          "loaded in the main process")
-parser.add_argument("-d", "--device", default="cuda:0",
-                    help="the type of device, e.g.: cpu, cuda:0, cuda:1, etc.")
+parser.add_argument("-d", "--device", default="cuda",
+                    help="the type of device, e.g.: cpu, cuda, cuda:0, cuda:1, "
+                         "etc.")
+parser.add_argument("-n", "--net", default="dense",
+                    help="the type of net: alex, dense, res.")
+parser.add_argument("-l", "--limit_size", default=0, type=int,
+                    help="limit_size for the input for debug")
+parser.add_argument("-p", "--num_epochs", default=300, type=int,
+                    help="number of epochs")
+parser.add_argument("-b", "--mem_test", default=False, type=bool,
+                    help="is it the memory test")
+parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
+                    help="should the data augmentation be applied")
+parser.add_argument("-g", "--is_debug", default=False, type=bool,
+                    help="is it the debug mode execution")
+parser.add_argument("-c", "--conv_type", default="SPECTRAL_PARAM",
+                    help="the type of convoltution, SPECTRAL_PARAM is with the "
+                         "convolutional weights initialized in the spectral "
+                         "domain, please choose from: " + ",".join(
+                        ConvType.get_names()))
+parser.add_argument("-o", "--optimizer_type", default="ADAM",
+                    help="the type of the optimizer, please choose from: " +
+                         ",".join(OptimizerType.get_names()))
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
 print("current file name: ", current_file_name)
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def get_log_time():
@@ -70,7 +99,7 @@ def define_net(input_size=32, batch_size=64, num_classes=10):
 
     class Net(nn.Module):
         def __init__(self):
-            super(Net, self, num_classes=10).__init__()
+            super(Net, self).__init__()
             self.input_channel = 3
             self.size = input_size
             self.conv1_filter_size = 5
@@ -105,17 +134,16 @@ def define_net(input_size=32, batch_size=64, num_classes=10):
 
     # from torchvision.models import AlexNet
     # print("input size: ", input_size)
-    from cnns.pytorch_tutorials.memory_net_alex import AlexNet
     # 1st conv2d Alex Net
     # from pytorch_tutorials.memory_net_alex_1_conv2d import AlexNet
     # from pytorch_tutorials.memory_net_alex_2_conv2d import AlexNet
-    from cnns.pytorch_tutorials.memory_net_alex_fc import AlexNet
-    net = AlexNet(num_classes=num_classes, input_size=input_size)
+    # from cnns.pytorch_tutorials.memory_net_alex_fc import AlexNet
+    # net = AlexNet(num_classes=num_classes, input_size=input_size)
     # from torchvision.models import DenseNet
     # from cnns.pytorch_tutorials.memory_net_densenet import DenseNet
     # net = DenseNet()
-    # from cnns.pytorch_tutorials.memory_net_densenet import densenet201
-    # net = densenet201()
+    from cnns.pytorch_tutorials.memory_net_densenet import densenet121
+    net = densenet121()
     # net = Net()
     # from torchvision.models import resnet152
     # from cnns.pytorch_tutorials.memory_net_resnet import resnet152
@@ -258,45 +286,117 @@ def load_data_CIFAR10(input_size=32, batch_size=64, num_workers=0,
     # We transform them to Tensors of normalized range [-1, 1].
 
     root = "./data"
-    shuffle = False
-    download = False
+    shuffle = True
+    download = True
 
-    transform = transforms.Compose(
-        [
-            # ScaleChannel(channel_size),  # this is a hack - to be able to scale the channel size
-            transforms.Scale(input_size),
-            # scale the input image HxW to the required size
-            # MeasureSizePIL(),
+    if is_data_augmentation:
+        if mem_test:
+            transform_train = transforms.Compose(
+                [
+                    # ScaleChannel(channel_size),  # this is a hack - to be able to scale the channel size
+                    # transforms.Scale(input_size),
+                    # scale the input image HxW to the required size
+                    # MeasureSizePIL(),
+                    transforms.ToTensor(),
+                    # ScaleChannel2(channel_size),
+                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                    transforms.RandomHorizontalFlip()
+                    # MeasureSizeTensor(),
+                ])
+        else:
+            # https://bit.ly/2MdSdLL
+            transform_train = transforms.Compose([
+                # transforms.RandomCrop(input_size, padding=4),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize((0.4914, 0.4822, 0.4465),
+                                     (0.2023, 0.1994, 0.2010)),
+            ])
+
+        transform_test = transforms.Compose([
             transforms.ToTensor(),
-            # ScaleChannel2(channel_size),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-            # MeasureSizeTensor(),
+            transforms.Normalize((0.4914, 0.4822, 0.4465),
+                                 (0.2023, 0.1994, 0.2010)),
         ])
+    else:
+        transform_test = transform_train = transforms.Compose(
+            [transforms.ToTensor()])
 
     trainset = torchvision.datasets.CIFAR10(root=root, train=True,
                                             download=download,
-                                            transform=transform)
-    # print("The size of the train dataset: ", len(trainset))
+                                            transform=transform_train)
+    print("The size of the train dataset: ", len(trainset.train_data))
+    if limit_size > 0:
+        print("Limit the train input size for debug purposes:")
+        trainset.train_data = trainset.train_data[:limit_size]
+        trainset.train_labels = trainset.train_labels[:limit_size]
+        print("The size of the train dataset after limitation: ",
+              len(trainset.train_data))
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                               shuffle=shuffle,
                                               num_workers=num_workers)
 
     testset = torchvision.datasets.CIFAR10(root=root, train=False,
                                            download=download,
-                                           transform=transform)
-    # print("The size of the test dataset: ", len(testset))
+                                           transform=transform_test)
+    print("The size of the test dataset: ", len(testset.test_data))
+    if limit_size > 0:
+        print("Limit the test input size for debug purposes:")
+        testset.test_data = testset.test_data[:limit_size]
+        testset.test_labels = testset.test_labels[:limit_size]
+        print("The size of the test dataset after limitation: ",
+              len(testset.test_data))
     testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
                                              shuffle=shuffle,
                                              num_workers=num_workers)
 
-    classes = (
-    'plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship',
-    'truck')
+    classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse',
+               'ship', 'truck')
     return trainloader, testloader, classes
 
 
-def train_network(net, trainloader, optimizer, criterion, batch_size,
-                  input_size, device=torch.device("cpu")):
+def train_network(net, trainloader, optimizer, criterion,
+                  device=torch.device("cpu")):
+    """
+    Train the network
+
+    Loop over the data iterator, and feed the inputs to the network and
+    optimize.
+    """
+    for epoch in range(1):  # loop over the dataset once at a time
+
+        running_loss = 0.0
+        for i, data in enumerate(trainloader, start=0):
+            # get the inputs
+            inputs, labels = data
+            # print("labels: ", labels)
+            # move them to CUDA (if available)
+            inputs, labels = inputs.to(device), labels.to(device)
+
+            start = time.time()
+
+            # zero the parameter gradients before computing gradient for the
+            # new batch
+            optimizer.zero_grad()
+
+            # forward
+            outputs = net(inputs)
+            loss = criterion(outputs, labels)
+
+            # backward
+            loss.backward()
+
+            # optimize
+            optimizer.step()
+
+            # print statistics
+            running_loss += loss.item()
+
+    return time.time() - start, running_loss
+
+
+def train_network_mem_test(net, trainloader, optimizer, criterion, batch_size,
+                           input_size, device=torch.device("cpu")):
     """
     Train the network
 
@@ -403,29 +503,28 @@ def test_network(net, testloader, classes, device):
     :return: the accuracy on the whole test set
     """
 
-    dataiter = iter(testloader)
-    images, labels = dataiter.next()
-
     # print images
 
-    imshow(torchvision.utils.make_grid(images))
-    print('GroundTruth: ',
-          ' '.join('%5s' % classes[labels[j]] for j in range(4)))
+    # dataiter = iter(testloader)
+    # images, labels = dataiter.next()
+    # imshow(torchvision.utils.make_grid(images))
+    # print('GroundTruth: ',
+    #       ' '.join('%5s' % classes[labels[j]] for j in range(4)))
 
     ########################################################################
     # Let us see what the neural network thinks these examples above are:
 
-    outputs = net(images)
+    # outputs = net(images)
 
     ########################################################################
     # The outputs are energies for the 10 classes.
     # Higher the energy for a class, the more the network
     # thinks that the image is of the particular class.
     # So, let's get the index of the highest energy:
-    _, predicted = torch.max(outputs, 1)
-
-    print('Predicted: ',
-          ' '.join('%5s' % classes[predicted[j]] for j in range(4)))
+    # _, predicted = torch.max(outputs, 1)
+    #
+    # print('Predicted: ',
+    #       ' '.join('%5s' % classes[predicted[j]] for j in range(4)))
 
     ########################################################################
     # The results seem pretty good.
@@ -444,34 +543,50 @@ def test_network(net, testloader, classes, device):
             correct += (predicted == labels).sum().item()
 
     final_accuracy = 100 * correct / total
-    print('Accuracy of the network on the 10000 test images: %d %%' % (
-        final_accuracy))
 
-    # what are the classes that performed well, and the classes that did not perform well:
-    class_correct = list(0. for i in range(10))
-    class_total = list(0. for i in range(10))
-    with torch.no_grad():
-        for data in testloader:
-            images, labels = data
-            outputs = net(images)
-            _, predicted = torch.max(outputs, 1)
-            c = (predicted == labels).squeeze()
-            for i in range(4):
-                label = labels[i]
-                class_correct[label] += c[i].item()
-                class_total[label] += 1
+    if is_debug:
+        # what are the classes that performed well, and the classes that did
+        # not perform well:
+        class_correct = list(0. for i in range(10))
+        class_total = list(0. for i in range(10))
+        with torch.no_grad():
+            for data in testloader:
+                images, labels = data
+                outputs = net(images)
+                _, predicted = torch.max(outputs, 1)
+                c = (predicted == labels).squeeze()
+                for i in range(4):
+                    label = labels[i]
+                    class_correct[label] += c[i].item()
+                    class_total[label] += 1
 
-    for i in range(10):
-        print('Accuracy of %5s : %2d %%' % (
-        classes[i], 100 * class_correct[i] / class_total[i]))
+        for i in range(10):
+            if class_total[i] > 0:
+                print('Accuracy of %5s : %2d %%' % (
+                    classes[i], 100 * class_correct[i] / class_total[i]))
 
     return final_accuracy
+
+
+def get_optimizer(net, optimizer_type, epoch):
+    if optimizer_type is OptimizerType.MOMENTUM:
+        lr = 0.1
+        if epoch > num_epochs * 0.5:
+            lr = 0.01
+        elif epoch > num_epochs * 0.75:
+            lr = 0.001
+        optimizer = optim.SGD(params=net.parameters(), lr=lr, momentum=0.9,
+                              weight_decay=0.0001, nesterov=True)
+    else:
+        optimizer = optim.Adam(params=net.parameters(), weight_decay=0.0001)
+    return optimizer
 
 
 def main():
     input_size = 64
     batch_size = 64
-    # if we are on a CUDA machine, then this should print a CUDA device (otherwise it prints cpu):
+    # if we are on a CUDA machine, then this should print a CUDA device
+    # (otherwise it prints cpu):
     print("Currently used device: ", device)
 
     trainloader, testloader, classes = load_data_CIFAR10(input_size=input_size,
@@ -481,16 +596,24 @@ def main():
                      batch_size=batch_size)
     net.to(device)
 
-    # Define a Loss function and optimizer
-    # Use a Classification Cross-Entropy loss and SGD with momentum.
-    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+    # Define a Loss function
     criterion = nn.CrossEntropyLoss()
 
-    train_network(net=net, optimizer=optimizer, criterion=criterion,
-                  trainloader=trainloader, device=device)
-    print('Finished Training')
-
-    test_network(net=net, testloader=testloader, classes=classes, device=device)
+    total_time = 0.0
+    for epoch in range(num_epochs):
+        optimizer = get_optimizer(net, optimizer_type, epoch)
+        epoch_time, running_loss = train_network(
+            net=net, optimizer=optimizer, criterion=criterion,
+            trainloader=trainloader, device=device)
+        total_time += epoch_time
+        train_accuracy = test_network(net=net, testloader=trainloader,
+                                      classes=classes, device=device)
+        test_accuracy = test_network(net=net, testloader=testloader,
+                                     classes=classes, device=device)
+        print("timestamp,", get_log_time(), ",epoch,", epoch,
+              ",train_accuracy,", train_accuracy, ",test_accuracy,",
+              test_accuracy, ",total_time,", total_time,
+              ",running_loss,", running_loss)
 
 
 def plot_figure(batch_forward_times, batch_backward_times, batch_total_times,
@@ -587,13 +710,14 @@ def main_test():
                 optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
                 criterion = nn.CrossEntropyLoss()
 
-                forward_time, backward_time, optimizer_time, total_time = train_network(
-                    net=net, optimizer=optimizer,
-                    criterion=criterion,
-                    trainloader=trainloader,
-                    batch_size=batch_size,
-                    input_size=input_size,
-                    device=device)
+                forward_time, backward_time, optimizer_time, total_time = \
+                    train_network_mem_test(
+                        net=net, optimizer=optimizer,
+                        criterion=criterion,
+                        trainloader=trainloader,
+                        batch_size=batch_size,
+                        input_size=input_size,
+                        device=device)
 
                 forward_times.append(forward_time)
                 backward_times.append(backward_time)
@@ -640,6 +764,15 @@ if __name__ == "__main__":
     start_size = args.startsize
     end_size = args.endsize
     num_workers = args.workers
+    limit_size = args.limit_size
+    conv_type = ConvType[args.conv_type]
+    mem_test = args.mem_test
+    num_epochs = args.num_epochs
+    is_debug = args.is_debug
+    optimizer_type = args.optimizer_type
+    is_data_augmentation = args.is_data_augmentation
 
-    # main()
-    main_test()
+    if mem_test:
+        main_test()
+    else:
+        main()

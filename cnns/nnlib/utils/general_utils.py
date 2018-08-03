@@ -4,6 +4,45 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
+from enum import Enum
+
+
+class EnumWithNames(Enum):
+    """
+    The Enum classes that inherit from the EnumWithNames will get the get_names
+    method to return an array of strings representing all possible enum values.
+    """
+
+    @classmethod
+    def get_names(cls):
+        return [enum_value.name for enum_value in cls]
+
+
+class OptimizerType(EnumWithNames):
+    MOMENTUM = 1
+    ADAM = 2
+
+
+class RunType(EnumWithNames):
+    TEST = 0
+    DEBUG = 1
+
+
+class ModelType(EnumWithNames):
+    RES_NET = 0
+    DENSE_NET = 1
+
+
+DEFAULT_OPTIMIZER = OptimizerType.ADAM
+DEFAULT_RUN_TYPE = RunType.TEST
+DEFAULT_MODEL_TYPE = ModelType.DENSE_NET
+
+
+class ConvType(EnumWithNames):
+    STANDARD = 1
+    SPECTRAL_PARAM = 2
+    SPECTRAL_DIRECT = 3
+    SPATIAL_PARAM = 4
 
 
 def energy(x):
@@ -14,6 +53,7 @@ def energy(x):
     :return: energy of x
     """
     return np.sum(np.power(x, 2))
+
 
 def next_power2(x):
     """
@@ -61,12 +101,15 @@ def plot_signal(signal, title="signal"):
     plt.show()
 
 
-def plot_signals(x, y, title="", xlabel="Time", ylabel="Amplitude", label_x="input", label_y="output",
+def plot_signals(x, y, title="", xlabel="Time", ylabel="Amplitude",
+                 label_x="input", label_y="output",
                  linestyle="solid"):
     fontsize = 20
     linewidth = 2.0
-    plt.plot(range(0, len(x)), x, color="red", linewidth=linewidth, linestyle=linestyle)
-    plt.plot(range(0, len(y)), y, color="blue", linewidth=linewidth, linestyle=linestyle)
+    plt.plot(range(0, len(x)), x, color="red", linewidth=linewidth,
+             linestyle=linestyle)
+    plt.plot(range(0, len(y)), y, color="blue", linewidth=linewidth,
+             linestyle=linestyle)
     # We prepare the plot
     fig = plt.figure(1)
     plot = fig.add_subplot(111)
@@ -76,7 +119,8 @@ def plot_signals(x, y, title="", xlabel="Time", ylabel="Amplitude", label_x="inp
     plt.title(title, fontsize=fontsize)
     red_patch = mpatches.Patch(color='red', label=label_x)
     blue_patch = mpatches.Patch(color='blue', label=label_y)
-    plt.legend(handles=[red_patch, blue_patch], fontsize=fontsize, loc='upper left')
+    plt.legend(handles=[red_patch, blue_patch], fontsize=fontsize,
+               loc='upper left')
     plt.xlabel(xlabel, fontsize=fontsize)
     plt.ylabel(ylabel, fontsize=fontsize)
     plt.show()
