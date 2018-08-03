@@ -1,8 +1,8 @@
 from builtins import range
 
-# from numpy.fft import fft, ifft, rfft, irfft
-import pyfftw
-from pyfftw.interfaces.numpy_fft import fft, ifft, rfft, irfft
+from numpy.fft import fft, ifft, rfft, irfft
+# import pyfftw
+# from pyfftw.interfaces.numpy_fft import fft, ifft, rfft, irfft
 
 from cnns.nnlib.utils.general_utils import *
 
