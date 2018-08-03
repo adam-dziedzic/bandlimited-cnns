@@ -776,6 +776,7 @@ if __name__ == "__main__":
     is_debug = args.is_debug
     optimizer_type = args.optimizer_type
     is_data_augmentation = args.is_data_augmentation
+    device = args.device
 
     log_file = get_log_time() + ".log"
 
