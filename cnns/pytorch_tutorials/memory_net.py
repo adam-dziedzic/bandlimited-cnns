@@ -56,7 +56,7 @@ parser.add_argument("-w", "--workers", default=4, type=int,
                     help="number of workers to fetch data for pytorch data "
                          "loader, 0 means that the data will be "
                          "loaded in the main process")
-parser.add_argument("-d", "--device", default="cuda",
+parser.add_argument("-d", "--device", default="cpu",
                     help="the type of device, e.g.: cpu, cuda, cuda:0, cuda:1, "
                          "etc.")
 parser.add_argument("-n", "--net", default="dense",
@@ -84,8 +84,9 @@ current_file_name = __file__.split("/")[-1].split(".")[0]
 print("current file name: ", current_file_name)
 
 if torch.cuda.is_available():
+    print("cuda is available: ")
     device = torch.device("cuda")
-    torch.set_default_tensor_type('torch.cuda.FloatTensor')
+    # torch.set_default_tensor_type('torch.cuda.FloatTensor')
 else:
     device = torch.device("cpu")
 
@@ -615,14 +616,12 @@ def main():
         test_accuracy = test_network(net=net, testloader=testloader,
                                      classes=classes, device=device)
 
-        with open(log_file, "w+") as file:
-            old_stdout = sys.stdout
-            sys.stdout = file
-            print("timestamp,", get_log_time(), ",epoch,", epoch,
-              ",train_accuracy,", train_accuracy, ",test_accuracy,",
-              test_accuracy, ",total_time,", total_time,
-              ",running_loss,", running_loss)
-            sys.stdout = old_stdout
+        with open(log_file, "a") as file:
+            file.write(
+                "timestamp," + str(get_log_time()) + ",epoch," + str(epoch) +
+                ",train_accuracy," + str(train_accuracy) + ",test_accuracy," +
+                str(test_accuracy) + ",total_time," + str(total_time) +
+                ",running_loss," + str(running_loss) + "\n")
 
 
 def plot_figure(batch_forward_times, batch_backward_times, batch_total_times,
