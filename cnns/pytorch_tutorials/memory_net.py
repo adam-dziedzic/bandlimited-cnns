@@ -25,6 +25,7 @@ import time
 import argparse
 import matplotlib.pyplot as plt
 import numpy as np
+import socket
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -777,11 +778,30 @@ if __name__ == "__main__":
     mem_test = args.mem_test
     num_epochs = args.num_epochs
     is_debug = args.is_debug
-    optimizer_type = args.optimizer_type
+    optimizer_type = OptimizerType[args.optimizer_type]
     is_data_augmentation = args.is_data_augmentation
     device = args.device
 
+    hostname = socket.gethostname()
+
     log_file = get_log_time() + ".log"
+    with open(log_file, "a") as file:
+        file.write(
+            "hostname," + str(hostname) + ",timestamp," + get_log_time() +
+            ",iter_number_total," + str(
+                iter_number_total) + ",init_batch_size," + str(
+                init_batch_size) + ",max_batch_size," + str(
+                max_batch_size) + ",start_size," + str(
+                start_size) + ",end_size," + str(
+                end_size) + ",num_workers," + str(
+                num_workers) + ",limit_size," + str(
+                limit_size) + ",conv_type," +
+            conv_type.name + ",mem_test," + str(
+                mem_test) + ",num_epochs," + str(
+                num_epochs) + ",is_debug," + str(
+                is_debug) + ",optimizer_type," + optimizer_type.name +
+            ",is_data_augmentation," + str(
+                is_data_augmentation) + ",device," + str(device) + "\n")
 
     if mem_test:
         main_test()
