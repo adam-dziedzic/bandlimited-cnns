@@ -61,7 +61,7 @@ parser.add_argument("-d", "--device", default="cuda",
                          "etc.")
 parser.add_argument("-n", "--net", default="dense",
                     help="the type of net: alex, dense, res.")
-parser.add_argument("-l", "--limit_size", default=0, type=int,
+parser.add_argument("-l", "--limit_size", default=256, type=int,
                     help="limit_size for the input for debug")
 parser.add_argument("-p", "--num_epochs", default=300, type=int,
                     help="number of epochs")
@@ -610,10 +610,15 @@ def main():
                                       classes=classes, device=device)
         test_accuracy = test_network(net=net, testloader=testloader,
                                      classes=classes, device=device)
-        print("timestamp,", get_log_time(), ",epoch,", epoch,
+
+        with open(log_file, "w+") as file:
+            old_stdout = sys.stdout
+            sys.stdout = file
+            print("timestamp,", get_log_time(), ",epoch,", epoch,
               ",train_accuracy,", train_accuracy, ",test_accuracy,",
               test_accuracy, ",total_time,", total_time,
               ",running_loss,", running_loss)
+            sys.stdout = old_stdout
 
 
 def plot_figure(batch_forward_times, batch_backward_times, batch_total_times,
@@ -771,6 +776,8 @@ if __name__ == "__main__":
     is_debug = args.is_debug
     optimizer_type = args.optimizer_type
     is_data_augmentation = args.is_data_augmentation
+
+    log_file = get_log_time() + ".log"
 
     if mem_test:
         main_test()
