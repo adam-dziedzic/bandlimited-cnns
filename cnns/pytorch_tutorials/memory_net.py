@@ -71,7 +71,7 @@ parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
                     help="should the data augmentation be applied")
 parser.add_argument("-g", "--is_debug", default=False, type=bool,
                     help="is it the debug mode execution")
-parser.add_argument("-c", "--conv_type", default="SPECTRAL_PARAM",
+parser.add_argument("-c", "--conv_type", default="STANDARD",
                     help="the type of convoltution, SPECTRAL_PARAM is with the "
                          "convolutional weights initialized in the spectral "
                          "domain, please choose from: " + ",".join(
@@ -143,7 +143,7 @@ def define_net(input_size=32, batch_size=64, num_classes=10):
     # from cnns.pytorch_tutorials.memory_net_densenet import DenseNet
     # net = DenseNet()
     from cnns.pytorch_tutorials.memory_net_densenet import densenet121
-    net = densenet121()
+    net = densenet121(conv_type=conv_type)
     # net = Net()
     # from torchvision.models import resnet152
     # from cnns.pytorch_tutorials.memory_net_resnet import resnet152
