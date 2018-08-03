@@ -782,8 +782,6 @@ if __name__ == "__main__":
     is_data_augmentation = args.is_data_augmentation
     device = args.device
 
-    if device.
-
     log_file = get_log_time() + ".log"
 
     if mem_test:
