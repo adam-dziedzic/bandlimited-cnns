@@ -609,13 +609,13 @@ def get_optimizer(net, optimizer_type, weight_decay=0.0001, momentum=0.9,
     # Wrap model for multi-GPUs if available
     if torch.cuda.is_available() and torch.cuda.device_count() > 1:
         net = torch.nn.DataParallel(net).cuda()
+
+    optimizer = torch.optim.SGD(params=net.parameters(), lr=lr,
+                                momentum=momentum, nesterov=True,
+                                weight_decay=weight_decay)
     if optimizer_type is OptimizerType.ADAM:
         optimizer = optim.Adam(params=net.parameters(),
                                weight_decay=weight_decay)
-    elif optimizer_type in [OptimizerType.SGD or OptimizerType.MOMENTUM]:
-        optimizer = torch.optim.SGD(params=net.parameters(), lr=lr,
-                                    momentum=momentum, nesterov=True,
-                                    weight_decay=weight_decay)
 
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
                                                      milestones=[
