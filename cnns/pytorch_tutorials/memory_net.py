@@ -43,10 +43,10 @@ plt.switch_backend('agg')
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--iterations", default=1, type=int,
                     help="number of iterations for the training")
-parser.add_argument("-i", "--initbatchsize", default=64, type=int,
+parser.add_argument("-i", "--initbatchsize", default=256, type=int,
                     help="the initial size of the batch (number of data points "
                          "for a single forward and batch passes")
-parser.add_argument("-m", "--maxbatchsize", default=64, type=int,
+parser.add_argument("-m", "--maxbatchsize", default=256, type=int,
                     help="the max size of the batch (number of data points for "
                          "a single forward and batch passes")
 parser.add_argument("-s", "--startsize", default=32, type=int,
@@ -94,6 +94,21 @@ else:
 
 def get_log_time():
     return time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
+
+
+class LoadCifar10(torchvision.datasets.CIFAR10):
+
+    def __init__(self, root, train=True, transform=None, target_transform=None,
+                 download=False):
+        super(self, LoadCifar10).__init__(
+            root=root, train=train, transform=transform,
+            target_transform=target_transform, download=download)
+
+    def __len__(self):
+        if self.train:
+            return len(self.train_data)
+        else:
+            return len(self.test_data)
 
 
 def define_net(input_size=32, batch_size=64, num_classes=10):
@@ -282,6 +297,53 @@ class ScaleChannel2(object):
         return img[1, ...].expand(self.size, -1, -1)
 
 
+def data_transformations(input_size):
+    """
+    Data transformations, e.g., flip, normalize.
+
+    :param input_size: size of one of the sides of a square image
+    :return: a collection of train and test transformations in an array
+    """
+    if is_data_augmentation:
+        mean = (0.4914, 0.4822, 0.4465)
+        std = (0.2023, 0.1994, 0.2010)
+        if mem_test:
+            transform_train = transforms.Compose(
+                [
+                    # ScaleChannel(channel_size),  # this is a hack - to be able to scale the channel size
+                    # transforms.Scale(input_size),
+                    # scale the input image HxW to the required size
+                    # MeasureSizePIL(),
+                    transforms.ToTensor(),
+                    # ScaleChannel2(channel_size),
+                    transforms.Normalize(mean=mean, std=std),
+                    transforms.RandomHorizontalFlip()
+                    # MeasureSizeTensor(),
+                ])
+            transform_test = transforms.Compose(
+                [transforms.ToTensor(),
+                 transforms.Normalize(mean=mean, std=std)])
+        else:
+            # Data transforms: https://bit.ly/2MdSdLL
+            transform_train = transforms.Compose([
+                transforms.RandomCrop(input_size, padding=4),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=mean, std=std),
+            ])
+
+            transform_test = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize(mean=mean, std=std),
+            ])
+    else:
+        transform_train = transforms.Compose(
+            [transforms.ToTensor()])
+        transform_test = transforms.Compose(
+            [transforms.ToTensor()])
+    return transform_train, transform_test
+
+
 def load_data_CIFAR10(input_size=32, batch_size=64, num_workers=0,
                       channel_size=3):
     """
@@ -295,42 +357,11 @@ def load_data_CIFAR10(input_size=32, batch_size=64, num_workers=0,
     shuffle = True
     download = True
 
-    if is_data_augmentation:
-        if mem_test:
-            transform_train = transforms.Compose(
-                [
-                    # ScaleChannel(channel_size),  # this is a hack - to be able to scale the channel size
-                    # transforms.Scale(input_size),
-                    # scale the input image HxW to the required size
-                    # MeasureSizePIL(),
-                    transforms.ToTensor(),
-                    # ScaleChannel2(channel_size),
-                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                    transforms.RandomHorizontalFlip()
-                    # MeasureSizeTensor(),
-                ])
-        else:
-            # https://bit.ly/2MdSdLL
-            transform_train = transforms.Compose([
-                # transforms.RandomCrop(input_size, padding=4),
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                transforms.Normalize((0.4914, 0.4822, 0.4465),
-                                     (0.2023, 0.1994, 0.2010)),
-            ])
+    transform_train, transform_test = data_transformations(
+        input_size=input_size) if is_data_augmentation else [], []
 
-        transform_test = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465),
-                                 (0.2023, 0.1994, 0.2010)),
-        ])
-    else:
-        transform_test = transform_train = transforms.Compose(
-            [transforms.ToTensor()])
-
-    trainset = torchvision.datasets.CIFAR10(root=root, train=True,
-                                            download=download,
-                                            transform=transform_train)
+    trainset = LoadCifar10(root=root, train=True, download=download,
+                           transform=transform_train)
     print("The size of the train dataset: ", len(trainset.train_data))
     if limit_size > 0:
         print("Limit the train input size for debug purposes:")
@@ -342,9 +373,8 @@ def load_data_CIFAR10(input_size=32, batch_size=64, num_workers=0,
                                               shuffle=shuffle,
                                               num_workers=num_workers)
 
-    testset = torchvision.datasets.CIFAR10(root=root, train=False,
-                                           download=download,
-                                           transform=transform_test)
+    testset = LoadCifar10(root=root, train=False, download=download,
+                          transform=transform_test)
     print("The size of the test dataset: ", len(testset.test_data))
     if limit_size > 0:
         print("Limit the test input size for debug purposes:")
@@ -353,7 +383,7 @@ def load_data_CIFAR10(input_size=32, batch_size=64, num_workers=0,
         print("The size of the test dataset after limitation: ",
               len(testset.test_data))
     testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
-                                             shuffle=shuffle,
+                                             shuffle=False,
                                              num_workers=num_workers)
 
     classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse',
@@ -574,23 +604,32 @@ def test_network(net, testloader, classes, device):
     return final_accuracy
 
 
-def get_optimizer(net, optimizer_type, epoch):
-    if optimizer_type is OptimizerType.MOMENTUM:
-        lr = 0.1
-        if epoch > num_epochs * 0.5:
-            lr = 0.01
-        elif epoch > num_epochs * 0.75:
-            lr = 0.001
-        optimizer = optim.SGD(params=net.parameters(), lr=lr, momentum=0.9,
-                              weight_decay=0.0001, nesterov=True)
-    else:
-        optimizer = optim.Adam(params=net.parameters(), weight_decay=0.0001)
-    return optimizer
+def get_optimizer(net, optimizer_type, weight_decay=0.0001, momentum=0.9,
+                  lr=0.1):
+    # Wrap model for multi-GPUs if available
+    if torch.cuda.is_available() and torch.cuda.device_count() > 1:
+        net = torch.nn.DataParallel(net).cuda()
+    if optimizer_type is OptimizerType.ADAM:
+        optimizer = optim.Adam(params=net.parameters(),
+                               weight_decay=weight_decay)
+    elif optimizer_type is (OptimizerType.SGD or OptimizerType.MOMENTUM):
+        optimizer = torch.optim.SGD(params=net.parameters(), lr=lr,
+                                    momentum=momentum, nesterov=True,
+                                    weight_decay=weight_decay)
+
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
+                                                     milestones=[
+                                                         0.5 * num_epochs,
+                                                         0.75 * num_epochs],
+                                                     gamma=0.1)
+
+    return optimizer, scheduler
 
 
 def main():
-    input_size = 64
-    batch_size = 64
+    input_size = start_size  # cifar-10 images are 32 x 32 pixels
+    # adjust the batch size to fully utilize the gpu
+    batch_size = init_batch_size
     # if we are on a CUDA machine, then this should print a CUDA device
     # (otherwise it prints cpu):
     print("Currently used device: ", device)
@@ -605,9 +644,11 @@ def main():
     # Define a Loss function
     criterion = nn.CrossEntropyLoss()
 
+    optimizer, scheduler = get_optimizer(net, optimizer_type, epoch)
+
     total_time = 0.0
     for epoch in range(num_epochs):
-        optimizer = get_optimizer(net, optimizer_type, epoch)
+        scheduler.step(epoch)
         epoch_time, running_loss = train_network(
             net=net, optimizer=optimizer, criterion=criterion,
             trainloader=trainloader, device=device)
