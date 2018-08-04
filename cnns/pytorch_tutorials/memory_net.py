@@ -612,7 +612,7 @@ def get_optimizer(net, optimizer_type, weight_decay=0.0001, momentum=0.9,
     if optimizer_type is OptimizerType.ADAM:
         optimizer = optim.Adam(params=net.parameters(),
                                weight_decay=weight_decay)
-    elif optimizer_type is (OptimizerType.SGD or OptimizerType.MOMENTUM):
+    elif optimizer_type in [OptimizerType.SGD or OptimizerType.MOMENTUM]:
         optimizer = torch.optim.SGD(params=net.parameters(), lr=lr,
                                     momentum=momentum, nesterov=True,
                                     weight_decay=weight_decay)
