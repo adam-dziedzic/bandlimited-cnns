@@ -100,7 +100,7 @@ class LoadCifar10(torchvision.datasets.CIFAR10):
 
     def __init__(self, root, train=True, transform=None, target_transform=None,
                  download=False):
-        super(self, LoadCifar10).__init__(
+        super(LoadCifar10, self).__init__(
             root=root, train=train, transform=transform,
             target_transform=target_transform, download=download)
 
