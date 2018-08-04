@@ -358,7 +358,7 @@ def load_data_CIFAR10(input_size=32, batch_size=64, num_workers=0,
     download = True
 
     transform_train, transform_test = data_transformations(
-        input_size=input_size) if is_data_augmentation else [], []
+        input_size=input_size)
 
     trainset = LoadCifar10(root=root, train=True, download=download,
                            transform=transform_train)
@@ -623,7 +623,7 @@ def get_optimizer(net, optimizer_type, weight_decay=0.0001, momentum=0.9,
                                                          0.75 * num_epochs],
                                                      gamma=0.1)
 
-    return optimizer, scheduler
+    return optimizer, scheduler, net
 
 
 def main():
@@ -644,7 +644,7 @@ def main():
     # Define a Loss function
     criterion = nn.CrossEntropyLoss()
 
-    optimizer, scheduler = get_optimizer(net, optimizer_type)
+    optimizer, scheduler, net = get_optimizer(net, optimizer_type)
 
     total_time = 0.0
     for epoch in range(num_epochs):
