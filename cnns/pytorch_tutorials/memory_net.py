@@ -644,7 +644,7 @@ def main():
     # Define a Loss function
     criterion = nn.CrossEntropyLoss()
 
-    optimizer, scheduler = get_optimizer(net, optimizer_type, epoch)
+    optimizer, scheduler = get_optimizer(net, optimizer_type)
 
     total_time = 0.0
     for epoch in range(num_epochs):
