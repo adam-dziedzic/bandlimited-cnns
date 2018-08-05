@@ -459,7 +459,8 @@ def train_network_mem_test(net, trainloader, optimizer, criterion, batch_size,
 
             if net.input_channel != 3:
                 # print("input channel: ", net.input_channel)
-                # shrink to 1 layer and then expand to the required number of channels
+                # shrink to 1 layer and then expand to the required number of
+                # channels
                 # inputs = torch.tensor(inputs[:, 0:1, ...].expand(-1, net.input_channel, -1, -1))
                 # generate the random data of required image size and the number of channels
                 inputs = torch.randn(batch_size, net.input_channel,
@@ -468,7 +469,8 @@ def train_network_mem_test(net, trainloader, optimizer, criterion, batch_size,
 
             start_total = time.time()
 
-            # zero the parameter gradients before computing gradient for the new batch
+            # zero the parameter gradients before computing gradient for the
+            # new batch
             optimizer.zero_grad()
 
             # forward
@@ -494,7 +496,8 @@ def train_network_mem_test(net, trainloader, optimizer, criterion, batch_size,
 
             if i % iter_number_print == iter_number_print - 1:  # print every 1 mini-batch
                 print(
-                    '[%d, %5d],forward time,%f,backward_time,%f,optimizer_time,%f,total_time,%f,loss,%.3f,'
+                    '[%d, %5d],forward time,%f,backward_time,%f,'
+                    'optimizer_time,%f,total_time,%f,loss,%.3f,'
                     'input_size,%d,img_size,%d,batch_size,%d' %
                     (
                         epoch + 1, i + 1, aggregator(forward_time),
@@ -618,11 +621,14 @@ def get_optimizer(net, optimizer_type, weight_decay=0.0001, momentum=0.9,
         optimizer = optim.Adam(params=net.parameters(),
                                weight_decay=weight_decay)
 
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
-                                                     milestones=[
-                                                         0.5 * num_epochs,
-                                                         0.75 * num_epochs],
-                                                     gamma=0.1)
+    milestones = [
+        0.4 * num_epochs,
+        0.6 * num_epochs,
+        0.8 * num_epochs,
+        0.9 * num_epochs]
+
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(
+        optimizer, milestones=milestones, gamma=0.1)
 
     return optimizer, scheduler, net
 
@@ -826,7 +832,7 @@ if __name__ == "__main__":
 
     hostname = socket.gethostname()
 
-    log_file = get_log_time() + ".log"
+    log_file = get_log_time() + "-" + str(conv_type) + ".log"
     with open(log_file, "a") as file:
         file.write(
             "hostname," + str(hostname) + ",timestamp," + get_log_time() +

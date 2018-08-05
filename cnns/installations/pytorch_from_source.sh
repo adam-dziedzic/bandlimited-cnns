@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # first install the distributed version
-conda install pytorch torchvision cuda91 -c pytorch --yes
+conda install pytorch torchvision cuda90 -c pytorch --yes
 
 # install pytorch framework from the source code
 
