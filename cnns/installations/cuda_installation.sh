@@ -6,7 +6,7 @@
 # exit;
 # scp /home/${USER}/Downloads/chameleon/* cc@gpu:/home/cc/Downloads
 # ssh cc@gpu
-
+sudo apt-get update --yes
 sudo apt-get install build-essential gcc-multilib dkms --yes
 
 cd /home/${USER}/Downloads
