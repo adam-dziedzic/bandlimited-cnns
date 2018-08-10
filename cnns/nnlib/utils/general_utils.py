@@ -21,6 +21,7 @@ class EnumWithNames(Enum):
 class OptimizerType(EnumWithNames):
     MOMENTUM = 1
     ADAM = 2
+    SGD = 3
 
 
 class RunType(EnumWithNames):

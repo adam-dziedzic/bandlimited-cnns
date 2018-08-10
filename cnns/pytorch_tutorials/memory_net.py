@@ -25,6 +25,7 @@ import time
 import argparse
 import matplotlib.pyplot as plt
 import numpy as np
+import socket
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -42,10 +43,10 @@ plt.switch_backend('agg')
 parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--iterations", default=1, type=int,
                     help="number of iterations for the training")
-parser.add_argument("-i", "--initbatchsize", default=64, type=int,
+parser.add_argument("-i", "--initbatchsize", default=256, type=int,
                     help="the initial size of the batch (number of data points "
                          "for a single forward and batch passes")
-parser.add_argument("-m", "--maxbatchsize", default=64, type=int,
+parser.add_argument("-m", "--maxbatchsize", default=256, type=int,
                     help="the max size of the batch (number of data points for "
                          "a single forward and batch passes")
 parser.add_argument("-s", "--startsize", default=32, type=int,
@@ -93,6 +94,21 @@ else:
 
 def get_log_time():
     return time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
+
+
+class LoadCifar10(torchvision.datasets.CIFAR10):
+
+    def __init__(self, root, train=True, transform=None, target_transform=None,
+                 download=False):
+        super(LoadCifar10, self).__init__(
+            root=root, train=train, transform=transform,
+            target_transform=target_transform, download=download)
+
+    def __len__(self):
+        if self.train:
+            return len(self.train_data)
+        else:
+            return len(self.test_data)
 
 
 def define_net(input_size=32, batch_size=64, num_classes=10):
@@ -281,6 +297,53 @@ class ScaleChannel2(object):
         return img[1, ...].expand(self.size, -1, -1)
 
 
+def data_transformations(input_size):
+    """
+    Data transformations, e.g., flip, normalize.
+
+    :param input_size: size of one of the sides of a square image
+    :return: a collection of train and test transformations in an array
+    """
+    if is_data_augmentation:
+        mean = (0.4914, 0.4822, 0.4465)
+        std = (0.2023, 0.1994, 0.2010)
+        if mem_test:
+            transform_train = transforms.Compose(
+                [
+                    # ScaleChannel(channel_size),  # this is a hack - to be able to scale the channel size
+                    # transforms.Scale(input_size),
+                    # scale the input image HxW to the required size
+                    # MeasureSizePIL(),
+                    transforms.ToTensor(),
+                    # ScaleChannel2(channel_size),
+                    transforms.Normalize(mean=mean, std=std),
+                    transforms.RandomHorizontalFlip()
+                    # MeasureSizeTensor(),
+                ])
+            transform_test = transforms.Compose(
+                [transforms.ToTensor(),
+                 transforms.Normalize(mean=mean, std=std)])
+        else:
+            # Data transforms: https://bit.ly/2MdSdLL
+            transform_train = transforms.Compose([
+                transforms.RandomCrop(input_size, padding=4),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=mean, std=std),
+            ])
+
+            transform_test = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize(mean=mean, std=std),
+            ])
+    else:
+        transform_train = transforms.Compose(
+            [transforms.ToTensor()])
+        transform_test = transforms.Compose(
+            [transforms.ToTensor()])
+    return transform_train, transform_test
+
+
 def load_data_CIFAR10(input_size=32, batch_size=64, num_workers=0,
                       channel_size=3):
     """
@@ -294,42 +357,11 @@ def load_data_CIFAR10(input_size=32, batch_size=64, num_workers=0,
     shuffle = True
     download = True
 
-    if is_data_augmentation:
-        if mem_test:
-            transform_train = transforms.Compose(
-                [
-                    # ScaleChannel(channel_size),  # this is a hack - to be able to scale the channel size
-                    # transforms.Scale(input_size),
-                    # scale the input image HxW to the required size
-                    # MeasureSizePIL(),
-                    transforms.ToTensor(),
-                    # ScaleChannel2(channel_size),
-                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                    transforms.RandomHorizontalFlip()
-                    # MeasureSizeTensor(),
-                ])
-        else:
-            # https://bit.ly/2MdSdLL
-            transform_train = transforms.Compose([
-                # transforms.RandomCrop(input_size, padding=4),
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                transforms.Normalize((0.4914, 0.4822, 0.4465),
-                                     (0.2023, 0.1994, 0.2010)),
-            ])
+    transform_train, transform_test = data_transformations(
+        input_size=input_size)
 
-        transform_test = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465),
-                                 (0.2023, 0.1994, 0.2010)),
-        ])
-    else:
-        transform_test = transform_train = transforms.Compose(
-            [transforms.ToTensor()])
-
-    trainset = torchvision.datasets.CIFAR10(root=root, train=True,
-                                            download=download,
-                                            transform=transform_train)
+    trainset = LoadCifar10(root=root, train=True, download=download,
+                           transform=transform_train)
     print("The size of the train dataset: ", len(trainset.train_data))
     if limit_size > 0:
         print("Limit the train input size for debug purposes:")
@@ -341,9 +373,8 @@ def load_data_CIFAR10(input_size=32, batch_size=64, num_workers=0,
                                               shuffle=shuffle,
                                               num_workers=num_workers)
 
-    testset = torchvision.datasets.CIFAR10(root=root, train=False,
-                                           download=download,
-                                           transform=transform_test)
+    testset = LoadCifar10(root=root, train=False, download=download,
+                          transform=transform_test)
     print("The size of the test dataset: ", len(testset.test_data))
     if limit_size > 0:
         print("Limit the test input size for debug purposes:")
@@ -352,7 +383,7 @@ def load_data_CIFAR10(input_size=32, batch_size=64, num_workers=0,
         print("The size of the test dataset after limitation: ",
               len(testset.test_data))
     testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
-                                             shuffle=shuffle,
+                                             shuffle=False,
                                              num_workers=num_workers)
 
     classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse',
@@ -428,7 +459,8 @@ def train_network_mem_test(net, trainloader, optimizer, criterion, batch_size,
 
             if net.input_channel != 3:
                 # print("input channel: ", net.input_channel)
-                # shrink to 1 layer and then expand to the required number of channels
+                # shrink to 1 layer and then expand to the required number of
+                # channels
                 # inputs = torch.tensor(inputs[:, 0:1, ...].expand(-1, net.input_channel, -1, -1))
                 # generate the random data of required image size and the number of channels
                 inputs = torch.randn(batch_size, net.input_channel,
@@ -437,7 +469,8 @@ def train_network_mem_test(net, trainloader, optimizer, criterion, batch_size,
 
             start_total = time.time()
 
-            # zero the parameter gradients before computing gradient for the new batch
+            # zero the parameter gradients before computing gradient for the
+            # new batch
             optimizer.zero_grad()
 
             # forward
@@ -463,7 +496,8 @@ def train_network_mem_test(net, trainloader, optimizer, criterion, batch_size,
 
             if i % iter_number_print == iter_number_print - 1:  # print every 1 mini-batch
                 print(
-                    '[%d, %5d],forward time,%f,backward_time,%f,optimizer_time,%f,total_time,%f,loss,%.3f,'
+                    '[%d, %5d],forward time,%f,backward_time,%f,'
+                    'optimizer_time,%f,total_time,%f,loss,%.3f,'
                     'input_size,%d,img_size,%d,batch_size,%d' %
                     (
                         epoch + 1, i + 1, aggregator(forward_time),
@@ -557,6 +591,7 @@ def test_network(net, testloader, classes, device):
         with torch.no_grad():
             for data in testloader:
                 images, labels = data
+                images, labels = images.to(device), labels.to(device)
                 outputs = net(images)
                 _, predicted = torch.max(outputs, 1)
                 c = (predicted == labels).squeeze()
@@ -573,23 +608,35 @@ def test_network(net, testloader, classes, device):
     return final_accuracy
 
 
-def get_optimizer(net, optimizer_type, epoch):
-    if optimizer_type is OptimizerType.MOMENTUM:
-        lr = 0.1
-        if epoch > num_epochs * 0.5:
-            lr = 0.01
-        elif epoch > num_epochs * 0.75:
-            lr = 0.001
-        optimizer = optim.SGD(params=net.parameters(), lr=lr, momentum=0.9,
-                              weight_decay=0.0001, nesterov=True)
-    else:
-        optimizer = optim.Adam(params=net.parameters(), weight_decay=0.0001)
-    return optimizer
+def get_optimizer(net, optimizer_type, weight_decay=0.0001, momentum=0.9,
+                  lr=0.1):
+    # Wrap model for multi-GPUs if available
+    if torch.cuda.is_available() and torch.cuda.device_count() > 1:
+        net = torch.nn.DataParallel(net).cuda()
+
+    optimizer = torch.optim.SGD(params=net.parameters(), lr=lr,
+                                momentum=momentum, nesterov=True,
+                                weight_decay=weight_decay)
+    if optimizer_type is OptimizerType.ADAM:
+        optimizer = optim.Adam(params=net.parameters(),
+                               weight_decay=weight_decay)
+
+    milestones = [
+        0.4 * num_epochs,
+        0.6 * num_epochs,
+        0.8 * num_epochs,
+        0.9 * num_epochs]
+
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(
+        optimizer, milestones=milestones, gamma=0.1)
+
+    return optimizer, scheduler, net
 
 
 def main():
-    input_size = 64
-    batch_size = 64
+    input_size = start_size  # cifar-10 images are 32 x 32 pixels
+    # adjust the batch size to fully utilize the gpu
+    batch_size = init_batch_size
     # if we are on a CUDA machine, then this should print a CUDA device
     # (otherwise it prints cpu):
     print("Currently used device: ", device)
@@ -604,9 +651,11 @@ def main():
     # Define a Loss function
     criterion = nn.CrossEntropyLoss()
 
+    optimizer, scheduler, net = get_optimizer(net, optimizer_type)
+
     total_time = 0.0
     for epoch in range(num_epochs):
-        optimizer = get_optimizer(net, optimizer_type, epoch)
+        scheduler.step(epoch)
         epoch_time, running_loss = train_network(
             net=net, optimizer=optimizer, criterion=criterion,
             trainloader=trainloader, device=device)
@@ -777,11 +826,30 @@ if __name__ == "__main__":
     mem_test = args.mem_test
     num_epochs = args.num_epochs
     is_debug = args.is_debug
-    optimizer_type = args.optimizer_type
+    optimizer_type = OptimizerType[args.optimizer_type]
     is_data_augmentation = args.is_data_augmentation
     device = args.device
 
-    log_file = get_log_time() + ".log"
+    hostname = socket.gethostname()
+
+    log_file = get_log_time() + "-" + str(conv_type) + ".log"
+    with open(log_file, "a") as file:
+        file.write(
+            "hostname," + str(hostname) + ",timestamp," + get_log_time() +
+            ",iter_number_total," + str(
+                iter_number_total) + ",init_batch_size," + str(
+                init_batch_size) + ",max_batch_size," + str(
+                max_batch_size) + ",start_size," + str(
+                start_size) + ",end_size," + str(
+                end_size) + ",num_workers," + str(
+                num_workers) + ",limit_size," + str(
+                limit_size) + ",conv_type," +
+            conv_type.name + ",mem_test," + str(
+                mem_test) + ",num_epochs," + str(
+                num_epochs) + ",is_debug," + str(
+                is_debug) + ",optimizer_type," + optimizer_type.name +
+            ",is_data_augmentation," + str(
+                is_data_augmentation) + ",device," + str(device) + "\n")
 
     if mem_test:
         main_test()
