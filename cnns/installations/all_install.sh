@@ -15,7 +15,11 @@ code_path=/home/cc/code/time-series-ml/cnns/installations/
 
 bash ${code_path}cuda_installation.sh
 bash ${code_path}anaconda_installation.sh
+
 source ~/.bashrc
+
+sudo pip install typing
+
 bash ${code_path}pytorch_from_source.sh
 bash ${code_path}tensorflow_installation.sh
 
