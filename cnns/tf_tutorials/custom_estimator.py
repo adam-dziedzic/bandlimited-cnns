@@ -99,7 +99,7 @@ def main(argv):
     eval_result = classifier.evaluate(
         input_fn=lambda: iris_data.eval_input_fn(test_x, test_y, args.batch_size))
 
-    print('\nTest set accuracy: {accuracy:0.3f}\n'.format(**eval_result))
+    print('\nExperimentSpectralSpatial set accuracy: {accuracy:0.3f}\n'.format(**eval_result))
 
     # Generate predictions from the model
     expected = ['Setosa', 'Versicolor', 'Virginica']

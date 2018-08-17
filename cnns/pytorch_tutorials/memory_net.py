@@ -16,7 +16,7 @@ We will do the following steps in order:
 2. Define a Convolution Neural Network
 3. Define a loss function
 4. Train the network on the training data
-5. Test the network on the test data
+5. ExperimentSpectralSpatial the network on the test data
 """
 
 import sys
@@ -527,7 +527,7 @@ def imshow(img):
 
 def test_network(net, testloader, classes, device):
     """
-    Test the network on the testing set.
+    ExperimentSpectralSpatial the network on the testing set.
 
     We have trained the network over the training dataset.
     Check what the network has learnt.

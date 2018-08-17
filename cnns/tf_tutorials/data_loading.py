@@ -108,7 +108,7 @@ eval_result = est.evaluate(
                                              args.batch_size))
 # eval_result = est.evaluate(input_fn=lambda: iris_data.csv_input_fn(test_path, args.batch_size))
 
-print('\nTest set accuracy: {accuracy:0.3f}\n'.format(**eval_result))
+print('\nExperimentSpectralSpatial set accuracy: {accuracy:0.3f}\n'.format(**eval_result))
 
 print("Load the cifar-10 dataset")
 (x_train, y_train), (

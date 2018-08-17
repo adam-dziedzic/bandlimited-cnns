@@ -247,7 +247,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # Store the result in the out variable.                               #
         #######################################################################
 
-        # Test time batch norm using learned gamma/beta and calculated running mean/var.
+        # ExperimentSpectralSpatial time batch norm using learned gamma/beta and calculated running mean/var.
         out = (gamma / (np.sqrt(running_var + eps)) * x) + (beta - (gamma * running_mean) / np.sqrt(running_var + eps))
 
         #######################################################################
@@ -427,7 +427,7 @@ def dropout_forward(x, dropout_param):
         # TODO: Implement the test phase forward pass for inverted dropout.   #
         #######################################################################
 
-        # Test time we don't drop anything so just pass input through, also scaling was done during training.
+        # ExperimentSpectralSpatial time we don't drop anything so just pass input through, also scaling was done during training.
         out = x
 
         #######################################################################

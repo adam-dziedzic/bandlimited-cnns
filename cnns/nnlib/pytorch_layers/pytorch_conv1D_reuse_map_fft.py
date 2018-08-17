@@ -3,9 +3,9 @@ Custom FFT based convolution that can rely on the autograd
 (a tape-based automatic differentiation library that supports
 all differentiable Tensor operations in pytorch).
 """
+import logging
 import sys
 
-import logging
 import numpy as np
 import torch
 from torch import tensor
@@ -13,6 +13,7 @@ from torch.nn import Module
 from torch.nn.functional import pad as torch_pad
 from torch.nn.parameter import Parameter
 
+from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_fft_signals
 from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_signals
 from cnns.nnlib.pytorch_layers.pytorch_utils import flip
 from cnns.nnlib.pytorch_layers.pytorch_utils import next_power2
@@ -28,9 +29,11 @@ current_file_name = __file__.split("/")[-1].split(".")[0]
 def to_tensor(value):
     """
     Transform from None to -1 or retain the initial value
-    for transition as a tensor.
+    for transition from a value or None to a tensor.
+
     :param value: a value to be changed to a tensor
-    :return: a tensor representing the value, -1 represents None
+    :return: a tensor representing the value, tensor with value -1 represents
+    the None input
     """
     if value:
         return tensor([value])
@@ -39,10 +42,12 @@ def to_tensor(value):
 
 def from_tensor(tensor_item):
     """
-    Transform from tensor to a single numerical value.
+    Transform from tensor to a single numerical value or None (a tensor with
+    value -1 is transformed to None).
 
     :param tensor_item: tensor with a single value
-    :return: a single numerical value extracted from the tensor
+    :return: a single numerical value extracted from the tensor or None if the
+    value is -1
     """
     value = tensor_item.item()
     if value == -1:
@@ -71,21 +76,37 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         PyTorchConv1dAutograd class.
         :return: the result of convolution
         """
+        # N - number of input maps, C - number of input channels, W - width of
+        # the input, the length of the time-series
         N, C, W = input.size()
+
+        # F - number of filters, C - number of channels in each filter, WW - the
+        # width of the filter (its length).
         F, C, WW = filter.size()
+
+        if padding is None:
+            padding_count = 0
+        else:
+            padding_count = padding
+
         # we have to pad input with WW - 1 to execute fft correctly (no
         # overlapping signals) and optimize it by extending the signal to the
         # next power of 2
-        fftsize = next_power2(W + 2*padding + WW - 1)
-        fft_padding = fftsize - 2*padding - W
-        # pad only the dimensions for the time-series
+        fftsize = next_power2(W + 2 * padding_count + WW - 1)
+
+        # how many padded (zero) values are because of going to the next power
+        # of 2
+        fft_padding = fftsize - 2 * padding_count - W
+
+        # pad only the dimensions for the time-series - the width dimension
         # (and neither data points nor the channels)
-        padded_x = input
-        out_W = W - WW + 1
-        if padding is not None:
-            padded_x = torch_pad(input, (padding, padding + fft_padding),
-                                 'constant', 0)
-            out_W += 2 * padding
+
+        padded_x = torch_pad(input,
+                             (padding_count, padding_count + fft_padding),
+                             'constant', 0)
+
+        out_W = W - WW + 1  # the length of the output
+        out_W += 2 * padding_count
 
         if out_size is not None:
             out_W = out_size
@@ -95,14 +116,11 @@ class PyTorchConv1dFunction(torch.autograd.Function):
                 sys.exit(1)
             index_back = len(input) - out_W
 
-        out = torch.zeros([N, F, out_W], dtype=input.dtype,
-                          device=input.device)
+        out = torch.zeros([N, F, out_W], dtype=input.dtype, device=input.device)
 
         # fft of the input and filters
         input_fft = torch.rfft(input, signal_ndim=signal_ndim, onesided=True)
         filter_fft = torch.rfft(filter, signal_ndim=signal_ndim, onesided=True)
-
-
 
         for nn in range(N):  # For each time-series in the batch
             for ff in range(F):  # For each filter
@@ -254,9 +272,10 @@ class PyTorchConv1dAutograd(Module):
         pooling.
         :param filter_width: the width of the filter
 
-        Regarding, the stride parameter: the number of pixels between
+        Regarding the stride parameter: the number of pixels between
         adjacent receptive fields in the horizontal and vertical
-        directions, it is 1 for the FFT based convolution.
+        directions, it has to be 1 for the FFT based convolution (at least for
+        now, I did not think how to express convolution with strides via FFT).
         """
         super(PyTorchConv1dAutograd, self).__init__()
         if filter is None:
@@ -358,10 +377,10 @@ class PyTorchConv1d(PyTorchConv1dAutograd):
 
     def forward(self, input):
         """
-        This is the manual implementation of the forward and
-        backward passes via the Function.
+        This is the fully manual implementation of the forward and backward
+        passes via the torch.autograd.Function.
 
-        :param input: the input map (image)
+        :param input: the input map (e.g., an image)
         :return: the result of 1D convolution
         """
         return PyTorchConv1dFunction.apply(input, self.filter,

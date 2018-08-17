@@ -174,8 +174,8 @@ def get_full_energy(x):
     # discards second half of the signal
     squared = torch.add(torch.pow(x.narrow(-1, 0, 1), 2),
                         torch.pow(x.narrow(-1, 1, 1), 2)).squeeze()
-    full_energy = torch.sum(
-        squared).item()  # sum of squared values of the signal
+    # sum of squared values of the signal
+    full_energy = torch.sum(squared).item()
     return full_energy, squared
 
 
