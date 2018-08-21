@@ -538,7 +538,7 @@ def correlate_fft_signals(xfft, yfft, fft_size, out_size, input_size,
 
     freq_mul = complex_mul(xfft, pytorch_conjugate(yfft))
     out = torch.irfft(
-        input=freq_mul, signal_ndim=signal_ndim, signal_sizes=(input_size,))
+        input=freq_mul, signal_ndim=signal_ndim, signal_sizes=(fft_size,))
 
     # plot_signal(out, "out after ifft")
     out = out[..., :out_size]

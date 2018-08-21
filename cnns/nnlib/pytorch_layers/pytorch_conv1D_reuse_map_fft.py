@@ -3,9 +3,9 @@ Custom FFT based convolution that can rely on the autograd
 (a tape-based automatic differentiation library that supports
 all differentiable Tensor operations in pytorch).
 """
-import logging
 import sys
 
+import logging
 import numpy as np
 import torch
 from torch import tensor
@@ -95,20 +95,24 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         # We have to pad input with WW - 1 to execute fft correctly (no
         # overlapping signals) and optimize it by extending the signal to the
         # next power of 2.
-        fftsize = next_power2(W + 2 * padding_count + WW - 1)
+        fft_size = next_power2(W + 2 * padding_count + WW - 1)
 
         # How many padded (zero) values there are because of going to the next
         # power of 2?
-        fft_padding = fftsize - 2 * padding_count - W
+        fft_padding_x = fft_size - 2 * padding_count - W
 
         # Pad only the dimensions for the time-series - the width dimension
         # (and neither data points nor the channels).
 
         padded_x = torch_pad(input,
-                             (padding_count, padding_count + fft_padding),
+                             (padding_count, padding_count + fft_padding_x),
                              'constant', 0)
 
-        out_W = W - WW + 1  # the length of the output
+        fft_padding_filter = fft_size - WW
+        padded_filter = torch_pad(filter, (0, fft_padding_filter), 'constant',
+                                  0)
+
+        out_W = W - WW + 1  # the length of the output (without padding)
         out_W += 2 * padding_count
 
         if out_size is not None:
@@ -122,8 +126,9 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         out = torch.zeros([N, F, out_W], dtype=input.dtype, device=input.device)
 
         # fft of the input and filters
-        input_fft = torch.rfft(input, signal_ndim=signal_ndim, onesided=True)
-        filter_fft = torch.rfft(filter, signal_ndim=signal_ndim, onesided=True)
+        input_fft = torch.rfft(padded_x, signal_ndim=signal_ndim, onesided=True)
+        filter_fft = torch.rfft(padded_filter, signal_ndim=signal_ndim,
+                                onesided=True)
 
         # Complex numbers are represented as the pair of numbers in the last
         # dimension so we have to narrow the length of the last but one
@@ -133,17 +138,17 @@ class PyTorchConv1dFunction(torch.autograd.Function):
 
         for nn in range(N):  # For each time-series in the batch
             out[nn] = correlate_fft_signals(
-                xfft=xfft[nn], yfft=yfft,
-                fftsize, out_size=out_W, )
+                xfft=xfft[nn].unsqueeze(0), yfft=yfft, fft_size=fft_size,
+                out_size=out_W, input_size=W)
             # add the bias term for a given filter
-            out[nn, ff] += bias[ff]
+            out[nn] += bias
 
         if ctx:
             ctx.save_for_backward(
                 input, filter, bias, to_tensor(padding),
                 to_tensor(preserve_energy_rate),
                 to_tensor(index_back),
-                to_tensor(out_size), to_tensor(fftsize))
+                to_tensor(out_size), to_tensor(fft_size))
 
         return out
 
