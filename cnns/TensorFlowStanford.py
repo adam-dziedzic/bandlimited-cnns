@@ -52,8 +52,8 @@ def check_CIFAR10_data():
     print('Train labels shape: ', y_train.shape)
     print('Validation data shape: ', X_val.shape)
     print('Validation labels shape: ', y_val.shape)
-    print('Test data shape: ', X_test.shape)
-    print('Test labels shape: ', y_test.shape)
+    print('ExperimentSpectralSpatial data shape: ', X_test.shape)
+    print('ExperimentSpectralSpatial labels shape: ', y_test.shape)
 
 # clear old variables
 tf.reset_default_graph()

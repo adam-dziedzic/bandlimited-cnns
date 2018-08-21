@@ -87,7 +87,7 @@ print('db error: ', rel_error(db_num, db))
 
 
 """
-Test the naive convolution.
+ExperimentSpectralSpatial the naive convolution.
 """
 
 out_naive, cache = conv_relu_pool_forward_naive_1D(x, w, b, conv_param, pool_param)
@@ -110,7 +110,7 @@ print('dw error: ', rel_error(dw_num, dw))
 print('db error: ', rel_error(db_num, db))
 
 """
-Test the numpy convolution
+ExperimentSpectralSpatial the numpy convolution
 """
 out_numpy, cache = conv_relu_pool_forward_numpy_1D(x, w, b, conv_param, pool_param)
 # print("out numpy: ", out_numpy)

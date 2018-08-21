@@ -48,7 +48,7 @@ We will do the following steps in order:
 2. Define a Convolution Neural Network
 3. Define a loss function
 4. Train the network on the training data
-5. Test the network on the test data
+5. ExperimentSpectralSpatial the network on the test data
 
 1. Loading and normalizing CIFAR10
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -180,7 +180,7 @@ for epoch in range(2):  # loop over the dataset multiple times
 print('Finished Training')
 
 ########################################################################
-# 5. Test the network on the test data
+# 5. ExperimentSpectralSpatial the network on the test data
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # We have trained the network for 2 passes over the training dataset.

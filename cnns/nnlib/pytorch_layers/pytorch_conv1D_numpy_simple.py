@@ -23,9 +23,11 @@ class NumpyConv1dFunction(Function):
         input, filter, bias = ctx.saved_tensors
         grad_output = grad_output.numpy()
         grad_bias = np.sum(grad_output, keepdims=True)
-        grad_input = np.correlate(grad_output, flip(filter.numpy(), axis=0), mode='full')
+        grad_input = np.correlate(grad_output, flip(filter.numpy(), axis=0),
+                                  mode='full')
         grad_filter = np.correlate(input.numpy(), grad_output, mode='valid')
-        return torch.from_numpy(grad_input), torch.from_numpy(grad_filter), torch.from_numpy(grad_bias)
+        return torch.from_numpy(grad_input), torch.from_numpy(
+            grad_filter), torch.from_numpy(grad_bias)
 
 
 class NumpyConv1d(Module):

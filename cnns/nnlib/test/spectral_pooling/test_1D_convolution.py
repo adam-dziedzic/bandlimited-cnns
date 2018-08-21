@@ -37,7 +37,7 @@ dout = np.random.randn(nr_data, nr_filters, out_pool)
 # print("dout: ", dout)
 
 """
-Test the numpy convolution
+ExperimentSpectralSpatial the numpy convolution
 """
 out_numpy, cache = conv_relu_pool_forward_numpy_1D(x, w, b, conv_param, pool_param)
 # print("out numpy: ", out_numpy)

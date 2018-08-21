@@ -174,8 +174,8 @@ def get_full_energy(x):
     # discards second half of the signal
     squared = torch.add(torch.pow(x.narrow(-1, 0, 1), 2),
                         torch.pow(x.narrow(-1, 1, 1), 2)).squeeze()
-    full_energy = torch.sum(
-        squared).item()  # sum of squared values of the signal
+    # sum of squared values of the signal
+    full_energy = torch.sum(squared).item()
     return full_energy, squared
 
 
@@ -385,8 +385,8 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None,
     return out
 
 
-def correlate_fft_signals(x, y, fft_size, out_size, preserve_energy_rate=None,
-                          index_back=None, signal_ndim=1):
+def correlate_fft_signals(xfft, yfft, fft_size, out_size, input_size,
+                          signal_ndim=1):
     """
     Similar to 'correlate_signal' function but the signals are provided in the
     frequency domain (after fft) for the reuse of the maps.
@@ -405,107 +405,146 @@ def correlate_fft_signals(x, y, fft_size, out_size, preserve_energy_rate=None,
     \end{align}
     $$
 
-    :param x: input fft-ed signal
-    :param y: fft-ed filter
+    :param xfft: input signal after fft
+    :param yfft: filter after fft
     :param fft_size: the size of the signal in the frequency domain
     :param out_size: required output len (size)
-    :param preserve_energy_rate: compressed to this energy rate
-    :param index_back: how many coefficients to remove
-    :param signal_ndim: what is the dimension of the input data
-    :return: output signal after correlation of signals x and y
+    :return: output signal after correlation of signals xfft and yfft
 
-    >>> x = tensor([[[1.0,2.0,3.0,4.0], [1.0,2.0,3.0,4.0]]])
+    # complex_mul only broadcasts the input if we provide all filters
+    # but staying on this level is probably more performant than the other
+    # approach (with full broadcast of the input and output) since we use less
+    # memory.
+    # >>> x = tensor([[[1.0,2.0,3.0,4.0], [1.0,3.0,3.0,2.0]],
+    # ... [[2.0,1.0,3.0,5.0], [1.0,2.0,5.0,1.0]]])
+    # >>> # two filters
+    # >>> y = tensor([[[1.0,3.0], [0.0,3.0]], [[1.0,1.0], [2.0,2.0]]])
+    # >>> fft_size = x.shape[-1]
+    # >>> y_padded = torch_pad(y, (0, fft_size - y.shape[-1]), 'constant', 0.0)
+    # >>> signal_ndim = 1
+    # >>> onesided = True
+    # >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
+    # >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
+    # >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft,
+    # ... fft_size=x.shape[-1], out_size=(x.shape[-1]-y.shape[-1] + 1),
+    # ... input_size=x.shape[-1])
+    # >>> # print("result: ", result)
+    # >>> np.testing.assert_array_almost_equal(result,
+    # ... np.array([[[16.0, 20.0, 21.0], [11.0, 17.0, 17.0]],
+    # ... [[11.0, 25.0, 21.0], [9.0, 18.0, 20.0]]]))
+
+    >>> x = tensor([[[2.0,1.0,3.0,5.0], [1.0,2.0,5.0,1.0]]])
     >>> # two filters
-    >>> y = tensor([[[1.0,3.0], [1.0,3.0]], [[1.0,3.0], [1.0,3.0]]])
-    >>> result = correlate_signals(x=x, y=y, fft_size=x.shape[-1],
-    ... out_size=(x.shape[-1]-y.shape[-1] + 1))
+    >>> y = tensor([[[1.0,3.0], [0.0,3.0]], [[1.0,1.0], [2.0,2.0]]])
+    >>> fft_size = x.shape[-1]
+    >>> y_padded = torch_pad(y, (0, fft_size - y.shape[-1]), 'constant', 0.0)
+    >>> signal_ndim = 1
+    >>> onesided = True
+    >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
+    >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
+    >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft,
+    ... fft_size=x.shape[-1], out_size=(x.shape[-1]-y.shape[-1] + 1),
+    ... input_size=x.shape[-1])
+    >>> # print("result: ", result)
     >>> np.testing.assert_array_almost_equal(result,
-    ... np.array([[[7.0, 11.0, 15.0], [7.0, 11.0, 15.0]]]))
+    ... np.array([[[11.0, 25.0, 21.0], [9.0, 18.0, 20.0]]]))
 
+    >>> x = tensor([[[1.0,2.0,3.0,4.0], [1.0,3.0,3.0,2.0]]])
+    >>> # two filters
+    >>> y = tensor([[[1.0,3.0], [0.0,3.0]], [[1.0,1.0], [2.0,2.0]]])
+    >>> fft_size = x.shape[-1]
+    >>> y_padded = torch_pad(y, (0, fft_size - y.shape[-1]), 'constant', 0.0)
+    >>> signal_ndim = 1
+    >>> onesided = True
+    >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
+    >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
+    >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft,
+    ... fft_size=x.shape[-1], out_size=(x.shape[-1]-y.shape[-1] + 1),
+    ... input_size=x.shape[-1])
+    >>> # print("result: ", result)
+    >>> np.testing.assert_array_almost_equal(result,
+    ... np.array([[[16.0, 20.0, 21.0], [11.0, 17.0, 17.0]]]))
+
+    >>> # 1 signal in the batch, 2 channels, signal of length 3
     >>> x = tensor([[[1.0,2.0,3.0,4.0], [1.0,2.0,3.0,4.0]]])
     >>> y = tensor([[[1.0,3.0], [1.0,3.0]]])
-    >>> result = correlate_signals(x=x, y=y, fft_size=x.shape[-1],
-    ... out_size=(x.shape[-1]-y.shape[-1] + 1))
+    >>> fft_size = x.shape[-1]
+    >>> y_padded = torch_pad(y, (0, fft_size - y.shape[-1]), 'constant', 0.0)
+    >>> signal_ndim = 1
+    >>> onesided = True
+    >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
+    >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
+    >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft,
+    ... fft_size=x.shape[-1], out_size=(x.shape[-1]-y.shape[-1] + 1),
+    ... input_size=x.shape[-1])
     >>> np.testing.assert_array_almost_equal(result,
-    ... np.array([[[7.0, 11.0, 15.0], [7.0, 11.0, 15.0]]]))
+    ... np.array([[[14.0, 22.0, 30.0]]]))
 
     >>> x = tensor([1.0,2.0,3.0,4.0])
     >>> y = tensor([1.0,3.0])
-    >>> result = correlate_signals(x=x, y=y, fft_size=len(x),
-    ... out_size=(len(x)-len(y) + 1))
+    >>> fft_size = x.shape[-1]
+    >>> y_padded = torch_pad(y, (0, fft_size - y.shape[-1]), 'constant', 0.0)
+    >>> signal_ndim = 1
+    >>> onesided = True
+    >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
+    >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
+    >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft, fft_size=len(x),
+    ... out_size=(len(x)-len(y) + 1), input_size=len(x))
     >>> np.testing.assert_array_almost_equal(result,
     ... np.array([7.0, 11.0, 15.0]))
 
-    >>> x = tensor([1.0,2.0,3.0,4.0])
-    >>> y = tensor([1.0,3.0])
-    >>> result = correlate_signals(x=x, y=y, fft_size=len(x), out_size=(len(x)-len(y) + 1))
-    >>> expected_result = np.correlate(x, y, mode='valid')
-    >>> np.testing.assert_array_almost_equal(result, expected_result)
-
     >>> x = torch.from_numpy(np.random.rand(10))
     >>> y = torch.from_numpy(np.random.rand(3))
-    >>> result = correlate_signals(x=x, y=y, fft_size=len(x), out_size=(len(x)-len(y) + 1))
+    >>> fft_size = x.shape[-1]
+    >>> y_padded = torch_pad(y, (0, fft_size - y.shape[-1]), 'constant', 0.0)
+    >>> # print("y_padded: ", y_padded)
+    >>> signal_ndim = 1
+    >>> onesided = True
+    >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
+    >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
+    >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft, fft_size=len(x),
+    ... out_size=(len(x)-len(y) + 1), input_size=len(x))
     >>> expected_result = np.correlate(x, y, mode='valid')
     >>> np.testing.assert_array_almost_equal(result, expected_result)
 
     >>> x = torch.from_numpy(np.random.rand(100))
     >>> y = torch.from_numpy(np.random.rand(11))
-    >>> result = correlate_signals(x=x, y=y, fft_size=len(x), out_size=(len(x)-len(y) + 1))
+    >>> fft_size = x.shape[-1]
+    >>> y_padded = torch_pad(y, (0, fft_size - y.shape[-1]), 'constant', 0.0)
+    >>> # print("y_padded: ", y_padded)
+    >>> signal_ndim = 1
+    >>> onesided = True
+    >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
+    >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
+    >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft, fft_size=len(x),
+    ... out_size=(len(x)-len(y) + 1), input_size=len(x))
     >>> expected_result = np.correlate(x, y, mode='valid')
     >>> np.testing.assert_array_almost_equal(result, expected_result)
     """
-    # pad the signals to the fft size
-    x = torch_pad(x, (0, fft_size - x.shape[-1]), 'constant', 0.0)
-    y = torch_pad(y, (0, fft_size - y.shape[-1]), 'constant', 0.0)
-    # onesided=True: only the frequency coefficients to the Nyquist
-    # frequency are retained (about half the length of the
-    # input signal) so the original signal can be still exactly
-    # reconstructed from the frequency samples.
-    xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=True)
-    yfft = torch.rfft(y, signal_ndim=signal_ndim, onesided=True)
-    if preserve_energy_rate is not None or index_back is not None:
-        index_xfft = preserve_energy_index(xfft, preserve_energy_rate,
-                                           index_back)
-        index_yfft = preserve_energy_index(yfft, preserve_energy_rate,
-                                           index_back)
-        index = max(index_xfft, index_yfft)
-        # with open(log_file, "a+") as f:
-        #     f.write("index: " + str(index_back) +
-        # ";preserved energy input: " + str(
-        #         compute_energy(xfft[:index]) / compute_energy(
-        # xfft[:fft_size // 2 + 1])) +
-        #             ";preserved energy filter: " + str(
-        #         compute_energy(yfft[:index]) / compute_energy(
-        # yfft[:fft_size // 2 + 1])) + "\n")
-
-        # complex numbers are represented as the pair of numbers in
-        # the last dimension so we have to narrow the length
-        # of the last but one dimension
-        xfft = xfft.narrow(dim=-2, start=0, length=index)
-        yfft = yfft.narrow(dim=-2, start=0, length=index)
-        # print("the signal size after compression: ", index)
-
-        # we need to pad complex numbers expressed as a pair of real
-        # numbers in the last dimension
-        # xfft = torch_pad(input=xfft, pad=(0, fft_size - index),
-        # mode='constant', value=0)
-        # yfft = torch_pad(input=yfft, pad=(0, fft_size - index),
-        # mode='constant', value=0)
-        pad_shape = tensor(xfft.shape)
-        # xfft has at least two dimension (with the last one being a
-        # dimension for a pair of real number representing a complex
-        # number.
-        pad_shape[-2] = (fft_size // 2 + 1) - index
+    pad_shape = tensor(xfft.shape)
+    # xfft has at least two dimensions (with the last one being a
+    # dimension for a pair of real numbers representing a complex
+    # number).
+    half_fft = (fft_size // 2 + 1)  # because of pytorch half-sized fft
+    # omit the last dimension for complex numbers
+    current_length = xfft.shape[-2]
+    if current_length < half_fft:
+        pad_shape[-2] = half_fft - current_length
+        # print("pad shape: ", pad_shape)
         complex_pad = torch.zeros(*pad_shape, dtype=xfft.dtype,
                                   device=xfft.device)
         xfft = torch.cat((xfft, complex_pad), dim=-2)
         yfft = torch.cat((yfft, complex_pad), dim=-2)
+
+    freq_mul = complex_mul(xfft, pytorch_conjugate(yfft))
     out = torch.irfft(
-        input=complex_mul(xfft, pytorch_conjugate(yfft)),
-        signal_ndim=signal_ndim, signal_sizes=(x.shape[-1],))
+        input=freq_mul, signal_ndim=signal_ndim, signal_sizes=(input_size,))
 
     # plot_signal(out, "out after ifft")
     out = out[..., :out_size]
+    if out.dim() > 1:
+        out = torch.sum(input=out, dim=-2)
+        out = torch.unsqueeze(input=out, dim=0)  # unsqueeze the channels
     # plot_signal(out, "after truncating to xlen: " + str(x_len))
     return out
 

@@ -128,7 +128,7 @@ for (x, y) in test_dataset:
     print("prediction, true label: ", prediction, y)
     test_accuracy(prediction, y)
 
-print("Test set accuracy: {:.3%}".format(test_accuracy.result()))
+print("ExperimentSpectralSpatial set accuracy: {:.3%}".format(test_accuracy.result()))
 
 class_ids = ["Iris setosa", "Iris versicolor", "Iris virginica"]
 
