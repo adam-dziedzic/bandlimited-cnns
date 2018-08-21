@@ -68,20 +68,23 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         """
         Compute the forward pass for the 1D convolution.
 
-        :param ctx: context to save intermediate results, it other
+        :param ctx: context to save intermediate results, in other
         words, a context object that can be used to stash information
         for backward computation
         :param input: the input map to the convolution
         The other parameters are the same as in the
         PyTorchConv1dAutograd class.
+
         :return: the result of convolution
         """
-        # N - number of input maps, C - number of input channels, W - width of
-        # the input, the length of the time-series
+        # N - number of input maps (or images in the batch),
+        # C - number of input channels,
+        # W - width of the input (the length of the time-series).
         N, C, W = input.size()
 
-        # F - number of filters, C - number of channels in each filter, WW - the
-        # width of the filter (its length).
+        # F - number of filters,
+        # C - number of channels in each filter,
+        # WW - the width of the filter (its length).
         F, C, WW = filter.size()
 
         if padding is None:
@@ -89,17 +92,17 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         else:
             padding_count = padding
 
-        # we have to pad input with WW - 1 to execute fft correctly (no
+        # We have to pad input with WW - 1 to execute fft correctly (no
         # overlapping signals) and optimize it by extending the signal to the
-        # next power of 2
+        # next power of 2.
         fftsize = next_power2(W + 2 * padding_count + WW - 1)
 
-        # how many padded (zero) values are because of going to the next power
-        # of 2
+        # How many padded (zero) values there are because of going to the next
+        # power of 2?
         fft_padding = fftsize - 2 * padding_count - W
 
-        # pad only the dimensions for the time-series - the width dimension
-        # (and neither data points nor the channels)
+        # Pad only the dimensions for the time-series - the width dimension
+        # (and neither data points nor the channels).
 
         padded_x = torch_pad(input,
                              (padding_count, padding_count + fft_padding),
@@ -122,17 +125,18 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         input_fft = torch.rfft(input, signal_ndim=signal_ndim, onesided=True)
         filter_fft = torch.rfft(filter, signal_ndim=signal_ndim, onesided=True)
 
+        # Complex numbers are represented as the pair of numbers in the last
+        # dimension so we have to narrow the length of the last but one
+        # dimension.
+        xfft = input_fft.narrow(dim=-2, start=0, length=out_W)
+        yfft = filter_fft.narrow(dim=-2, start=0, length=out_W)
+
         for nn in range(N):  # For each time-series in the batch
-            for ff in range(F):  # For each filter
-                for cc in range(C):  # For each channel (depth)
-                    out[nn, ff] += \
-                        correlate_fft_signals(
-                            padded_x[nn, cc], filter[ff, cc],
-                            fftsize, out_size=out_W,
-                            preserve_energy_rate=preserve_energy_rate,
-                            index_back=index_back)
-                # add the bias term for a given filter
-                out[nn, ff] += bias[ff]
+            out[nn] = correlate_fft_signals(
+                xfft=xfft[nn], yfft=yfft,
+                fftsize, out_size=out_W, )
+            # add the bias term for a given filter
+            out[nn, ff] += bias[ff]
 
         if ctx:
             ctx.save_for_backward(
@@ -327,19 +331,19 @@ class PyTorchConv1dAutograd(Module):
          using-fourier-transforms-to-do-convolution?utm_medium=orga
          nic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
 
-        >>> # test with compression
-        >>> x = np.array([[[1., 2., 3.]]])
-        >>> y = np.array([[[2., 1.]]])
-        >>> b = np.array([0.0])
-        >>> conv_param = {'pad' : 0, 'stride' :1,
-        ... 'preserve_energy_rate' :0.9}
-        >>> expected_result = [3.5, 7.5]
-        >>> conv = PyTorchConv1dAutograd(filter=torch.from_numpy(y),
-        ... bias=torch.from_numpy(b),
-        ... preserve_energy_rate=conv_param['preserve_energy_rate'])
-        >>> result = conv.forward(input=torch.from_numpy(x))
-        >>> np.testing.assert_array_almost_equal(result,
-        ... np.array([[expected_result]]))
+        # >>> # test with compression
+        # >>> x = np.array([[[1., 2., 3.]]])
+        # >>> y = np.array([[[2., 1.]]])
+        # >>> b = np.array([0.0])
+        # >>> conv_param = {'pad' : 0, 'stride' :1,
+        # ... 'preserve_energy_rate' :0.9}
+        # >>> expected_result = [3.5, 7.5]
+        # >>> conv = PyTorchConv1dAutograd(filter=torch.from_numpy(y),
+        # ... bias=torch.from_numpy(b),
+        # ... preserve_energy_rate=conv_param['preserve_energy_rate'])
+        # >>> result = conv.forward(input=torch.from_numpy(x))
+        # >>> np.testing.assert_array_almost_equal(result,
+        # ... np.array([[expected_result]]))
 
         >>> # test without compression
         >>> x = np.array([[[1., 2., 3.]]])
