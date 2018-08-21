@@ -58,4 +58,8 @@ fi
 
 python setup.py install
 
+python -c "import torch; print('torch version: ', torch.__version__)"
+python -c "import torch; print('cuda version: ', torch.version.cuda)"
+
+
 
