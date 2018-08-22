@@ -9,7 +9,6 @@ import sys
 import numpy as np
 import torch
 from torch import tensor
-from torch.nn import Module
 from torch.nn.functional import pad as torch_pad
 from torch.nn.parameter import Parameter
 
@@ -28,6 +27,9 @@ current_file_name = __file__.split("/")[-1].split(".")[0]
 
 def to_tensor(value):
     """
+    `to_tensor` and `from_tensor` methods are used to transfer intermediate
+    results between forward and backward pass of the convolution.
+
     Transform from None to -1 or retain the initial value
     for transition from a value or None to a tensor.
 
@@ -42,6 +44,9 @@ def to_tensor(value):
 
 def from_tensor(tensor_item):
     """
+    `to_tensor` and `from_tensor` methods are used to transfer intermediate
+    results between forward and backward pass of the convolution.
+
     Transform from tensor to a single numerical value or None (a tensor with
     value -1 is transformed to None).
 
@@ -97,19 +102,27 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         # WW - the width of the filter (its length).
         F, C, WW = filter.size()
 
+        out_W = W - WW + 1  # the length of the output (without padding)
+
         if padding is None:
             padding_count = 0
         else:
             padding_count = padding
 
+        out_W += 2 * padding_count
+
         # We have to pad input with WW - 1 to execute fft correctly (no
         # overlapping signals) and optimize it by extending the signal to the
-        # next power of 2.
-        fft_size = next_power2(W + 2 * padding_count + WW - 1)
+        # next power of 2. We want to reuse the fft-ed input x, so we use the
+        # larger size chosen from: the filter width WW or output width out_W.
+        # Larger padding does not hurt correctness of fft but make it slightly
+        # slower, in terms of the computation time.
+        WWW = max(out_W, WW)
+        init_fft_size = next_power2(W + 2 * padding_count + WWW - 1)
 
         # How many padded (zero) values there are because of going to the next
         # power of 2?
-        fft_padding_x = fft_size - 2 * padding_count - W
+        fft_padding_x = init_fft_size - 2 * padding_count - W
 
         # Pad only the dimensions for the time-series - the width dimension
         # (and neither data points nor the channels).
@@ -118,18 +131,25 @@ class PyTorchConv1dFunction(torch.autograd.Function):
                              (padding_count, padding_count + fft_padding_x),
                              'constant', 0)
 
-        fft_padding_filter = fft_size - WW
+        fft_padding_filter = init_fft_size - WW
         padded_filter = torch_pad(filter, (0, fft_padding_filter), 'constant',
                                   0)
 
-        out_W = W - WW + 1  # the length of the output (without padding)
-        out_W += 2 * padding_count
+        out = torch.zeros([N, F, out_W], dtype=input.dtype, device=input.device)
+
+        # fft of the input and filters
+        xfft = torch.rfft(padded_x, signal_ndim=signal_ndim, onesided=True)
+        yfft = torch.rfft(padded_filter, signal_ndim=signal_ndim,
+                          onesided=True)
+
+        init_half_fft_size = xfft.shape[-1]
 
         # how much to compress the fft-ed signal
-        half_fft_compressed_size = None
+        half_fft_compressed_size = init_half_fft_size
+        compress_fft_size = init_fft_size
         if out_size is not None:
             out_W = out_size
-            fft_size = out_size
+            compress_fft_size = out_size
             # We take onesided fft so the output after inverse fft should be out
             # size, thus the representation in spectral domain is twice smaller
             # than the one in time domain.
@@ -139,21 +159,14 @@ class PyTorchConv1dFunction(torch.autograd.Function):
                     "index_back cannot be set when out_size is used")
                 sys.exit(1)
         if index_back:
-            half_fft_size = fft_size // 2 + 1
+            half_fft_size = init_fft_size // 2 + 1
             half_fft_compressed_size = half_fft_size - index_back
-            fft_size = half_fft_compressed_size * 2
-
-        out = torch.zeros([N, F, out_W], dtype=input.dtype, device=input.device)
-
-        # fft of the input and filters
-        xfft = torch.rfft(padded_x, signal_ndim=signal_ndim, onesided=True)
-        yfft = torch.rfft(padded_filter, signal_ndim=signal_ndim,
-                          onesided=True)
+            compress_fft_size = half_fft_compressed_size * 2
 
         # Complex numbers are represented as the pair of numbers in the last
         # dimension so we have to narrow the length of the last but one
         # dimension.
-        if half_fft_compressed_size:
+        if half_fft_compressed_size < init_half_fft_size:
             xfft = xfft.narrow(dim=-2, start=0, length=half_fft_compressed_size)
             yfft = yfft.narrow(dim=-2, start=0, length=half_fft_compressed_size)
 
@@ -162,18 +175,19 @@ class PyTorchConv1dFunction(torch.autograd.Function):
             # many filters.
             xfft_nn = xfft[nn].unsqueeze(0)
             out[nn] = correlate_fft_signals(
-                xfft=xfft_nn, yfft=yfft, fft_size=fft_size, out_size=out_W,
-                input_size=W)
+                xfft=xfft_nn, yfft=yfft, fft_size=compress_fft_size,
+                out_size=out_W)
             # Add the bias term for each filter (it has to be unsqueezed to
             # the dimension of the out to properly sum up the values).
             out[nn] += bias.unsqueeze(1)
 
         if ctx:
             ctx.save_for_backward(
-                input, filter, bias, to_tensor(padding),
-                to_tensor(None),
-                to_tensor(index_back),
-                to_tensor(out_size), to_tensor(fft_size))
+                xfft, yfft, bias, to_tensor(padding_count),
+                to_tensor(W),
+                to_tensor(WW),
+                to_tensor(init_fft_size),
+                to_tensor(compress_fft_size))
 
         return out
 
@@ -200,25 +214,33 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         :return: gradients for input map x, filter w and bias b
         """
         logger.debug("execute backward")
-        x, w, b, padding, preserve_energy_rate, index_back, \
-        out_size, fftsize = ctx.saved_tensors
-        padding = from_tensor(padding)
-        preserve_energy_rate = from_tensor(preserve_energy_rate)
-        index_back = from_tensor(index_back)
-        out_size = from_tensor(out_size)
-        fftsize = from_tensor(fftsize)
+        xfft, yfft, b, padding_count, W, WW, init_fft_size, compress_fft_size = ctx.saved_tensors
+        padding_count = from_tensor(padding_count)
+        W = from_tensor(W)
+        WW = from_tensor(WW)
+        init_fft_size = from_tensor(init_fft_size)
+        compress_fft_size = from_tensor(compress_fft_size)
         signal_ndim = 1
 
-        N, C, W = x.shape
-        F, C, WW = w.shape
+        N, C, half_fft_compressed_size = xfft.shape
+        F, C, half_fft_compressed_size = yfft.shape
         N, F, W_out = dout.shape
 
         dx = dw = db = None
 
+        fft_padding_dout = init_fft_size - W_out
+        padded_dout = torch_pad(dout, (0, fft_padding_dout), 'constant', 0)
+        doutfft = torch.rfft(padded_dout, signal_ndim=signal_ndim,
+                             onesided=True)
+        initial_half_fft_size = doutfft.shape[-1]
+        if half_fft_compressed_size < initial_half_fft_size:
+            doutfft = doutfft.narrow(dim=-2, start=0,
+                                     length=half_fft_compressed_size)
+
         if ctx.needs_input_grad[0]:
             # Initialize gradient output tensors.
             # the x used for convolution was with padding
-            dx = torch.zeros_like(x)
+            dx = torch.zeros([N, C, W], dtype=xfft.dtype)
             # W = padded_out_W - WW + 1;
             # padded_out_W = W + WW - 1;
             # pad_out = W + WW - 1 // 2  # // 2 - for both sides
@@ -235,42 +257,27 @@ class PyTorchConv1dFunction(torch.autograd.Function):
             # shape as padded x for the gradient calculation.
             fftsize = next_power2(padded_dout.shape[-1] + WW - 1)
             for nn in range(N):
-                for ff in range(F):
-                    for cc in range(C):
-                        dx[nn, cc] += correlate_signals(
-                            padded_dout[nn, ff],
-                            flip(w[ff, cc], dim=0), fftsize, W,
-                            preserve_energy_rate=preserve_energy_rate,
-                            index_back=index_back)
+                # Take one time series and unsqueeze it for broadcast with
+                # many gradients dout.
+                xfft_nn = xfft[nn].unsqueeze(0)
+                dx[nn] += correlate_fft_signals(xfft = xfft_nn, yfft = doutfft, fft_size=init_fft_size, out_size=)
 
         if ctx.needs_input_grad[1]:
-            dw = torch.zeros_like(w)
-            padded_x = x
-            if padding:
-                padded_x = torch_pad(input, (padding, padding),
-                                     'constant', 0)
-            # print("padded x: ", padded_x)
-            # print("dout: ", dout)
+            dw = torch.zeros([F, C, WW], dtype=yfft.dtype)
             # Calculate dw - the gradient for the filters w.
             # By chain rule dw is computed as: dout*x
-            # fftsize = next_power2(W + W_out - 1)
-            # fft of the padded x and gradient of filters
-            xfft = torch.rfft(padded_x, signal_ndim=signal_ndim, onesided=True)
-            dwfft = torch.rfft(dout, signal_ndim=signal_ndim, onesided=True)
             for ff in range(F):
                 dwfft_ff = dwfft[ff].unsqueeze(0)
-                dw[ff] = correlate_fft_signals(
-                    xfft=xfft, yfft=dwfft_ff, fft_size=fftsize, out_size=WW,
-                    signal_ndim=signal_ndim)
+                dw[ff] = correlate_fft_signals(xfft = xfft, yfft = dwfft_ff, fft_size = fftsize, out_size = WW, signal_ndim = signal_ndim)
 
         if ctx.needs_input_grad[2]:
             db = torch.zeros_like(b)
 
-            # Calculate dB (the gradient for the bias term).
-            # We sum up all the incoming gradients for each filters
-            # bias (as in the affine layer).
-            for ff in range(F):
-                db[ff] += torch.sum(dout[:, ff, :])
+        # Calculate dB (the gradient for the bias term).
+        # We sum up all the incoming gradients for each filters
+        # bias (as in the affine layer).
+        for ff in range(F):
+            db[ff] += torch.sum(dout[:, ff, :])
 
         return dx, dw, db, None, None, None, None
 
