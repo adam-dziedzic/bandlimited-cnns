@@ -5,7 +5,7 @@ from torch import tensor
 
 from cnns.nnlib.layers import conv_backward_naive_1D
 from cnns.nnlib.layers import conv_forward_naive_1D
-from cnns.nnlib.pytorch_layers.pytorch_conv1D_fft \
+from cnns.nnlib.pytorch_layers.pytorch_conv1D_reuse_map_fft \
     import PyTorchConv1dFunction, PyTorchConv1dAutograd
 
 
@@ -136,10 +136,9 @@ class TestPyTorchConv1d(unittest.TestCase):
         b = np.array([0.0])
         expected_result = [3.5, 7.5]
         conv = PyTorchConv1dFunction()
-        result = conv.forward(ctx=None, input=torch.from_numpy(x),
-                              filter=torch.from_numpy(y),
-                              bias=torch.from_numpy(b),
-                              preserve_energy_rate=0.9)
+        result = conv.forward(
+            ctx=None, input=torch.from_numpy(x), filter=torch.from_numpy(y),
+            bias=torch.from_numpy(b), index_back=1)
         np.testing.assert_array_almost_equal(
             result, np.array([[expected_result]]))
 
@@ -163,11 +162,8 @@ class TestPyTorchConv1d(unittest.TestCase):
         y = np.array([[[2., 1.]]])
         b = np.array([0.0])
         expected_result = [3.5, 7.5]
-        conv_param = {'preserve_energy_rate': 0.9}
         conv = PyTorchConv1dAutograd(
-            filter=torch.from_numpy(y), bias=torch.from_numpy(b),
-            preserve_energy_rate=conv_param[
-                'preserve_energy_rate'])
+            filter=torch.from_numpy(y), bias=torch.from_numpy(b), index_back=1)
         result = conv.forward(input=torch.from_numpy(x))
         np.testing.assert_array_almost_equal(
             result, np.array([[expected_result]]))

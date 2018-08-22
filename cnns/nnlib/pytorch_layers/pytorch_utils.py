@@ -385,8 +385,8 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None,
     return out
 
 
-def correlate_fft_signals(xfft, yfft, fft_size, out_size, input_size,
-                          signal_ndim=1):
+def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
+                          signal_ndim: int = 1) -> object:
     """
     Similar to 'correlate_signal' function but the signals are provided in the
     frequency domain (after fft) for the reuse of the maps.
@@ -409,6 +409,7 @@ def correlate_fft_signals(xfft, yfft, fft_size, out_size, input_size,
     :param yfft: filter after fft
     :param fft_size: the size of the signal in the frequency domain
     :param out_size: required output len (size)
+    :param signal_ndim: the dimension of the signal (we set it to 1)
     :return: output signal after correlation of signals xfft and yfft
 
     # complex_mul only broadcasts the input if we provide all filters
