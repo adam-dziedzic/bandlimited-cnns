@@ -174,6 +174,8 @@ class PyTorchConv1dFunction(torch.autograd.Function):
             # Take one time series and unsqueeze it for broadcasting with
             # many filters.
             xfft_nn = xfft[nn].unsqueeze(0)
+            print("xfft_nn: ", xfft_nn)
+            print("yfft: ", yfft)
             out[nn] = correlate_fft_signals(
                 xfft=xfft_nn, yfft=yfft, fft_size=compress_fft_size,
                 out_size=out_W)
@@ -247,11 +249,10 @@ class PyTorchConv1dFunction(torch.autograd.Function):
             for nn in range(N):
                 # Take one time series and unsqueeze it for broadcast with
                 # many gradients dout.
-                doutfft_nn = doutfft[nn] # .unsqueeze(0)
-                result = correlate_fft_signals(
+                doutfft_nn = doutfft[nn].unsqueeze(0)
+                dx[nn] = correlate_fft_signals(
                     xfft=doutfft_nn, yfft=conjugate_yfft,
                     fft_size=compress_fft_size, out_size=W)
-                dx[nn] += result
 
         if ctx.needs_input_grad[1]:
             dw = torch.zeros([F, C, WW], dtype=yfft.dtype)
@@ -273,7 +274,7 @@ class PyTorchConv1dFunction(torch.autograd.Function):
             for ff in range(F):
                 db[ff] += torch.sum(dout[:, ff, :])
 
-        return dx, dw, db, None, None, None, None
+        return dx, dw, db, None, None, None, None, None
 
 
 class PyTorchConv1dAutograd(Module):

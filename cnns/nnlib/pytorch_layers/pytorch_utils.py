@@ -115,7 +115,7 @@ def complex_mul(x, y):
 
 def pytorch_conjugate(x):
     """
-    Conjugate all the complex numbers in tensor x in place.
+    Conjugate all the complex numbers in tensor x (not in place, clone x).
 
     :param x: PyTorch tensor with complex numbers
     :return: conjugated numbers in x
@@ -131,8 +131,9 @@ def pytorch_conjugate(x):
     >>> np.testing.assert_array_equal(x,
     ... tensor([[[1, -2], [3, -4]], [[0., 0.], [0., -1]]]))
     """
-    x.narrow(-1, 1, 1).mul_(-1)
-    return x
+    con_x = x.clone()
+    con_x.narrow(dim=-1, start=1, length=1).mul_(-1)
+    return con_x
 
 
 def get_full_energy(x):

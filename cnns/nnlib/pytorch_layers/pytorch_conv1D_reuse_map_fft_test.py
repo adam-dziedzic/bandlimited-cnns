@@ -1,6 +1,7 @@
+import unittest
+
 import numpy as np
 import torch
-import unittest
 from torch import tensor
 
 from cnns.nnlib.layers import conv_backward_naive_1D
@@ -43,19 +44,76 @@ class TestPyTorchConv1d(unittest.TestCase):
         np.testing.assert_array_almost_equal(
             result, np.array([[expected_result]]))
 
-    def test_FunctionForwardNoCompression(self):
-        x = np.array(
-            [[[1., 2., 3.], [4, 5, 6]], [[1, -1, 0], [2, 5, 6]]])
-        y = np.array([[[2., 1.], [1, 3]], [[0, 1], [-1, -1]]])
-        b = np.array([0.0, 1.0])
+    def test_FunctionForwardNoCompressionManySignalsOneChannel(self):
+        x = np.array([[[1., -1., 0.]], [[1., 2., 3.]]])
+        y = np.array([[[-2.0, 3.0]]])
+        b = np.array([0.0])
         # get the expected result
         conv_param = {'pad': 0, 'stride': 1}
         expected_result, _ = conv_forward_naive_1D(x, y, b,
                                                    conv_param)
+        print("expected result: ", expected_result)
+
         conv = PyTorchConv1dFunction()
         result = conv.forward(ctx=None, input=torch.from_numpy(x),
                               filter=torch.from_numpy(y),
                               bias=torch.from_numpy(b))
+        print("obtained result: ", result)
+        np.testing.assert_array_almost_equal(
+            result, np.array(expected_result))
+
+    def test_FunctionForwardNoCompressionManySignalsTwoChannels(self):
+        x = np.array([[[1., 2., 3.], [4., 5., 6.]],
+                      [[1., -1., 0.], [2., 5., 6.]]])
+        y = np.array([[[0.0, 1.0], [-1.0, -1.0]]])
+        b = np.array([0.0])
+        # get the expected result
+        conv_param = {'pad': 0, 'stride': 1}
+        expected_result, _ = conv_forward_naive_1D(x, y, b,
+                                                   conv_param)
+        print("expected result: ", expected_result)
+
+        conv = PyTorchConv1dFunction()
+        result = conv.forward(ctx=None, input=torch.from_numpy(x),
+                              filter=torch.from_numpy(y),
+                              bias=torch.from_numpy(b))
+        print("obtained result: ", result)
+        np.testing.assert_array_almost_equal(
+            result, np.array(expected_result))
+
+    def test_FunctionForwardNoCompressionManySignalsAndFilters(self):
+        """
+        expected result:
+        [[[ 24.  31.]
+          [ -6.  -7.]]
+
+         [[ 19.  22.]
+          [ -7. -10.]]]
+
+        obtained result:  tensor(
+        [[[24., 31.],
+         [-6., -7.]],
+
+        [[ 5., 11.],
+         [-1., -5.]]],
+
+         dtype=torch.float64)
+        """
+        x = np.array(
+            [[[1., 2., 3.], [4., 5., 6.]], [[1., -1., 0.], [2., 5., 6.]]])
+        y = np.array([[[2., 1.], [1., 3.]], [[0.0, 1.0], [-1.0, -1.0]]])
+        b = np.array([1.0, 1.0])
+        # get the expected result
+        conv_param = {'pad': 0, 'stride': 1}
+        expected_result, _ = conv_forward_naive_1D(x, y, b,
+                                                   conv_param)
+        print("expected result: ", expected_result)
+
+        conv = PyTorchConv1dFunction()
+        result = conv.forward(ctx=None, input=torch.from_numpy(x),
+                              filter=torch.from_numpy(y),
+                              bias=torch.from_numpy(b))
+        print("obtained result: ", result)
         np.testing.assert_array_almost_equal(
             result, np.array(expected_result))
 
@@ -84,8 +142,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         expected_dx, expected_dw, expected_db = \
             conv_backward_naive_1D(dout.numpy(), cache)
 
-        dx, dw, db, _, _, _, _ = PyTorchConv1dFunction.backward(ctx,
-                                                                dout)
+        dx, dw, db, _, _, _, _, _ = PyTorchConv1dFunction.backward(ctx, dout)
 
         # are the gradients correct
         np.testing.assert_array_almost_equal(dx.detach().numpy(),
@@ -134,7 +191,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         x = np.array([[[1., 2., 3.]]])
         y = np.array([[[2., 1.]]])
         b = np.array([0.0])
-        expected_result = [3.5, 7.5]
+        expected_result = [4.0, 7.0]
         conv = PyTorchConv1dFunction()
         result = conv.forward(
             ctx=None, input=torch.from_numpy(x), filter=torch.from_numpy(y),
@@ -161,7 +218,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         x = np.array([[[1., 2., 3.]]])
         y = np.array([[[2., 1.]]])
         b = np.array([0.0])
-        expected_result = [3.5, 7.5]
+        expected_result = [4.0, 7.0]
         conv = PyTorchConv1dAutograd(
             filter=torch.from_numpy(y), bias=torch.from_numpy(b), index_back=1)
         result = conv.forward(input=torch.from_numpy(x))
