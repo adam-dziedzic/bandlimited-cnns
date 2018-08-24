@@ -142,14 +142,15 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         yfft = torch.rfft(padded_filter, signal_ndim=signal_ndim,
                           onesided=True)
 
-        init_half_fft_size = xfft.shape[-1]
+        # The last dimension (-1) has size 2 as it represents the complex
+        # numbers with real and imaginary parts. The last but one dimension (-2)
+        # represents the length of the signal in the frequency domain.
+        init_half_fft_size = xfft.shape[-2]
 
         # how much to compress the fft-ed signal
         half_fft_compressed_size = init_half_fft_size
-        compress_fft_size = init_fft_size
         if out_size is not None:
             out_W = out_size
-            compress_fft_size = out_size
             # We take onesided fft so the output after inverse fft should be out
             # size, thus the representation in spectral domain is twice smaller
             # than the one in time domain.
@@ -159,9 +160,7 @@ class PyTorchConv1dFunction(torch.autograd.Function):
                     "index_back cannot be set when out_size is used")
                 sys.exit(1)
         if index_back:
-            half_fft_size = init_fft_size // 2 + 1
-            half_fft_compressed_size = half_fft_size - index_back
-            compress_fft_size = half_fft_compressed_size * 2
+            half_fft_compressed_size = init_half_fft_size - index_back
 
         # Complex numbers are represented as the pair of numbers in the last
         # dimension so we have to narrow the length of the last but one
@@ -175,19 +174,15 @@ class PyTorchConv1dFunction(torch.autograd.Function):
             # many filters.
             xfft_nn = xfft[nn].unsqueeze(0)
             out[nn] = correlate_fft_signals(
-                xfft=xfft_nn, yfft=yfft, fft_size=compress_fft_size,
+                xfft=xfft_nn, yfft=yfft, fft_size=init_fft_size,
                 out_size=out_W)
             # Add the bias term for each filter (it has to be unsqueezed to
             # the dimension of the out to properly sum up the values).
             out[nn] += bias.unsqueeze(1)
 
         if ctx:
-            ctx.save_for_backward(
-                xfft, yfft, bias, to_tensor(padding_count),
-                to_tensor(W),
-                to_tensor(WW),
-                to_tensor(init_fft_size),
-                to_tensor(compress_fft_size))
+            ctx.save_for_backward(xfft, yfft, to_tensor(W), to_tensor(WW),
+                                  to_tensor(init_fft_size))
 
         return out
 
@@ -213,13 +208,11 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         :param dout: output gradient
         :return: gradients for input map x, filter w and bias b
         """
-        logger.debug("execute backward")
-        xfft, yfft, b, padding_count, W, WW, init_fft_size, compress_fft_size = ctx.saved_tensors
-        padding_count = from_tensor(padding_count)
+        # logger.debug("execute backward")
+        xfft, yfft, W, WW, init_fft_size = ctx.saved_tensors
         W = from_tensor(W)
         WW = from_tensor(WW)
         init_fft_size = from_tensor(init_fft_size)
-        compress_fft_size = from_tensor(compress_fft_size)
         signal_ndim = 1
 
         # The last dimension for xfft and yfft is the 2 element complex number.
@@ -234,7 +227,11 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         padded_dout = torch_pad(dout, (0, fft_padding_dout), 'constant', 0)
         doutfft = torch.rfft(padded_dout, signal_ndim=signal_ndim,
                              onesided=True)
-        initial_half_fft_size = doutfft.shape[-1]
+
+        # The last dimension (-1) has size 2 as it represents the complex
+        # numbers with real and imaginary parts. The last but one dimension (-2)
+        # represents the length of the signal in the frequency domain.
+        initial_half_fft_size = doutfft.shape[-2]
         if half_fft_compressed_size < initial_half_fft_size:
             doutfft = doutfft.narrow(dim=-2, start=0,
                                      length=half_fft_compressed_size)
@@ -250,7 +247,7 @@ class PyTorchConv1dFunction(torch.autograd.Function):
                 doutfft_nn = doutfft[nn].unsqueeze(0)
                 dx[nn] = correlate_fft_signals(
                     xfft=doutfft_nn, yfft=conjugate_yfft,
-                    fft_size=compress_fft_size, out_size=W, is_forward=False)
+                    fft_size=init_fft_size, out_size=W, is_forward=False)
 
         if ctx.needs_input_grad[1]:
             dw = torch.zeros([F, C, WW], dtype=yfft.dtype)
@@ -287,11 +284,12 @@ class PyTorchConv1dFunction(torch.autograd.Function):
                 print("xfft: ", xfft)
                 print("dout_fft: ", doutfft_ff)
                 dw[ff] = correlate_fft_signals(
-                    xfft=xfft, yfft=doutfft_ff, fft_size=compress_fft_size,
+                    xfft=xfft, yfft=doutfft_ff, fft_size=init_fft_size,
                     out_size=WW, signal_ndim=signal_ndim, is_forward=False)
 
         if ctx.needs_input_grad[2]:
-            db = torch.zeros_like(b)
+            # The number of bias elements is equal to the number of filters.
+            db = torch.zeros(F)
 
             # Calculate dB (the gradient for the bias term).
             # We sum up all the incoming gradients for each filter
@@ -386,7 +384,7 @@ class PyTorchConv1dAutograd(Module):
         >>> b = np.array([0.0])
         >>> conv_param = {'pad' : 0, 'stride' :1}
         >>> # the 1 index back does not change the result in this case
-        >>> expected_result = [4.0, 7.0]
+        >>> expected_result = [3.5, 7.5]
         >>> conv = PyTorchConv1dAutograd(filter=torch.from_numpy(y),
         ... bias=torch.from_numpy(b), index_back=1)
         >>> result = conv.forward(input=torch.from_numpy(x))
