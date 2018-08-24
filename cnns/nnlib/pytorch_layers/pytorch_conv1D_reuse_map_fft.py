@@ -174,8 +174,6 @@ class PyTorchConv1dFunction(torch.autograd.Function):
             # Take one time series and unsqueeze it for broadcasting with
             # many filters.
             xfft_nn = xfft[nn].unsqueeze(0)
-            print("xfft_nn: ", xfft_nn)
-            print("yfft: ", yfft)
             out[nn] = correlate_fft_signals(
                 xfft=xfft_nn, yfft=yfft, fft_size=compress_fft_size,
                 out_size=out_W)
@@ -252,17 +250,45 @@ class PyTorchConv1dFunction(torch.autograd.Function):
                 doutfft_nn = doutfft[nn].unsqueeze(0)
                 dx[nn] = correlate_fft_signals(
                     xfft=doutfft_nn, yfft=conjugate_yfft,
-                    fft_size=compress_fft_size, out_size=W)
+                    fft_size=compress_fft_size, out_size=W, is_forward=False)
 
         if ctx.needs_input_grad[1]:
             dw = torch.zeros([F, C, WW], dtype=yfft.dtype)
             # Calculate dw - the gradient for the filters w.
             # By chain rule dw is computed as: dout*x
+            """
+            More specifically:
+            if the forward convolution is: [x1, x2, x3, x4] * [w1, w2], where *
+            denotes the convolution operation, 
+            Conv (out) = [x1 w1 + x2 w2, x2 w1 + x3 w2, x3 w1 + x4 w2]
+            then the bacward to compute the 
+            gradient for the weights is as follows (L - is the Loss function):
+            gradient L / gradient w = 
+            gradient L / gradient Conv x (times) gradient Conv / gradient w =
+            dout x gradient Conv / gradient w = (^)
+            
+            gradient Conv / gradient w1 = [x1, x2, x3]
+            gradient Conv / gradient w2 = [x2, x3, x4]
+            
+            dout = [dx1, dx2, dx3]
+            
+            gradient L / gradient w1 = dout * gradient Conv / gradient w1 =
+            [dx1 x1 + dx2 x2 + dx3 x3]
+            
+            gradient L / gradient w2 = dout * gradient Conv / gradient w2 =
+            [dx1 x2 + dx2 x3 + dx3 x4]
+            
+            Thus, the gradient for the weights is the convolution between the 
+            flowing back gradient dout and the input x:
+            gradient L / gradient w = [x1, x2, x3, x4] * [dx1, dx2, dx3]
+            """
             for ff in range(F):
                 doutfft_ff = doutfft[ff].unsqueeze(0)
+                print("xfft: ", xfft)
+                print("dout_fft: ", doutfft_ff)
                 dw[ff] = correlate_fft_signals(
-                    xfft=doutfft_ff, yfft=xfft, fft_size=compress_fft_size,
-                    out_size=WW, signal_ndim=signal_ndim)
+                    xfft=xfft, yfft=doutfft_ff, fft_size=compress_fft_size,
+                    out_size=WW, signal_ndim=signal_ndim, is_forward=False)
 
         if ctx.needs_input_grad[2]:
             db = torch.zeros_like(b)
@@ -270,7 +296,6 @@ class PyTorchConv1dFunction(torch.autograd.Function):
             # Calculate dB (the gradient for the bias term).
             # We sum up all the incoming gradients for each filter
             # bias (as in the affine layer).
-            print("dout: ", dout)
             for ff in range(F):
                 db[ff] += torch.sum(dout[:, ff, :])
 

@@ -387,7 +387,7 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None,
 
 
 def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
-                          signal_ndim: int = 1) -> object:
+                          signal_ndim: int = 1, is_forward=True) -> object:
     """
     Similar to 'correlate_signal' function but the signals are provided in the
     frequency domain (after fft) for the reuse of the maps.
@@ -411,8 +411,12 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     :param fft_size: the size of the signal in the frequency domain
     :param out_size: required output len (size)
     :param signal_ndim: the dimension of the signal (we set it to 1)
+    :param is_forward: if it is forward computation, sum up the elements from
+    computed arrays for each channell, for the backward pass this channels have
+    to be expanded so we do not sum up the final arrays.
     :return: output signal after correlation of signals xfft and yfft
 
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     # complex_mul only broadcasts the input if we provide all filters
     # but staying on this level is probably more performant than the other
     # approach (with full broadcast of the input and output) since we use less
@@ -434,6 +438,24 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     # >>> np.testing.assert_array_almost_equal(result,
     # ... np.array([[[16.0, 20.0, 21.0], [11.0, 17.0, 17.0]],
     # ... [[11.0, 25.0, 21.0], [9.0, 18.0, 20.0]]]))
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    >>> # Test the backward computation without summing up the final tensor.
+    >>> x = tensor([[[1.0, 2.0, 3.0], [-1.0, -3.0, 2.0]]])
+    >>> # Two filters.
+    >>> y = tensor([[[0.1, -0.2]]])
+    >>> fft_size = x.shape[-1]
+    >>> y_padded = torch_pad(y, (0, fft_size - y.shape[-1]), 'constant', 0.0)
+    >>> signal_ndim = 1
+    >>> onesided = True
+    >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
+    >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
+    >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft,
+    ... fft_size=x.shape[-1], out_size=(x.shape[-1]-y.shape[-1] + 1),
+    ... is_forward=False)
+    >>> # print("result: ", result)
+    >>> np.testing.assert_array_almost_equal(result,
+    ... np.array([[[-0.3, -0.4], [ 0.5, -0.7]]]))
 
     >>> x = tensor([[[2.0,1.0,3.0,5.0], [1.0,2.0,5.0,1.0]]])
     >>> # two filters
@@ -445,8 +467,7 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
     >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft,
-    ... fft_size=x.shape[-1], out_size=(x.shape[-1]-y.shape[-1] + 1),
-    ... input_size=x.shape[-1])
+    ... fft_size=x.shape[-1], out_size=(x.shape[-1]-y.shape[-1] + 1))
     >>> # print("result: ", result)
     >>> np.testing.assert_array_almost_equal(result,
     ... np.array([[[11.0, 25.0, 21.0], [9.0, 18.0, 20.0]]]))
@@ -461,8 +482,7 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
     >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft,
-    ... fft_size=x.shape[-1], out_size=(x.shape[-1]-y.shape[-1] + 1),
-    ... input_size=x.shape[-1])
+    ... fft_size=x.shape[-1], out_size=(x.shape[-1]-y.shape[-1] + 1))
     >>> # print("result: ", result)
     >>> np.testing.assert_array_almost_equal(result,
     ... np.array([[[16.0, 20.0, 21.0], [11.0, 17.0, 17.0]]]))
@@ -477,8 +497,7 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
     >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft,
-    ... fft_size=x.shape[-1], out_size=(x.shape[-1]-y.shape[-1] + 1),
-    ... input_size=x.shape[-1])
+    ... fft_size=x.shape[-1], out_size=(x.shape[-1]-y.shape[-1] + 1))
     >>> np.testing.assert_array_almost_equal(result,
     ... np.array([[[14.0, 22.0, 30.0]]]))
 
@@ -491,7 +510,7 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
     >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft, fft_size=len(x),
-    ... out_size=(len(x)-len(y) + 1), input_size=len(x))
+    ... out_size=(len(x)-len(y) + 1))
     >>> np.testing.assert_array_almost_equal(result,
     ... np.array([7.0, 11.0, 15.0]))
 
@@ -505,7 +524,7 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
     >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft, fft_size=len(x),
-    ... out_size=(len(x)-len(y) + 1), input_size=len(x))
+    ... out_size=(len(x)-len(y) + 1))
     >>> expected_result = np.correlate(x, y, mode='valid')
     >>> np.testing.assert_array_almost_equal(result, expected_result)
 
@@ -519,7 +538,7 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
     >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft, fft_size=len(x),
-    ... out_size=(len(x)-len(y) + 1), input_size=len(x))
+    ... out_size=(len(x)-len(y) + 1))
     >>> expected_result = np.correlate(x, y, mode='valid')
     >>> np.testing.assert_array_almost_equal(result, expected_result)
     """
@@ -532,7 +551,6 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     current_length = xfft.shape[-2]
     if current_length < half_fft:
         pad_shape[-2] = half_fft - current_length
-        # print("pad shape: ", pad_shape)
         complex_pad = torch.zeros(*pad_shape, dtype=xfft.dtype,
                                   device=xfft.device)
         xfft = torch.cat((xfft, complex_pad), dim=-2)
@@ -542,12 +560,10 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     out = torch.irfft(
         input=freq_mul, signal_ndim=signal_ndim, signal_sizes=(fft_size,))
 
-    # plot_signal(out, "out after ifft")
     out = out[..., :out_size]
-    if out.dim() > 1:
+    if out.dim() > 1 and is_forward:
         out = torch.sum(input=out, dim=-2)
         out = torch.unsqueeze(input=out, dim=0)  # unsqueeze the channels
-    # plot_signal(out, "after truncating to xlen: " + str(x_len))
     return out
 
 
