@@ -132,10 +132,8 @@ class PyTorchConv1dFunction(torch.autograd.Function):
                              'constant', 0)
 
         fft_padding_filter = init_fft_size - WW
-        padded_filter = torch_pad(filter, (0, fft_padding_filter), 'constant',
-                                  0)
-
-        out = torch.zeros([N, F, out_W], dtype=input.dtype, device=input.device)
+        padded_filter = torch_pad(
+            filter, (0, fft_padding_filter), 'constant', 0)
 
         # fft of the input and filters
         xfft = torch.rfft(padded_x, signal_ndim=signal_ndim, onesided=True)
@@ -149,17 +147,15 @@ class PyTorchConv1dFunction(torch.autograd.Function):
 
         # how much to compress the fft-ed signal
         half_fft_compressed_size = init_half_fft_size
+        if index_back is not None and out_size is not None:
+            raise TypeError("Specify index_back or out_size not both.")
         if out_size is not None:
             out_W = out_size
             # We take onesided fft so the output after inverse fft should be out
             # size, thus the representation in spectral domain is twice smaller
             # than the one in time domain.
             half_fft_compressed_size = out_size // 2 + 1
-            if index_back is not None:
-                logger.error(
-                    "index_back cannot be set when out_size is used")
-                sys.exit(1)
-        if index_back:
+        if index_back is not None:
             half_fft_compressed_size = init_half_fft_size - index_back
 
         # Complex numbers are represented as the pair of numbers in the last
@@ -168,6 +164,8 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         if half_fft_compressed_size < init_half_fft_size:
             xfft = xfft.narrow(dim=-2, start=0, length=half_fft_compressed_size)
             yfft = yfft.narrow(dim=-2, start=0, length=half_fft_compressed_size)
+
+        out = torch.zeros([N, F, out_W], dtype=input.dtype, device=input.device)
 
         for nn in range(N):  # For each time-series in the batch.
             # Take one time series and unsqueeze it for broadcasting with
@@ -223,16 +221,16 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         dx = dw = db = None
 
         # Take the fft of dout (the gradient of the output of the forward pass).
+        # We have to pad the flowing back gradient in the time (spatial) domain,
+        # since it does not give correct results even for the case without
+        # compression if we pad in the spectral (frequency) domain.
         fft_padding_dout = init_fft_size - W_out
-        padded_dout = torch_pad(dout, (0, fft_padding_dout), 'constant', 0)
-        doutfft = torch.rfft(padded_dout, signal_ndim=signal_ndim,
-                             onesided=True)
+        dout = torch_pad(dout, (0, fft_padding_dout), 'constant', 0)
+        doutfft = torch.rfft(dout, signal_ndim=signal_ndim, onesided=True)
 
-        # The last dimension (-1) has size 2 as it represents the complex
-        # numbers with real and imaginary parts. The last but one dimension (-2)
-        # represents the length of the signal in the frequency domain.
-        initial_half_fft_size = doutfft.shape[-2]
-        if half_fft_compressed_size < initial_half_fft_size:
+        init_half_fft_size = init_fft_size // 2 + 1
+        if half_fft_compressed_size < init_half_fft_size \
+                and half_fft_compressed_size < doutfft.shape[-2]:
             doutfft = doutfft.narrow(dim=-2, start=0,
                                      length=half_fft_compressed_size)
 

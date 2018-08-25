@@ -542,19 +542,8 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     >>> expected_result = np.correlate(x, y, mode='valid')
     >>> np.testing.assert_array_almost_equal(result, expected_result)
     """
-    pad_shape = tensor(xfft.shape)
-    # xfft has at least two dimensions (with the last one being a
-    # dimension for a pair of real numbers representing a complex
-    # number).
-    half_fft = (fft_size // 2 + 1)  # because of pytorch half-sized fft
-    # omit the last dimension for complex numbers
-    current_length = xfft.shape[-2]
-    if current_length < half_fft:
-        pad_shape[-2] = half_fft - current_length
-        complex_pad = torch.zeros(*pad_shape, dtype=xfft.dtype,
-                                  device=xfft.device)
-        xfft = torch.cat((xfft, complex_pad), dim=-2)
-        yfft = torch.cat((yfft, complex_pad), dim=-2)
+    xfft = complex_pad(xfft=xfft, fft_size=fft_size)
+    yfft = complex_pad(xfft=yfft, fft_size=fft_size)
 
     freq_mul = complex_mul(xfft, pytorch_conjugate(yfft))
     out = torch.irfft(
@@ -565,6 +554,62 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
         out = torch.sum(input=out, dim=-2)
         out = torch.unsqueeze(input=out, dim=0)  # unsqueeze the channels
     return out
+
+
+def complex_pad(xfft, fft_size):
+    """
+    >>> # Typica use case.
+    >>> xfft = tensor([[[1.0, 2.0], [3.0, 4.0], [4.0, 5.0]]])
+    >>> expected_xfft_pad = tensor([[[1.0, 2.0], [3.0, 4.0], [4.0, 5.0],
+    ... [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]])
+    >>> half_fft_size = xfft.shape[-2] + 3
+    >>> fft_size = (half_fft_size - 1) * 2
+    >>> xfft_pad = complex_pad(xfft, fft_size)
+    >>> np.testing.assert_array_almost_equal(x=expected_xfft_pad, y=xfft_pad,
+    ... err_msg="The expected x is different than computed y")
+
+
+    >>> # Only two dimensions (the -2 being the "true one" and the last one is
+    >>> # for the complex numbers.
+    >>> xfft = tensor([[1.0, 0.0], [0.0, 4.0], [4.0, 5.0], [-1.0, 0.0]])
+    >>> expected_xfft_pad = tensor([[1.0, 0.0], [0.0, 4.0], [4.0, 5.0],
+    ... [-1.0, 0.0], [0.0, 0.0], [0.0, 0.0]])
+    >>> half_fft_size = xfft.shape[-2] + 2
+    >>> fft_size = (half_fft_size - 1) * 2
+    >>> xfft_pad = complex_pad(xfft, fft_size)
+    >>> np.testing.assert_array_almost_equal(x=expected_xfft_pad, y=xfft_pad,
+    ... err_msg="The expected x is different than computed y")
+
+    >>> # Check if works for the case where padding should not be done.
+    >>> # So expected result is the same as the xfft.
+    >>> xfft = tensor([[[1.0, 2.0], [3.0, 4.0], [4.0, 5.0]]])
+    >>> half_fft_size = xfft.shape[-2]
+    >>> fft_size = (half_fft_size - 1) * 2
+    >>> xfft_pad = complex_pad(xfft, fft_size)
+    >>> np.testing.assert_array_almost_equal(x=xfft, y=xfft_pad,
+    ... err_msg="The expected x is different than computed y")
+
+    Pad xfft with zeros in the frequency domain to the size specified with
+    fft_size.
+
+    :param xfft: the input signal in the frequency domain (represented by
+    complex numbers).
+    :param fft_size: the expected (initial) fft size (used in the forward pass).
+    :return: the padded xfft signal with zeros in the frequency domain.
+    """
+    # xfft has at least two dimensions (with the last one being a dimension for
+    # a pair of real numbers representing a complex number). Moreover, pytorch
+    # supports half-sized fft (onesided fft) by default.
+    half_fft = fft_size // 2 + 1
+    pad_shape = tensor(xfft.shape)
+    # Omit the last dimension (-1) for complex numbers.
+    current_length = xfft.shape[-2]
+    if current_length < half_fft:
+        pad_shape[-2] = half_fft - current_length
+        complex_pad = torch.zeros(*pad_shape, dtype=xfft.dtype,
+                                  device=xfft.device)
+        xfft = torch.cat((xfft, complex_pad), dim=-2)
+    return xfft
 
 
 if __name__ == "__main__":
