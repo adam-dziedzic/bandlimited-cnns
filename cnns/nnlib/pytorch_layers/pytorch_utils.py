@@ -10,6 +10,41 @@ import torch.nn.functional as F
 from torch import tensor
 
 
+def to_tensor(value):
+    """
+    `to_tensor` and `from_tensor` methods are used to transfer intermediate
+    results between forward and backward pass of the convolution.
+
+    Transform from None to -1 or retain the initial value
+    for transition from a value or None to a tensor.
+
+    :param value: a value to be changed to a tensor
+    :return: a tensor representing the value, tensor with value -1 represents
+    the None input
+    """
+    if value:
+        return tensor([value])
+    return tensor([-1])
+
+
+def from_tensor(tensor_item):
+    """
+    `to_tensor` and `from_tensor` methods are used to transfer intermediate
+    results between forward and backward pass of the convolution.
+
+    Transform from tensor to a single numerical value or None (a tensor with
+    value -1 is transformed to None).
+
+    :param tensor_item: tensor with a single value
+    :return: a single numerical value extracted from the tensor or None if the
+    value is -1
+    """
+    value = tensor_item.item()
+    if value == -1:
+        return None
+    return value
+
+
 def flip(x, dim):
     """
     Flip the tensor x for dimension dim.
@@ -460,22 +495,6 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     # ... [[11.0, 25.0, 21.0], [9.0, 18.0, 20.0]]]))
     # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    >>> # Test 2D convolution.
-    >>> x = tensor([[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]])
-    >>> # A single filter.
-    >>> y = tensor([[[1.0, 2.0], [3.0, 2.0]]])
-    >>> fft_size = x.shape[-1]
-    >>> y_padded = F.pad(y, (0, fft_size - y.shape[-1]), 'constant', 0.0)
-    >>> signal_ndim = 1
-    >>> onesided = True
-    >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
-    >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
-    >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft,
-    ... fft_size=x.shape[-1], out_size=(x.shape[-1]-y.shape[-1] + 1))
-    >>> # print("result: ", result)
-    >>> np.testing.assert_array_almost_equal(result,
-    ... np.array([[[11.0, 25.0, 21.0], [9.0, 18.0, 20.0]]]))
-
     >>> # Test the backward computation without summing up the final tensor.
     >>> # The summing up of the final tensor is done only if param is_forward
     >>> # is set to True.
@@ -586,7 +605,7 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     :param out_size: required output len (size)
     :param signal_ndim: the dimension of the signal (we set it to 1)
     :param is_forward: if it is forward computation, sum up the elements from
-    computed arrays for each channell, for the backward pass this channels have
+    computed arrays for each channel, for the backward pass this channels have
     to be expanded so we do not sum up the final arrays.
     :return: output signal after correlation of signals xfft and yfft
     """
@@ -600,6 +619,146 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     out = out[..., :out_size]
     if out.dim() > 1 and is_forward:
         out = torch.sum(input=out, dim=-2)
+        out = torch.unsqueeze(input=out, dim=0)  # unsqueeze the channels
+    return out
+
+
+def correlate_fft_signals2D(xfft, yfft, fft_height, fft_width, out_height,
+                            out_width, is_forward=True):
+    """
+    >>> # Test 2 channels and 2 filters.
+    >>> x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]],
+    ... [[1., 1., 2.], [2., 3., 1.], [2., -1., 3.]]]])
+    >>> # A single filter.
+    >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]], [[-1.0, 2.0],[3.0, -2.0]]],
+    ... [[[-1.0, 1.0], [2.0, 3.0]], [[-2.0, 1.0], [1.0, -3.0]]]])
+    >>> fft_width = x.shape[-1]
+    >>> fft_height = x.shape[-2]
+    >>> pad_right = fft_width - y.shape[-1]
+    >>> pad_bottom = fft_height - y.shape[-2]
+    >>> y_padded = F.pad(y, (0, pad_right, 0, pad_bottom), 'constant', 0.0)
+    >>> np.testing.assert_array_equal(x=tensor([
+    ... [[[1.0, 2.0, 0.0], [3.0, 2.0, 0.0], [0.0, 0.0, 0.0]],
+    ... [[-1.0, 2.0, 0.0], [3.0, -2.0, 0.0], [0.0, 0.0, 0.0]]],
+    ... [[[-1.0, 1.0, 0.0], [2.0, 3.0, 0.0], [0.0, 0.0, 0.0]],
+    ... [[-2.0, 1.0, 0.0], [1.0, -3.0, 0.0], [0.0, 0.0, 0.0]]]]), y=y_padded,
+    ... err_msg="The expected result x is different than the computed y.")
+    >>> signal_ndim = 2
+    >>> onesided = True
+    >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
+    >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
+    >>> result = correlate_fft_signals2D(xfft=xfft, yfft=yfft,
+    ... fft_height=x.shape[-2], fft_width=x.shape[-1],
+    ... out_height=(x.shape[-2]-y.shape[-2]+1),
+    ... out_width=(x.shape[-1]-y.shape[-1] + 1))
+    >>> # print("result: ", result)
+    >>> np.testing.assert_array_almost_equal(
+    ... x=np.array([[[[23.0, 32.0], [30., 4.]],[[11.0, 12.0], [13.0, -11.0]]]]),
+    ... y=result, decimal=5,
+    ... err_msg="The expected array x and computed y are not almost equal.")
+
+    >>> # Test 2D convolution.
+    >>> x = tensor([[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]])
+    >>> # A single filter.
+    >>> y = tensor([[[1.0, 2.0], [3.0, 2.0]]])
+    >>> fft_width = x.shape[-1]
+    >>> fft_height = x.shape[-2]
+    >>> pad_right = fft_width - y.shape[-1]
+    >>> pad_bottom = fft_height - y.shape[-2]
+    >>> y_padded = F.pad(y, (0, pad_right, 0, pad_bottom), 'constant', 0.0)
+    >>> np.testing.assert_array_equal(x=tensor([[[1.0, 2.0, 0.0],
+    ... [3.0, 2.0, 0.0], [0.0, 0.0, 0.0]]]), y=y_padded,
+    ... err_msg="The expected result x is different than the computed y.")
+    >>> signal_ndim = 2
+    >>> onesided = True
+    >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
+    >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
+    >>> result = correlate_fft_signals2D(xfft=xfft, yfft=yfft,
+    ... fft_height=x.shape[-2], fft_width=x.shape[-1],
+    ... out_height=(x.shape[-2]-y.shape[-2]+1),
+    ... out_width=(x.shape[-1]-y.shape[-1] + 1))
+    >>> # print("result: ", result)
+    >>> np.testing.assert_array_almost_equal(
+    ... x=np.array([[[22.0, 22.0], [18., 14.]]]), y=result,
+    ... err_msg="The expected array x and computed y are not almost equal.")
+
+    >>> # Test 2D convolution.
+    >>> x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]])
+    >>> # A single filter.
+    >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
+    >>> fft_width = x.shape[-1]
+    >>> fft_height = x.shape[-2]
+    >>> pad_right = fft_width - y.shape[-1]
+    >>> pad_bottom = fft_height - y.shape[-2]
+    >>> y_padded = F.pad(y, (0, pad_right, 0, pad_bottom), 'constant', 0.0)
+    >>> np.testing.assert_array_equal(x=tensor([[[[1.0, 2.0, 0.0],
+    ... [3.0, 2.0, 0.0], [0.0, 0.0, 0.0]]]]), y=y_padded,
+    ... err_msg="The expected result x is different than the computed y.")
+    >>> signal_ndim = 2
+    >>> onesided = True
+    >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
+    >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
+    >>> result = correlate_fft_signals2D(xfft=xfft, yfft=yfft,
+    ... fft_height=x.shape[-2], fft_width=x.shape[-1],
+    ... out_height=(x.shape[-2]-y.shape[-2]+1),
+    ... out_width=(x.shape[-1]-y.shape[-1] + 1))
+    >>> # print("result: ", result)
+    >>> np.testing.assert_array_almost_equal(
+    ... x=np.array([[[[22.0, 22.0], [18., 14.]]]]), y=result,
+    ... err_msg="The expected array x and computed y are not almost equal.")
+
+    >>> # Test 2 channels.
+    >>> x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]],
+    ... [[1., 1., 2.], [2., 3., 1.], [2., -1., 3.]]]])
+    >>> # A single filter.
+    >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]], [[-1.0, 2.0],[3.0, -2.0]]]])
+    >>> fft_width = x.shape[-1]
+    >>> fft_height = x.shape[-2]
+    >>> pad_right = fft_width - y.shape[-1]
+    >>> pad_bottom = fft_height - y.shape[-2]
+    >>> y_padded = F.pad(y, (0, pad_right, 0, pad_bottom), 'constant', 0.0)
+    >>> np.testing.assert_array_equal(x=tensor([[
+    ... [[1.0, 2.0, 0.0], [3.0, 2.0, 0.0], [0.0, 0.0, 0.0]],
+    ... [[-1.0, 2.0, 0.0], [3.0, -2.0, 0.0], [0.0, 0.0, 0.0]]
+    ... ]]), y=y_padded,
+    ... err_msg="The expected result x is different than the computed y.")
+    >>> signal_ndim = 2
+    >>> onesided = True
+    >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
+    >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
+    >>> result = correlate_fft_signals2D(xfft=xfft, yfft=yfft,
+    ... fft_height=x.shape[-2], fft_width=x.shape[-1],
+    ... out_height=(x.shape[-2]-y.shape[-2]+1),
+    ... out_width=(x.shape[-1]-y.shape[-1] + 1))
+    >>> # print("result: ", result)
+    >>> np.testing.assert_array_almost_equal(
+    ... x=np.array([[[[23.0, 32.0], [30., 4.]]]]), y=result, decimal=5,
+    ... err_msg="The expected array x and computed y are not almost equal.")
+
+    :param xfft: first input map
+    :param yfft: second input map
+    :param fft_height: the fft height for maps (both input maps xfft and yfft
+    for cross-correlation have to have the same dimensions).
+    :param fft_width: the fft width for maps (both input maps xfft and yfft
+    for cross-correlation have to have the same dimensions).
+    :param out_height: the height of the output map
+    :param out_width: the width of the output map
+    :param is_forward: is the correlation for a forward of a backward pass of
+    the convolution operation.
+    :return: output map after correlation of xfft with yfft
+    """
+    signal_ndim = 2
+
+    xfft = complex_pad2D(xfft=xfft, fft_height=fft_height, fft_width=fft_width)
+    yfft = complex_pad2D(xfft=yfft, fft_height=fft_height, fft_width=fft_width)
+
+    freq_mul = complex_mul(xfft, pytorch_conjugate(yfft))
+    out = torch.irfft(input=freq_mul, signal_ndim=signal_ndim,
+                      signal_sizes=(fft_height, fft_width))
+
+    out = out[..., :out_height, :out_width]
+    if out.dim() > 2 and is_forward:
+        out = torch.sum(input=out, dim=-3)
         out = torch.unsqueeze(input=out, dim=0)  # unsqueeze the channels
     return out
 
@@ -646,7 +805,7 @@ def complex_pad(xfft, fft_size):
     """
     # xfft has at least two dimensions (with the last one being a dimension for
     # a pair of real numbers representing a complex number). Moreover, pytorch
-    # supports half-sized fft (onesided fft) by default.
+    # supports half-sized fft (one-sided fft) by default.
     half_fft = fft_size // 2 + 1
     pad_shape = tensor(xfft.shape)
     # Omit the last dimension (-1) for complex numbers.
@@ -787,4 +946,5 @@ if __name__ == "__main__":
     import sys
     import doctest
 
+    # you can run it from the console: python pytorch_util.py -v
     sys.exit(doctest.testmod()[0])

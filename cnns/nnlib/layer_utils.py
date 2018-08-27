@@ -1,5 +1,5 @@
-from nnlib.layers import *
-from nnlib.fast_layers import *
+from cnns.nnlib.layers import *
+from cnns.nnlib.fast_layers import *
 
 
 def affine_relu_forward(x, w, b):

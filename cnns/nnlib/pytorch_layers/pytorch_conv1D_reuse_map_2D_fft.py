@@ -1,14 +1,13 @@
 """
-Custom FFT based convolution that can rely on the autograd
-(a tape-based automatic differentiation library that supports
-all differentiable Tensor operations in pytorch).
+Custom FFT based convolution that can rely on the autograd (a tape-based
+automatic differentiation library that supports all differentiable Tensor
+operations in pytorch).
 """
 import logging
 import sys
 
 import numpy as np
 import torch
-from torch import tensor
 from torch.nn import Module
 from torch.nn.functional import pad as torch_pad
 from torch.nn.parameter import Parameter
@@ -19,7 +18,6 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate
 from cnns.nnlib.pytorch_layers.pytorch_utils import from_tensor
 from cnns.nnlib.pytorch_layers.pytorch_utils import to_tensor
 
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 consoleLog = logging.StreamHandler()
@@ -28,17 +26,17 @@ logger.addHandler(consoleLog)
 current_file_name = __file__.split("/")[-1].split(".")[0]
 
 
-class PyTorchConv1dFunction(torch.autograd.Function):
+class PyTorchConv2dFunction(torch.autograd.Function):
     """
-    Implement the 1D convolution via FFT with compression of the
-    input map and the filter.
+    Implement the 2D convolution via FFT with compression of the input map and
+    the filter.
     """
 
     @staticmethod
     def forward(ctx, input, filter, bias, padding=None, index_back=None,
-                out_size=None, signal_ndim=1):
+                out_size=None):
         """
-        Compute the forward pass for the 1D convolution.
+        Compute the forward pass for the 2D convolution.
 
         :param ctx: context to save intermediate results, in other
         words, a context object that can be used to stash information
@@ -56,21 +54,24 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         :param out_size: what is the expected output size - one can disard the
         elements in the frequency domain and do the spectral pooling within the
         convolution
-        :param signal_ndim: this convolution is for 1 dimensional signals
 
         :return: the result of convolution
         """
-        # N - number of input maps (or images in the batch),
-        # C - number of input channels,
-        # W - width of the input (the length of the time-series).
-        N, C, W = input.size()
+        signal_ndim = 2
+        # N - number of input maps (or images in the batch).
+        # C - number of input channels.
+        # H - height of the input (e.g., height of an image).
+        # W - width of the input map (e.g. width of an image).
+        N, C, H, W = input.size()
 
-        # F - number of filters,
-        # C - number of channels in each filter,
+        # F - number of filters.
+        # C - number of channels in each filter.
+        # HH - the height of the filter.
         # WW - the width of the filter (its length).
-        F, C, WW = filter.size()
+        F, C, HH, WW = filter.size()
 
-        out_W = W - WW + 1  # the length of the output (without padding)
+        out_H = H - HH + 1  # the height of the output (without padding)
+        out_W = W - WW + 1  # the width of the output (without padding)
 
         if padding is None:
             padding_count = 0
