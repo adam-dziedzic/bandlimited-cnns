@@ -10,6 +10,46 @@ import torch.nn.functional as F
 from torch import tensor
 
 
+def get_pair(value=None, val_1_default=None, val2_default=None, name="value"):
+    """
+    >>> v1, v2 = get_pair(9)
+    >>> assert v1 == 9
+    >>> assert v2 == 9
+
+    >>> value = (8, 1)
+    >>> v1, v2 = get_pair(value=value)
+    >>> assert v1 == 8
+    >>> assert v2 == 1
+
+    >>> v1, v2 = get_pair(val_1_default=3, val2_default=4)
+    >>> assert v1 == 3
+    >>> assert v2 == 4
+
+    >>> v1, v2 = get_pair((1, 2, 3))
+    Traceback (most recent call last):
+    ...
+    ValueError: value requires a tuple of length 2
+
+    Extend a single value to a 2-element tuple with the same values or just
+    return the tuple: value.
+
+    :param value: a number or a tuple
+    :param val_1_default: default fist value
+    :param val2_default: default second value
+    :param name: the name of the value
+    :return: the 2-element tuple
+    """
+    if value is None:
+        return val_1_default, val2_default
+    if isinstance(value, type(0.0)) or isinstance(value, type(0)):
+        return value, value
+    elif isinstance(value, type(())) or isinstance(value, type([])):
+        if len(value) == 2:
+            return value
+        else:
+            raise ValueError(name + " requires a tuple of length 2")
+
+
 def to_tensor(value):
     """
     `to_tensor` and `from_tensor` methods are used to transfer intermediate

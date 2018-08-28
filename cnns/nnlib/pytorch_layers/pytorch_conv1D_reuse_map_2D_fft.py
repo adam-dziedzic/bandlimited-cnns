@@ -9,13 +9,13 @@ import sys
 import numpy as np
 import torch
 from torch.nn import Module
-from torch.nn.functional import pad as torch_pad
 from torch.nn.parameter import Parameter
 
-from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_fft_signals
+from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_fft_signals2D
+from cnns.nnlib.pytorch_layers.pytorch_utils import from_tensor
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_pair
 from cnns.nnlib.pytorch_layers.pytorch_utils import next_power2
 from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate
-from cnns.nnlib.pytorch_layers.pytorch_utils import from_tensor
 from cnns.nnlib.pytorch_layers.pytorch_utils import to_tensor
 
 logger = logging.getLogger(__name__)
@@ -48,12 +48,16 @@ class PyTorchConv2dFunction(torch.autograd.Function):
 
         :param filter: the filter (a.k.a. kernel of the convolution)
         :param bias: the bias term for each filter
-        :param padding: how much pad each end of the input signal
-        :param index_back: how many last elements in the fft-ed signal to
-        discard
-        :param out_size: what is the expected output size - one can disard the
-        elements in the frequency domain and do the spectral pooling within the
-        convolution
+        :param padding: how much pad each end of the height and width of the
+        input map, implicit zero paddings on both sides of the input. Can be a
+        single number or a tuple (padH, padW). Default: None (no padding).
+        :param index_back: how many last height and width elements in the
+        fft-ed map to discard, Can be a single number or a tuple
+        (index_back_H, index_back_W). Default: None (no compression)
+        :param out_size: what is the expected output size - one can disard
+        the elements in the frequency domain and do the spectral pooling within
+        the convolution. Can be a single number or a tuple (outH, outW).
+        Default: None (the stadard size, e.g., outW = W - WW + 1).
 
         :return: the result of convolution
         """
@@ -70,39 +74,47 @@ class PyTorchConv2dFunction(torch.autograd.Function):
         # WW - the width of the filter (its length).
         F, C, HH, WW = filter.size()
 
+        index_back_H, index_back_W = get_pair(value=index_back, val_1_default=0,
+                                              val2_default=0)
+
+        pad_H, pad_W = get_pair(value=padding, val_1_default=0, val2_default=0,
+                              name="padding")
+
+        out_size_H, out_size_W = get_pair(value=out_size, val_1_default=None,
+                                val2_default=None, name="out_size")
+
         out_H = H - HH + 1  # the height of the output (without padding)
         out_W = W - WW + 1  # the width of the output (without padding)
-
-        if padding is None:
-            padding_count = 0
-        else:
-            padding_count = padding
-
-        out_W += 2 * padding_count
+        out_H += 2 * pad_H
+        out_W += 2 * pad_W
 
         # We have to pad input with WW - 1 to execute fft correctly (no
         # overlapping signals) and optimize it by extending the signal to the
         # next power of 2. We want to reuse the fft-ed input x, so we use the
         # larger size chosen from: the filter width WW or output width out_W.
-        # Larger padding does not hurt correctness of fft but make it slightly
+        # Larger padding does not hurt correctness of fft but makes it slightly
         # slower, in terms of the computation time.
+        HHH = max(out_H, HH)
+        init_fft_H = next_power2(H + 2 * pad_H + HHH - 1)
         WWW = max(out_W, WW)
-        init_fft_size = next_power2(W + 2 * padding_count + WWW - 1)
+        init_fft_W = next_power2(W + 2 * pad_W + WWW - 1)
 
         # How many padded (zero) values there are because of going to the next
         # power of 2?
-        fft_padding_x = init_fft_size - 2 * padding_count - W
+        fft_padding_W = init_fft_W - 2 * pad_W - W
+        fft_padding_H = init_fft_H - 2 * pad_H - H
 
-        # Pad only the dimensions for the time-series - the width dimension
-        # (and neither data points nor the channels).
+        # Pad only the dimensions for the height and width dimensions
+        # and neither data points (the batch dimension) nor the channels.
+        padded_x = F.pad(
+            input, (pad_W, pad_W + fft_padding_W, pad_H, pad_H + fft_padding_H),
+            'constant', 0)
 
-        padded_x = torch_pad(input,
-                             (padding_count, padding_count + fft_padding_x),
-                             'constant', 0)
-
-        fft_padding_filter = init_fft_size - WW
-        padded_filter = torch_pad(
-            filter, (0, fft_padding_filter), 'constant', 0)
+        fft_padding_filter_W = init_fft_W - WW
+        fft_padding_filter_H = init_fft_H - HH
+        padded_filter = F.pad(
+            filter, (0, fft_padding_filter_W, 0, fft_padding_filter_H),
+            'constant', 0)
 
         # fft of the input and filters
         xfft = torch.rfft(padded_x, signal_ndim=signal_ndim, onesided=True)
@@ -112,27 +124,31 @@ class PyTorchConv2dFunction(torch.autograd.Function):
         # The last dimension (-1) has size 2 as it represents the complex
         # numbers with real and imaginary parts. The last but one dimension (-2)
         # represents the length of the signal in the frequency domain.
-        init_half_fft_size = xfft.shape[-2]
+        init_half_fft_W = xfft.shape[-2]
+        init_half_fft_H = xfft.shape[-3]
 
         # how much to compress the fft-ed signal
-        half_fft_compressed_size = init_half_fft_size
-        if index_back is not None and out_size is not None:
-            raise TypeError("Specify index_back or out_size not both.")
-        if out_size is not None:
-            out_W = out_size
-            # We take onesided fft so the output after inverse fft should be out
-            # size, thus the representation in spectral domain is twice smaller
-            # than the one in time domain.
-            half_fft_compressed_size = out_size // 2 + 1
-        if index_back is not None:
-            half_fft_compressed_size = init_half_fft_size - index_back
+        half_fft_compressed_size = init_half_fft_W
+        if index_back_W is not None and out_size_W is not None:
+            raise TypeError("Specify index_back_W or out_size_W not both.")
+        if out_size_W is not None:
+            if out_size_W > out_W:
+                raise ValueError("The out size required must be less than or "
+                                 "equal to the computed one.")
+            out_W = out_size_W
+            # We take one-sided fft so the output after inverse fft should be
+            # out size, thus the representation in spectral domain is twice
+            # smaller than the one in time domain.
+            half_fft_compressed_W = out_size_W // 2 + 1
+        if index_back_W is not None:
+            half_fft_compressed_W = init_half_fft_W - index_back
 
         # Complex numbers are represented as the pair of numbers in the last
         # dimension so we have to narrow the length of the last but one
         # dimension.
-        if half_fft_compressed_size < init_half_fft_size:
-            xfft = xfft.narrow(dim=-2, start=0, length=half_fft_compressed_size)
-            yfft = yfft.narrow(dim=-2, start=0, length=half_fft_compressed_size)
+        if half_fft_compressed_W < init_half_fft_W:
+            xfft = xfft.narrow(dim=-2, start=0, length=half_fft_compressed_W)
+            yfft = yfft.narrow(dim=-2, start=0, length=half_fft_compressed_W)
 
         out = torch.zeros([N, F, out_W], dtype=input.dtype, device=input.device)
 
@@ -140,7 +156,7 @@ class PyTorchConv2dFunction(torch.autograd.Function):
             # Take one time series and unsqueeze it for broadcasting with
             # many filters.
             xfft_nn = xfft[nn].unsqueeze(0)
-            out[nn] = correlate_fft_signals(
+            out[nn] = correlate_fft_signals2D(
                 xfft=xfft_nn, yfft=yfft, fft_size=init_fft_size,
                 out_size=out_W)
             # Add the bias term for each filter (it has to be unsqueezed to
@@ -148,8 +164,9 @@ class PyTorchConv2dFunction(torch.autograd.Function):
             out[nn] += bias.unsqueeze(1)
 
         if ctx:
-            ctx.save_for_backward(xfft, yfft, to_tensor(W), to_tensor(WW),
-                                  to_tensor(init_fft_size))
+            ctx.save_for_backward(xfft, yfft, to_tensor(H), to_tensor(HH),
+                                  to_tensor(W), to_tensor(WW),
+                                  to_tensor(init_fft_H), to_tensor(init_fft_W))
 
         return out
 
@@ -194,7 +211,7 @@ class PyTorchConv2dFunction(torch.autograd.Function):
         # since it does not give correct results even for the case without
         # compression if we pad in the spectral (frequency) domain.
         fft_padding_dout = init_fft_size - W_out
-        dout = torch_pad(dout, (0, fft_padding_dout), 'constant', 0)
+        dout = F.pad(dout, (0, fft_padding_dout), 'constant', 0)
         doutfft = torch.rfft(dout, signal_ndim=signal_ndim, onesided=True)
 
         init_half_fft_size = init_fft_size // 2 + 1
@@ -393,9 +410,9 @@ class PyTorchConv1d(PyTorchConv1dAutograd):
         passes via the torch.autograd.Function.
 
         :param input: the input map (e.g., an image)
-        :return: the result of 1D convolution
+        :return: the result of 2D convolution
         """
-        return PyTorchConv1dFunction.apply(input, self.filter,
+        return PyTorchConv2dFunction.apply(input, self.filter,
                                            self.bias,
                                            self.padding,
                                            self.index_back,
