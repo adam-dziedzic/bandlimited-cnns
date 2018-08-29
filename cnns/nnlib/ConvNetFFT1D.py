@@ -2,11 +2,12 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import os
 from pandas import DataFrame
+import time
 
-from nnlib.classifiers.cnn_fft_1D import ThreeLayerConvNetFFT1D
-from nnlib.data_utils import get_CIFAR10_data
-from nnlib.solver import Solver
-from nnlib.utils.general_utils import *
+from cnns.nnlib.classifiers.cnn_fft_1D import ThreeLayerConvNetFFT1D
+from cnns.nnlib.data_utils import get_CIFAR10_data
+from cnns.nnlib.solver import Solver
+from cnns.nnlib.utils.general_utils import *
 
 
 class Result(object):

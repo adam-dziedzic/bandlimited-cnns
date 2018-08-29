@@ -6,9 +6,9 @@ doesn't really work.
 from builtins import object
 import numpy as np
 
-from nnlib.layers import *
-from nnlib.fast_layers import *
-from nnlib.layer_utils import *
+from cnns.nnlib.layers import *
+from cnns.nnlib.fast_layers import *
+from cnns.nnlib.layer_utils import *
 
 
 class ThreeLayerConvNetTimeSeries(object):

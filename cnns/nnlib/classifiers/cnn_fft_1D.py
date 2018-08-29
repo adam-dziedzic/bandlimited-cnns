@@ -1,6 +1,6 @@
 from builtins import object
 
-from nnlib.layer_utils import *
+from cnns.nnlib.layer_utils import *
 
 
 class ThreeLayerConvNetFFT1D(object):
