@@ -26,6 +26,44 @@ logger.addHandler(consoleLog)
 current_file_name = __file__.split("/")[-1].split(".")[0]
 
 
+def compress_W(xfft, yfft, init_half_fft_size, out_size):
+    return compress(xfft=xfft, yfft=yfft, dim=-2)
+
+
+def compress_H(xfft, yfft, init_half_fft_size, out_size):
+    return compress(xfft=xfft, yfft=yfft, dim=-3)
+
+
+def compress(dim):
+    """
+    Compress the signal for a single dimension.
+    :param dim:
+    :return:
+    """
+    # how much to compress the fft-ed signal
+    half_fft_compressed_W = init_half_fft_W
+    if index_back_W is not None and out_size_W is not None:
+        raise TypeError("Specify index_back_W or out_size_W not both.")
+    if out_size_W is not None:
+        if out_size_W > out_W:
+            raise ValueError("The out size required must be less than or "
+                             "equal to the computed one.")
+        out_W = out_size_W
+        # We take one-sided fft so the output after inverse fft should be
+        # out size, thus the representation in spectral domain is twice
+        # smaller than the one in time domain.
+        half_fft_compressed_W = out_size_W // 2 + 1
+    if index_back_W is not None:
+        half_fft_compressed_W = init_half_fft_W - index_back
+
+    # Complex numbers are represented as the pair of numbers in the last
+    # dimension so we have to narrow the length of the last but one
+    # dimension.
+    if half_fft_compressed_W < init_half_fft_W:
+        xfft = xfft.narrow(dim=-2, start=0, length=half_fft_compressed_W)
+        yfft = yfft.narrow(dim=-2, start=0, length=half_fft_compressed_W)
+
+
 class PyTorchConv2dFunction(torch.autograd.Function):
     """
     Implement the 2D convolution via FFT with compression of the input map and
@@ -40,26 +78,26 @@ class PyTorchConv2dFunction(torch.autograd.Function):
 
         :param ctx: context to save intermediate results, in other
         words, a context object that can be used to stash information
-        for backward computation
+        for backward computation.
         :param input: the input map to the convolution (e.g. a time-series).
 
         The other parameters are similar to the ones in the
         PyTorchConv1dAutograd class.
 
-        :param filter: the filter (a.k.a. kernel of the convolution)
-        :param bias: the bias term for each filter
+        :param filter: the filter (a.k.a. kernel of the convolution).
+        :param bias: the bias term for each filter.
         :param padding: how much pad each end of the height and width of the
         input map, implicit zero paddings on both sides of the input. Can be a
         single number or a tuple (padH, padW). Default: None (no padding).
         :param index_back: how many last height and width elements in the
         fft-ed map to discard, Can be a single number or a tuple
-        (index_back_H, index_back_W). Default: None (no compression)
-        :param out_size: what is the expected output size - one can disard
+        (index_back_H, index_back_W). Default: None (no compression).
+        :param out_size: what is the expected output size - one can discard
         the elements in the frequency domain and do the spectral pooling within
         the convolution. Can be a single number or a tuple (outH, outW).
-        Default: None (the stadard size, e.g., outW = W - WW + 1).
+        Default: None (the standard size, e.g., outW = W - WW + 1).
 
-        :return: the result of convolution
+        :return: the result of convolution.
         """
         signal_ndim = 2
         # N - number of input maps (or images in the batch).
@@ -78,17 +116,17 @@ class PyTorchConv2dFunction(torch.autograd.Function):
                                               val2_default=0)
 
         pad_H, pad_W = get_pair(value=padding, val_1_default=0, val2_default=0,
-                              name="padding")
+                                name="padding")
 
         out_size_H, out_size_W = get_pair(value=out_size, val_1_default=None,
-                                val2_default=None, name="out_size")
+                                          val2_default=None, name="out_size")
 
         out_H = H - HH + 1  # the height of the output (without padding)
         out_W = W - WW + 1  # the width of the output (without padding)
         out_H += 2 * pad_H
         out_W += 2 * pad_W
 
-        # We have to pad input with WW - 1 to execute fft correctly (no
+        # We have to pad input with (WW - 1) to execute fft correctly (no
         # overlapping signals) and optimize it by extending the signal to the
         # next power of 2. We want to reuse the fft-ed input x, so we use the
         # larger size chosen from: the filter width WW or output width out_W.
@@ -127,28 +165,8 @@ class PyTorchConv2dFunction(torch.autograd.Function):
         init_half_fft_W = xfft.shape[-2]
         init_half_fft_H = xfft.shape[-3]
 
-        # how much to compress the fft-ed signal
-        half_fft_compressed_size = init_half_fft_W
-        if index_back_W is not None and out_size_W is not None:
-            raise TypeError("Specify index_back_W or out_size_W not both.")
-        if out_size_W is not None:
-            if out_size_W > out_W:
-                raise ValueError("The out size required must be less than or "
-                                 "equal to the computed one.")
-            out_W = out_size_W
-            # We take one-sided fft so the output after inverse fft should be
-            # out size, thus the representation in spectral domain is twice
-            # smaller than the one in time domain.
-            half_fft_compressed_W = out_size_W // 2 + 1
-        if index_back_W is not None:
-            half_fft_compressed_W = init_half_fft_W - index_back
-
-        # Complex numbers are represented as the pair of numbers in the last
-        # dimension so we have to narrow the length of the last but one
-        # dimension.
-        if half_fft_compressed_W < init_half_fft_W:
-            xfft = xfft.narrow(dim=-2, start=0, length=half_fft_compressed_W)
-            yfft = yfft.narrow(dim=-2, start=0, length=half_fft_compressed_W)
+        compress_W()
+        compress_H()
 
         out = torch.zeros([N, F, out_W], dtype=input.dtype, device=input.device)
 

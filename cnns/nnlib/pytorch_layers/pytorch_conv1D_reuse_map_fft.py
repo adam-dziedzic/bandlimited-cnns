@@ -14,7 +14,7 @@ from torch.nn.functional import pad as torch_pad
 from torch.nn.parameter import Parameter
 
 from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_fft_signals
-from cnns.nnlib.pytorch_layers.pytorch_utils import next_power2
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_fft_sizes
 from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate
 from cnns.nnlib.pytorch_layers.pytorch_utils import from_tensor
 from cnns.nnlib.pytorch_layers.pytorch_utils import to_tensor
@@ -60,6 +60,9 @@ class PyTorchConv1dFunction(torch.autograd.Function):
 
         :return: the result of convolution
         """
+        if index_back is not None and out_size is not None:
+            raise TypeError("Specify index_back or out_size not both.")
+
         # N - number of input maps (or images in the batch),
         # C - number of input channels,
         # W - width of the input (the length of the time-series).
@@ -70,27 +73,33 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         # WW - the width of the filter (its length).
         F, C, WW = filter.size()
 
-        out_W = W - WW + 1  # the length of the output (without padding)
-
         if padding is None:
             padding_count = 0
         else:
             padding_count = padding
 
-        out_W += 2 * padding_count
+        if out_size is not None:
+            out_W = out_size
+        else:
+            out_W = W - WW + 1  # the length of the output (without padding)
+            out_W += 2 * padding_count
 
-        # We have to pad input with WW - 1 to execute fft correctly (no
-        # overlapping signals) and optimize it by extending the signal to the
-        # next power of 2. We want to reuse the fft-ed input x, so we use the
-        # larger size chosen from: the filter width WW or output width out_W.
-        # Larger padding does not hurt correctness of fft but make it slightly
-        # slower, in terms of the computation time.
-        WWW = max(out_W, WW)
-        init_fft_size = next_power2(W + 2 * padding_count + WWW - 1)
+        init_fft_size, init_half_fft_size = get_fft_sizes(
+            input_size=W, filter_size=WW, output_size=out_W,
+            padding_count=padding_count)
+
+        half_fft_compressed_size = None
+        if index_back is not None:
+            half_fft_compressed_size = init_half_fft_size - index_back
+        if out_size is not None:
+            # We take onesided fft so the output after inverse fft should be out
+            # size, thus the representation in spectral domain is twice smaller
+            # than the one in time domain.
+            half_fft_compressed_size = out_size // 2 + 1
 
         # How many padded (zero) values there are because of going to the next
         # power of 2?
-        fft_padding_x = init_fft_size - 2 * padding_count - W
+        fft_padding_x = init_fft_size - W - 2 * padding_count
 
         # Pad only the dimensions for the time-series - the width dimension
         # (and neither data points nor the channels).
@@ -111,25 +120,12 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         # The last dimension (-1) has size 2 as it represents the complex
         # numbers with real and imaginary parts. The last but one dimension (-2)
         # represents the length of the signal in the frequency domain.
-        init_half_fft_size = xfft.shape[-2]
-
-        # how much to compress the fft-ed signal
-        half_fft_compressed_size = init_half_fft_size
-        if index_back is not None and out_size is not None:
-            raise TypeError("Specify index_back or out_size not both.")
-        if out_size is not None:
-            out_W = out_size
-            # We take onesided fft so the output after inverse fft should be out
-            # size, thus the representation in spectral domain is twice smaller
-            # than the one in time domain.
-            half_fft_compressed_size = out_size // 2 + 1
-        if index_back is not None:
-            half_fft_compressed_size = init_half_fft_size - index_back
+        assert init_half_fft_size == xfft.shape[-2]
 
         # Complex numbers are represented as the pair of numbers in the last
         # dimension so we have to narrow the length of the last but one
-        # dimension.
-        if half_fft_compressed_size < init_half_fft_size:
+        # dimension (-2).
+        if half_fft_compressed_size is not None:
             xfft = xfft.narrow(dim=-2, start=0, length=half_fft_compressed_size)
             yfft = yfft.narrow(dim=-2, start=0, length=half_fft_compressed_size)
 

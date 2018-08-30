@@ -10,6 +10,46 @@ import torch.nn.functional as F
 from torch import tensor
 
 
+def get_fft_sizes(input_size, filter_size, output_size, padding_count):
+    """
+    We have to pad input with (filter_size - 1) to execute fft correctly
+    (no overlapping signals) and optimize it by extending the signal to the next
+    power of 2.
+    We want to reuse the fft-ed input x, so we use the larger size chosen from:
+    the filter size or output size. Larger padding does not hurt correctness of
+    fft but make it slightly slower, in terms of the computation time.
+
+    >>> fft_size, half_fft_size = get_fft_sizes(10, 3, None, 1)
+    >>> # print("fft_size: ", fft_size)
+    >>> assert fft_size == 32
+    >>> assert half_fft_size == 17
+
+    >>> fft_size, half_fft_size = get_fft_sizes(10, 3, 6, 0)
+    >>> # print("fft_size: ", fft_size)
+    >>> assert fft_size == 16
+    >>> assert half_fft_size == 9
+
+    >>> fft_size, half_fft_size = get_fft_sizes(10, 3, 7, 3)
+    >>> # print("fft_size: ", fft_size)
+    >>> assert fft_size == 32
+    >>> assert half_fft_size == 17
+
+    :param input_size: the size of the input for one of the dimensions
+    :param filter_size: the size of the filter for one of the dimensions
+    :param output_size: the size of the output for one of the dimensions
+    :param padding_count: the padding applied to the input for the chosen
+    dimension
+    :return: the size of the ffted signal (and its onesided size) for the chosen
+    dimension
+    """
+    if output_size is None:
+        output_size = input_size - filter_size + 1 + 2 * padding_count
+    size = max(filter_size, output_size)
+    init_fft_size = next_power2(input_size + size - 1 + 2 * padding_count)
+    init_half_fft_size = init_fft_size // 2 + 1
+    return init_fft_size, init_half_fft_size
+
+
 def get_pair(value=None, val_1_default=None, val2_default=None, name="value"):
     """
     >>> v1, v2 = get_pair(9)
@@ -114,6 +154,8 @@ def next_power2(x):
     >>> result = next_power2(7)
     >>> np.testing.assert_equal(result, 8)
     >>> result = next_power2(9)
+    >>> np.testing.assert_equal(result, 16)
+    >>> result = next_power2(16)
     >>> np.testing.assert_equal(result, 16)
     """
     # return math.pow(2, math.ceil(math.log2(x)))
