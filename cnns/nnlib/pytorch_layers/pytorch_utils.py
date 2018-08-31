@@ -711,7 +711,6 @@ def correlate_fft_signals2D(xfft, yfft, fft_height, fft_width, out_height,
     >>> # Test 2 channels and 2 filters.
     >>> x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]],
     ... [[1., 1., 2.], [2., 3., 1.], [2., -1., 3.]]]])
-    >>> # A single filter.
     >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]], [[-1.0, 2.0],[3.0, -2.0]]],
     ... [[[-1.0, 1.0], [2.0, 3.0]], [[-2.0, 1.0], [1.0, -3.0]]]])
     >>> fft_width = x.shape[-1]

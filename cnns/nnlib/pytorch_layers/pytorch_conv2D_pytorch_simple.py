@@ -2,15 +2,16 @@
 All operations in PyTorch with manual autograd.
 """
 
+import logging
+
 import torch
 from torch.autograd import Function
 from torch.nn import Module
-from torch.nn.functional import conv2d  # conv2d is actual cross-correlation in PyTorch
+# conv2d is actual cross-correlation in PyTorch
+from torch.nn.functional import conv2d
 from torch.nn.parameter import Parameter
 
-from nnlib.pytorch_layers.pytorch_utils import flip
-
-import logging
+from cnns.nnlib.pytorch_layers.pytorch_utils import flip
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -18,6 +19,7 @@ consoleLog = logging.StreamHandler()
 logger.addHandler(consoleLog)
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
+
 
 class PyTorchConv2dFunction(Function):
     @staticmethod
@@ -33,7 +35,8 @@ class PyTorchConv2dFunction(Function):
         grad_bias = torch.sum(grad_output)
         flipped_filter = flip(flip(filter, dim=2), dim=3)
         # logger.debug("flipped filter: " + str(flipped_filter))
-        grad_input = conv2d(grad_output, flipped_filter, padding=(filter.size(2) - 1, filter.size(3) - 1))
+        grad_input = conv2d(grad_output, flipped_filter,
+                            padding=(filter.size(2) - 1, filter.size(3) - 1))
         grad_filter = conv2d(input, grad_output)
         return grad_input, grad_filter, grad_bias
 
@@ -42,7 +45,8 @@ class PyTorchConv2d(Module):
     def __init__(self, filter_width, filter_height, filter=None, bias=None):
         super(PyTorchConv2d, self).__init__()
         if filter is None:
-            self.filter = Parameter(torch.randn(1, 1, filter_width, filter_height))
+            self.filter = Parameter(
+                torch.randn(1, 1, filter_width, filter_height))
         else:
             self.filter = filter
         if bias is None:

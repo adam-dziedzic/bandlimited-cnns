@@ -1,15 +1,19 @@
 """
-Custom FFT based convolution that can rely on the autograd (a tape-based
+Custom FFT based convolution that:
+1) computes forward and backward manually
+2) manually computes the forward pass and relies on the autograd (a tape-based
 automatic differentiation library that supports all differentiable Tensor
-operations in pytorch).
+operations in PyTorch) for automatic differentiation for the backward pass.
 """
 import logging
 import sys
 
 import numpy as np
 import torch
+from torch import tensor
 from torch.nn import Module
 from torch.nn.parameter import Parameter
+from torch.nn.functional import pad as torch_pad
 
 from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_fft_signals2D
 from cnns.nnlib.pytorch_layers.pytorch_utils import from_tensor
@@ -26,48 +30,10 @@ logger.addHandler(consoleLog)
 current_file_name = __file__.split("/")[-1].split(".")[0]
 
 
-def compress_W(xfft, yfft, init_half_fft_size, out_size):
-    return compress(xfft=xfft, yfft=yfft, dim=-2)
-
-
-def compress_H(xfft, yfft, init_half_fft_size, out_size):
-    return compress(xfft=xfft, yfft=yfft, dim=-3)
-
-
-def compress(dim):
-    """
-    Compress the signal for a single dimension.
-    :param dim:
-    :return:
-    """
-    # how much to compress the fft-ed signal
-    half_fft_compressed_W = init_half_fft_W
-    if index_back_W is not None and out_size_W is not None:
-        raise TypeError("Specify index_back_W or out_size_W not both.")
-    if out_size_W is not None:
-        if out_size_W > out_W:
-            raise ValueError("The out size required must be less than or "
-                             "equal to the computed one.")
-        out_W = out_size_W
-        # We take one-sided fft so the output after inverse fft should be
-        # out size, thus the representation in spectral domain is twice
-        # smaller than the one in time domain.
-        half_fft_compressed_W = out_size_W // 2 + 1
-    if index_back_W is not None:
-        half_fft_compressed_W = init_half_fft_W - index_back
-
-    # Complex numbers are represented as the pair of numbers in the last
-    # dimension so we have to narrow the length of the last but one
-    # dimension.
-    if half_fft_compressed_W < init_half_fft_W:
-        xfft = xfft.narrow(dim=-2, start=0, length=half_fft_compressed_W)
-        yfft = yfft.narrow(dim=-2, start=0, length=half_fft_compressed_W)
-
-
 class PyTorchConv2dFunction(torch.autograd.Function):
     """
-    Implement the 2D convolution via FFT with compression of the input map and
-    the filter.
+    Implement the 2D convolution via FFT with compression in the spectral domain
+    of the input map and the filter.
     """
 
     @staticmethod
@@ -76,33 +42,37 @@ class PyTorchConv2dFunction(torch.autograd.Function):
         """
         Compute the forward pass for the 2D convolution.
 
-        :param ctx: context to save intermediate results, in other
-        words, a context object that can be used to stash information
-        for backward computation.
+        :param ctx: context to save intermediate results, in other words,
+        a context object that can be used to stash information for backward
+        computation.
         :param input: the input map to the convolution (e.g. a time-series).
 
         The other parameters are similar to the ones in the
-        PyTorchConv1dAutograd class.
+        PyTorchConv2dAutograd class.
 
         :param filter: the filter (a.k.a. kernel of the convolution).
         :param bias: the bias term for each filter.
-        :param padding: how much pad each end of the height and width of the
-        input map, implicit zero paddings on both sides of the input. Can be a
-        single number or a tuple (padH, padW). Default: None (no padding).
-        :param index_back: how many last height and width elements in the
-        fft-ed map to discard, Can be a single number or a tuple
+        :param padding: how much to pad each end of the height and width of the
+        input map, implicit applies zero padding on both sides of the input. It
+        can be a single number or a tuple (padH, padW).
+        Default: None (no padding).
+        :param index_back: how many of the last height and width elements in the
+        fft-ed map to discard. It Can be a single number or a tuple
         (index_back_H, index_back_W). Default: None (no compression).
         :param out_size: what is the expected output size - one can discard
         the elements in the frequency domain and do the spectral pooling within
-        the convolution. Can be a single number or a tuple (outH, outW).
+        the convolution. It can be a single number or a tuple (outH, outW).
         Default: None (the standard size, e.g., outW = W - WW + 1).
 
         :return: the result of convolution.
         """
+        if index_back is not None and out_size is not None:
+            raise TypeError("Specify index_back or out_size not both.")
+
         signal_ndim = 2
         # N - number of input maps (or images in the batch).
         # C - number of input channels.
-        # H - height of the input (e.g., height of an image).
+        # H - height of the input map (e.g., height of an image).
         # W - width of the input map (e.g. width of an image).
         N, C, H, W = input.size()
 
@@ -121,10 +91,17 @@ class PyTorchConv2dFunction(torch.autograd.Function):
         out_size_H, out_size_W = get_pair(value=out_size, val_1_default=None,
                                           val2_default=None, name="out_size")
 
-        out_H = H - HH + 1  # the height of the output (without padding)
-        out_W = W - WW + 1  # the width of the output (without padding)
-        out_H += 2 * pad_H
-        out_W += 2 * pad_W
+        if out_size_H is not None:
+            out_H = out_size_H
+        else:
+            out_H = H - HH + 1  # the height of the output (without padding)
+            out_H += 2 * pad_H
+
+        if out_size_W is not None:
+            out_W = out_size_W
+        else:
+            out_W = W - WW + 1  # the width of the output (without padding)
+            out_W += 2 * pad_W
 
         # We have to pad input with (WW - 1) to execute fft correctly (no
         # overlapping signals) and optimize it by extending the signal to the
@@ -139,18 +116,18 @@ class PyTorchConv2dFunction(torch.autograd.Function):
 
         # How many padded (zero) values there are because of going to the next
         # power of 2?
-        fft_padding_W = init_fft_W - 2 * pad_W - W
-        fft_padding_H = init_fft_H - 2 * pad_H - H
+        fft_padding_input_H = init_fft_H - 2 * pad_H - H
+        fft_padding_input_W = init_fft_W - 2 * pad_W - W
 
-        # Pad only the dimensions for the height and width dimensions
-        # and neither data points (the batch dimension) nor the channels.
-        padded_x = F.pad(
-            input, (pad_W, pad_W + fft_padding_W, pad_H, pad_H + fft_padding_H),
-            'constant', 0)
+        # Pad only the dimensions for the height and width and neither the data
+        # points (the batch dimension) nor the channels.
+        padded_x = torch_pad(
+            input, (pad_W, pad_W + fft_padding_input_W, pad_H,
+                    pad_H + fft_padding_input_H), 'constant', 0)
 
-        fft_padding_filter_W = init_fft_W - WW
         fft_padding_filter_H = init_fft_H - HH
-        padded_filter = F.pad(
+        fft_padding_filter_W = init_fft_W - WW
+        padded_filter = torch_pad(
             filter, (0, fft_padding_filter_W, 0, fft_padding_filter_H),
             'constant', 0)
 
@@ -165,18 +142,52 @@ class PyTorchConv2dFunction(torch.autograd.Function):
         init_half_fft_W = xfft.shape[-2]
         init_half_fft_H = xfft.shape[-3]
 
-        compress_W()
-        compress_H()
+        # Compute how much to compress the fft-ed signal for its width (W).
+        half_fft_compressed_W = None
+        if index_back_W is not None:
+            half_fft_compressed_W = init_half_fft_W - index_back
+        if out_size_W is not None:
+            # We take one-sided fft so the output after the inverse fft should
+            # be out size, thus the representation in the spectral domain is
+            # twice smaller than the one in the time domain.
+            half_fft_compressed_W = out_size_W // 2 + 1
 
-        out = torch.zeros([N, F, out_W], dtype=input.dtype, device=input.device)
+        # Complex numbers are represented as the pair of numbers in the last
+        # dimension so we have to narrow the length of the last but one
+        # dimension.
+        if half_fft_compressed_W is not None:
+            xfft = xfft.narrow(dim=-2, start=0, length=half_fft_compressed_W)
+            yfft = yfft.narrow(dim=-2, start=0, length=half_fft_compressed_W)
+
+
+        # Compute how much to compress the fft-ed signal for its height (H).
+        half_fft_compressed_H = None
+        if index_back_H is not None:
+            half_fft_compressed_H = init_half_fft_H - index_back
+        if out_size_H is not None:
+            # We take one-sided fft so the output after the inverse fft should
+            # be out size, thus the representation in the spectral domain is
+            # twice smaller than the one in time domain.
+            half_fft_compressed_H = out_size_H // 2 + 1
+
+        # Complex numbers are represented as the pair of numbers in the last
+        # dimension so we have to narrow the length of the last but one
+        # dimension.
+        if half_fft_compressed_H is not None:
+            xfft = xfft.narrow(dim=-3, start=0, length=half_fft_compressed_H)
+            yfft = yfft.narrow(dim=-3, start=0, length=half_fft_compressed_H)
+
+        out = torch.zeros([N, F, out_H, out_W], dtype=input.dtype,
+                          device=input.device)
 
         for nn in range(N):  # For each time-series in the batch.
             # Take one time series and unsqueeze it for broadcasting with
             # many filters.
             xfft_nn = xfft[nn].unsqueeze(0)
             out[nn] = correlate_fft_signals2D(
-                xfft=xfft_nn, yfft=yfft, fft_size=init_fft_size,
-                out_size=out_W)
+                xfft=xfft_nn, yfft=yfft, fft_height=init_fft_H,
+                fft_width=init_fft_W, out_height=out_H, out_width=out_W,
+                is_forward=True)
             # Add the bias term for each filter (it has to be unsqueezed to
             # the dimension of the out to properly sum up the values).
             out[nn] += bias.unsqueeze(1)
@@ -302,7 +313,7 @@ class PyTorchConv2dFunction(torch.autograd.Function):
         return dx, dw, db, None, None, None, None, None
 
 
-class PyTorchConv1dAutograd(Module):
+class PyTorchConv2dAutograd(Module):
     def __init__(self, filter=None, bias=None, padding=None, index_back=None,
                  out_size=None, filter_width=None):
         """
@@ -331,7 +342,7 @@ class PyTorchConv1dAutograd(Module):
         directions, it has to be 1 for the FFT based convolution (at least for
         now, I did not think how to express convolution with strides via FFT).
         """
-        super(PyTorchConv1dAutograd, self).__init__()
+        super(PyTorchConv2dAutograd, self).__init__()
         if filter is None:
             if filter_width is None:
                 logger.error(
@@ -353,7 +364,7 @@ class PyTorchConv1dAutograd(Module):
 
     def forward(self, input):
         """
-        Forward pass of 1D convolution.
+        Forward pass of 2D convolution.
 
         The input consists of N data points with each data point
         representing a signal (e.g., time-series) of length W.
@@ -380,18 +391,48 @@ class PyTorchConv1dAutograd(Module):
          using-fourier-transforms-to-do-convolution?utm_medium=orga
          nic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
 
-        >>> # test with compression
-        >>> x = np.array([[[1., 2., 3.]]])
-        >>> y = np.array([[[2., 1.]]])
-        >>> b = np.array([0.0])
-        >>> conv_param = {'pad' : 0, 'stride' :1}
-        >>> # the 1 index back does not change the result in this case
-        >>> expected_result = [3.5, 7.5]
-        >>> conv = PyTorchConv1dAutograd(filter=torch.from_numpy(y),
-        ... bias=torch.from_numpy(b), index_back=1)
-        >>> result = conv.forward(input=torch.from_numpy(x))
-        >>> np.testing.assert_array_almost_equal(result,
-        ... np.array([[expected_result]]))
+        >>> # Test 2D convolution.
+        >>> # A single input map.
+        >>> x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]])
+        >>> # A single filter.
+        >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
+        >>> b = tensor([0.0])
+        >>> conv = PyTorchConv2dAutograd(filter=y, bias=b, index_back=0)
+        >>> result = conv.forward(input=x)
+        >>> expect = np.array([[[[22.0, 22.0], [18., 14.]]]])
+        >>> np.testing.assert_array_almost_equal(x=expect, y=result,
+        ... err_msg="The expected array x and computed y are not almost equal.")
+
+        >>> # Test 2 channels and 2 filters.
+        >>> x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]],
+        ... [[1., 1., 2.], [2., 3., 1.], [2., -1., 3.]]]])
+        >>> # A single filter.
+        >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]], [[-1.0, 2.0],[3.0, -2.0]]],
+        ... [[[-1.0, 1.0], [2.0, 3.0]], [[-2.0, 1.0], [1.0, -3.0]]]])
+        >>> fft_width = x.shape[-1]
+        >>> fft_height = x.shape[-2]
+        >>> pad_right = fft_width - y.shape[-1]
+        >>> pad_bottom = fft_height - y.shape[-2]
+        >>> y_padded = F.pad(y, (0, pad_right, 0, pad_bottom), 'constant', 0.0)
+        >>> np.testing.assert_array_equal(x=tensor([
+        ... [[[1.0, 2.0, 0.0], [3.0, 2.0, 0.0], [0.0, 0.0, 0.0]],
+        ... [[-1.0, 2.0, 0.0], [3.0, -2.0, 0.0], [0.0, 0.0, 0.0]]],
+        ... [[[-1.0, 1.0, 0.0], [2.0, 3.0, 0.0], [0.0, 0.0, 0.0]],
+        ... [[-2.0, 1.0, 0.0], [1.0, -3.0, 0.0], [0.0, 0.0, 0.0]]]]), y=y_padded,
+        ... err_msg="The expected result x is different than the computed y.")
+        >>> signal_ndim = 2
+        >>> onesided = True
+        >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
+        >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
+        >>> result = correlate_fft_signals2D(xfft=xfft, yfft=yfft,
+        ... fft_height=x.shape[-2], fft_width=x.shape[-1],
+        ... out_height=(x.shape[-2]-y.shape[-2]+1),
+        ... out_width=(x.shape[-1]-y.shape[-1] + 1))
+        >>> # print("result: ", result)
+        >>> np.testing.assert_array_almost_equal(
+        ... x=np.array([[[[23.0, 32.0], [30., 4.]],[[11.0, 12.0], [13.0, -11.0]]]]),
+        ... y=result, decimal=5,
+        ... err_msg="The expected array x and computed y are not almost equal.")
 
         >>> # test without compression
         >>> x = np.array([[[1., 2., 3.]]])
@@ -403,22 +444,35 @@ class PyTorchConv1dAutograd(Module):
         >>> # correlate function
         >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:],
         ... mode="valid")
-        >>> conv = PyTorchConv1dAutograd(filter=torch.from_numpy(y),
+        >>> conv = PyTorchConv2dAutograd(filter=torch.from_numpy(y),
         ... bias=torch.from_numpy(b))
         >>> result = conv.forward(input=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(result,
         ... np.array([[expected_result]]))
+
+        >>> # test with compression
+        >>> x = np.array([[[1., 2., 3.]]])
+        >>> y = np.array([[[2., 1.]]])
+        >>> b = np.array([0.0])
+        >>> conv_param = {'pad' : 0, 'stride' :1}
+        >>> # the 1 index back does not change the result in this case
+        >>> expected_result = [3.5, 7.5]
+        >>> conv = PyTorchConv2dAutograd(filter=torch.from_numpy(y),
+        ... bias=torch.from_numpy(b), index_back=1)
+        >>> result = conv.forward(input=torch.from_numpy(x))
+        >>> np.testing.assert_array_almost_equal(result,
+        ... np.array([[expected_result]]))
         """
-        return PyTorchConv1dFunction.forward(
+        return PyTorchConv2dFunction.forward(
             ctx=None, input=input, filter=self.filter, bias=self.bias,
             padding=self.padding, index_back=self.index_back,
             out_size=self.out_size)
 
 
-class PyTorchConv1d(PyTorchConv1dAutograd):
+class PyTorchConv2d(PyTorchConv2dAutograd):
     def __init__(self, filter=None, bias=None, padding=None, index_back=None,
                  out_size=None, filter_width=None):
-        super(PyTorchConv1d, self).__init__(
+        super(PyTorchConv2d, self).__init__(
             filter=filter, bias=bias, padding=padding, index_back=index_back,
             out_size=out_size, filter_width=filter_width)
 
@@ -441,7 +495,7 @@ def test_run():
     torch.manual_seed(231)
     filter = np.array([[[1., 2., 3.]]], dtype=np.float32)
     filter = torch.from_numpy(filter)
-    module = PyTorchConv1d(filter)
+    module = PyTorchConv2d(filter)
     print("filter and bias parameters: ", list(module.parameters()))
     input = torch.randn(1, 1, 10, requires_grad=True)
     output = module(input)

@@ -8,17 +8,15 @@ import sys
 
 import numpy as np
 import torch
-from torch import tensor
 from torch.nn import Module
 from torch.nn.functional import pad as torch_pad
 from torch.nn.parameter import Parameter
 
 from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_fft_signals
-from cnns.nnlib.pytorch_layers.pytorch_utils import get_fft_sizes
-from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate
 from cnns.nnlib.pytorch_layers.pytorch_utils import from_tensor
+from cnns.nnlib.pytorch_layers.pytorch_utils import next_power2
+from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate
 from cnns.nnlib.pytorch_layers.pytorch_utils import to_tensor
-
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -46,7 +44,7 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         :param input: the input map to the convolution (e.g. a time-series).
 
         The other parameters are similar to the ones in the
-        PyTorchConv1dAutograd class.
+        PyTorchConv2dAutograd class.
 
         :param filter: the filter (a.k.a. kernel of the convolution)
         :param bias: the bias term for each filter
@@ -84,18 +82,8 @@ class PyTorchConv1dFunction(torch.autograd.Function):
             out_W = W - WW + 1  # the length of the output (without padding)
             out_W += 2 * padding_count
 
-        init_fft_size, init_half_fft_size = get_fft_sizes(
-            input_size=W, filter_size=WW, output_size=out_W,
-            padding_count=padding_count)
-
-        half_fft_compressed_size = None
-        if index_back is not None:
-            half_fft_compressed_size = init_half_fft_size - index_back
-        if out_size is not None:
-            # We take onesided fft so the output after inverse fft should be out
-            # size, thus the representation in spectral domain is twice smaller
-            # than the one in time domain.
-            half_fft_compressed_size = out_size // 2 + 1
+        WWW = max(WW, out_W)
+        init_fft_size = next_power2(W + WWW - 1 + 2 * padding_count)
 
         # How many padded (zero) values there are because of going to the next
         # power of 2?
@@ -120,7 +108,16 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         # The last dimension (-1) has size 2 as it represents the complex
         # numbers with real and imaginary parts. The last but one dimension (-2)
         # represents the length of the signal in the frequency domain.
-        assert init_half_fft_size == xfft.shape[-2]
+        init_half_fft_size = xfft.shape[-2]
+
+        half_fft_compressed_size = None
+        if index_back is not None:
+            half_fft_compressed_size = init_half_fft_size - index_back
+        if out_size is not None:
+            # We take onesided fft so the output after inverse fft should be out
+            # size, thus the representation in spectral domain is twice smaller
+            # than the one in time domain.
+            half_fft_compressed_size = out_size // 2 + 1
 
         # Complex numbers are represented as the pair of numbers in the last
         # dimension so we have to narrow the length of the last but one
@@ -347,7 +344,7 @@ class PyTorchConv1dAutograd(Module):
         >>> conv_param = {'pad' : 0, 'stride' :1}
         >>> # the 1 index back does not change the result in this case
         >>> expected_result = [3.5, 7.5]
-        >>> conv = PyTorchConv1dAutograd(filter=torch.from_numpy(y),
+        >>> conv = PyTorchConv2dAutograd(filter=torch.from_numpy(y),
         ... bias=torch.from_numpy(b), index_back=1)
         >>> result = conv.forward(input=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(result,
@@ -363,7 +360,7 @@ class PyTorchConv1dAutograd(Module):
         >>> # correlate function
         >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:],
         ... mode="valid")
-        >>> conv = PyTorchConv1dAutograd(filter=torch.from_numpy(y),
+        >>> conv = PyTorchConv2dAutograd(filter=torch.from_numpy(y),
         ... bias=torch.from_numpy(b))
         >>> result = conv.forward(input=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(result,
