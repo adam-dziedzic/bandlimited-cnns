@@ -705,8 +705,9 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     return out
 
 
-def correlate_fft_signals2D(xfft, yfft, fft_height, fft_width, out_height,
-                            out_width, is_forward=True):
+def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
+                            half_fft_height, half_fft_width,
+                            out_height, out_width, is_forward=True):
     """
     >>> # Test 2 channels and 2 filters.
     >>> x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]],
@@ -729,7 +730,8 @@ def correlate_fft_signals2D(xfft, yfft, fft_height, fft_width, out_height,
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
     >>> result = correlate_fft_signals2D(xfft=xfft, yfft=yfft,
-    ... fft_height=x.shape[-2], fft_width=x.shape[-1],
+    ... input_height=fft_height, input_width=fft_width,
+    ... half_fft_height=xfft.shape[-3], half_fft_width=xfft.shape[-2],
     ... out_height=(x.shape[-2]-y.shape[-2]+1),
     ... out_width=(x.shape[-1]-y.shape[-1] + 1))
     >>> # print("result: ", result)
@@ -755,7 +757,8 @@ def correlate_fft_signals2D(xfft, yfft, fft_height, fft_width, out_height,
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
     >>> result = correlate_fft_signals2D(xfft=xfft, yfft=yfft,
-    ... fft_height=x.shape[-2], fft_width=x.shape[-1],
+    ... input_height=fft_height, input_width=fft_width,
+    ... half_fft_height=xfft.shape[-2], half_fft_width=xfft.shape[-1],
     ... out_height=(x.shape[-2]-y.shape[-2]+1),
     ... out_width=(x.shape[-1]-y.shape[-1] + 1))
     >>> # print("result: ", result)
@@ -780,7 +783,8 @@ def correlate_fft_signals2D(xfft, yfft, fft_height, fft_width, out_height,
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
     >>> result = correlate_fft_signals2D(xfft=xfft, yfft=yfft,
-    ... fft_height=x.shape[-2], fft_width=x.shape[-1],
+    ... input_height=fft_height, input_width=fft_width,
+    ... half_fft_height=xfft.shape[-3], half_fft_width=xfft.shape[-2],
     ... out_height=(x.shape[-2]-y.shape[-2]+1),
     ... out_width=(x.shape[-1]-y.shape[-1] + 1))
     >>> # print("result: ", result)
@@ -808,7 +812,8 @@ def correlate_fft_signals2D(xfft, yfft, fft_height, fft_width, out_height,
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
     >>> result = correlate_fft_signals2D(xfft=xfft, yfft=yfft,
-    ... fft_height=x.shape[-2], fft_width=x.shape[-1],
+    ... input_height=fft_height, input_width=fft_width,
+    ... half_fft_height=xfft.shape[-3], half_fft_width=xfft.shape[-2],
     ... out_height=(x.shape[-2]-y.shape[-2]+1),
     ... out_width=(x.shape[-1]-y.shape[-1] + 1))
     >>> # print("result: ", result)
@@ -818,6 +823,8 @@ def correlate_fft_signals2D(xfft, yfft, fft_height, fft_width, out_height,
 
     :param xfft: first input map
     :param yfft: second input map
+    :param input_height: the height of input x
+    :param input_widt: the width of input x
     :param fft_height: the fft height for maps (both input maps xfft and yfft
     for cross-correlation have to have the same dimensions).
     :param fft_width: the fft width for maps (both input maps xfft and yfft
@@ -830,12 +837,14 @@ def correlate_fft_signals2D(xfft, yfft, fft_height, fft_width, out_height,
     """
     signal_ndim = 2
 
-    xfft = complex_pad2D(xfft=xfft, fft_height=fft_height, fft_width=fft_width)
-    yfft = complex_pad2D(xfft=yfft, fft_height=fft_height, fft_width=fft_width)
+    xfft = complex_pad2D(fft_input=xfft, half_fft_height=half_fft_height,
+                         half_fft_width=half_fft_width)
+    yfft = complex_pad2D(fft_input=yfft, half_fft_height=half_fft_height,
+                         half_fft_width=half_fft_width)
 
     freq_mul = complex_mul(xfft, pytorch_conjugate(yfft))
     out = torch.irfft(input=freq_mul, signal_ndim=signal_ndim,
-                      signal_sizes=(fft_height, fft_width))
+                      signal_sizes=(input_height, input_width), onesided=True)
 
     out = out[..., :out_height, :out_width]
     if out.dim() > 2 and is_forward:
@@ -950,7 +959,7 @@ def complex_pad_simple(xfft, fft_size):
         return xfft
 
 
-def complex_pad2D(xfft, fft_height, fft_width):
+def complex_pad2D(fft_input, half_fft_height, half_fft_width):
     """
     >>> # Typical use case.
     >>> xfft = tensor([[[1.0, 2.0], [3.0, 4.0], [4.0, 5.0]],
@@ -959,12 +968,10 @@ def complex_pad2D(xfft, fft_height, fft_width):
     ... [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]],
     ... [[2.0, 1.0], [-1.0, 2.0], [5.0, 1.0], [0., 0.], [0., 0.], [0., 0.]],
     ... [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0., 0.], [0., 0.], [0., 0.]]])
-    >>> half_fft_w = xfft.shape[-2] + 3  # width
-    >>> fft_width = (half_fft_w - 1) * 2
-    >>> half_fft_h = xfft.shape[-3] + 1  # height
-    >>> fft_height = (half_fft_h - 1) * 2
-    >>> xfft_pad = complex_pad2D(xfft=xfft, fft_height=fft_height,
-    ... fft_width=fft_width)
+    >>> half_fft_width = xfft.shape[-2] + 3  # width
+    >>> half_fft_height = xfft.shape[-3] + 1  # height
+    >>> xfft_pad = complex_pad2D(fft_input=xfft, half_fft_height=half_fft_height,
+    ... half_fft_width=half_fft_width)
     >>> np.testing.assert_array_almost_equal(x=expected_xfft_pad, y=xfft_pad,
     ... err_msg="The expected x is different than computed y")
 
@@ -974,24 +981,20 @@ def complex_pad2D(xfft, fft_height, fft_width):
     >>> expected_xfft_pad = tensor([[[1.0, 0.0], [0.0, 4.0], [4.0, 5.0],
     ... [-1.0, 0.0], [0.0, 0.0], [0.0, 0.0]], [[0.0, 0.0], [0.0, 0.0],
     ... [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]])
-    >>> half_fft_w = xfft.shape[-2] + 2
-    >>> fft_width = (half_fft_w - 1) * 2
-    >>> half_fft_h = xfft.shape[-3] + 1
-    >>> fft_height = (half_fft_h -1) * 2
-    >>> xfft_pad = complex_pad2D(xfft=xfft, fft_height=fft_height,
-    ... fft_width=fft_width)
+    >>> half_fft_width = xfft.shape[-2] + 2
+    >>> half_fft_height = xfft.shape[-3] + 1
+    >>> xfft_pad = complex_pad2D(fft_input=xfft, half_fft_height=half_fft_height,
+    ... half_fft_width=half_fft_width)
     >>> np.testing.assert_array_almost_equal(x=expected_xfft_pad, y=xfft_pad,
     ... err_msg="The expected x is different than computed y")
 
     >>> # Check if works for the case where padding should not be done.
     >>> # So expected result is the same as the xfft.
     >>> xfft = tensor([[[1.0, 2.0], [3.0, 4.0], [4.0, 5.0]]])
-    >>> half_fft_w = xfft.shape[-2]
-    >>> fft_width = (half_fft_w - 1) * 2
-    >>> half_fft_h = xfft.shape[-3]
-    >>> fft_height = (half_fft_h - 1) * 2
-    >>> xfft_pad = complex_pad2D(xfft=xfft, fft_height=fft_height,
-    ... fft_width=fft_width)
+    >>> half_fft_width = xfft.shape[-2]
+    >>> half_fft_height = xfft.shape[-3]
+    >>> xfft_pad = complex_pad2D(fft_input=xfft, half_fft_height=half_fft_height,
+    ... half_fft_width=half_fft_width)
     >>> np.testing.assert_array_almost_equal(x=xfft, y=xfft_pad,
     ... err_msg="The expected x is different than computed y")
 
@@ -1000,27 +1003,22 @@ def complex_pad2D(xfft, fft_height, fft_width):
 
     :param xfft: the input signal in the frequency domain (represented by
     complex numbers).
-    :param fft_height: the expected (initial) fft height (the last but one
-    dimension for real numbers and one further "into depth" dimension for
+    :param half_fft_height: the expected initial half fft height (the last but
+    one dimension for real numbers and one further "into depth" dimension for
     complex numbers) used in the forward pass.
-    :param fft_width: the expected (initial) fft width (the last dimension
-    for real numbers and the one more "into depth" dimension for complex
-    numbers) used in the forward pass.
+    :param half_fft_width: the expected initial half fft width (the last
+    dimension for real numbers and the one more "into depth" dimension for
+    complex numbers) used in the forward pass.
     :return: the padded xfft signal with zeros in the frequency domain.
     """
-    # xfft has at least two dimensions (with the last one being a dimension for
-    # a pair of real numbers representing a complex number). Moreover, pytorch
-    # supports half-sized fft (one-sided fft) by default.
-    half_fft_h = fft_height // 2 + 1
-    half_fft_w = fft_width // 2 + 1
     # Omit the last dimension (-1) for complex numbers.
-    current_height = xfft.shape[-3]
-    current_width = xfft.shape[-2]
-    if current_height < half_fft_h or current_width < half_fft_w:
-        pad_bottom = half_fft_h - current_height
-        pad_right = half_fft_w - current_width
-        return F.pad(xfft, (0, 0, 0, pad_right, 0, pad_bottom))
-    return xfft
+    current_height = fft_input.shape[-3]
+    current_width = fft_input.shape[-2]
+    if current_height < half_fft_height or current_width < half_fft_width:
+        pad_bottom = half_fft_height - current_height
+        pad_right = half_fft_width - current_width
+        return F.pad(fft_input, (0, 0, 0, pad_right, 0, pad_bottom))
+    return fft_input
 
 
 if __name__ == "__main__":
