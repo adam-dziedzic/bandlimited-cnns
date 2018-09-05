@@ -71,7 +71,7 @@ class PyTorchConv2dFunction(torch.autograd.Function):
         :return: the result of convolution.
         """
         if index_back is not None and out_size is not None:
-            raise TypeError("Specify index_back or out_size not both.")
+            raise TypeError("Specify either index_back or out_size not both.")
 
         signal_ndim = 2
         # N - number of input maps (or images in the batch).
@@ -206,6 +206,7 @@ class PyTorchConv2dFunction(torch.autograd.Function):
             # the dimension of the out to properly sum up the values).
             out[nn] += bias.unsqueeze(-1).unsqueeze(-1)
 
+        # TODO: how to compute the backward pass for the strided FFT convolution
         if stride_W is not None or stride_H is not None:
             if stride_W is None:
                 stride_W = 1
@@ -228,9 +229,9 @@ class PyTorchConv2dFunction(torch.autograd.Function):
         Requirements from PyTorch: backward() - gradient formula.
         It will be given as many Variable arguments as there were
         outputs, with each of them representing gradient w.r.t. that
-        output. It should return as many Variable s as there were
+        output. It should return as many Variables as there were
         inputs, with each of them containing the gradient w.r.t. its
-        corresponding input. If your inputs didn’t require gradient
+        corresponding input. If your inputs did not require gradient
         (see needs_input_grad), or were non-Variable objects, you can
         return None. Also, if you have optional arguments to forward()
         you can return more gradients than there were inputs, as long
@@ -243,16 +244,19 @@ class PyTorchConv2dFunction(torch.autograd.Function):
         :return: gradients for input map x, filter w and bias b
         """
         # logger.debug("execute backward")
-        xfft, yfft, W, WW, init_fft_size = ctx.saved_tensors
+        xfft, yfft, H, HH, W, WW, init_fft_H, init_fft_W = ctx.saved_tensors
+        H = from_tensor(H)
+        HH = from_tensor(HH)
         W = from_tensor(W)
         WW = from_tensor(WW)
-        init_fft_size = from_tensor(init_fft_size)
-        signal_ndim = 1
+        init_fft_H = from_tensor(init_fft_H)
+        init_fft_W = from_tensor(init_fft_W)
+        signal_ndim = 2
 
         # The last dimension for xfft and yfft is the 2 element complex number.
-        N, C, half_fft_compressed_size, _ = xfft.shape
-        F, C, half_fft_compressed_size, _ = yfft.shape
-        N, F, W_out = dout.shape
+        N, C, half_fft_compressed_H, half_fft_compressed_W, _ = xfft.shape
+        F, C, half_fft_compressed_H, half_fft_compressed_W, _ = yfft.shape
+        N, F, H_out, W_out = dout.shape
 
         dx = dw = db = None
 
@@ -260,31 +264,46 @@ class PyTorchConv2dFunction(torch.autograd.Function):
         # We have to pad the flowing back gradient in the time (spatial) domain,
         # since it does not give correct results even for the case without
         # compression if we pad in the spectral (frequency) domain.
-        fft_padding_dout = init_fft_size - W_out
-        dout = F.pad(dout, (0, fft_padding_dout), 'constant', 0)
-        doutfft = torch.rfft(dout, signal_ndim=signal_ndim, onesided=True)
+        fft_padding_dout_H = init_fft_H - H_out
+        fft_padding_dout_W = init_fft_W - W_out
 
-        init_half_fft_size = init_fft_size // 2 + 1
-        if half_fft_compressed_size < init_half_fft_size \
-                and half_fft_compressed_size < doutfft.shape[-2]:
+        padded_dout = torch_pad(
+            dout, (0, fft_padding_dout_W, 0, fft_padding_dout_H),
+            'constant', 0)
+
+        doutfft = torch.rfft(padded_dout, signal_ndim=signal_ndim,
+                             onesided=True)
+
+        # the last dimension is for real and imaginary parts of the complex
+        # numbers
+        N, F, init_half_fft_H, init_half_fft_W, _ = doutfft.shape
+
+        if half_fft_compressed_H < init_half_fft_H:
+            doutfft = doutfft.narrow(dim=-3, start=0,
+                                     length=half_fft_compressed_H)
+        if half_fft_compressed_W < init_half_fft_W:
             doutfft = doutfft.narrow(dim=-2, start=0,
-                                     length=half_fft_compressed_size)
+                                     length=half_fft_compressed_W)
 
         if ctx.needs_input_grad[0]:
             # Initialize gradient output tensors.
             # the x used for convolution was with padding
-            dx = torch.zeros([N, C, W], dtype=xfft.dtype)
+            dx = torch.zeros([N, C, H, W], dtype=xfft.dtype)
             conjugate_yfft = pytorch_conjugate(yfft)
             for nn in range(N):
                 # Take one time series and unsqueeze it for broadcast with
                 # many gradients dout.
                 doutfft_nn = doutfft[nn].unsqueeze(0)
-                dx[nn] = correlate_fft_signals(
+                dx[nn] = correlate_fft_signals2D(
                     xfft=doutfft_nn, yfft=conjugate_yfft,
-                    fft_size=init_fft_size, out_size=W, is_forward=False)
+                    input_height=init_fft_H, input_width=init_fft_W,
+                    half_fft_height=init_half_fft_H,
+                    half_fft_width=init_half_fft_W,
+                    out_height=H, out_width=W,
+                    is_forward=False)
 
         if ctx.needs_input_grad[1]:
-            dw = torch.zeros([F, C, WW], dtype=yfft.dtype)
+            dw = torch.zeros([F, C, HH, WW], dtype=yfft.dtype)
             # Calculate dw - the gradient for the filters w.
             # By chain rule dw is computed as: dout*x
             """
@@ -315,11 +334,13 @@ class PyTorchConv2dFunction(torch.autograd.Function):
             """
             for ff in range(F):
                 doutfft_ff = doutfft[ff].unsqueeze(0)
-                print("xfft: ", xfft)
-                print("dout_fft: ", doutfft_ff)
-                dw[ff] = correlate_fft_signals(
-                    xfft=xfft, yfft=doutfft_ff, fft_size=init_fft_size,
-                    out_size=WW, signal_ndim=signal_ndim, is_forward=False)
+                dw[ff] = correlate_fft_signals2D(
+                    xfft=xfft, yfft=doutfft_ff,
+                    input_height=init_fft_H, input_width=init_fft_W,
+                    half_fft_height=init_half_fft_H,
+                    half_fft_width=init_half_fft_W,
+                    out_height=HH, out_width=WW,
+                    is_forward=False)
 
         if ctx.needs_input_grad[2]:
             # The number of bias elements is equal to the number of filters.
@@ -339,7 +360,7 @@ class PyTorchConv2dAutograd(Module):
                  index_back=None, out_size=None, filter_width=None,
                  use_next_power2=True):
         """
-        1D convolution using FFT implemented fully in PyTorch.
+        2D convolution using FFT implemented fully in PyTorch.
 
         :param filter: you can provide the initial filter, i.e.
         filter weights of shape (F, C, WW), where
@@ -358,6 +379,10 @@ class PyTorchConv2dAutograd(Module):
         in this layer can serve as the frequency-based (spectral)
         pooling.
         :param filter_width: the width of the filter
+        :param use_next_power2: should we extend the size of the input for the
+        FFT convolution to the next power of 2.
+        :param stride: what is the stride for the convolution (the pattern for
+        omitted values).
 
         Regarding the stride parameter: the number of pixels between
         adjacent receptive fields in the horizontal and vertical

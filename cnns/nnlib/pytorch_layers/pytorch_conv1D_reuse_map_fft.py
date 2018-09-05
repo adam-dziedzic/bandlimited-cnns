@@ -33,8 +33,9 @@ class PyTorchConv1dFunction(torch.autograd.Function):
     """
 
     @staticmethod
-    def forward(ctx, input, filter, bias, padding=None, index_back=None,
-                out_size=None, signal_ndim=1):
+    def forward(ctx, input, filter, bias, padding=None, stride=None,
+                index_back=None, out_size=None, signal_ndim=1,
+                use_next_power2=True):
         """
         Compute the forward pass for the 1D convolution.
 
@@ -46,15 +47,19 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         The other parameters are similar to the ones in the
         PyTorchConv2dAutograd class.
 
-        :param filter: the filter (a.k.a. kernel of the convolution)
-        :param bias: the bias term for each filter
-        :param padding: how much pad each end of the input signal
+        :param filter: the filter (a.k.a. kernel of the convolution).
+        :param bias: the bias term for each filter.
+        :param padding: how much pad each end of the input signal.
         :param index_back: how many last elements in the fft-ed signal to
-        discard
+        discard.
         :param out_size: what is the expected output size - one can disard the
         elements in the frequency domain and do the spectral pooling within the
-        convolution
-        :param signal_ndim: this convolution is for 1 dimensional signals
+        convolution.
+        :param signal_ndim: this convolution is for 1 dimensional signals.
+        :param use_next_power2: should we extend the size of the input for the
+        FFT convolution to the next power of 2.
+        :param stride: what is the stride for the convolution (the pattern for
+        omitted values).
 
         :return: the result of convolution
         """
@@ -139,6 +144,10 @@ class PyTorchConv1dFunction(torch.autograd.Function):
             # the dimension of the out to properly sum up the values).
             out[nn] += bias.unsqueeze(1)
 
+        #TODO: how to compute the backward pass for the strided FFT convolution
+        if stride is not None:
+            out = out[:, :, 0::stride]
+
         if ctx:
             ctx.save_for_backward(xfft, yfft, to_tensor(W), to_tensor(WW),
                                   to_tensor(init_fft_size))
@@ -153,9 +162,9 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         Requirements from PyTorch: backward() - gradient formula.
         It will be given as many Variable arguments as there were
         outputs, with each of them representing gradient w.r.t. that
-        output. It should return as many Variable s as there were
+        output. It should return as many Variables as there were
         inputs, with each of them containing the gradient w.r.t. its
-        corresponding input. If your inputs didn’t require gradient
+        corresponding input. If your inputs did not require gradient
         (see needs_input_grad), or were non-Variable objects, you can
         return None. Also, if you have optional arguments to forward()
         you can return more gradients than there were inputs, as long
@@ -261,7 +270,8 @@ class PyTorchConv1dFunction(torch.autograd.Function):
 
 class PyTorchConv1dAutograd(Module):
     def __init__(self, filter=None, bias=None, padding=None, index_back=None,
-                 out_size=None, filter_width=None):
+                 out_size=None, filter_width=None, use_next_power2=True,
+                 stride=None):
         """
         1D convolution using FFT implemented fully in PyTorch.
 
@@ -282,11 +292,16 @@ class PyTorchConv1dAutograd(Module):
         in this layer can serve as the frequency-based (spectral)
         pooling.
         :param filter_width: the width of the filter
+        :param use_next_power2: should we extend the size of the input for the
+        FFT convolution to the next power of 2.
+        :param stride: what is the stride for the convolution (the pattern for
+        omitted values).
 
         Regarding the stride parameter: the number of pixels between
         adjacent receptive fields in the horizontal and vertical
-        directions, it has to be 1 for the FFT based convolution (at least for
-        now, I did not think how to express convolution with strides via FFT).
+        directions, we can generate the full output, and then remove the
+        redundant elements according to the stride parameter. We have to figure
+        out how to run the bacward pass for this strided FFT-based convolution.
         """
         super(PyTorchConv1dAutograd, self).__init__()
         if filter is None:
@@ -307,6 +322,8 @@ class PyTorchConv1dAutograd(Module):
         self.index_back = index_back
         self.out_size = out_size
         self.filter_width = filter_width
+        self.use_next_power2 = use_next_power2
+        self.stride = stride
 
     def forward(self, input):
         """
@@ -368,8 +385,9 @@ class PyTorchConv1dAutograd(Module):
         """
         return PyTorchConv1dFunction.forward(
             ctx=None, input=input, filter=self.filter, bias=self.bias,
-            padding=self.padding, index_back=self.index_back,
-            out_size=self.out_size)
+            padding=self.padding, stride=self.stride,
+            index_back=self.index_back, out_size=self.out_size,
+            use_next_power2=self.use_next_power2)
 
 
 class PyTorchConv1d(PyTorchConv1dAutograd):
