@@ -163,8 +163,8 @@ class TestPyTorchConv1d(unittest.TestCase):
                                                        conv_param)
         ctx = MockContext()
         ctx.set_needs_input_grad(3)
-        result_torch = PyTorchConv1dFunction.forward(ctx, x_torch,
-                                                     y_torch, b_torch)
+        result_torch = PyTorchConv1dFunction.forward(
+            ctx, input=x_torch, filter=y_torch, bias=b_torch)
         result = result_torch.detach().numpy()
         np.testing.assert_array_almost_equal(
             result, np.array(expected_result))
@@ -197,7 +197,8 @@ class TestPyTorchConv1d(unittest.TestCase):
         b_torch = tensor(b, requires_grad=True, dtype=dtype)
 
         conv_param = {'pad': 0, 'stride': 1}
-        expected_result, cache = conv_forward_naive_1D(x, y, b, conv_param)
+        expected_result, cache = conv_forward_naive_1D(x=x, w=y, b=b,
+                                                       conv_param=conv_param)
 
         result_torch = PyTorchConv1dFunction.apply(x_torch, y_torch, b_torch)
         result = result_torch.detach().numpy()
@@ -229,8 +230,8 @@ class TestPyTorchConv1d(unittest.TestCase):
         b_torch = tensor(b, requires_grad=True, dtype=dtype)
 
         conv_param = {'pad': 0, 'stride': 1}
-        accurate_expected_result, cache = conv_forward_naive_1D(x, y, b,
-                                                                conv_param)
+        accurate_expected_result, cache = conv_forward_naive_1D(
+            x=x, w=y, b=b, conv_param=conv_param)
         print("Accurate expected result: ", accurate_expected_result)
 
         approximate_expected_result = np.array(
@@ -284,7 +285,7 @@ class TestPyTorchConv1d(unittest.TestCase):
 
     def _check_delta(self, actual_result, accurate_expected_result, delta):
         """
-        Compare if that the difference between the two objects is more than the
+        Compare if the difference between the two objects is more than the
         given delta.
 
         :param actual_result: the computed result
@@ -312,7 +313,8 @@ class TestPyTorchConv1d(unittest.TestCase):
         b_torch = tensor(b, requires_grad=True, dtype=dtype)
 
         conv_param = {'pad': 0, 'stride': 1}
-        expected_result, cache = conv_forward_naive_1D(x, y, b, conv_param)
+        expected_result, cache = conv_forward_naive_1D(x=x, w=y, b=b,
+                                                       conv_param=conv_param)
         print("expected result: ", expected_result)
 
         # 1 index back
@@ -368,7 +370,8 @@ class TestPyTorchConv1d(unittest.TestCase):
         b_torch = tensor(b, requires_grad=True, dtype=dtype)
 
         conv_param = {'pad': 0, 'stride': 1}
-        expected_result, cache = conv_forward_naive_1D(x, y, b, conv_param)
+        expected_result, cache = conv_forward_naive_1D(x=x, w=y, b=b,
+                                                       conv_param=conv_param)
 
         result_torch = PyTorchConv1dFunction.apply(x_torch, y_torch, b_torch)
         result = result_torch.detach().numpy()
@@ -396,33 +399,29 @@ class TestPyTorchConv1d(unittest.TestCase):
         np.testing.assert_array_almost_equal(
             x=expected_dx, y=x_torch.grad,
             err_msg="Expected x is different from computed y.")
-        np.testing.assert_array_almost_equal(y_torch.grad,
-                                             expected_dw)
-        np.testing.assert_array_almost_equal(b_torch.grad,
-                                             expected_db)
+        np.testing.assert_array_almost_equal(y_torch.grad, expected_dw)
+        np.testing.assert_array_almost_equal(b_torch.grad, expected_db)
 
     def test_FunctionForwardWithCompression(self):
         # test with compression
         x = np.array([[[1., 2., 3.]]])
         y = np.array([[[2., 1.]]])
         b = np.array([0.0])
-        expected_result = [3.5, 7.5]
+        expected_result = [[[3.5, 7.5]]]
         conv = PyTorchConv1dFunction()
         result = conv.forward(
-            ctx=None, input=torch.from_numpy(x), filter=torch.from_numpy(y),
-            bias=torch.from_numpy(b), index_back=1)
-        np.testing.assert_array_almost_equal(
-            result, np.array([[expected_result]]))
+            ctx=None, input=torch.from_numpy(x), index_back=1,
+            filter=torch.from_numpy(y), bias=torch.from_numpy(b))
+        np.testing.assert_array_almost_equal(result, np.array(expected_result))
 
     def test_AutogradForwardNoCompression(self):
         x = np.array([[[1., 2., 3.]]])
         y = np.array([[[2., 1.]]])
         b = np.array([0.0])
         # get the expected results from numpy correlate
-        expected_result = np.correlate(x[0, 0, :], y[0, 0, :],
-                                       mode="valid")
-        conv = PyTorchConv1dAutograd(filter=torch.from_numpy(y),
-                                     bias=torch.from_numpy(b))
+        expected_result = np.correlate(x[0, 0, :], y[0, 0, :], mode="valid")
+        conv = PyTorchConv1dAutograd(filter_value=torch.from_numpy(y),
+                                     bias_value=torch.from_numpy(b))
         result = conv.forward(input=torch.from_numpy(x))
 
         np.testing.assert_array_almost_equal(
@@ -435,7 +434,8 @@ class TestPyTorchConv1d(unittest.TestCase):
         b = np.array([0.0])
         expected_result = [3.5, 7.5]
         conv = PyTorchConv1dAutograd(
-            filter=torch.from_numpy(y), bias=torch.from_numpy(b), index_back=1)
+            filter_value=torch.from_numpy(y), bias_value=torch.from_numpy(b),
+            index_back=1)
         result = conv.forward(input=torch.from_numpy(x))
         np.testing.assert_array_almost_equal(
             result, np.array([[expected_result]]))
@@ -454,7 +454,8 @@ class TestPyTorchConv1d(unittest.TestCase):
         b = np.random.rand(num_filters)
         # get the expected result
         conv_param = {'pad': 0, 'stride': 1}
-        expected_result, _ = conv_forward_naive_1D(x, y, b, conv_param)
+        expected_result, _ = conv_forward_naive_1D(x=x, w=y, b=b,
+                                                   conv_param=conv_param)
         self.logger.debug("expected result: " + str(expected_result))
 
         dtype = torch.float

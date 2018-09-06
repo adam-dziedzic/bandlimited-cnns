@@ -33,7 +33,7 @@ class PyTorchConv1dFunction(torch.autograd.Function):
     """
 
     @staticmethod
-    def forward(ctx, input, filter, bias, padding=None, stride=None,
+    def forward(ctx, input, filter, bias=None, padding=None, stride=None,
                 index_back=None, out_size=None, signal_ndim=1,
                 use_next_power2=True):
         """
@@ -140,12 +140,16 @@ class PyTorchConv1dFunction(torch.autograd.Function):
             out[nn] = correlate_fft_signals(
                 xfft=xfft_nn, yfft=yfft, fft_size=init_fft_size,
                 out_size=out_W)
-            # Add the bias term for each filter (it has to be unsqueezed to
-            # the dimension of the out to properly sum up the values).
-            out[nn] += bias.unsqueeze(1)
+            if bias is not None:
+                # Add the bias term for each filter.
+                # Bias has to be unsqueezed to the dimension of the out to
+                # properly sum up the values.
+                out[nn] += bias.unsqueeze(1)
 
-        #TODO: how to compute the backward pass for the strided FFT convolution
-        if stride is not None:
+        # TODO: how to compute the backward pass for the strided FFT convolution
+        # Add additional zeros in the places of the output that were removed
+        # by striding.
+        if stride is not None and stride > 1:
             out = out[:, :, 0::stride]
 
         if ctx:
@@ -269,20 +273,26 @@ class PyTorchConv1dFunction(torch.autograd.Function):
 
 
 class PyTorchConv1dAutograd(Module):
-    def __init__(self, filter=None, bias=None, padding=None, index_back=None,
-                 out_size=None, filter_width=None, use_next_power2=True,
-                 stride=None):
+    def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
+                 stride=1, padding=0, dilation=1, groups=1, bias=True,
+                 index_back=None, out_size=None, filter_value=None,
+                 bias_value=None, use_next_power2=True):
         """
         1D convolution using FFT implemented fully in PyTorch.
 
-        :param filter: you can provide the initial filter, i.e.
-        filter weights of shape (F, C, WW), where
-        F - number of filters, C - number of channels, WW - size of
-        the filter
-        :param bias: you can provide the initial value of the bias,
-        of shape (F,)
+        :param in_channels: (int) – Number of channels in the input series.
+        :param out_channels: (int) – Number of channels produced by the
+        convolution.
+        :param kernel_size: (int) - Size of the convolving kernel (the width of
+        the filter).
+        :param stride: what is the stride for the convolution (the pattern for
+        omitted values).
         :param padding: the padding added to the front and back of
-        the input signal
+        the input signal.
+        :param dilation: (int) – Spacing between kernel elements. Default: 1
+        :param groups: (int) – Number of blocked connections from input channels
+        to output channels. Default: 1
+        :param bias: (bool) - add bias or not
         :param index_back: how many frequency coefficients should be
         discarded
         :param out_size: what is the expected output size of the
@@ -291,39 +301,52 @@ class PyTorchConv1dAutograd(Module):
         the max pooling can be omitted and the compression
         in this layer can serve as the frequency-based (spectral)
         pooling.
-        :param filter_width: the width of the filter
+        :param filter_value: you can provide the initial filter, i.e.
+        filter weights of shape (F, C, WW), where
+        F - number of filters, C - number of channels, WW - size of
+        the filter
+        :param bias_value: you can provide the initial value of the bias,
+        of shape (F,)
         :param use_next_power2: should we extend the size of the input for the
         FFT convolution to the next power of 2.
-        :param stride: what is the stride for the convolution (the pattern for
-        omitted values).
 
         Regarding the stride parameter: the number of pixels between
         adjacent receptive fields in the horizontal and vertical
         directions, we can generate the full output, and then remove the
         redundant elements according to the stride parameter. We have to figure
-        out how to run the bacward pass for this strided FFT-based convolution.
+        out how to run the backward pass for this strided FFT-based convolution.
         """
         super(PyTorchConv1dAutograd, self).__init__()
-        if filter is None:
-            if filter_width is None:
-                logger.error(
-                    "The filter and filter_width cannot be both "
-                    "None, provide one of them!")
-                sys.exit(1)
+        if dilation > 1:
+            raise NotImplementedError("dilation > 1 is not supported.")
+        if groups > 1:
+            raise NotImplementedError("groups > 1 is not supported.")
+
+        if filter_value is None:
+            if out_channels is None or in_channels is None or \
+                    kernel_size is None:
+                raise ValueError("Either specify filter_value or provide all"
+                                 "the required parameters (out_channels, "
+                                 "in_channels and kernel_size) to generate the "
+                                 "filter.")
             self.filter = Parameter(
-                torch.randn(1, 1, filter_width))
+                torch.randn(out_channels, in_channels, kernel_size))
         else:
-            self.filter = filter
-        if bias is None:
-            self.bias = Parameter(torch.randn(1))
+            self.filter = filter_value
+        if bias_value is None:
+            if bias is True:
+                self.bias = Parameter(torch.randn(out_channels, 1))
+            else:
+                self.bias = None
         else:
-            self.bias = bias
+            self.bias = bias_value
         self.padding = padding
         self.index_back = index_back
         self.out_size = out_size
-        self.filter_width = filter_width
+        self.filter_width = kernel_size
         self.use_next_power2 = use_next_power2
         self.stride = stride
+        self.signal_ndim=1
 
     def forward(self, input):
         """
@@ -357,7 +380,7 @@ class PyTorchConv1dAutograd(Module):
         >>> # test with compression
         >>> x = np.array([[[1., 2., 3.]]])
         >>> y = np.array([[[2., 1.]]])
-        >>> b = np.array([0.0])
+        >>> b = np.array([[0.0]])
         >>> conv_param = {'pad' : 0, 'stride' :1}
         >>> # the 1 index back does not change the result in this case
         >>> expected_result = [3.5, 7.5]
@@ -370,7 +393,7 @@ class PyTorchConv1dAutograd(Module):
         >>> # test without compression
         >>> x = np.array([[[1., 2., 3.]]])
         >>> y = np.array([[[2., 1.]]])
-        >>> b = np.array([0.0])
+        >>> b = np.array([[0.0]])
         >>> conv_param = {'pad' : 0, 'stride' :1}
         >>> dout = np.array([[[0.1, -0.2]]])
         >>> # first, get the expected results from the numpy
@@ -391,11 +414,18 @@ class PyTorchConv1dAutograd(Module):
 
 
 class PyTorchConv1d(PyTorchConv1dAutograd):
-    def __init__(self, filter=None, bias=None, padding=None, index_back=None,
-                 out_size=None, filter_width=None):
+    """
+    No PyTorch Autograd used - we compute backward pass on our own.
+    """
+
+    def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
+                 stride=None, padding=None, bias=None, index_back=None,
+                 out_size=None, filter_value=None, bias_value=None):
         super(PyTorchConv1d, self).__init__(
-            filter=filter, bias=bias, padding=padding, index_back=index_back,
-            out_size=out_size, filter_width=filter_width)
+            in_channels=in_channels, out_channels=out_channels,
+            kernel_size=kernel_size, stride=stride, padding=padding, bias=bias,
+            index_back=index_back, out_size=out_size, filter_value=filter_value,
+            bias_value=bias_value)
 
     def forward(self, input):
         """
@@ -405,18 +435,18 @@ class PyTorchConv1d(PyTorchConv1dAutograd):
         :param input: the input map (e.g., an image)
         :return: the result of 1D convolution
         """
-        return PyTorchConv1dFunction.apply(input, self.filter,
-                                           self.bias,
-                                           self.padding,
-                                           self.index_back,
-                                           self.out_size)
+        return PyTorchConv1dFunction.apply(
+            input, self.filter, self.bias, self.padding, self.stride,
+            self.index_back, self.out_size, self.signal_ndim,
+            self.use_next_power2)
 
 
 def test_run():
     torch.manual_seed(231)
     filter = np.array([[[1., 2., 3.]]], dtype=np.float32)
     filter = torch.from_numpy(filter)
-    module = PyTorchConv1d(filter)
+    module = PyTorchConv1d(filter_value=filter)
+    print()
     print("filter and bias parameters: ", list(module.parameters()))
     input = torch.randn(1, 1, 10, requires_grad=True)
     output = module(input)
