@@ -10,6 +10,45 @@ import torch.nn.functional as F
 from torch import tensor
 
 
+class MockContext(object):
+    """
+    Mock context class for 1D and 2D convolution. We use it to pass intermediate
+    results from the forward to backward pass.
+    """
+
+    def __init__(self):
+        """
+        Set everything to None at the very beginning.
+        """
+        super(MockContext, self).__init__()
+        self.args = None
+        self.needs_input_grad = None
+
+    def save_for_backward(self, *args):
+        """
+        Save intermediate results in the forward pass for the backward pass.
+        :param args: the intermediate results to be saved.
+        """
+        self.args = args
+
+    @property
+    def saved_tensors(self):
+        """
+        Retrieve the saved tensors in the forward pass for the backward pass.
+        :return: the saved tensors
+        """
+        return self.args
+
+    def set_needs_input_grad(self, number_needed):
+        """
+        Set the need for gradients (for the backward pass).
+
+        :param number_needed: how many gradients do we need: for example for the
+        input map and the filters.
+        """
+        self.needs_input_grad = [True for _ in range(number_needed)]
+
+
 def get_fft_sizes(input_size, filter_size, output_size, padding_count):
     """
     We have to pad input with (filter_size - 1) to execute fft correctly

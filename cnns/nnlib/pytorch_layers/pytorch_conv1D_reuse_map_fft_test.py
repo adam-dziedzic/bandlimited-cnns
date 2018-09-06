@@ -9,26 +9,9 @@ from cnns.nnlib.layers import conv_backward_naive_1D
 from cnns.nnlib.layers import conv_forward_naive_1D
 from cnns.nnlib.pytorch_layers.pytorch_conv1D_reuse_map_fft \
     import PyTorchConv1dFunction, PyTorchConv1dAutograd
+from cnns.nnlib.pytorch_layers.pytorch_utils import MockContext
 from cnns.nnlib.utils.log_utils import get_logger
 from cnns.nnlib.utils.log_utils import set_up_logging
-
-
-class MockContext(object):
-
-    def __init__(self):
-        super(MockContext, self).__init__()
-        self.args = None
-        self.needs_input_grad = None
-
-    def save_for_backward(self, *args):
-        self.args = args
-
-    @property
-    def saved_tensors(self):
-        return self.args
-
-    def set_needs_input_grad(self, number_needed):
-        self.needs_input_grad = [True for _ in range(number_needed)]
 
 
 class TestPyTorchConv1d(unittest.TestCase):
@@ -191,7 +174,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         expected_dx, expected_dw, expected_db = \
             conv_backward_naive_1D(dout.numpy(), cache)
 
-        dx, dw, db, _, _, _, _, _ = PyTorchConv1dFunction.backward(ctx, dout)
+        dx, dw, db, _, _, _, _, _, _ = PyTorchConv1dFunction.backward(ctx, dout)
 
         self.logger.debug("expected dx: " + str(expected_dx))
         self.logger.debug("computed dx: " + str(dx))
@@ -214,11 +197,9 @@ class TestPyTorchConv1d(unittest.TestCase):
         b_torch = tensor(b, requires_grad=True, dtype=dtype)
 
         conv_param = {'pad': 0, 'stride': 1}
-        expected_result, cache = conv_forward_naive_1D(x, y, b,
-                                                       conv_param)
+        expected_result, cache = conv_forward_naive_1D(x, y, b, conv_param)
 
-        result_torch = PyTorchConv1dFunction.apply(x_torch, y_torch,
-                                                   b_torch)
+        result_torch = PyTorchConv1dFunction.apply(x_torch, y_torch, b_torch)
         result = result_torch.detach().numpy()
         np.testing.assert_array_almost_equal(
             result, np.array(expected_result))
@@ -258,9 +239,10 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         out_size = approximate_expected_result.shape[-1]
 
-        result_torch = PyTorchConv1dFunction.apply(x_torch, y_torch, b_torch,
-                                                   None, None, out_size)
+        result_torch = PyTorchConv1dFunction.apply(
+            x_torch, y_torch, b_torch, None, None, None, out_size, 1, True)
         result = result_torch.detach().numpy()
+        print("Computed result: ", result)
         np.testing.assert_array_almost_equal(
             x=np.array(approximate_expected_result), y=result,
             err_msg="Expected x is different from computed y.")
@@ -334,11 +316,13 @@ class TestPyTorchConv1d(unittest.TestCase):
         print("expected result: ", expected_result)
 
         # 1 index back
-        result_torch = PyTorchConv1dFunction.apply(x_torch, y_torch, b_torch,
-                                                   None, 1)
+        result_torch = PyTorchConv1dFunction.apply(
+            x_torch, y_torch, b_torch, None, None, None, None, 1, True)
         result = result_torch.detach().numpy()
+        # compressed_expected_result = np.array(
+        #     [[[-2.25, -5.749999, -2.25, 15.249998, -18.25]]])
         compressed_expected_result = np.array(
-            [[[-2.25, -5.749999, -2.25, 15.249998, -18.25]]])
+            [[[-4., -3.999999, -4., 16.999998, -20.]]])
         np.testing.assert_array_almost_equal(
             x=compressed_expected_result, y=result,
             err_msg="Expected x is different from computed y.")
@@ -352,14 +336,19 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         # are the gradients correct
         print("accurate expected_dx: ", expected_dx)
+        # approximate_dx = np.array(
+        #     [[[0.175, -0.275, -1.125, 0.925, 1.375, -0.775, -0.325]]])
         approximate_dx = np.array(
-            [[[0.175, -0.275, -1.125, 0.925, 1.375, -0.775, -0.325]]])
+            [[[0.2, -0.3, -1.1, 0.9, 1.4, -0.8, -0.3]]])
         np.testing.assert_array_almost_equal(
             x=approximate_dx, y=x_torch.grad,
             err_msg="Expected approximate x is different from computed y. The "
                     "exact x (that represents dx) is: {}".format(expected_dx))
         print("accurate expected_dw: ", expected_dw)
-        approximate_dw = np.array([[[0.675, -0.375, -1.125]]])
+
+        # approximate_dw = np.array([[[0.675, -0.375, -1.125]]])
+        approximate_dw = np.array([[[0.5, -0.2, -1.3]]])
+
         np.testing.assert_array_almost_equal(
             x=approximate_dw, y=y_torch.grad,
             err_msg="Expected approximate x is different from computed y. The "

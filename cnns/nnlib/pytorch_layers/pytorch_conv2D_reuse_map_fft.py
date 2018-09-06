@@ -440,7 +440,7 @@ class PyTorchConv2dAutograd(Module):
          using-fourier-transforms-to-do-convolution?utm_medium=orga
          nic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
 
-        >>> # Test 3 channels and 2 filters.
+        >>> # Test stride for 3 channels and 2 filters.
         >>> # based on: http://cs231n.github.io/convolutional-networks/
         >>> x = tensor(
         ... [[[
