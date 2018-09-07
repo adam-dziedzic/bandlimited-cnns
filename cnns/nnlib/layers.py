@@ -1,12 +1,13 @@
 from builtins import range
 
+import numpy as np
 from numpy.fft import fft, ifft, rfft, irfft
-# import pyfftw
-# from pyfftw.interfaces.numpy_fft import fft, ifft, rfft, irfft
 
 from cnns.nnlib.utils.general_utils import *
 
-import numpy as np
+
+# import pyfftw
+# from pyfftw.interfaces.numpy_fft import fft, ifft, rfft, irfft
 
 
 def affine_forward(x, w, b):
@@ -248,7 +249,8 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         #######################################################################
 
         # ExperimentSpectralSpatial time batch norm using learned gamma/beta and calculated running mean/var.
-        out = (gamma / (np.sqrt(running_var + eps)) * x) + (beta - (gamma * running_mean) / np.sqrt(running_var + eps))
+        out = (gamma / (np.sqrt(running_var + eps)) * x) + (
+                    beta - (gamma * running_mean) / np.sqrt(running_var + eps))
 
         #######################################################################
         #                          END OF YOUR CODE                           #
@@ -365,8 +367,9 @@ def batchnorm_backward_alt(dout, cache):
 
     # Alternative faster formula way of calculating dx. ref: http://cthorey.github.io./backpropagation/
     dx = (1 / N) * gamma * 1 / sqrtvar * (
-            (N * dout) - np.sum(dout, axis=0) - (x_minus_mean) * np.square(ivar) * np.sum(dout * (x_minus_mean),
-                                                                                          axis=0))
+            (N * dout) - np.sum(dout, axis=0) - (x_minus_mean) * np.square(
+        ivar) * np.sum(dout * (x_minus_mean),
+                       axis=0))
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -521,7 +524,8 @@ def conv_forward_fft_1D_correct(x, w, b, conv_param, preserve_energy_rate=1.0):
     pad = conv_param.get('pad')
     stride = conv_param.get('stride')
     if stride != 1:
-        raise AttributeError("stride is not supported for fft-based convolution")
+        raise AttributeError(
+            "stride is not supported for fft-based convolution")
 
     N, C, W = x.shape
     F, C, WW = w.shape
@@ -545,7 +549,8 @@ def conv_forward_fft_1D_correct(x, w, b, conv_param, preserve_energy_rate=1.0):
 
     # Zero pad our tensor along the spatial dimensions.
     # Do not pad N (0,0) and C (0,0) dimensions, but only the 1D array - the W dimension (pad, pad).
-    padded_x = (np.pad(x, ((0, 0), (0, 0), (fft_pad // 2, fft_pad // 2)), 'constant'))
+    padded_x = (
+        np.pad(x, ((0, 0), (0, 0), (fft_pad // 2, fft_pad // 2)), 'constant'))
     padded_filters = (np.pad(w, ((0, 0), (0, 0), (0, fft_pad)), 'constant'))
 
     # Naive convolution loop.
@@ -563,7 +568,8 @@ def conv_forward_fft_1D_correct(x, w, b, conv_param, preserve_energy_rate=1.0):
                 current_energy = 0.0
                 preserve_energy = full_energy * preserve_energy_rate
                 index = 0
-                while current_energy < preserve_energy and index < len(squared_abs):
+                while current_energy < preserve_energy and index < len(
+                        squared_abs):
                     current_energy += squared_abs[index]
                     # preserve the index as a power of 2
                     if index == 0:
@@ -598,7 +604,8 @@ def conv_forward_fft_1D_correct(x, w, b, conv_param, preserve_energy_rate=1.0):
                 #     out_real = np.pad(out_real, (0, out_W - len(out_real)), 'constant')
                 # sum_out += out_real[:out_W]
                 if len(out_real) < out_W:
-                    out_real = np.pad(out_real, (0, out_W - len(out_real)), 'constant')
+                    out_real = np.pad(out_real, (0, out_W - len(out_real)),
+                                      'constant')
                 sum_out += out_real[:out_W]
             # crop the output to the expected shape
             # print("shape of expected results: ", out[nn, ff].shape)
@@ -661,7 +668,8 @@ def conv_forward_fftw_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
         for ff in range(F):  # For each filter in w
             sum_out = np.zeros([out_W])
             for cc in range(C):
-                xfft = pyfftw.interfaces.numpy_fft.fft(padded_x[nn, cc], fftsize)
+                xfft = pyfftw.interfaces.numpy_fft.fft(padded_x[nn, cc],
+                                                       fftsize)
                 # print("first xfft: ", xfft)
                 # xfft = xfft[:len(xfft) // 2]
                 if preserve_energy_rate < 1.0:
@@ -670,7 +678,8 @@ def conv_forward_fftw_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
                     current_energy = 0.0
                     preserve_energy = full_energy * preserve_energy_rate
                     index = 0
-                    while current_energy < preserve_energy and index < len(squared_abs):
+                    while current_energy < preserve_energy and index < len(
+                            squared_abs):
                         current_energy += squared_abs[index]
                         index += 1
                     # print("index: ", index)
@@ -682,7 +691,8 @@ def conv_forward_fftw_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
                 # print("filters: ", filters)
                 # print("last shape of xfft: ", xfft.shape[-1])
                 # The convolution theorem takes the duration of the response to be the same as the period of the data.
-                filterfft = pyfftw.interfaces.numpy_fft.fft(filters, xfft.shape[-1])
+                filterfft = pyfftw.interfaces.numpy_fft.fft(filters,
+                                                            xfft.shape[-1])
                 # filterfft = np.fft.fft(filters, xfft.shape[-1]*2)
                 # filterfft = filterfft[:filterfft.shape[0] // 2, :filterfft.shape[1] // 2]
                 # filterfft = filterfft[:filterfft.shape[-1] // 2]
@@ -697,7 +707,8 @@ def conv_forward_fftw_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
                 out_real = np.real(outifft)
                 # out_real = np.abs(outifft)
                 if len(out_real) < out_W:
-                    out_real = np.pad(out_real, (0, out_W - len(out_real)), 'constant')
+                    out_real = np.pad(out_real, (0, out_W - len(out_real)),
+                                      'constant')
                 sum_out += out_real[:out_W]
 
             # import matplotlib.pyplot as plt
@@ -716,7 +727,8 @@ def conv_forward_fftw_1D(x, w, b, conv_param, preserve_energy_rate=1.0):
 
 
 def reconstruct_signal(xfft, fft_size):
-    xfft = np.concatenate((xfft, np.zeros(max(fft_size // 2 - len(xfft) + 1, 0))))
+    xfft = np.concatenate(
+        (xfft, np.zeros(max(fft_size // 2 - len(xfft) + 1, 0))))
     xfft = np.concatenate((xfft, np.conj(np.flip(xfft[1:-1], axis=0))))
     return xfft
 
@@ -724,7 +736,8 @@ def reconstruct_signal(xfft, fft_size):
 log_file = "index_back_filter_signal2" + get_log_time() + ".log"
 
 
-def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index_back=None):
+def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None,
+                      index_back=None):
     """
     Cross-correlation of the signals: x and y.
 
@@ -758,8 +771,10 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None, index
     xfft = fft(x, fft_size)
     yfft = fft(y, fft_size)
     if preserve_energy_rate is not None or index_back is not None:
-        index_xfft = half_preserve_energy_index(xfft, preserve_energy_rate, index_back)
-        index_yfft = half_preserve_energy_index(yfft, preserve_energy_rate, index_back)
+        index_xfft = half_preserve_energy_index(xfft, preserve_energy_rate,
+                                                index_back)
+        index_yfft = half_preserve_energy_index(yfft, preserve_energy_rate,
+                                                index_back)
         # with open(log_file, "a+") as f:
         #     f.write("index: " + str(index_back) + ";preserved energy input: " + str(
         #         compute_energy(xfft[:index]) / compute_energy(xfft[:fft_size // 2 + 1])) +
@@ -1062,7 +1077,9 @@ def conv_forward_fft_1D(x, w, b, conv_param):
     pad = conv_param.get('pad')
     stride = conv_param.get('stride')
     if stride != 1:
-        raise ValueError("convolution via fft can have stride only 1, but given: " + str(stride))
+        raise ValueError(
+            "convolution via fft can have stride only 1, but given: " + str(
+                stride))
     N, C, W = x.shape
     F, C, WW = w.shape
     fftsize = next_power2(W + WW - 1)
@@ -1073,8 +1090,10 @@ def conv_forward_fft_1D(x, w, b, conv_param):
     for nn in range(N):  # For each time-series in the input batch.
         for ff in range(F):  # For each filter in w
             for cc in range(C):
-                out[nn, ff] += correlate_signals(padded_x[nn, cc], w[ff, cc], fftsize,
-                                                 out_size=out_W, preserve_energy_rate=preserve_energy_rate,
+                out[nn, ff] += correlate_signals(padded_x[nn, cc], w[ff, cc],
+                                                 fftsize,
+                                                 out_size=out_W,
+                                                 preserve_energy_rate=preserve_energy_rate,
                                                  index_back=index_back)
             out[nn, ff] += b[ff]  # add the bias term
 
@@ -1137,7 +1156,8 @@ def conv_backward_fft_1D(dout, cache):
     if pad_out < 0:
         padded_dout = dout[:, :, abs(pad_out):pad_out]
     else:
-        padded_dout = np.pad(dout, ((0, 0), (0, 0), (pad_out, pad_out)), mode='constant')
+        padded_dout = np.pad(dout, ((0, 0), (0, 0), (pad_out, pad_out)),
+                             mode='constant')
 
     # Initialize gradient output tensors.
     dx = np.zeros_like(x)  # the x used for convolution was with padding
@@ -1161,7 +1181,8 @@ def conv_backward_fft_1D(dout, cache):
                 # dw[ff, cc] += convolve1D_fft(padded_x[nn, cc], np.flip(dout[nn, ff], axis=0), fftsize, WW,
                 #                              preserve_energy_rate=preserve_energy_rate)
                 dw[ff, cc] += correlate_signals(padded_x[nn, cc], dout[nn, ff],
-                                                fftsize, WW, preserve_energy_rate=preserve_energy_rate,
+                                                fftsize, WW,
+                                                preserve_energy_rate=preserve_energy_rate,
                                                 index_back=index_back)
                 # print("dw fft: ", dw[ff, cc])
 
@@ -1183,8 +1204,10 @@ def conv_backward_fft_1D(dout, cache):
                 # print("w[ff, cc] shape: ", w[ff, cc].shape)
                 # dx[nn, cc] += correlate_signals(padded_dout[nn, ff], np.flip(w[ff, cc], axis=0), fftsize, W,
                 #                                 preserve_energy_rate=preserve_energy_rate, index_back=index_back)
-                dx[nn, cc] += correlate_signals(padded_dout[nn, ff], np.flip(w[ff, cc], axis=0),
-                                                fftsize, W, preserve_energy_rate=preserve_energy_rate,
+                dx[nn, cc] += correlate_signals(padded_dout[nn, ff],
+                                                np.flip(w[ff, cc], axis=0),
+                                                fftsize, W,
+                                                preserve_energy_rate=preserve_energy_rate,
                                                 index_back=index_back)
                 # print("dx fft: ", dx[nn, cc])
 
@@ -1233,7 +1256,8 @@ def conv_forward_numpy_1D(x, w, b, conv_param):
     for nn in range(N):  # For each time-series in the input batch.
         for ff in range(F):  # For each filter in w
             for cc in range(C):
-                out[nn, ff] += np.correlate(padded_x[nn, cc], w[ff, cc], mode="valid")
+                out[nn, ff] += np.correlate(padded_x[nn, cc], w[ff, cc],
+                                            mode="valid")
             # we have a single bias per filter
             # at the end - sum all the values in the obtained tensor
             out[nn, ff] += b[ff]
@@ -1296,7 +1320,8 @@ def conv_backward_numpy_1D(dout, cache):
     if pad_out < 0:
         padded_dout = dout[:, :, abs(pad_out):pad_out]
     else:
-        padded_dout = np.pad(dout, ((0, 0), (0, 0), (pad_out, pad_out)), mode='constant')
+        padded_dout = np.pad(dout, ((0, 0), (0, 0), (pad_out, pad_out)),
+                             mode='constant')
 
     # Initialise gradient output tensors.
     dx = np.zeros_like(x)  # the x used for convolution was with padding
@@ -1316,7 +1341,8 @@ def conv_backward_numpy_1D(dout, cache):
         for ff in range(F):
             for cc in range(C):
                 # accumulate gradient for a filter from each channel
-                dw[ff, cc] += np.correlate(padded_x[nn, cc], dout[nn, ff], mode="valid")
+                dw[ff, cc] += np.correlate(padded_x[nn, cc], dout[nn, ff],
+                                           mode="valid")
                 # print("dw numpy: ", dw[ff, cc])
 
     # Calculate dx.
@@ -1328,7 +1354,9 @@ def conv_backward_numpy_1D(dout, cache):
                 # print("dout[nn, ff] shape: ", dout[nn, ff].shape)
                 # print("w[ff, cc]: ", w[ff, cc])
                 # print("w[ff, cc] shape: ", w[ff, cc].shape)
-                dx[nn, cc] += np.correlate(padded_dout[nn, ff], np.flip(w[ff, cc], axis=0), mode="valid")
+                dx[nn, cc] += np.correlate(padded_dout[nn, ff],
+                                           np.flip(w[ff, cc], axis=0),
+                                           mode="valid")
                 # print("dx fft: ", dx[nn, cc])
     return dx, dw, db
 
@@ -1395,7 +1423,8 @@ def conv_forward_naive_1D(x, w, b, conv_param):
                     out[nn, ff, ii] = \
                         np.sum(
                             # padded x is multiplied for the range: from ii*stride to ii*stride + WW
-                            w[ff, ...] * padded_x[nn, :, ii * stride: ii * stride + WW]) + b[ff]
+                            w[ff, ...] * padded_x[nn, :,
+                                         ii * stride: ii * stride + WW]) + b[ff]
                 # we have a single bias per filter
                 # at the end - sum all the values in the obtained tensor
     # import matplotlib.pyplot as plt
@@ -1462,7 +1491,7 @@ def compress_spectral_1D(x, y_len):
     xfft = fft(x, norm="ortho")
     if y_len % 2 == 1:
         n = (y_len - 1) // 2
-    #TODO
+    # TODO
 
 
 def compress_fft_1D(x, y_len):
@@ -1635,7 +1664,8 @@ def max_pool_forward_naive_1D(x, pool_param):
     for n in range(N):  # For each time-series (in the batch).
         for c in range(C):  # For each channel.
             for i in range(out_W):  # For each output value.
-                out[n, c, i] = np.max(x[n, c, i * stride: i * stride + pool_width])
+                out[n, c, i] = np.max(
+                    x[n, c, i * stride: i * stride + pool_width])
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -1770,14 +1800,17 @@ def conv_backward_naive_1D(dout, cache):
                 # dF[1] = TS[1]*dO[0] + TS[2]*dO[1] + ... + TS[out+1]*d0[out]
                 # the below computation is element at a time for both df[0] and dF[1]:
                 # dF[0:1] += dO[0] * TS[0:1]
-                dw[ff, ...] += dout[nn, ff, ii] * padded_x[nn, :, ii * stride: ii * stride + WW]
+                dw[ff, ...] += dout[nn, ff, ii] * padded_x[nn, :,
+                                                  ii * stride: ii * stride + WW]
 
     # Calculate dx.
     # By chain rule dx is dout*w. We need to make dx same shape as padded x for the gradient calculation.
     for nn in range(N):
         for ff in range(F):
             for ii in range(W_out):
-                dx_temp[nn, :, ii * stride:ii * stride + WW] += dout[nn, ff, ii] * w[ff, ...]
+                dx_temp[nn, :, ii * stride:ii * stride + WW] += dout[
+                                                                    nn, ff, ii] * \
+                                                                w[ff, ...]
 
     # Remove the padding from dx so it matches the shape of x.
     dx = dx_temp[:, :, pad_left: W + pad_right]
@@ -1833,7 +1866,9 @@ def conv_forward_fftw(x, w, b, conv_param):
     pad = conv_param.get('pad')
     stride = conv_param.get('stride')
     if stride != 1:
-        raise Exception("Convolution via fft is only possible with stride = 1, while given stride=" + str(stride))
+        raise Exception(
+            "Convolution via fft is only possible with stride = 1, while given stride=" + str(
+                stride))
 
     N, C, H, W = x.shape
     F, C, HH, WW = w.shape
@@ -1842,15 +1877,19 @@ def conv_forward_fftw(x, w, b, conv_param):
     out_H, out_W = get_conv_shape((H, W), (HH, WW), conv_param)
 
     # Zero pad our tensor along the spatial dimensions.
-    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), mode='constant'))
+    padded_x = (
+        np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), mode='constant'))
 
     # Initialise the output.
     # out = np.zeros([N, F, out_H, out_W])
     out = np.zeros([N, F, out_H, out_W])
 
-    fftpadded_x = np.pad(padded_x, ((0, 0), (0, 0), (0, H - 1), (0, W - 1)), mode='constant')
+    fftpadded_x = np.pad(padded_x, ((0, 0), (0, 0), (0, H - 1), (0, W - 1)),
+                         mode='constant')
     _, _, Hpad, Wpad = fftpadded_x.shape
-    fftpadded_filter = np.pad(w, ((0, 0), (0, 0), (0, Hpad - HH), (0, Wpad - WW)), mode='constant')
+    fftpadded_filter = np.pad(w,
+                              ((0, 0), (0, 0), (0, Hpad - HH), (0, Wpad - WW)),
+                              mode='constant')
 
     # Hpow2, Wpow2 = find_next_power2(Hpad), find_next_power2(Wpad)
     Hpow2, Wpow2 = Hpad, Wpad
@@ -1860,18 +1899,21 @@ def conv_forward_fftw(x, w, b, conv_param):
         for ff in range(F):  # For each filter in w
             sum_out = np.zeros([out_H, out_W])
             for cc in range(C):
-                xfft = pyfftw.interfaces.numpy_fft.fft2(fftpadded_x[nn, cc], (Hpow2, Wpow2))
+                xfft = pyfftw.interfaces.numpy_fft.fft2(fftpadded_x[nn, cc],
+                                                        (Hpow2, Wpow2))
                 # print("xfft: ", xfft)
                 # xfft = xfft[:xfft.shape[0] // 2, :xfft.shape[1] // 2]
                 # print("xfft shape: ", xfft.shape)
-                filterfft = pyfftw.interfaces.numpy_fft.fft2(fftpadded_filter[ff, cc], xfft.shape)
+                filterfft = pyfftw.interfaces.numpy_fft.fft2(
+                    fftpadded_filter[ff, cc], xfft.shape)
                 # filterfft = filterfft[:filterfft.shape[0] // 2, :filterfft.shape[1] // 2]
                 # print("filterfft: ", filterfft)
                 filterfft = np.conjugate(filterfft)
                 # out[nn, ff] += np.abs(np.fft.ifft2(xfft * filterfft, (out_H, out_W)))
                 # H2 = H // 2
                 # W2 = W // 2
-                out_real = pyfftw.interfaces.numpy_fft.ifft2(xfft * filterfft).real
+                out_real = pyfftw.interfaces.numpy_fft.ifft2(
+                    xfft * filterfft).real
                 # print("out_real: ", out_real.astype(int))
                 # sum_out += out_real[H2:H2 + H, W2:W2 + W]
                 sum_out += out_real[:out_H, :out_W]
@@ -1909,7 +1951,9 @@ def conv_forward_fft(x, w, b, conv_param):
     pad = conv_param.get('pad')
     stride = conv_param.get('stride')
     if stride != 1:
-        raise Exception("Convolution via fft is only possible with stride = 1, while given stride=" + str(stride))
+        raise Exception(
+            "Convolution via fft is only possible with stride = 1, while given stride=" + str(
+                stride))
 
     N, C, H, W = x.shape
     F, C, HH, WW = w.shape
@@ -1918,15 +1962,19 @@ def conv_forward_fft(x, w, b, conv_param):
     out_H, out_W = get_conv_shape((H, W), (HH, WW), conv_param)
 
     # Zero pad our tensor along the spatial dimensions.
-    padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), mode='constant'))
+    padded_x = (
+        np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), mode='constant'))
 
     # Initialise the output.
     # out = np.zeros([N, F, out_H, out_W])
     out = np.zeros([N, F, out_H, out_W])
 
-    fftpadded_x = np.pad(padded_x, ((0, 0), (0, 0), (0, H - 1), (0, W - 1)), mode='constant')
+    fftpadded_x = np.pad(padded_x, ((0, 0), (0, 0), (0, H - 1), (0, W - 1)),
+                         mode='constant')
     _, _, Hpad, Wpad = fftpadded_x.shape
-    fftpadded_filter = np.pad(w, ((0, 0), (0, 0), (0, Hpad - HH), (0, Wpad - WW)), mode='constant')
+    fftpadded_filter = np.pad(w,
+                              ((0, 0), (0, 0), (0, Hpad - HH), (0, Wpad - WW)),
+                              mode='constant')
 
     # Hpow2, Wpow2 = find_next_power2(Hpad), find_next_power2(Wpad)
     Hpow2, Wpow2 = Hpad, Wpad
@@ -2009,7 +2057,9 @@ def conv_forward_naive(x, w, b, conv_param):
                     # multiplying tensors
                     out[nn, ff, jj, ii] = \
                         np.sum(
-                            w[ff, ...] * padded_x[nn, :, jj * stride:jj * stride + HH, ii * stride:ii * stride + WW]) + \
+                            w[ff, ...] * padded_x[nn, :,
+                                         jj * stride:jj * stride + HH,
+                                         ii * stride:ii * stride + WW]) + \
                         b[ff]
                     # we have a single bias per filter
                     # at the end - sum all the values in the obtained tensor
@@ -2052,7 +2102,8 @@ def conv_backward_naive(dout, cache):
     db = np.zeros_like(b)
 
     # Calculate dB.
-    # Just like in the affine layer we sum up all the incoming gradients for each filters bias.
+    # Just like in the affine layer we sum up all the incoming gradients for
+    # each filters bias.
     for ff in range(F):
         db[ff] += np.sum(dout[:, ff, :, :])
 
@@ -2062,8 +2113,9 @@ def conv_backward_naive(dout, cache):
         for ff in range(F):
             for jj in range(H_out):
                 for ii in range(W_out):
-                    dw[ff, ...] += dout[nn, ff, jj, ii] * padded_x[nn, :, jj * stride:jj * stride + HH,
-                                                          ii * stride:ii * stride + WW]
+                    dw[ff, ...] += dout[nn, ff, jj, ii] * padded_x[nn, :,
+                                                          jj * stride:jj * stride + HH,
+                                                          ii * stride: ii * stride + WW]
 
     # Calculate dx.
     # By chain rule dx is dout*w. We need to make dx same shape as padded x for the gradient calculation.
@@ -2071,8 +2123,9 @@ def conv_backward_naive(dout, cache):
         for ff in range(F):
             for jj in range(H_out):
                 for ii in range(W_out):
-                    dx_temp[nn, :, jj * stride:jj * stride + HH, ii * stride:ii * stride + WW] += dout[nn, ff, jj, ii] * \
-                                                                                                  w[ff, ...]
+                    dx_temp[nn, :, jj * stride:jj * stride + HH,
+                    ii * stride:ii * stride + WW] += dout[nn, ff, jj, ii] * \
+                                                     w[ff, ...]
 
     # Remove the padding from dx so it matches the shape of x.
     dx = dx_temp[:, :, pad:H + pad, pad:W + pad]
@@ -2136,7 +2189,8 @@ def fft_pool_forward(x, pool_param):
             for h in range(out_H):  # For each output row.
                 for w in range(out_W):  # For each output col.
                     out[n, c, h, w] = np.max(
-                        x[n, c, h * stride:h * stride + pool_height, w * stride:w * stride + pool_width])
+                        x[n, c, h * stride:h * stride + pool_height,
+                        w * stride:w * stride + pool_width])
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -2180,7 +2234,8 @@ def max_pool_forward_naive(x, pool_param):
             for h in range(out_H):  # For each output row.
                 for w in range(out_W):  # For each output col.
                     out[n, c, h, w] = np.max(
-                        x[n, c, h * stride:h * stride + pool_height, w * stride:w * stride + pool_width])
+                        x[n, c, h * stride:h * stride + pool_height,
+                        w * stride:w * stride + pool_width])
 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -2221,11 +2276,15 @@ def max_pool_backward_naive(dout, cache):
         for c in range(C):
             for h in range(dout_H):
                 for w in range(dout_W):
-                    current_matrix = x[n, c, h * stride: h * stride + pool_height, w * stride: w * stride + pool_width]
+                    current_matrix = x[n, c,
+                                     h * stride: h * stride + pool_height,
+                                     w * stride: w * stride + pool_width]
                     current_max = np.max(current_matrix)
-                    for (i, j) in [(i, j) for i in range(pool_height) for j in range(pool_width)]:
+                    for (i, j) in [(i, j) for i in range(pool_height) for j in
+                                   range(pool_width)]:
                         if current_matrix[i, j] == current_max:
-                            dx[n, c, h * stride + i, w * stride + j] += dout[n, c, h, w]
+                            dx[n, c, h * stride + i, w * stride + j] += dout[
+                                n, c, h, w]
 
     # # Naive loop to backprop dout through maxpool layer.
     # for n in range(N):  # For each image.

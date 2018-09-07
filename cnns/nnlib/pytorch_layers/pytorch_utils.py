@@ -573,7 +573,7 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None,
 
 
 def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
-                          signal_ndim: int = 1, is_forward=True) -> object:
+                          signal_ndim: int = 1) -> object:
     """
     Similar to 'correlate_signal' function but the signals are provided in the
     frequency domain (after fft) for the reuse of the maps.
@@ -629,8 +629,7 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
     >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft,
-    ... fft_size=x.shape[-1], out_size=(x.shape[-1]-y.shape[-1] + 1),
-    ... is_forward=False)
+    ... fft_size=x.shape[-1], out_size=(x.shape[-1]-y.shape[-1] + 1))
     >>> # print("result: ", result)
     >>> np.testing.assert_array_almost_equal(result,
     ... np.array([[[-0.3, -0.4], [ 0.5, -0.7]]]))
@@ -725,9 +724,6 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     :param fft_size: the size of the signal in the frequency domain
     :param out_size: required output len (size)
     :param signal_ndim: the dimension of the signal (we set it to 1)
-    :param is_forward: if it is forward computation, sum up the elements from
-    computed arrays for each channel, for the backward pass this channels have
-    to be expanded so we do not sum up the final arrays.
     :return: output signal after correlation of signals xfft and yfft
     """
     xfft = complex_pad_simple(xfft=xfft, fft_size=fft_size)
@@ -736,11 +732,6 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     freq_mul = complex_mul(xfft, pytorch_conjugate(yfft))
     out = torch.irfft(
         input=freq_mul, signal_ndim=signal_ndim, signal_sizes=(fft_size,))
-
-    out = out[..., :out_size]
-    if out.dim() > 1 and is_forward:
-        out = torch.sum(input=out, dim=-2)
-        out = torch.unsqueeze(input=out, dim=0)  # unsqueeze the channels
     return out
 
 

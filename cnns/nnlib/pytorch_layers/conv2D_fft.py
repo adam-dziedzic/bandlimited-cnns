@@ -70,6 +70,7 @@ class PyTorchConv2dFunction(torch.autograd.Function):
 
         :return: the result of convolution.
         """
+        print("execute forward pass")
         if index_back is not None and out_size is not None:
             raise TypeError("Specify either index_back or out_size not both.")
 
@@ -158,7 +159,7 @@ class PyTorchConv2dFunction(torch.autograd.Function):
         # Compute how much to compress the fft-ed signal for its width (W).
         half_fft_W = init_half_fft_W
         if index_back_W is not None:
-            half_fft_W = init_half_fft_W - index_back
+            half_fft_W = init_half_fft_W - index_back_W
         if out_size_W is not None:
             # We take one-sided fft so the output after the inverse fft should
             # be out size, thus the representation in the spectral domain is
@@ -175,7 +176,7 @@ class PyTorchConv2dFunction(torch.autograd.Function):
         # Compute how much to compress the fft-ed signal for its height (H).
         half_fft_H = init_half_fft_H
         if index_back_H is not None:
-            half_fft_H = init_half_fft_H - index_back
+            half_fft_H = init_half_fft_H - index_back_H
         if out_size_H is not None:
             # We take one-sided fft so the output after the inverse fft should
             # be out size, thus the representation in the spectral domain is
@@ -202,9 +203,10 @@ class PyTorchConv2dFunction(torch.autograd.Function):
                 half_fft_height=init_half_fft_H, half_fft_width=init_half_fft_W,
                 out_height=out_H, out_width=out_W,
                 is_forward=True)
-            # Add the bias term for each filter (it has to be unsqueezed to
-            # the dimension of the out to properly sum up the values).
-            out[nn] += bias.unsqueeze(-1).unsqueeze(-1)
+            if bias is not None:
+                # Add the bias term for each filtekr (it has to be unsqueezed to
+                # the dimension of the out to properly sum up the values).
+                out[nn] += bias.unsqueeze(-1).unsqueeze(-1)
 
         # TODO: how to compute the backward pass for the strided FFT convolution
         if stride_W is not None or stride_H is not None:
@@ -212,7 +214,8 @@ class PyTorchConv2dFunction(torch.autograd.Function):
                 stride_W = 1
             if stride_H is None:
                 stride_H = 1
-            out = out[:, :, 0::stride_H, 0::stride_W]
+            if stride_H != 1 or stride_W != 1:
+                out = out[:, :, 0::stride_H, 0::stride_W]
 
         if ctx:
             ctx.save_for_backward(xfft, yfft, to_tensor(H), to_tensor(HH),
@@ -244,6 +247,7 @@ class PyTorchConv2dFunction(torch.autograd.Function):
         :return: gradients for input map x, filter w and bias b
         """
         # logger.debug("execute backward")
+        print("execute backward pass")
         xfft, yfft, H, HH, W, WW, init_fft_H, init_fft_W = ctx.saved_tensors
         H = from_tensor(H)
         HH = from_tensor(HH)
@@ -356,13 +360,13 @@ class PyTorchConv2dFunction(torch.autograd.Function):
 
 
 class PyTorchConv2dAutograd(Module):
-    def __init__(self, filter=None, bias=None, padding=None, stride=None,
+    def __init__(self, filter_value=None, bias=None, padding=None, stride=None,
                  index_back=None, out_size=None, filter_width=None,
                  use_next_power2=True):
         """
         2D convolution using FFT implemented fully in PyTorch.
 
-        :param filter: you can provide the initial filter, i.e.
+        :param filter_value: you can provide the initial filter, i.e.
         filter weights of shape (F, C, WW), where
         F - number of filters, C - number of channels, WW - size of
         the filter
@@ -390,7 +394,7 @@ class PyTorchConv2dAutograd(Module):
         now, I did not think how to express convolution with strides via FFT).
         """
         super(PyTorchConv2dAutograd, self).__init__()
-        if filter is None:
+        if filter_value is None:
             if filter_width is None:
                 logger.error(
                     "The filter and filter_width cannot be both "
@@ -399,17 +403,17 @@ class PyTorchConv2dAutograd(Module):
             self.filter = Parameter(
                 torch.randn(1, 1, filter_width))
         else:
-            self.filter = filter
+            self.filter = filter_value
         if bias is None:
             self.bias = Parameter(torch.randn(1))
         else:
             self.bias = bias
         self.padding = padding
+        self.stride = stride
         self.index_back = index_back
         self.out_size = out_size
         self.filter_width = filter_width
         self.use_next_power2 = use_next_power2
-        self.stride = stride
 
     def forward(self, input):
         """
@@ -484,7 +488,7 @@ class PyTorchConv2dAutograd(Module):
         ...  [ 1.0, 1.0,-1.0]]],
         ... ])
         >>> b = tensor([1.0, 0.0])
-        >>> conv = PyTorchConv2dAutograd(filter=y, bias=b, index_back=0,
+        >>> conv = PyTorchConv2dAutograd(filter_value=y, bias=b, index_back=0,
         ... padding=(1, 1), stride=(2, 2))
         >>> result = conv.forward(input=x)
         >>> expect = np.array([[[
@@ -547,7 +551,7 @@ class PyTorchConv2dAutograd(Module):
         ...  [ 1.0, 1.0,-1.0]]],
         ... ])
         >>> b = tensor([1.0, 0.0])
-        >>> conv = PyTorchConv2dAutograd(filter=y, bias=b, index_back=0,
+        >>> conv = PyTorchConv2dAutograd(filter_value=y, bias=b, index_back=0,
         ... padding=0)
         >>> result = conv.forward(input=x)
         >>> expect = np.array(
@@ -571,7 +575,7 @@ class PyTorchConv2dAutograd(Module):
         >>> # A single filter.
         >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         >>> b = tensor([0.0])
-        >>> conv = PyTorchConv2dAutograd(filter=y, bias=b, index_back=1,
+        >>> conv = PyTorchConv2dAutograd(filter_value=y, bias=b, index_back=1,
         ... use_next_power2=False)
         >>> result = conv.forward(input=x)
         >>> expect = np.array([[[[21.5, 22.0], [17.5, 13.]]]])
@@ -584,7 +588,7 @@ class PyTorchConv2dAutograd(Module):
         >>> # A single filter.
         >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         >>> b = tensor([0.0])
-        >>> conv = PyTorchConv2dAutograd(filter=y, bias=b, index_back=0)
+        >>> conv = PyTorchConv2dAutograd(filter_value=y, bias=b, index_back=0)
         >>> result = conv.forward(input=x)
         >>> expect = np.array([[[[22.0, 22.0], [18., 14.]]]])
         >>> np.testing.assert_array_almost_equal(x=expect, y=result,
@@ -596,7 +600,7 @@ class PyTorchConv2dAutograd(Module):
         >>> # A single filter.
         >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         >>> b = tensor([-1.0])
-        >>> conv = PyTorchConv2dAutograd(filter=y, bias=b, index_back=0)
+        >>> conv = PyTorchConv2dAutograd(filter_value=y, bias=b, index_back=0)
         >>> result = conv.forward(input=x)
         >>> expect = np.array([[[[21.0, 21.0], [17., 13.]]]])
         >>> np.testing.assert_array_almost_equal(x=expect, y=result,
@@ -608,7 +612,7 @@ class PyTorchConv2dAutograd(Module):
         >>> # A single filter.
         >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         >>> b = tensor([0.0])
-        >>> conv = PyTorchConv2dAutograd(filter=y, bias=b, index_back=0,
+        >>> conv = PyTorchConv2dAutograd(filter_value=y, bias=b, index_back=0,
         ... use_next_power2=False)
         >>> result = conv.forward(input=x)
         >>> expect = np.array([[[[22.0, 22.0], [18., 14.]]]])
@@ -621,7 +625,7 @@ class PyTorchConv2dAutograd(Module):
         >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]], [[-1.0, 2.0],[3.0, -2.0]]],
         ... [[[-1.0, 1.0], [2.0, 3.0]], [[-2.0, 1.0], [1.0, -3.0]]]])
         >>> b = tensor([0.0, 0.0])
-        >>> conv = PyTorchConv2dAutograd(filter=y, bias=b, index_back=0)
+        >>> conv = PyTorchConv2dAutograd(filter_value=y, bias=b, index_back=0)
         >>> result = conv.forward(input=x)
         >>> expect = np.array([[[[23.0, 32.0], [30., 4.]],[[11.0, 12.0],
         ... [13.0, -11.0]]]])
@@ -636,11 +640,12 @@ class PyTorchConv2dAutograd(Module):
 
 
 class PyTorchConv2d(PyTorchConv2dAutograd):
-    def __init__(self, filter=None, bias=None, padding=None, index_back=None,
-                 out_size=None, filter_width=None, use_next_power2=False):
+    def __init__(self, filter_value=None, bias=None, padding=None, stride=None,
+                 index_back=None, out_size=None, filter_width=None,
+                 use_next_power2=False):
         super(PyTorchConv2d, self).__init__(
-            filter=filter, bias=bias, padding=padding, index_back=index_back,
-            out_size=out_size, filter_width=filter_width,
+            filter_value=filter_value, bias=bias, padding=padding, stride=stride,
+            index_back=index_back, out_size=out_size, filter_width=filter_width,
             use_next_power2=use_next_power2)
 
     def forward(self, input):
@@ -654,6 +659,7 @@ class PyTorchConv2d(PyTorchConv2dAutograd):
         return PyTorchConv2dFunction.apply(input, self.filter,
                                            self.bias,
                                            self.padding,
+                                           self.stride,
                                            self.index_back,
                                            self.out_size,
                                            self.use_next_power2)
