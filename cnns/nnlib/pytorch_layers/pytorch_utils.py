@@ -572,7 +572,7 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None,
     return out
 
 
-def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
+def correlate_fft_signals(xfft, yfft, fft_size: int,
                           signal_ndim: int = 1) -> object:
     """
     Similar to 'correlate_signal' function but the signals are provided in the
@@ -629,9 +629,10 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
     >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft,
-    ... fft_size=x.shape[-1], out_size=(x.shape[-1]-y.shape[-1] + 1))
+    ... fft_size=x.shape[-1])
     >>> # print("result: ", result)
-    >>> np.testing.assert_array_almost_equal(result,
+    >>> out_size=(x.shape[-1]-y.shape[-1] + 1)
+    >>> np.testing.assert_array_almost_equal(result[...,:out_size],
     ... np.array([[[-0.3, -0.4], [ 0.5, -0.7]]]))
 
     >>> x = tensor([[[2.0,1.0,3.0,5.0], [1.0,2.0,5.0,1.0]]])
@@ -644,10 +645,12 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
     >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft,
-    ... fft_size=x.shape[-1], out_size=(x.shape[-1]-y.shape[-1] + 1))
+    ... fft_size=x.shape[-1])
     >>> # print("result: ", result)
-    >>> np.testing.assert_array_almost_equal(result,
-    ... np.array([[[11.0, 25.0, 21.0], [9.0, 18.0, 20.0]]]))
+    >>> out_size=(x.shape[-1]-y.shape[-1] + 1)
+    >>> np.testing.assert_array_almost_equal(result[..., :out_size],
+    ... np.array([[[ 5., 10., 18.], [ 6., 15.,  3.]],
+    ... [[ 3.,  4.,  8.], [ 6., 14., 12.]]]))
 
     >>> x = tensor([[[1.0,2.0,3.0,4.0], [1.0,3.0,3.0,2.0]]])
     >>> # two filters
@@ -659,10 +662,12 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
     >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft,
-    ... fft_size=x.shape[-1], out_size=(x.shape[-1]-y.shape[-1] + 1))
+    ... fft_size=x.shape[-1])
     >>> # print("result: ", result)
-    >>> np.testing.assert_array_almost_equal(result,
-    ... np.array([[[16.0, 20.0, 21.0], [11.0, 17.0, 17.0]]]))
+    >>> out_size=(x.shape[-1]-y.shape[-1] + 1)
+    >>> np.testing.assert_array_almost_equal(result[..., :out_size],
+    ... np.array([[[ 7., 11., 15.], [ 9.,  9.,  6.]],
+    ... [[ 3.,  5.,  7.], [ 8., 12., 10.]]]))
 
     >>> # 1 signal in the batch, 2 channels, signal of length 3
     >>> x = tensor([[[1.0,2.0,3.0,4.0], [1.0,2.0,3.0,4.0]]])
@@ -674,9 +679,11 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
     >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft,
-    ... fft_size=x.shape[-1], out_size=(x.shape[-1]-y.shape[-1] + 1))
-    >>> np.testing.assert_array_almost_equal(result,
-    ... np.array([[[14.0, 22.0, 30.0]]]))
+    ... fft_size=x.shape[-1])
+    >>> # print("result: ", result)
+    >>> out_size=(x.shape[-1]-y.shape[-1] + 1)
+    >>> np.testing.assert_array_almost_equal(result[..., :out_size],
+    ... np.array([[[ 7., 11., 15.], [ 7., 11., 15.]]]))
 
     >>> x = tensor([1.0,2.0,3.0,4.0])
     >>> y = tensor([1.0,3.0])
@@ -686,9 +693,9 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     >>> onesided = True
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
-    >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft, fft_size=len(x),
-    ... out_size=(len(x)-len(y) + 1))
-    >>> np.testing.assert_array_almost_equal(result,
+    >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft, fft_size=len(x))
+    >>> out_size=len(x)-len(y) + 1
+    >>> np.testing.assert_array_almost_equal(result[..., :out_size],
     ... np.array([7.0, 11.0, 15.0]))
 
     >>> x = torch.from_numpy(np.random.rand(10))
@@ -700,10 +707,11 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     >>> onesided = True
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
-    >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft, fft_size=len(x),
-    ... out_size=(len(x)-len(y) + 1))
+    >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft, fft_size=len(x))
+    >>> out_size=len(x)-len(y) + 1
     >>> expected_result = np.correlate(x, y, mode='valid')
-    >>> np.testing.assert_array_almost_equal(result, expected_result)
+    >>> np.testing.assert_array_almost_equal(result[..., :out_size],
+    ... expected_result)
 
     >>> x = torch.from_numpy(np.random.rand(100))
     >>> y = torch.from_numpy(np.random.rand(11))
@@ -714,15 +722,15 @@ def correlate_fft_signals(xfft, yfft, fft_size: int, out_size: int,
     >>> onesided = True
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
-    >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft, fft_size=len(x),
-    ... out_size=(len(x)-len(y) + 1))
+    >>> result = correlate_fft_signals(xfft=xfft, yfft=yfft, fft_size=len(x))
+    >>> out_size=x.shape[-1]-y.shape[-1] + 1
     >>> expected_result = np.correlate(x, y, mode='valid')
-    >>> np.testing.assert_array_almost_equal(result, expected_result)
+    >>> np.testing.assert_array_almost_equal(result[..., :out_size],
+    ... expected_result)
 
     :param xfft: input signal after fft
     :param yfft: filter after fft
     :param fft_size: the size of the signal in the frequency domain
-    :param out_size: required output len (size)
     :param signal_ndim: the dimension of the signal (we set it to 1)
     :return: output signal after correlation of signals xfft and yfft
     """

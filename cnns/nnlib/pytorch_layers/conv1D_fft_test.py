@@ -13,6 +13,8 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import MockContext
 from cnns.nnlib.utils.log_utils import get_logger
 from cnns.nnlib.utils.log_utils import set_up_logging
 
+ERR_MSG = "Expected x is different from computed y."
+
 
 class TestPyTorchConv1d(unittest.TestCase):
 
@@ -252,8 +254,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         print("expected_dw: ", expected_dw)
         print("expected_db: ", expected_db)
 
-        dx, dw, db, _, _, _, _, _, _, _ = Conv1DfftFunction.backward(ctx,
-                                                                     dout)
+        dx, dw, db, _, _, _, _, _, _, _ = Conv1DfftFunction.backward(ctx, dout)
 
         # are the gradients correct
         np.testing.assert_array_almost_equal(
@@ -300,6 +301,47 @@ class TestPyTorchConv1d(unittest.TestCase):
         np.testing.assert_array_almost_equal(b_torch.grad,
                                              expected_db)
 
+    def test_FunctionBackwardNoCompressionNoBiasLonger(self):
+        print()
+        print("Test forward and backward manual passes.")
+        x = np.array([[[1.0, 2.0, 3.0, 4.0, 5.0, -1.0, 3.0]]])
+        y = np.array([[[2.0, 1.0, -2.0]]])
+        b = np.array([0.0])
+        dtype = torch.float
+        x_torch = tensor(x, requires_grad=True, dtype=dtype)
+        y_torch = tensor(y, requires_grad=True, dtype=dtype)
+        b_torch = tensor(b, requires_grad=True, dtype=dtype)
+
+        conv_param = {'pad': 0, 'stride': 1}
+        expected_result, cache = conv_forward_naive_1D(x=x, w=y, b=b,
+                                                       conv_param=conv_param)
+
+        print("expected result out for the forward pass: ", expected_result)
+
+        result_torch = Conv1DfftFunction.apply(x_torch, y_torch, b_torch)
+        result = result_torch.detach().numpy()
+        np.testing.assert_array_almost_equal(
+            result, np.array(expected_result))
+
+        dout = tensor([[[0.1, -0.2, 0.3, -0.1, 0.4]]], dtype=dtype)
+        # get the expected result from the backward pass
+        expected_dx, expected_dw, expected_db = \
+            conv_backward_naive_1D(dout.numpy(), cache)
+
+        print("expected_dx: ", expected_dx)
+        print("expected_dw: ", expected_dw)
+        print("expected_db: ", expected_db)
+
+        result_torch.backward(dout)
+
+        # are the gradients correct
+        np.testing.assert_array_almost_equal(x=expected_dx, y=x_torch.grad,
+                                             err_msg=ERR_MSG)
+        np.testing.assert_array_almost_equal(x=expected_dw, y=y_torch.grad,
+                                             err_msg=ERR_MSG)
+        np.testing.assert_array_almost_equal(x=expected_db, y=b_torch.grad,
+                                             err_msg=ERR_MSG)
+
     def test_FunctionBackwardWithPooling(self):
         x = np.array([[[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, -2.0]]])
         y = np.array([[[2.0, 1.0, 3.0, 1.0, -3.0]]])
@@ -314,8 +356,10 @@ class TestPyTorchConv1d(unittest.TestCase):
             x=x, w=y, b=b, conv_param=conv_param)
         print("Accurate expected result: ", accurate_expected_result)
 
+        # approximate_expected_result = np.array(
+        #     [[[-2.105834, 0.457627, 8.501472, 20.74531]]])
         approximate_expected_result = np.array(
-            [[[-2.105834, 0.457627, 8.501472, 20.74531]]])
+            [[[6.146684, 11.792807, 17.264324, 21.90055]]])
         print("Approximate expected result: ", approximate_expected_result)
 
         out_size = approximate_expected_result.shape[-1]
@@ -330,7 +374,7 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         self._check_delta1D(actual_result=result,
                             accurate_expected_result=accurate_expected_result,
-                            delta=6.8)
+                            delta=8.1)
 
         dout = tensor([[[0.1, -0.2, 0.3, -0.1]]], dtype=dtype)
         # get the expected result from the backward pass
@@ -339,9 +383,12 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         result_torch.backward(dout)
 
+        # approximate_expected_dx = np.array(
+        #     [[[0.052956, 0.120672, 0.161284, 0.150332, 0.089258,
+        #        0.005318, -0.063087, -0.087266, -0.063311, -0.012829]]])
         approximate_expected_dx = np.array(
-            [[[0.052956, 0.120672, 0.161284, 0.150332, 0.089258,
-               0.005318, -0.063087, -0.087266, -0.063311, -0.012829]]])
+            [[[0.069143, 0.073756, 0.072217, 0.064673, 0.052066,
+               0.035999, 0.018504, 0.001745, -0.012286, -0.022057]]])
 
         # are the gradients correct
         np.testing.assert_array_almost_equal(
@@ -349,10 +396,12 @@ class TestPyTorchConv1d(unittest.TestCase):
             err_msg="Expected x is different from computed y.")
 
         self._check_delta1D(actual_result=x_torch.grad,
-                            accurate_expected_result=expected_dx, delta=0.95)
+                            accurate_expected_result=expected_dx, delta=1.1)
 
+        # approximate_expected_dw = np.array(
+        #     [[[0.129913, 0.249468, 0.429712, 0.620098, 0.748242]]])
         approximate_expected_dw = np.array(
-            [[[0.129913, 0.249468, 0.429712, 0.620098, 0.748242]]])
+            [[[0.287457, 0.391437, 0.479054, 0.539719, 0.565961]]])
         np.testing.assert_array_almost_equal(
             x=approximate_expected_dw, y=y_torch.grad,
             err_msg="Expected x is different from computed y.")
@@ -404,12 +453,11 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         result = result_torch.detach().numpy()
         compressed_expected_result = np.array(
-            [[[-2.25, -5.749999, -2.25, 15.249998, -18.25]]])
+            [[[-2.25, -5.75, -2.25, 15.25, -18.25]]])
         # compressed_expected_result = np.array(
         #     [[[-4., -3.999999, -4., 16.999998, -20.]]])
         np.testing.assert_array_almost_equal(
-            x=compressed_expected_result, y=result,
-            err_msg="Expected x is different from computed y.")
+            x=compressed_expected_result, y=result, decimal=2, err_msg=ERR_MSG)
 
         dout = tensor([[[0.1, -0.2, -0.3, 0.3, 0.1]]], dtype=dtype)
         # get the expected result from the backward pass
@@ -426,7 +474,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         # approximate_dx = np.array(
         #     [[[0.2, -0.3, -1.1, 0.9, 1.4, -0.8, -0.3]]])
         np.testing.assert_array_almost_equal(
-            x=approximate_dx, y=x_torch.grad,
+            x=approximate_dx, y=x_torch.grad, decimal=3,
             err_msg="Expected approximate x is different from computed y. The "
                     "exact x (that represents dx) is: {}".format(expected_dx))
         print("accurate expected_dw: ", expected_dw)
@@ -435,7 +483,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         # approximate_dw = np.array([[[0.5, -0.2, -1.3]]])
 
         np.testing.assert_array_almost_equal(
-            x=approximate_dw, y=y_torch.grad,
+            x=approximate_dw, y=y_torch.grad, decimal=3,
             err_msg="Expected approximate x is different from computed y. The "
                     "exact x (that represents dw) is: {}".format(expected_dw))
         np.testing.assert_array_almost_equal(
@@ -474,23 +522,24 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         print("expected dw: {}".format(expected_dw))
         print("computed dw: {}".format(y_torch.grad))
-        #
+
         # self.logger.debug("expected db: ", expected_db)
         # self.logger.debug("computed db: ", b_torch.grad)
 
-        # are the gradients correct
-        np.testing.assert_array_almost_equal(
-            x=expected_dx, y=x_torch.grad,
-            err_msg="Expected x is different from computed y.")
-        np.testing.assert_array_almost_equal(y_torch.grad, expected_dw)
-        np.testing.assert_array_almost_equal(b_torch.grad, expected_db)
+        # Are the gradients correct?
+        np.testing.assert_array_almost_equal(x=expected_dx, y=x_torch.grad,
+                                             err_msg=ERR_MSG)
+        np.testing.assert_array_almost_equal(x=expected_dw, y=y_torch.grad,
+                                             err_msg=ERR_MSG)
+        np.testing.assert_array_almost_equal(x=expected_db, y=b_torch.grad,
+                                             err_msg=ERR_MSG)
 
     def test_FunctionForwardWithCompression(self):
         # test with compression
         x = np.array([[[1., 2., 3.]]])
         y = np.array([[[2., 1.]]])
         b = np.array([0.0])
-        expected_result = [[[3.5, 7.5]]]
+        expected_result = [[[3.75, 7.25]]]
         conv = Conv1DfftFunction()
         result = conv.forward(
             ctx=None, input=torch.from_numpy(x), index_back=1,
@@ -515,7 +564,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         x = np.array([[[1., 2., 3.]]])
         y = np.array([[[2., 1.]]])
         b = np.array([0.0])
-        expected_result = [3.5, 7.5]
+        expected_result = [3.75, 7.25]
         conv = Conv1DfftAutograd(
             filter_value=torch.from_numpy(y), bias_value=torch.from_numpy(b),
             index_back=1)
@@ -593,11 +642,11 @@ class TestPyTorchConv1d(unittest.TestCase):
     def test_FunctionForwardBackwardRandomManualBackprop(self):
         print()
         print("Test forward backward manual passes with random data.")
-        num_channels = 1
+        num_channels = 3
         num_data_points = 11
         num_values_data = 21
         num_values_filter = 5
-        num_filters = 1
+        num_filters = 5
         # Input signal: 5 data points, 3 channels, 10 values.
         x = np.random.rand(num_data_points, num_channels, num_values_data)
         # Filters: 3 filters, 3 channels, 4 values.
@@ -646,7 +695,7 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         # are the gradients correct
         np.testing.assert_array_almost_equal(
-            x=expected_dx, y=x_torch.grad, decimal=6,
+            x=expected_dx, y=x_torch.grad, decimal=5,
             err_msg="Expected x is different from computed y.")
         np.testing.assert_array_almost_equal(
             x=expected_dw, y=y_torch.grad, decimal=4,

@@ -106,43 +106,33 @@ class Conv1DfftFunction(torch.autograd.Function):
         size:
         [WW-1][WWW][WW-1]
         We can add the [WW-1] at the other size of [W]:
-        [WW-1][WW][WW-1] - the first forward convolution can be done without any 
-        changes, we only have to extract the final output starting from index
-        WW-1 (and not from 0). 
-        
-        
-        Sizes for convolution with FFT map reuse:
-        WWWW = (WW-1) + WWW + (WW-1)
+        [WW-1][W][WW-1]
+        and also have to account for the convolution with flowing back gradient:
+        [WW-1][W][WW-1][WWW-1]
         """
-
-        init_fft_size_input = W + 2 * padding_count + 2 * (WW - 1)
+        filter_pad = WW - 1  # padding for the filter
+        dout_pad = out_W - 1  # padding for the flowing back gradient fft-ed map
+        init_fft_size = W + 2 * padding_count + 2 * filter_pad + dout_pad
         if use_next_power2:
-            init_fft_size_input = next_power2(init_fft_size_input)
-
-        # The required smallest size for the backward convolution between the
-        # flowing back gradient (here its size is represented by out_W) and the
-        # filter. This is to compute the gradient for the input map.
-        init_fft_size_dout = out_W + 2 * (WW - 1)
-        if use_next_power2:
-            init_fft_size_dout = next_power2(init_fft_size_dout)
-
-        # The final smallest fft size required.
-        init_fft_size = max(init_fft_size_input, init_fft_size_dout)
+            fft_size = next_power2(init_fft_size)
+        else:
+            fft_size = init_fft_size
 
         # How many padded (zero) values there are because of going to the next
         # power of 2?
-        fft_padding_x = init_fft_size - W - 2 * padding_count
+        fft_padding_x = fft_size - init_fft_size
 
         # Pad only the dimensions for the time-series - the width dimension
         # (and neither data points nor the channels).
 
-        padded_x = torch_pad(input,
-                             (padding_count, padding_count + fft_padding_x),
-                             'constant', 0)
+        left_x_pad = filter_pad + padding_count
+        right_x_pad = padding_count + filter_pad + dout_pad + fft_padding_x
+        padded_x = torch_pad(input, (left_x_pad, right_x_pad), 'constant', 0)
 
-        fft_padding_filter = init_fft_size - WW
-        padded_filter = torch_pad(
-            filter, (0, fft_padding_filter), 'constant', 0)
+        fft_padding_filter = fft_size - (WW + 2 * filter_pad)
+        right_filter_pad = filter_pad + fft_padding_filter
+        padded_filter = torch_pad(filter, (filter_pad, right_filter_pad),
+                                  'constant', 0)
 
         # fft of the input and filters
         xfft = torch.rfft(padded_x, signal_ndim=signal_ndim, onesided=True)
@@ -170,42 +160,44 @@ class Conv1DfftFunction(torch.autograd.Function):
             xfft = xfft.narrow(dim=-2, start=0, length=half_fft_compressed_size)
             yfft = yfft.narrow(dim=-2, start=0, length=half_fft_compressed_size)
 
-        out = torch.zeros([N, F, out_W], dtype=input.dtype, device=input.device)
+        output = torch.zeros([N, F, out_W], dtype=input.dtype,
+                             device=input.device)
 
         for nn in range(N):  # For each time-series in the batch.
             # Take one time series and unsqueeze it for broadcasting with
             # many filters.
             xfft_nn = xfft[nn].unsqueeze(0)
-            out = correlate_fft_signals(
-                xfft=xfft_nn, yfft=yfft, fft_size=init_fft_size,
+            out_fft = correlate_fft_signals(
+                xfft=xfft_nn, yfft=yfft, fft_size=fft_size,
                 out_size=out_W)
-            out = out[..., :out_W]
+            out_slice = out_fft[..., :out_W]
             """
-            Sum up the elements from computed outputmaps for each input channel.
-            Each output map has as many channels as the number of filters. Each
-            filter contributes one channel for the output map. 
+            Sum up the elements from computed output maps for each input 
+            channel. Each output map has as many channels as the number of 
+            filters. Each filter contributes one channel for the output map. 
             """
-            out = torch.sum(input=out, dim=1)  # Sum the input channels.
+            # Sum the input channels.
+            out_sum = torch.sum(input=out_slice, dim=1)
             # `unsqueeze` the dimension for channels.
-            out = torch.unsqueeze(input=out, dim=0)
-            out[nn] = out
+            out_dim = torch.unsqueeze(input=out_sum, dim=0)
+            output[nn] = out_dim
             if bias is not None:
                 # Add the bias term for each filter.
                 # Bias has to be unsqueezed to the dimension of the out to
                 # properly sum up the values.
-                out[nn] += bias.unsqueeze(1)
+                output[nn] += bias.unsqueeze(1)
 
         # TODO: how to compute the backward pass for the strided FFT convolution?
         # Add additional zeros in the places of the output that were removed
         # by striding.
         if stride is not None and stride > 1:
-            out = out[:, :, 0::stride]
+            output = output[:, :, 0::stride]
 
         if ctx:
             ctx.save_for_backward(xfft, yfft, to_tensor(W), to_tensor(WW),
-                                  to_tensor(init_fft_size), is_manual)
+                                  to_tensor(fft_size), is_manual)
 
-        return out
+        return output
 
     @staticmethod
     def backward(ctx, dout):
@@ -310,14 +302,23 @@ class Conv1DfftFunction(torch.autograd.Function):
             conjugate_yfft = pytorch_conjugate(yfft)
             for nn in range(N):
                 # Take one time series and unsqueeze it for broadcast with
-                # many gradients dout.
-                doutfft_nn = doutfft[nn, :, :].unsqueeze(0)
-                out = correlate_fft_signals(
+                # many gradients dout. We assign 1 to the input channel C.
+                # dout: (N, F, WWW)
+                # weight w: (F, C, WW)
+                # grad dx: (N, C, W)
+                # A single input map was convolved with many filters F.
+                # We choose a single output map dout[nn], and unsqueeze it for
+                # the input channel dimension 1. Then we sum up over all filter
+                # F, but also produce gradients for all the channels C.
+                doutfft_nn = doutfft[nn, :, :].unsqueeze(1)
+                out_fft = correlate_fft_signals(
                     xfft=doutfft_nn, yfft=conjugate_yfft,
                     fft_size=init_fft_size, out_size=W)
-                out = out[:, :, left_pad: left_pad + out_W]
-                out = torch.sum(out, dim=1)
-                out = torch.unsqueeze(input=out, dim=1)
+                start_index = left_pad + right_pad
+                out = out_fft[:, :, start_index: start_index + W]
+                # Sum over all the Filters (F).
+                out = torch.sum(out, dim=0)
+                out = torch.unsqueeze(input=out, dim=0)
                 dx[nn] = out
 
         if ctx.needs_input_grad[1]:
@@ -354,9 +355,10 @@ class Conv1DfftFunction(torch.autograd.Function):
                 # Gather all the contributions to the output that were caused
                 # by a given filter.
                 doutfft_ff = doutfft[:, ff, :].unsqueeze(1)
-                out = correlate_fft_signals(
+                out_fft = correlate_fft_signals(
                     xfft=xfft, yfft=doutfft_ff, fft_size=init_fft_size,
-                    out_size=WW, signal_ndim=signal_ndim, is_forward=False)
+                    out_size=WW, signal_ndim=signal_ndim)
+                out = out_fft[:, :, :WW]
                 # For a given filter, we have to sum up all its contributions
                 # to all the input maps.
                 out = torch.sum(input=out, dim=0)
@@ -454,7 +456,7 @@ class Conv1DfftAutograd(Module):
         self.filter_width = kernel_size
         self.use_next_power2 = use_next_power2
         self.stride = stride
-        self.signal_ndim=1
+        self.signal_ndim = 1
         self.is_manual = is_manual
 
     def forward(self, input):
@@ -570,4 +572,5 @@ if __name__ == "__main__":
     test_run()
 
     import doctest
+
     sys.exit(doctest.testmod()[0])
