@@ -44,6 +44,7 @@ flist = ['Adiac', 'Beef', 'CBF', 'ChlorineConcentration', 'CinC_ECG_torso', 'Cof
 
 #flist = ['50words']
 for each in flist:
+    print("Dataset: ", each)
     fname = each
     x_train, y_train = readucr(fname, data_type="TRAIN")
     x_test, y_test = readucr(fname, data_type="TEST")
