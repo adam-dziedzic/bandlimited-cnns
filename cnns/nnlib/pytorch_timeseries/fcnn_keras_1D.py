@@ -41,8 +41,8 @@ def readucr(filename, data_type):
 
 
 nb_epochs = 2000
-
-flist = ['Adiac', 'Beef', 'CBF', 'ChlorineConcentration', 'CinC_ECG_torso',
+# 'Adiac',
+flist = ['Beef', 'CBF', 'ChlorineConcentration', 'CinC_ECG_torso',
          'Coffee', 'Cricket_X', 'Cricket_Y', 'Cricket_Z',
          'DiatomSizeReduction', 'ECGFiveDays', 'FaceAll', 'FaceFour',
          'FacesUCR', '50words', 'FISH', 'Gun_Point', 'Haptics',
@@ -62,11 +62,11 @@ for each in flist:
     x_train, y_train = readucr(fname, data_type="TRAIN")
     x_test, y_test = readucr(fname, data_type="TEST")
     nb_classes = len(np.unique(y_test))
-    batch_size = min(x_train.shape[0] / 10, 16)
+    batch_size = min(x_train.shape[0] // 10, 16)
 
-    y_train = (y_train - y_train.min()) / (y_train.max() - y_train.min()) * (
+    y_train = (y_train - y_train.min()) // (y_train.max() - y_train.min()) * (
             nb_classes - 1)
-    y_test = (y_test - y_test.min()) / (y_test.max() - y_test.min()) * (
+    y_test = (y_test - y_test.min()) // (y_test.max() - y_test.min()) * (
             nb_classes - 1)
 
     Y_train = np_utils.to_categorical(y_train, nb_classes)
@@ -74,9 +74,9 @@ for each in flist:
 
     x_train_mean = x_train.mean()
     x_train_std = x_train.std()
-    x_train = (x_train - x_train_mean) / (x_train_std)
+    x_train = (x_train - x_train_mean) // (x_train_std)
 
-    x_test = (x_test - x_train_mean) / (x_train_std)
+    x_test = (x_test - x_train_mean) // (x_train_std)
     x_train = x_train.reshape(x_train.shape + (1,))
     x_test = x_test.reshape(x_test.shape + (1,))
 
