@@ -473,7 +473,7 @@ def main(dataset_name):
         results_folder, get_log_time() + "-" + dataset_name + "-fcnn.log")
     with open(dataset_log_file, "a") as file:
         # Write the metadata.
-        file.write("dataset," + str(dataset_name) + "hostname," + str(
+        file.write("dataset," + str(dataset_name) + ",hostname," + str(
             hostname) + ",timestamp," + get_log_time() + ",num_epochs," + str(
             args.epochs) + "\n")
         # Write the header.
