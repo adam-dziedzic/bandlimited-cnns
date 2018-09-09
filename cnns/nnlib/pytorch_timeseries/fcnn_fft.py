@@ -273,6 +273,7 @@ class FCNNPytorch(nn.Module):
         # https://discuss.pytorch.org/t/global-average-pooling-in-pytorch/6721/4
         out = torch.mean(out, dim=1)
         out = self.lin(out)
+
         out = log_softmax(out, dim=-1)
 
         return out
@@ -524,10 +525,13 @@ def main(dataset_name):
 
     num_workers = 1
     pin_memory = True
+    torch.set_default_dtype(torch.float)
     if use_cuda:
         kwargs = {'num_workers': num_workers, 'pin_memory': pin_memory}
+        torch.set_default_tensor_type(torch.cuda.FloatTensor)
     else:
         kwargs = {}
+        torch.set_default_tensor_type(torch.FloatTensor)
 
     train_dataset = UCRDataset(dataset_name, train=True)
     batch_size = min(len(train_dataset) // 10, args.min_batch_size)

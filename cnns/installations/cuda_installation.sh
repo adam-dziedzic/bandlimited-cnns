@@ -8,6 +8,7 @@
 # ssh cc@gpu
 sudo apt-get update --yes
 sudo apt-get install build-essential gcc-multilib dkms --yes
+cat /usr/local/cuda/include/cudnn.h | grep CUDNN_MAJOR -A 2
 
 cd /home/${USER}/Downloads
 sudo dpkg -i --force-overwrite cuda-repo-ubuntu1604_9.2.148-1_amd64.deb
@@ -17,4 +18,8 @@ sudo apt-get install cuda --yes
 
 sudo dpkg -i libcudnn7_7.1.4.18-1+cuda9.2_amd64.deb
 sudo dpkg -i libcudnn7-dev_7.1.4.18-1+cuda9.2_amd64.deb
+
+cat /usr/local/cuda/include/cudnn.h | grep CUDNN_MAJOR -A 2
+nvcc --version
+
 
