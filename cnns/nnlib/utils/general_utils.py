@@ -44,6 +44,7 @@ class ConvType(EnumWithNames):
     SPECTRAL_PARAM = 2
     SPECTRAL_DIRECT = 3
     SPATIAL_PARAM = 4
+    FFT1D = 5
 
 
 def energy(x):

@@ -27,7 +27,7 @@ logger.addHandler(consoleLog)
 current_file_name = __file__.split("/")[-1].split(".")[0]
 
 
-class Conv1DfftFunction(torch.autograd.Function):
+class Conv1dfftFunction(torch.autograd.Function):
     """
     Implement the 1D convolution via FFT with compression of the
     input map and the filter.
@@ -66,7 +66,7 @@ class Conv1DfftFunction(torch.autograd.Function):
 
         :return: the result of convolution
         """
-        print("execute forward pass 1D")
+        # print("execute forward pass 1D")
         if index_back is not None and out_size is not None:
             raise TypeError("Specify index_back or out_size not both.")
 
@@ -168,8 +168,7 @@ class Conv1DfftFunction(torch.autograd.Function):
             # many filters.
             xfft_nn = xfft[nn].unsqueeze(0)
             out_fft = correlate_fft_signals(
-                xfft=xfft_nn, yfft=yfft, fft_size=fft_size,
-                out_size=out_W)
+                xfft=xfft_nn, yfft=yfft, fft_size=fft_size)
             out_slice = out_fft[..., :out_W]
             """
             Sum up the elements from computed output maps for each input 
@@ -221,7 +220,7 @@ class Conv1DfftFunction(torch.autograd.Function):
         :param dout: output gradient
         :return: gradients for input map x, filter w and bias b
         """
-        print("execute backward pass 1D")
+        # print("execute backward pass 1D")
         xfft, yfft, W, WW, init_fft_size, is_manual = ctx.saved_tensors
         is_manual[0] = 1  # Mark the manual execution of the backward pass.
         W = from_tensor(W)
@@ -313,7 +312,7 @@ class Conv1DfftFunction(torch.autograd.Function):
                 doutfft_nn = doutfft[nn, :, :].unsqueeze(1)
                 out_fft = correlate_fft_signals(
                     xfft=doutfft_nn, yfft=conjugate_yfft,
-                    fft_size=init_fft_size, out_size=W)
+                    fft_size=init_fft_size)
                 start_index = left_pad + right_pad
                 out = out_fft[:, :, start_index: start_index + W]
                 # Sum over all the Filters (F).
@@ -357,7 +356,7 @@ class Conv1DfftFunction(torch.autograd.Function):
                 doutfft_ff = doutfft[:, ff, :].unsqueeze(1)
                 out_fft = correlate_fft_signals(
                     xfft=xfft, yfft=doutfft_ff, fft_size=init_fft_size,
-                    out_size=WW, signal_ndim=signal_ndim)
+                    signal_ndim=signal_ndim)
                 out = out_fft[:, :, :WW]
                 # For a given filter, we have to sum up all its contributions
                 # to all the input maps.
@@ -379,7 +378,7 @@ class Conv1DfftFunction(torch.autograd.Function):
         return dx, dw, db, None, None, None, None, None, None, None
 
 
-class Conv1DfftAutograd(Module):
+class Conv1dfftAutograd(Module):
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
                  stride=1, padding=0, dilation=1, groups=1, bias=True,
                  index_back=None, out_size=None, filter_value=None,
@@ -426,7 +425,7 @@ class Conv1DfftAutograd(Module):
         redundant elements according to the stride parameter. We have to figure
         out how to run the backward pass for this strided FFT-based convolution.
         """
-        super(Conv1DfftAutograd, self).__init__()
+        super(Conv1dfftAutograd, self).__init__()
         if dilation > 1:
             raise NotImplementedError("dilation > 1 is not supported.")
         if groups > 1:
@@ -445,7 +444,7 @@ class Conv1DfftAutograd(Module):
             self.filter = filter_value
         if bias_value is None:
             if bias is True:
-                self.bias = Parameter(torch.randn(out_channels, 1))
+                self.bias = Parameter(torch.randn(out_channels))
             else:
                 self.bias = None
         else:
@@ -494,8 +493,8 @@ class Conv1DfftAutograd(Module):
         >>> b = np.array([0.0])
         >>> conv_param = {'pad' : 0, 'stride' :1}
         >>> # the 1 index back does not change the result in this case
-        >>> expected_result = [3.5, 7.5]
-        >>> conv = Conv1DfftAutograd(filter_value=torch.from_numpy(y),
+        >>> expected_result = [3.75, 7.25]
+        >>> conv = Conv1dfftAutograd(filter_value=torch.from_numpy(y),
         ... bias_value=torch.from_numpy(b), index_back=1)
         >>> result = conv.forward(input=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(result,
@@ -511,28 +510,28 @@ class Conv1DfftAutograd(Module):
         >>> # correlate function
         >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:],
         ... mode="valid")
-        >>> conv = Conv1DfftAutograd(filter_value=torch.from_numpy(y),
+        >>> conv = Conv1dfftAutograd(filter_value=torch.from_numpy(y),
         ... bias_value=torch.from_numpy(b))
         >>> result = conv.forward(input=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(result,
         ... np.array([[expected_result]]))
         """
-        return Conv1DfftFunction.forward(
+        return Conv1dfftFunction.forward(
             ctx=None, input=input, filter=self.filter, bias=self.bias,
             padding=self.padding, stride=self.stride,
             index_back=self.index_back, out_size=self.out_size,
             use_next_power2=self.use_next_power2, is_manual=self.is_manual)
 
 
-class Conv1Dfft(Conv1DfftAutograd):
+class Conv1dfft(Conv1dfftAutograd):
     """
     No PyTorch Autograd used - we compute backward pass on our own.
     """
 
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
-                 stride=None, padding=None, bias=None, index_back=None,
+                 stride=None, padding=None, bias=True, index_back=None,
                  out_size=None, filter_value=None, bias_value=None):
-        super(Conv1Dfft, self).__init__(
+        super(Conv1dfft, self).__init__(
             in_channels=in_channels, out_channels=out_channels,
             kernel_size=kernel_size, stride=stride, padding=padding, bias=bias,
             index_back=index_back, out_size=out_size, filter_value=filter_value,
@@ -546,7 +545,7 @@ class Conv1Dfft(Conv1DfftAutograd):
         :param input: the input map (e.g., an image)
         :return: the result of 1D convolution
         """
-        return Conv1DfftFunction.apply(
+        return Conv1dfftFunction.apply(
             input, self.filter, self.bias, self.padding, self.stride,
             self.index_back, self.out_size, self.signal_ndim,
             self.use_next_power2, self.is_manual)
@@ -556,7 +555,7 @@ def test_run():
     torch.manual_seed(231)
     filter = np.array([[[1., 2., 3.]]], dtype=np.float32)
     filter = torch.from_numpy(filter)
-    module = Conv1Dfft(filter_value=filter)
+    module = Conv1dfft(filter_value=filter)
     print()
     print("filter and bias parameters: ", list(module.parameters()))
     input = torch.randn(1, 1, 10, requires_grad=True)
@@ -570,7 +569,8 @@ def test_run():
 
 if __name__ == "__main__":
     test_run()
-
+    torch.manual_seed(37)
+    np.random.seed(13)
     import doctest
 
     sys.exit(doctest.testmod()[0])

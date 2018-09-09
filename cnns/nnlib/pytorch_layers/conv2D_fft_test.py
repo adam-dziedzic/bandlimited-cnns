@@ -499,7 +499,7 @@ class TestPyTorchConv2d(unittest.TestCase):
     #
     #     out_size = approximate_expected_result.shape[-1]
     #
-    #     result_torch = Conv1DfftFunction.apply(x_torch, y_torch, b_torch,
+    #     result_torch = Conv1dfftFunction.apply(x_torch, y_torch, b_torch,
     #                                                None, None, out_size)
     #     result = result_torch.detach().numpy()
     #     np.testing.assert_array_almost_equal(
@@ -556,7 +556,7 @@ class TestPyTorchConv2d(unittest.TestCase):
     #     print("expected result: ", expected_result)
     #
     #     # 1 index back
-    #     result_torch = Conv1DfftFunction.apply(x_torch, y_torch, b_torch,
+    #     result_torch = Conv1dfftFunction.apply(x_torch, y_torch, b_torch,
     #                                                None, 1)
     #     result = result_torch.detach().numpy()
     #     compressed_expected_result = np.array(
@@ -603,7 +603,7 @@ class TestPyTorchConv2d(unittest.TestCase):
     #     conv_param = {'pad': 0, 'stride': 1}
     #     expected_result, cache = conv_forward_naive_1D(x, y, b, conv_param)
     #
-    #     result_torch = Conv1DfftFunction.apply(x_torch, y_torch, b_torch)
+    #     result_torch = Conv1dfftFunction.apply(x_torch, y_torch, b_torch)
     #     result = result_torch.detach().numpy()
     #     np.testing.assert_array_almost_equal(
     #         result, np.array(expected_result))
@@ -640,7 +640,7 @@ class TestPyTorchConv2d(unittest.TestCase):
     #     y = np.array([[[2., 1.]]])
     #     b = np.array([0.0])
     #     expected_result = [3.5, 7.5]
-    #     conv = Conv1DfftFunction()
+    #     conv = Conv1dfftFunction()
     #     result = conv.forward(
     #         ctx=None, input=torch.from_numpy(x), filter=torch.from_numpy(y),
     #         bias=torch.from_numpy(b), index_back=1)
