@@ -16,6 +16,7 @@ code_path=/home/cc/code/time-series-ml/cnns/installations/
 bash ${code_path}cuda_installation.sh
 bash ${code_path}anaconda_installation.sh
 
+export PATH=~/anaconda3/bin:$PATH
 source ~/.bashrc
 
 sudo pip install typing
