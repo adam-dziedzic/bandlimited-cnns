@@ -525,7 +525,6 @@ def main(dataset_name):
 
     num_workers = 1
     pin_memory = True
-    torch.set_default_dtype(torch.float)
     if use_cuda:
         kwargs = {'num_workers': num_workers, 'pin_memory': pin_memory}
         torch.set_default_tensor_type(torch.cuda.FloatTensor)
