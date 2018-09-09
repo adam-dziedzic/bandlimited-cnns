@@ -336,7 +336,7 @@ class ToTensor(object):
         :param input: numpy array.
         :return: PyTorch's tensor.
         """
-        return torch.tensor(input, dtype=torch.float)
+        return torch.tensor(input)
 
 
 class AddChannel(object):
