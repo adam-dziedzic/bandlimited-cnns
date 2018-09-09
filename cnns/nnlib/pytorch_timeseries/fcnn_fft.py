@@ -337,7 +337,8 @@ class ToTensor(object):
         :return: PyTorch's tensor.
         """
         # Transform data on the cpu.
-        return torch.tensor(input, device = torch.device("cpu"))
+        return torch.tensor(input, device=torch.device("cpu"),
+                            dtype=torch.float)
 
 
 class AddChannel(object):
