@@ -9,6 +9,7 @@ Created on Sun Oct 30 20:11:19 2016
 from __future__ import print_function
 
 import os
+import time
 
 import keras
 import numpy as np
@@ -17,7 +18,6 @@ import tensorflow as tf
 from keras.callbacks import ReduceLROnPlateau
 from keras.models import Model
 from keras.utils import np_utils
-
 
 config = tf.ConfigProto(device_count={'GPU': 4, 'CPU': 16})
 sess = tf.Session(config=config)
@@ -28,6 +28,7 @@ print("current working directory: ", dir_path)
 
 data_folder = "TimeSeriesDatasets"
 ucr_path = os.path.join(dir_path, os.pardir, data_folder)
+
 
 def readucr(filename, data_type):
     folder = "TimeSeriesDatasets"
@@ -42,7 +43,7 @@ def readucr(filename, data_type):
     return X, Y
 
 
-nb_epochs = 2000
+nb_epochs = 2
 # 'Adiac',
 # flist = ['Adiac', 'Beef', 'CBF', 'ChlorineConcentration', 'CinC_ECG_torso',
 #          'Coffee', 'Cricket_X', 'Cricket_Y', 'Cricket_Z',
@@ -59,6 +60,17 @@ nb_epochs = 2000
 # flist = ['50words']
 flist = os.listdir(ucr_path)
 flist = sorted(flist)
+
+
+def get_log_time():
+    return time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
+
+
+log_file = os.path.join(get_log_time() + "-ucr-fcnn-keras.log")
+
+with open(log_file, "a") as file:
+    file.write("The testing result which has the lowest training loss.\n")
+    file.write("Dataset,lowest loss,corresponding test accuarcy\n")
 
 for each in flist:
     print("Dataset: ", each)
@@ -78,9 +90,9 @@ for each in flist:
 
     x_train_mean = x_train.mean()
     x_train_std = x_train.std()
-    x_train = (x_train - x_train_mean) // (x_train_std)
+    x_train = (x_train - x_train_mean) / x_train_std
 
-    x_test = (x_test - x_train_mean) // (x_train_std)
+    x_test = (x_test - x_train_mean) / x_train_std
     x_train = x_train.reshape(x_train.shape + (1,))
     x_test = x_test.reshape(x_test.shape + (1,))
 
@@ -116,7 +128,9 @@ for each in flist:
                      nb_epoch=nb_epochs,
                      verbose=1, validation_data=(x_test, Y_test),
                      callbacks=[reduce_lr])
-    # Print the testing results which has the lowest training loss.
+    # Print the testing result which has the lowest training loss.
     log = pd.DataFrame(hist.history)
-    print(log.loc[log['loss'].idxmin]['loss'],
-          log.loc[log['loss'].idxmin]['val_acc'])
+    with open(log_file, "a") as file:
+        file.write(
+            fname + "," + str(log.loc[log['loss'].idxmin]['loss']) + "," + str(
+                log.loc[log['loss'].idxmin]['val_acc']) + "\n")
