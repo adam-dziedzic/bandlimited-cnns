@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from scipy import signal
 
-from nnlib.layers import *
+from cnns.nnlib.layers import *
 
 
 def reshape(x):

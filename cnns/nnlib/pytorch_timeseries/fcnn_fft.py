@@ -40,20 +40,21 @@ ucr_path = os.path.join(dir_path, os.pardir, data_folder)
 
 num_epochs = 2000
 
-flist = ['Adiac', 'Beef', 'CBF', 'ChlorineConcentration', 'CinC_ECG_torso',
-         'Coffee', 'Cricket_X', 'Cricket_Y', 'Cricket_Z',
-         'DiatomSizeReduction', 'ECGFiveDays', 'FaceAll', 'FaceFour',
-         'FacesUCR', '50words', 'FISH', 'Gun_Point', 'Haptics',
-         'InlineSkate', 'ItalyPowerDemand', 'Lighting2', 'Lighting7', 'MALLAT',
-         'MedicalImages', 'MoteStrain', 'NonInvasiveFatalECG_Thorax1',
-         'NonInvasiveFatalECG_Thorax2', 'OliveOil', 'OSULeaf',
-         'SonyAIBORobotSurface', 'SonyAIBORobotSurfaceII', 'StarLightCurves',
-         'SwedishLeaf', 'Symbols',
-         'synthetic_control', 'Trace', 'TwoLeadECG', 'Two_Patterns',
-         'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
-         'uWaveGestureLibrary_Z', 'wafer', 'WordsSynonyms', 'yoga']
+# flist = ['Adiac', 'Beef', 'CBF', 'ChlorineConcentration', 'CinC_ECG_torso',
+#          'Coffee', 'Cricket_X', 'Cricket_Y', 'Cricket_Z',
+#          'DiatomSizeReduction', 'ECGFiveDays', 'FaceAll', 'FaceFour',
+#          'FacesUCR', '50words', 'FISH', 'Gun_Point', 'Haptics',
+#          'InlineSkate', 'ItalyPowerDemand', 'Lighting2', 'Lighting7', 'MALLAT',
+#          'MedicalImages', 'MoteStrain', 'NonInvasiveFatalECG_Thorax1',
+#          'NonInvasiveFatalECG_Thorax2', 'OliveOil', 'OSULeaf',
+#          'SonyAIBORobotSurface', 'SonyAIBORobotSurfaceII', 'StarLightCurves',
+#          'SwedishLeaf', 'Symbols',
+#          'synthetic_control', 'Trace', 'TwoLeadECG', 'Two_Patterns',
+#          'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
+#          'uWaveGestureLibrary_Z', 'wafer', 'WordsSynonyms', 'yoga']
 # flist = ['Adiac', 'synthetic_control', "Coffee"]
 # flist = ["Coffee"]
+flist = os.listdir(ucr_path)
 
 # switch backend to be able to save the graphic files on the servers
 plt.switch_backend('agg')
@@ -95,7 +96,7 @@ parser.add_argument("-n", "--net", default="fcnn",
                     help="the type of net: alexnet, densenet, resnet, fcnn.")
 parser.add_argument("-l", "--limit_size", default=256, type=int,
                     help="limit_size for the input for debug")
-parser.add_argument("-i", "--index_back", default=0, type=int,
+parser.add_argument("-i", "--index_back", default=1, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
@@ -375,11 +376,36 @@ class UCRDataset(Dataset):
         csv_path = os.path.join(ucr_path, dataset_name, dataset_name + suffix)
         self.data = pd.read_csv(csv_path, header=None)
         self.labels = np.asarray(self.data.iloc[:, 0])
-        # Start class numbering from 0.
-        self.labels -= self.labels.min()
-        self.width = len(self.data.iloc[0]) - 1
         self.num_classes = len(np.unique(self.labels))
+        self.labels = self.__transform_labels(labels=self.labels,
+                                              num_classes=self.num_classes)
+        self.width = len(self.data.iloc[0]) - 1
         self.transformations = transformations
+
+    @staticmethod
+    def __transform_labels(labels, num_classes):
+        """
+        Start class numbering from 0, and provide them in range from 0 to
+        self.num_classes - 1.
+
+        Example:
+        y_train = np.array([-1, 2, 3, 3, -1, 2])
+        nb_classes = 3
+        ((y_train - y_train.min()) / (y_train.max() - y_train.min()) * (nb_classes - 1)).astype(int)
+        Out[45]: array([0, 1, 2, 2, 0, 1])
+
+        >>> labels = __transofrm_labels(labels = np.array([-1, 2, 3, 3, -1, 2]),
+        ... num_classes=3)
+        >>> np.testing.assert_arrays_equal(x=labels,
+        ... y=np.array([0, 1, 2, 2, 0, 1]))
+
+        :param labels: labels.
+        :param num_classes: number of classes.
+
+        :return: transformed labels.
+        """
+        return ((labels - labels.min()) / (labels.max() - labels.min()) * (
+                    num_classes - 1)).astype(int)
 
     @property
     def width(self):
@@ -594,10 +620,11 @@ if __name__ == '__main__':
         # Write the metadata.
         file.write("UCR datasets,final results,hostname," + str(
             hostname) + ",timestamp," + get_log_time() + ",num_epochs," + str(
-            num_epochs) + "\n")
+            num_epochs) + ",index_back," + str(args.index_back) + "\n")
         # Write the header.
         file.write(
             "dataset,train_loss,train_accuracy,test_loss,test_accuracy\n")
 
+    print("flist: ", flist)
     for ucr_dataset in flist:
         main(dataset_name=ucr_dataset)

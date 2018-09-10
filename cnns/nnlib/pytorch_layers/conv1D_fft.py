@@ -145,7 +145,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         init_half_fft_size = xfft.shape[-2]
 
         half_fft_compressed_size = None
-        if index_back is not None:
+        if index_back is not None and index_back > 0:
             half_fft_compressed_size = init_half_fft_size - index_back
         if out_size is not None:
             # We take onesided fft so the output after inverse fft should be out

@@ -64,10 +64,10 @@ for each in flist:
     nb_classes = len(np.unique(y_test))
     batch_size = min(x_train.shape[0] // 10, 16)
 
-    y_train = (y_train - y_train.min()) // (y_train.max() - y_train.min()) * (
-            nb_classes - 1)
-    y_test = (y_test - y_test.min()) // (y_test.max() - y_test.min()) * (
-            nb_classes - 1)
+    y_train = ((y_train - y_train.min()) / (y_train.max() - y_train.min()) * (
+            nb_classes - 1)).astype(int)
+    y_test = ((y_test - y_test.min()) / (y_test.max() - y_test.min()) * (
+            nb_classes - 1)).astype(int)
 
     Y_train = np_utils.to_categorical(y_train, nb_classes)
     Y_test = np_utils.to_categorical(y_test, nb_classes)
