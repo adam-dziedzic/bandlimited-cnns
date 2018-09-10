@@ -3,7 +3,7 @@
 """
 Created on Sun Oct 30 20:11:19 2016
 
-@author: stephen
+@author: stephen (modified by Adam Dziedzic ady@uchicago.edu)
 """
 
 from __future__ import print_function
@@ -43,7 +43,7 @@ def readucr(filename, data_type):
     return X, Y
 
 
-nb_epochs = 2
+nb_epochs = 2000
 # 'Adiac',
 # flist = ['Adiac', 'Beef', 'CBF', 'ChlorineConcentration', 'CinC_ECG_torso',
 #          'Coffee', 'Cricket_X', 'Cricket_Y', 'Cricket_Z',
