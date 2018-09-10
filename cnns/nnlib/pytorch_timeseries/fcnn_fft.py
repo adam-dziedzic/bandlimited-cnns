@@ -625,6 +625,7 @@ if __name__ == '__main__':
         file.write(
             "dataset,train_loss,train_accuracy,test_loss,test_accuracy\n")
 
+    flist=sorted(flist)
     print("flist: ", flist)
     for ucr_dataset in flist:
         main(dataset_name=ucr_dataset)
