@@ -58,6 +58,7 @@ nb_epochs = 2000
 #          'uWaveGestureLibrary_Z', 'wafer', 'WordsSynonyms', 'yoga']
 # flist = ['50words']
 flist = os.listdir(ucr_path)
+flist = sorted(flist)
 
 for each in flist:
     print("Dataset: ", each)
