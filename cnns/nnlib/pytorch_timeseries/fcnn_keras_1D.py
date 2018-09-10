@@ -43,7 +43,7 @@ def readucr(filename, data_type):
     return X, Y
 
 
-nb_epochs = 2000
+nb_epochs = 100
 # 'Adiac',
 # flist = ['Adiac', 'Beef', 'CBF', 'ChlorineConcentration', 'CinC_ECG_torso',
 #          'Coffee', 'Cricket_X', 'Cricket_Y', 'Cricket_Z',
@@ -58,7 +58,8 @@ nb_epochs = 2000
 #          'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
 #          'uWaveGestureLibrary_Z', 'wafer', 'WordsSynonyms', 'yoga']
 # flist = ['50words']
-flist = os.listdir(ucr_path)
+flist = ["ztest"]
+# flist = os.listdir(ucr_path)
 flist = sorted(flist)
 
 
@@ -70,7 +71,7 @@ log_file = os.path.join(get_log_time() + "-ucr-fcnn-keras.log")
 
 with open(log_file, "a") as file:
     file.write("The testing result which has the lowest training loss.\n")
-    file.write("Dataset,lowest loss,corresponding test accuarcy\n")
+    file.write("Dataset,lowest loss,corresponding test accuracy\n")
 
 for each in flist:
     print("Dataset: ", each)
@@ -127,7 +128,7 @@ for each in flist:
                                   patience=50, min_lr=0.0001)
     hist = model.fit(x_train, Y_train, batch_size=batch_size,
                      nb_epoch=nb_epochs,
-                     verbose=1, validation_data=(x_test, Y_test),
+                     verbose=2, validation_data=(x_test, Y_test),
                      callbacks=[reduce_lr])
     # Print the testing result which has the lowest training loss.
     log = pd.DataFrame(hist.history)

@@ -54,7 +54,8 @@ num_epochs = 2000
 #          'uWaveGestureLibrary_Z', 'wafer', 'WordsSynonyms', 'yoga']
 # flist = ['Adiac', 'synthetic_control', "Coffee"]
 # flist = ["Coffee"]
-flist = os.listdir(ucr_path)
+flist = ["ztest"]
+# flist = os.listdir(ucr_path)
 
 # switch backend to be able to save the graphic files on the servers
 plt.switch_backend('agg')
@@ -232,8 +233,7 @@ class FCNNPytorch(nn.Module):
         index = 2
         self.conv2 = conv.get_conv(index=index)
         self.bn2 = nn.BatchNorm1d(num_features=out_channels[index])
-
-        self.lin = nn.Linear(input_size, num_classes)
+        self.lin = nn.Linear(out_channels[index], num_classes)
 
     def forward(self, x):
         """
