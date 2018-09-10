@@ -54,8 +54,10 @@ num_epochs = 2000
 #          'uWaveGestureLibrary_Z', 'wafer', 'WordsSynonyms', 'yoga']
 # flist = ['Adiac', 'synthetic_control', "Coffee"]
 # flist = ["Coffee"]
-flist = ["ztest"]
-# flist = os.listdir(ucr_path)
+# flist = ["ztest"]
+flist = os.listdir(ucr_path)
+# Sort the list based, not case sensitive.
+flist = sorted(flist, key=lambda s: s.lower())
 
 # switch backend to be able to save the graphic files on the servers
 plt.switch_backend('agg')
@@ -629,7 +631,6 @@ if __name__ == '__main__':
         file.write(
             "dataset,train_loss,train_accuracy,test_loss,test_accuracy\n")
 
-    flist=sorted(flist)
     print("flist: ", flist)
     for ucr_dataset in flist:
         main(dataset_name=ucr_dataset)
