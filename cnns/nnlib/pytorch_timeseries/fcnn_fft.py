@@ -106,7 +106,7 @@ parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
                     help="should the data augmentation be applied")
 parser.add_argument("-g", "--is_debug", default=False, type=bool,
                     help="is it the debug mode execution")
-parser.add_argument("-c", "--conv_type", default="FFT1D",
+parser.add_argument("-c", "--conv_type", default="STANDARD",
                     help="the type of convoltution, SPECTRAL_PARAM is with the "
                          "convolutional weights initialized in the spectral "
                          "domain, please choose from: " + ",".join(
@@ -169,7 +169,7 @@ class Conv(object):
         self.conv_type = ConvType[args.conv_type]
         self.index_back = args.index_back
 
-    def getConv(self, index):
+    def get_conv(self, index):
         if index == 0:
             in_channels = 1
         else:
@@ -194,21 +194,21 @@ class Conv(object):
 
 class FCNNPytorch(nn.Module):
 
-    def __init__(self, input_size, num_clasess, kernel_sizes=[8, 5, 3],
+    def __init__(self, input_size, num_classes, kernel_sizes=[8, 5, 3],
                  out_channels=[128, 256, 128],
                  strides=[1, 1, 1]):
         """
         Create the FCNN model in PyTorch.
 
         :param input_size: the length (width) of the time series.
-        :param num_clasess: number of output classes.
-        :param kernel_sizes: the sizes of the kernesl in each conv layer.
+        :param num_classes: number of output classes.
+        :param kernel_sizes: the sizes of the kernels in each conv layer.
         :param out_channels: the number of filters for each conv layer.
         :param strides: the strides for the convolutions.
         """
         super(FCNNPytorch, self).__init__()
         self.input_size = input_size
-        self.num_classes = num_clasess
+        self.num_classes = num_classes
         self.kernel_sizes = kernel_sizes
         self.out_channels = out_channels
         self.strides = strides
@@ -222,18 +222,18 @@ class FCNNPytorch(nn.Module):
                     strides=strides, conv_pads=conv_pads)
 
         index = 0
-        self.conv0 = conv.getConv(index=index)
+        self.conv0 = conv.get_conv(index=index)
         self.bn0 = nn.BatchNorm1d(num_features=out_channels[index])
 
         index = 1
-        self.conv1 = conv.getConv(index=index)
+        self.conv1 = conv.get_conv(index=index)
         self.bn1 = nn.BatchNorm1d(num_features=out_channels[index])
 
         index = 2
-        self.conv2 = conv.getConv(index=index)
+        self.conv2 = conv.get_conv(index=index)
         self.bn2 = nn.BatchNorm1d(num_features=out_channels[index])
 
-        self.lin = nn.Linear(input_size, num_clasess)
+        self.lin = nn.Linear(input_size, num_classes)
 
     def forward(self, x):
         """
@@ -272,9 +272,13 @@ class FCNNPytorch(nn.Module):
         # Classification.
         # Average across the channels.
         # https://discuss.pytorch.org/t/global-average-pooling-in-pytorch/6721/4
-        out = torch.mean(out, dim=1)
+        # In Keras it is implemented as: K.mean(inputs, axis=1). The channel is
+        # the last dimension in Keras.
+        out = torch.mean(out, dim=2)
         out = self.lin(out)
 
+        # To imitate the cross entropy loss with the nll (negative log
+        # likelihood) loss.
         out = log_softmax(out, dim=-1)
 
         return out
@@ -289,7 +293,7 @@ def getModelPyTorch(input_size, num_classes):
 
     :return: the model.
     """
-    return FCNNPytorch(input_size=input_size, num_clasess=num_classes)
+    return FCNNPytorch(input_size=input_size, num_classes=num_classes)
 
 
 def readucr(filename, data_type):

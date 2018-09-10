@@ -93,6 +93,7 @@ for each in flist:
     x_train = (x_train - x_train_mean) / x_train_std
 
     x_test = (x_test - x_train_mean) / x_train_std
+    # Add a single channels at the end of the data.
     x_train = x_train.reshape(x_train.shape + (1,))
     x_test = x_test.reshape(x_test.shape + (1,))
 

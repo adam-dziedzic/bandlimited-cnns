@@ -5,7 +5,7 @@ all differentiable Tensor operations in pytorch).
 """
 import logging
 import sys
-
+import math
 import numpy as np
 import torch
 from torch import tensor
@@ -431,7 +431,9 @@ class Conv1dfftAutograd(Module):
         if groups > 1:
             raise NotImplementedError("groups > 1 is not supported.")
 
+        self.is_filter_value = None  # Was the filter value provided?
         if filter_value is None:
+            self.is_filter_value = False
             if out_channels is None or in_channels is None or \
                     kernel_size is None:
                 raise ValueError("Either specify filter_value or provide all"
@@ -441,22 +443,43 @@ class Conv1dfftAutograd(Module):
             self.filter = Parameter(
                 torch.randn(out_channels, in_channels, kernel_size))
         else:
+            self.is_filter_value = True
             self.filter = filter_value
+
+        self.is_bias_value = None  # Was the bias value provided.
         if bias_value is None:
+            self.is_bias_value = False
             if bias is True:
                 self.bias = Parameter(torch.randn(out_channels))
             else:
+                self.register_parameter('bias', None)
                 self.bias = None
         else:
+            self.is_bias_value = True
             self.bias = bias_value
+
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        self.stride = stride
         self.padding = padding
         self.index_back = index_back
         self.out_size = out_size
-        self.filter_width = kernel_size
         self.use_next_power2 = use_next_power2
         self.stride = stride
         self.signal_ndim = 1
         self.is_manual = is_manual
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        if self.is_filter_value is False:
+            n = self.in_channels
+            # We have only a single kernel size for 1D convolution.
+            n *= self.kernel_size
+            stdv = 1. / math.sqrt(n)
+            self.filter.data.uniform_(-stdv, stdv)
+        if self.bias is not None and self.is_bias_value is False:
+            self.bias.data.uniform_(-stdv, stdv)
 
     def forward(self, input):
         """
