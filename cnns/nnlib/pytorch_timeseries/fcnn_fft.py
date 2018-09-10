@@ -35,8 +35,8 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 print("current working directory: ", dir_path)
 
 data_folder = "TimeSeriesDatasets"
-results_folder = "results"
 ucr_path = os.path.join(dir_path, os.pardir, data_folder)
+results_folder = "results"
 
 num_epochs = 2000
 
