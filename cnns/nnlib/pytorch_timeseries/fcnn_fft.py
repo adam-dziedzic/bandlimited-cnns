@@ -41,7 +41,7 @@ data_folder = "TimeSeriesDatasets"
 ucr_path = os.path.join(dir_path, os.pardir, data_folder)
 results_folder = "results"
 
-num_epochs = 2000
+num_epochs = 300
 
 # flist = ['Adiac', 'Beef', 'CBF', 'ChlorineConcentration', 'CinC_ECG_torso',
 #          'Coffee', 'Cricket_X', 'Cricket_Y', 'Cricket_Z',
