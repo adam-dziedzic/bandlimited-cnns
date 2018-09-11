@@ -576,7 +576,7 @@ def main(dataset_name):
         # Write the metadata.
         file.write("dataset," + str(dataset_name) + ",hostname," + str(
             hostname) + ",timestamp," + get_log_time() + ",num_epochs," + str(
-            args.epochs) + ",index_back," + str(
+            args.epochs) + ",index_back(%)," + str(
             args.index_back) + ",conv_type," + str(args.conv_type) + "\n")
         # Write the header.
         file.write("epoch,train_loss,train_accuracy,test_loss,test_accuracy\n")
@@ -658,7 +658,7 @@ if __name__ == '__main__':
         # Write the metadata.
         file.write("UCR datasets,final results,hostname," + str(
             hostname) + ",timestamp," + get_log_time() + ",num_epochs," + str(
-            num_epochs) + ",index_back," + str(
+            num_epochs) + ",index_back(%)," + str(
             args.index_back) + ",conv_type," + str(args.conv_type) + "\n")
         # Write the header.
         file.write(
