@@ -651,8 +651,9 @@ class Conv1dfftSimple(Conv1dfftAutograd):
 
         if self.index_back is not None and self.index_back > 0:
             # 4 dims: batch, channel, time-series, complex values.
-            input = input[..., :-self.index_back, :]
-            filter = filter[..., :-self.index_back, :]
+            index_back = int(input_size * (self.index_back/100) + 1)
+            input = input[..., :-index_back, :]
+            filter = filter[..., :-index_back, :]
 
         input = input.unsqueeze(1)
         out = fast_jmul(input, conj(filter))
@@ -684,6 +685,14 @@ class Conv1dfftSimpleForLoop(Conv1dfftAutograd):
                  kernel_size=None,
                  stride=None, padding=None, bias=True, index_back=None,
                  out_size=None, filter_value=None, bias_value=None):
+        """
+
+        :param index_back: this is changed. This is the percentage from 0 to 100
+        of the size of the input signal. This percentage of the input signal is
+        the size - number of frequencies that will be discarded in the frequency
+        domain. Calculations:
+        index_back = int(input_size * (self.index_back / 100) + 1) // 2
+        """
         super(Conv1dfftSimpleForLoop, self).__init__(
             in_channels=in_channels, out_channels=out_channels,
             kernel_size=kernel_size, stride=stride, padding=padding,
@@ -729,8 +738,9 @@ class Conv1dfftSimpleForLoop(Conv1dfftAutograd):
         filter = torch.rfft(filter, 1)
 
         if self.index_back is not None and self.index_back > 0:
-            input = input[..., :-self.index_back, :]
-            filter = filter[..., :-self.index_back, :]
+            index_back = int(input_size * (self.index_back / 100) + 1) // 2
+            input = input[..., :-index_back, :]
+            filter = filter[..., :-index_back, :]
 
         output = torch.zeros([batch_num, filter_num, out_size],
                              dtype=input.dtype, device=input.device)
