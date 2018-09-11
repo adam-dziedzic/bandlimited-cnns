@@ -41,7 +41,7 @@ data_folder = "TimeSeriesDatasets"
 ucr_path = os.path.join(dir_path, os.pardir, data_folder)
 results_folder = "results"
 
-num_epochs = 10  # 300
+num_epochs = 1  # 300
 
 # flist = ['Adiac', 'Beef', 'CBF', 'ChlorineConcentration', 'CinC_ECG_torso',
 #          'Coffee', 'Cricket_X', 'Cricket_Y', 'Cricket_Z',
@@ -659,9 +659,13 @@ if __name__ == '__main__':
         flist = os.listdir(ucr_path)
     elif args.datasets == "debug":
         # flist = ["50words"]
-        flist = ["Coffee"]
+        # flist = ["Coffee"]
+        flist = ["HandOutlines"]
     else:
         raise AttributeError("Unknown datasets: ", args.datasets)
+
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
     flist = sorted(flist, key=lambda s: s.lower())
     print("flist: ", flist)
