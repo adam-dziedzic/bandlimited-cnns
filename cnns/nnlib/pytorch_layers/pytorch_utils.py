@@ -266,22 +266,114 @@ def complex_mul(x, y):
     >>> np.testing.assert_array_equal(xy,
     ... tensor([[[-4., 7.], [1., 7.]], [[108.,   0.], [ -8.,  16.]]]))
     """
-    mul = torch.mul
-    add = torch.add
+    # mul = torch.mul
+    # add = torch.add
     cat = torch.cat
 
-    ua = x.narrow(dim=-1, start=0, length=1)
-    ud = x.narrow(-1, 1, 1)
-    va = y.narrow(-1, 0, 1)
-    vb = y.narrow(-1, 1, 1)
-    ub = add(ua, ud)
-    uc = add(ud, mul(ua, -1))
-    vc = add(va, vb)
-    uavc = mul(ua, vc)
+    # ua = x.narrow(dim=-1, start=0, length=1)
+    ua = x[..., :1]
+    # ud = x.narrow(-1, 1, 1)
+    ud = x[..., 1:]
+    # va = y.narrow(-1, 0, 1)
+    va = y[..., :1]
+    # vb = y.narrow(-1, 1, 1)
+    vb = y[..., 1:]
+    ub = ua + ud
+    uc = ud - ua
+    vc = va + vb
+    uavc = ua * vc
     # relational part of the complex number
-    result_rel = add(uavc, mul(mul(ub, vb), -1))
+    # result_rel = add(uavc, mul(mul(ub, vb), -1))
+    result_rel = uavc - ub * vb
     # imaginary part of the complex number
-    result_im = add(mul(uc, va), uavc)
+    result_im = uc * va + uavc
+    # use the last dimension: dim=-1
+    result = cat(tensors=(result_rel, result_im), dim=-1)
+    return result
+
+
+def complex_mul2(x, y):
+    """
+    Simply multiplication of complex numbers (it also handles
+    multidimensional arrays of complex numbers). Each complex
+    number is expressed as a pair of real and imaginary parts.
+
+    :param x: the first array of complex numbers
+    :param y: the second array complex numbers
+    :return: result of multiplication (an array with complex numbers)
+    # based on the paper: Fast Algorithms for Convolutional Neural
+    Networks (https://arxiv.org/pdf/1509.09308.pdf)
+
+    >>> # complex multiply for 2D (complex) tensors
+    >>> x = tensor([[[[1., 2.], [5., 5.]], [[2., 1.], [3., 3.]]]])
+    >>> y = tensor([[[[2., 3.], [-1., 2.]], [[0.0, 2.0], [2., 1.]]]])
+    >>> xy = complex_mul2(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[[[-4., 7.], [-15., 5.0]],
+    ... [[-2., 4.0], [3.0, 9.]]]]))
+
+    >>> x = tensor([[ 6.,  0.], [0., -2.], [1., 0.], [ 1.,  1.],
+    ... [1., 2.]])
+    >>> y = tensor([[2.,  0.], [0., -6.], [0., 1.], [ 1.,  1.],
+    ... [2., 3.]])
+    >>> np.testing.assert_array_equal(complex_mul(x, y),
+    ... tensor([[12.,   0.], [-12., 0.], [0., 1.], [ 0.,   2.],
+    ... [-4., 7.]]))
+    >>> # x = torch.rfft(torch.tensor([1., 2., 3., 0.]), 1)
+    >>> x = tensor([[ 6.,  0.], [-2., -2.], [ 2.,  0.]])
+    >>> # y = torch.rfft(torch.tensor([5., 6., 7., 0.]), 1)
+    >>> y = tensor([[18.,  0.], [-2., -6.], [ 6.,  0.]])
+    >>> # torch.equal(tensor1, tensor2): True if two tensors
+    >>> # have the same size and elements, False otherwise.
+    >>> np.testing.assert_array_equal(complex_mul2(x, y),
+    ... tensor([[108.,   0.], [ -8.,  16.], [ 12.,   0.]]))
+
+    >>> x = tensor([[1., 2.]])
+    >>> y = tensor([[2., 3.]])
+    >>> xy = complex_mul2(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[-4., 7.]]))
+
+    >>> x = tensor([[5., 5.]])
+    >>> y = tensor([[-1., 2.]])
+    >>> xy = complex_mul2(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[-15., 5.]]))
+
+    >>> x = tensor([[5., 5.]])
+    >>> y = tensor([[-1., 2.]])
+    >>> xy = complex_mul2(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[-15., 5.]]))
+
+    >>> x = tensor([[[1., 2.]]])
+    >>> y = tensor([[[2., 3.]]])
+    >>> xy = complex_mul2(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[[-4., 7.]]]))
+    >>> x = tensor([[[1., 2.], [3., 1.]]])
+    >>> y = tensor([[[2., 3.], [1., 2.]]])
+    >>> xy = complex_mul2(x, y)
+    >>> np.testing.assert_array_equal(xy,
+    ... tensor([[[-4., 7.], [1., 7.]]]))
+    >>> x = tensor([[[1., 2.], [3., 1.]], [[ 6.,  0.], [-2., -2.]]])
+    >>> y = tensor([[[2., 3.], [1., 2.]], [[18.,  0.], [-2., -6.]]])
+    >>> xy = complex_mul2(x, y)
+    >>> np.testing.assert_array_equal(xy,
+    ... tensor([[[-4., 7.], [1., 7.]], [[108.,   0.], [ -8.,  16.]]]))
+    """
+    # mul = torch.mul
+    # add = torch.add
+    cat = torch.cat
+
+    # x = a + bi
+    # y = c + di
+    # x * y = (ac - bd) + i(ad + bc)
+    a = x[..., :1]
+    b = x[..., 1:]
+    c = y[..., :1]
+    d = y[..., 1:]
+
+    # relational part of the complex number
+    # result_rel = add(uavc, mul(mul(ub, vb), -1))
+    result_rel = a*c - b*d
+    # imaginary part of the complex number
+    result_im = a*d + b*c
     # use the last dimension: dim=-1
     result = cat(tensors=(result_rel, result_im), dim=-1)
     return result
@@ -737,6 +829,7 @@ def correlate_fft_signals(xfft, yfft, fft_size: int,
     xfft = complex_pad_simple(xfft=xfft, fft_size=fft_size)
     yfft = complex_pad_simple(xfft=yfft, fft_size=fft_size)
 
+    # freq_mul = complex_mul(xfft, pytorch_conjugate(yfft))
     freq_mul = complex_mul(xfft, pytorch_conjugate(yfft))
     out = torch.irfft(
         input=freq_mul, signal_ndim=signal_ndim, signal_sizes=(fft_size,))
@@ -1057,6 +1150,92 @@ def complex_pad2D(fft_input, half_fft_height, half_fft_width):
         pad_right = half_fft_width - current_width
         return F.pad(fft_input, (0, 0, 0, pad_right, 0, pad_bottom))
     return fft_input
+
+
+def fast_jmul(input, filter):
+    """
+    Fast complex multiplication.
+
+    :param input: fft-ed complex input.
+    :param filter: fft-ed complex.
+
+    input_re: real part of the input (a).
+    input_im: imaginary part of the input (b).
+    filter_re: real part of the filter (c).
+    filter_im: imaginary part of the filter (d).
+
+    :return: the result of the complex multiplication.
+
+    >>> x = tensor([[5., 5.]])
+    >>> y = tensor([[-1., 2.]])
+    >>> xy = fast_jmul(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[-15., 5.]]))
+
+    >>> # complex multiply for 2D (complex) tensors
+    >>> x = tensor([[[[1., 2.], [5., 5.]], [[2., 1.], [3., 3.]]]])
+    >>> y = tensor([[[[2., 3.], [-1., 2.]], [[0.0, 2.0], [2., 1.]]]])
+    >>> xy = fast_jmul(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[[[-4., 7.], [-15., 5.0]],
+    ... [[-2., 4.0], [3.0, 9.]]]]))
+
+    >>> x = tensor([[ 6.,  0.], [0., -2.], [1., 0.], [ 1.,  1.],
+    ... [1., 2.]])
+    >>> y = tensor([[2.,  0.], [0., -6.], [0., 1.], [ 1.,  1.],
+    ... [2., 3.]])
+    >>> np.testing.assert_array_equal(fast_jmul(x, y),
+    ... tensor([[12.,   0.], [-12., 0.], [0., 1.], [ 0.,   2.],
+    ... [-4., 7.]]))
+    >>> # x = torch.rfft(torch.tensor([1., 2., 3., 0.]), 1)
+    >>> x = tensor([[ 6.,  0.], [-2., -2.], [ 2.,  0.]])
+    >>> # y = torch.rfft(torch.tensor([5., 6., 7., 0.]), 1)
+    >>> y = tensor([[18.,  0.], [-2., -6.], [ 6.,  0.]])
+    >>> # torch.equal(tensor1, tensor2): True if two tensors
+    >>> # have the same size and elements, False otherwise.
+    >>> np.testing.assert_array_equal(fast_jmul(x, y),
+    ... tensor([[108.,   0.], [ -8.,  16.], [ 12.,   0.]]))
+
+    >>> x = tensor([[1., 2.]])
+    >>> y = tensor([[2., 3.]])
+    >>> xy = fast_jmul(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[-4., 7.]]))
+
+    >>> x = tensor([[5., 5.]])
+    >>> y = tensor([[-1., 2.]])
+    >>> xy = fast_jmul(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[-15., 5.]]))
+
+    >>> x = tensor([[[1., 2.]]])
+    >>> y = tensor([[[2., 3.]]])
+    >>> xy = fast_jmul(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[[-4., 7.]]]))
+
+    >>> x = tensor([[[1., 2.], [3., 1.]]])
+    >>> y = tensor([[[2., 3.], [1., 2.]]])
+    >>> xy = fast_jmul(x, y)
+    >>> np.testing.assert_array_equal(xy,
+    ... tensor([[[-4., 7.], [1., 7.]]]))
+
+    >>> x = tensor([[[1., 2.], [3., 1.]], [[ 6.,  0.], [-2., -2.]]])
+    >>> y = tensor([[[2., 3.], [1., 2.]], [[18.,  0.], [-2., -6.]]])
+    >>> xy = fast_jmul(x, y)
+    >>> np.testing.assert_array_equal(xy,
+    ... tensor([[[-4., 7.], [1., 7.]], [[108.,   0.], [ -8.,  16.]]]))
+    """
+    a = input[..., :1]
+    b = input[..., 1:]
+    c = filter[..., :1]
+    d = filter[..., 1:]
+
+    ac = torch.mul(a, c)
+    bd = torch.mul(b, d)
+
+    a_bc_d = torch.mul(torch.add(a, b), torch.add(c, d))
+    out_re = ac - bd
+    out_im = a_bc_d - ac - bd
+
+    out = torch.cat((out_re, out_im), -1)
+
+    return out
 
 
 if __name__ == "__main__":

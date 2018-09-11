@@ -14,10 +14,13 @@ from torch.nn.functional import pad as torch_pad
 from torch.nn.parameter import Parameter
 
 from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_fft_signals
+from cnns.nnlib.pytorch_layers.pytorch_utils import fast_jmul
 from cnns.nnlib.pytorch_layers.pytorch_utils import from_tensor
 from cnns.nnlib.pytorch_layers.pytorch_utils import next_power2
 from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate
+from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate as conj
 from cnns.nnlib.pytorch_layers.pytorch_utils import to_tensor
+from cnns.nnlib.pytorch_layers.pytorch_utils import complex_pad_simple
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -445,6 +448,7 @@ class Conv1dfftAutograd(Module):
         else:
             self.is_filter_value = True
             self.filter = filter_value
+            kernel_size = filter_value.shape[-1]
 
         self.is_bias_value = None  # Was the bias value provided.
         if bias_value is None:
@@ -469,6 +473,7 @@ class Conv1dfftAutograd(Module):
         self.stride = stride
         self.signal_ndim = 1
         self.is_manual = is_manual
+
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -588,6 +593,92 @@ def test_run():
     print("gradient for the input: ", input.grad)
     assert module.is_manual[0] == 1
     print("The manual backprop was executed.")
+
+
+class Conv1dfftSimple(Conv1dfftAutograd):
+
+    def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
+                 stride=None, padding=None, bias=True, index_back=None,
+                 out_size=None, filter_value=None, bias_value=None):
+        super(Conv1dfftSimple, self).__init__(
+            in_channels=in_channels, out_channels=out_channels,
+            kernel_size=kernel_size, stride=stride, padding=padding, bias=bias,
+            index_back=index_back, out_size=out_size, filter_value=filter_value,
+            bias_value=bias_value)
+
+    def forward(self, input):
+        """
+        This is a simple manual implementation of the forward pass with the
+        pytroch autograd used for the backward pass.
+
+        :param input: the input map (e.g., a 1D signal such as time-series
+        data.)
+        :return: the result of 1D convolution.
+
+        >>> # test without compression
+        >>> x = np.array([[[1., 2., 3.]]])
+        >>> y = np.array([[[2., 1.]]])
+        >>> b = np.array([0.0])
+        >>> conv_param = {'pad' : 0, 'stride' :1}
+        >>> dout = np.array([[[0.1, -0.2]]])
+        >>> # first, get the expected results from the numpy
+        >>> # correlate function
+        >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:],
+        ... mode="valid")
+        >>> conv = Conv1dfftSimple(filter_value=torch.from_numpy(y),
+        ... bias_value=torch.from_numpy(b))
+        >>> result = conv.forward(input=torch.from_numpy(x))
+        >>> np.testing.assert_array_almost_equal(result,
+        ... np.array([[expected_result]]))
+        """
+        batch_num = input.shape[0]
+        filter_num = self.filter.shape[0]
+        input_size = input.shape[-1]
+        fft_size = input_size + self.kernel_size - 1
+        out_size = input_size - self.kernel_size + 1
+
+        # Pad and transform the input.
+        input = torch_pad(input, (0, self.kernel_size - 1))
+        input = torch.rfft(input, 1)
+
+        # Pad and transform the filters.
+        filter = torch_pad(self.filter, (0, input_size - 1))
+        filter = torch.rfft(filter, 1)
+
+        if self.index_back is not None and self.index_back > 0:
+            input = input[..., :-self.index_back, :]
+            filter = filter[..., :-self.index_back, :]
+
+        output = torch.zeros([batch_num, filter_num, out_size],
+                             dtype=input.dtype, device=input.device)
+
+        for batch_idx in range(batch_num):
+            # Broadcast each 1D signal with all filters.
+            signal = input[batch_idx].unsqueeze(0)
+            out = fast_jmul(signal, conj(filter))
+            if out.shape[-1] < fft_size:
+                out = complex_pad_simple(out, fft_size)
+            out = torch.irfft(out, 1, signal_sizes=(fft_size,))
+            if out.shape[-1] > out_size:
+                out = out[..., :out_size]
+
+            """
+            Sum up the elements from computed output maps for each input 
+            channel. Each output map has as many channels as the number of 
+            filters. Each filter contributes one channel for the output map. 
+            """
+            # Sum the input channels.
+            out = torch.sum(input=out, dim=1)
+            # `unsqueeze` the dimension for channels.
+            out = torch.unsqueeze(input=out, dim=0)
+            output[batch_idx] = out
+            if self.bias is not None:
+                # Add the bias term for each filter.
+                # Bias has to be unsqueezed to the dimension of the out to
+                # properly sum up the values.
+                output[batch_idx] += self.bias.unsqueeze(1)
+
+        return output
 
 
 if __name__ == "__main__":

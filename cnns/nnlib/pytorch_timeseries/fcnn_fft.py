@@ -8,6 +8,7 @@ Created on Fri Sep 07 17:20:19 2018
 import argparse
 import os
 import socket
+import time
 
 import keras
 import matplotlib.pyplot as plt
@@ -27,6 +28,8 @@ from torch.utils.data import Dataset
 from torchvision.transforms import transforms
 
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfft
+from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftAutograd
+from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftSimple
 from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.general_utils import OptimizerType
 from cnns.nnlib.utils.general_utils import get_log_time
@@ -55,9 +58,9 @@ num_epochs = 2000
 # flist = ['Adiac', 'synthetic_control', "Coffee"]
 # flist = ["Coffee"]
 # flist = ["ztest"]
-flist = os.listdir(ucr_path)
+# flist = ["Adiac"]
+# flist = os.listdir(ucr_path)
 # Sort the list based, not case sensitive.
-flist = sorted(flist, key=lambda s: s.lower())
 
 # switch backend to be able to save the graphic files on the servers
 plt.switch_backend('agg')
@@ -97,6 +100,8 @@ parser.add_argument("-w", "--workers", default=4, type=int,
                          "loaded in the main process")
 parser.add_argument("-n", "--net", default="fcnn",
                     help="the type of net: alexnet, densenet, resnet, fcnn.")
+parser.add_argument("-d", "--datasets", default="all",
+                    help="the type of datasets: all or debug.")
 parser.add_argument("-l", "--limit_size", default=256, type=int,
                     help="limit_size for the input for debug")
 parser.add_argument("-i", "--index_back", default=1, type=int,
@@ -109,8 +114,9 @@ parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
                     help="should the data augmentation be applied")
 parser.add_argument("-g", "--is_debug", default=False, type=bool,
                     help="is it the debug mode execution")
-parser.add_argument("-c", "--conv_type", default="STANDARD",
-                    help="the type of convoltution, SPECTRAL_PARAM is with the "
+parser.add_argument("-c", "--conv_type", default="SIMPLE_FFT",
+                    # "FFT1D", "STANDARD". "AUTOGRAD", "SIMPLE_FFT"
+                    help="the type of convolution, SPECTRAL_PARAM is with the "
                          "convolutional weights initialized in the spectral "
                          "domain, please choose from: " + ",".join(
                         ConvType.get_names()))
@@ -191,6 +197,20 @@ class Conv(object):
                              kernel_size=self.kernel_sizes[index],
                              padding=(self.conv_pads[index] // 2),
                              index_back=self.index_back)
+        elif self.conv_type is ConvType.AUTOGRAD:
+            return Conv1dfftAutograd(in_channels=in_channels,
+                                     out_channels=self.out_channels[index],
+                                     stride=self.strides[index],
+                                     kernel_size=self.kernel_sizes[index],
+                                     padding=(self.conv_pads[index] // 2),
+                                     index_back=self.index_back)
+        elif self.conv_type is ConvType.SIMPLE_FFT:
+            return Conv1dfftSimple(in_channels=in_channels,
+                                   out_channels=self.out_channels[index],
+                                   stride=self.strides[index],
+                                   kernel_size=self.kernel_sizes[index],
+                                   padding=(self.conv_pads[index] // 2),
+                                   index_back=self.index_back)
         else:
             raise CONV_TYPE_ERROR
 
@@ -310,25 +330,23 @@ def readucr(filename, data_type):
     return X, Y
 
 
-def getData(fname, normalize=True):
+def getData(fname):
     x_train, y_train = readucr(fname + '/' + fname + '_TRAIN')
     x_test, y_test = readucr(fname + '/' + fname + '_TEST')
     num_classes = len(np.unique(y_test))
     batch_size = min(x_train.shape[0] // 10, 16)
 
-    if normalize is True:
-        y_train = (y_train - y_train.min()) // (
-                y_train.max() - y_train.min()) * (
-                          num_classes - 1)
-        y_test = (y_test - y_test.min()) // (y_test.max() - y_test.min()) * (
-                num_classes - 1)
+    y_train = ((y_train - y_train.min()) / (y_train.max() - y_train.min()) * (
+            num_classes - 1)).astype(int)
+    y_test = ((y_test - y_test.min()) / (y_test.max() - y_test.min()) * (
+            num_classes - 1)).astype(int)
 
-        x_train_mean = x_train.mean()
-        x_train_std = x_train.std()
-        x_train = (x_train - x_train_mean) // (x_train_std)
+    x_train_mean = x_train.mean()
+    x_train_std = x_train.std()
+    x_train = (x_train - x_train_mean) / x_train_std
 
-        x_test = (x_test - x_train_mean) // (x_train_std)
-
+    x_test = (x_test - x_train_mean) / x_train_std
+    # Add a single channels at the end of the data.
     x_train = x_train.reshape(x_train.shape + (1,))
     x_test = x_test.reshape(x_test.shape + (1,))
 
@@ -410,8 +428,12 @@ class UCRDataset(Dataset):
 
         :return: transformed labels.
         """
-        return ((labels - labels.min()) / (labels.max() - labels.min()) * (
-                    num_classes - 1)).astype(int)
+        labels = ((labels - labels.min()) / (labels.max() - labels.min()) * (
+                num_classes - 1)).astype(np.int_)
+        # The nll (negative log likelihood) loss requires target labels to be of
+        # type Long:
+        # https://discuss.pytorch.org/t/expected-object-of-type-variable-torch-longtensor-but-found-type/11833/3?u=adam_dziedzic
+        return torch.tensor(labels, dtype=torch.long)
 
     @property
     def width(self):
@@ -449,7 +471,7 @@ def run_keras():
         fname = each
 
         x_train, y_train, x_test, y_test, batch_size, num_classes = getData(
-            fname=fname, normalize=True)
+            fname=fname)
 
         Y_train = np_utils.to_categorical(y_train, num_classes)
         Y_test = np_utils.to_categorical(y_test, num_classes)
@@ -619,6 +641,7 @@ def main(dataset_name):
 
 
 if __name__ == '__main__':
+    start_time = time.time()
     hostname = socket.gethostname()
     global_log_file = os.path.join(results_folder,
                                    get_log_time() + "-ucr-fcnn.log")
@@ -631,6 +654,17 @@ if __name__ == '__main__':
         file.write(
             "dataset,train_loss,train_accuracy,test_loss,test_accuracy\n")
 
+    if args.datasets == "all":
+        flist = os.listdir(ucr_path)
+    elif args.datasets == "debug":
+        # flist = ["50words"]
+        flist = ["Coffee"]
+    else:
+        raise AttributeError("Unknown datasets: ", args.datasets)
+
+    flist = sorted(flist, key=lambda s: s.lower())
     print("flist: ", flist)
     for ucr_dataset in flist:
         main(dataset_name=ucr_dataset)
+
+    print("elapsed time (sec): ", time.time() - start_time)
