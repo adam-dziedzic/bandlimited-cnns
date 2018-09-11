@@ -47,6 +47,7 @@ class ConvType(EnumWithNames):
     FFT1D = 5
     AUTOGRAD = 6
     SIMPLE_FFT = 7
+    SIMPLE_FFT_FOR_LOOP = 8
 
 
 def energy(x):
