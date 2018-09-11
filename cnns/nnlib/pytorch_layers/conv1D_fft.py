@@ -448,7 +448,9 @@ class Conv1dfftAutograd(Module):
         else:
             self.is_filter_value = True
             self.filter = filter_value
-            kernel_size = filter_value.shape[-1]
+            out_channels = filter_value.shape[0]
+            in_channels = filter_value.shape[1]
+            kernel_size = filter_value.shape[2]
 
         self.is_bias_value = None  # Was the bias value provided.
         if bias_value is None:
@@ -631,8 +633,6 @@ class Conv1dfftSimple(Conv1dfftAutograd):
         >>> np.testing.assert_array_almost_equal(result,
         ... np.array([[expected_result]]))
         """
-        batch_num = input.shape[0]
-        filter_num = self.filter.shape[0]
         input_size = input.shape[-1]
         fft_size = input_size + self.kernel_size - 1
         out_size = input_size - self.kernel_size + 1
@@ -645,39 +645,32 @@ class Conv1dfftSimple(Conv1dfftAutograd):
         filter = torch.rfft(filter, 1)
 
         if self.index_back is not None and self.index_back > 0:
+            # 4 dims: batch, channel, time-series, complex values.
             input = input[..., :-self.index_back, :]
             filter = filter[..., :-self.index_back, :]
 
-        output = torch.zeros([batch_num, filter_num, out_size],
-                             dtype=input.dtype, device=input.device)
+        input = input.unsqueeze(1)
+        out = fast_jmul(input, conj(filter))
+        if out.shape[-1] < fft_size:
+            out = complex_pad_simple(out, fft_size)
+        out = torch.irfft(out, 1, signal_sizes=(fft_size,))
+        if out.shape[-1] > out_size:
+            out = out[..., :out_size]
 
-        for batch_idx in range(batch_num):
-            # Broadcast each 1D signal with all filters.
-            signal = input[batch_idx].unsqueeze(0)
-            out = fast_jmul(signal, conj(filter))
-            if out.shape[-1] < fft_size:
-                out = complex_pad_simple(out, fft_size)
-            out = torch.irfft(out, 1, signal_sizes=(fft_size,))
-            if out.shape[-1] > out_size:
-                out = out[..., :out_size]
+        """
+        Sum up the elements from computed output maps for each input 
+        channel. Each output map has as many channels as the number of 
+        filters. Each filter contributes one channel for the output map. 
+        """
+        # Sum the input channels.
+        out = torch.sum(input=out, dim=2)
+        if self.bias is not None:
+            # Add the bias term for each filter.
+            # Bias has to be unsqueezed to the dimension of the out to
+            # properly sum up the values.
+            out += self.bias.unsqueeze(1)
 
-            """
-            Sum up the elements from computed output maps for each input 
-            channel. Each output map has as many channels as the number of 
-            filters. Each filter contributes one channel for the output map. 
-            """
-            # Sum the input channels.
-            out = torch.sum(input=out, dim=1)
-            # `unsqueeze` the dimension for channels.
-            out = torch.unsqueeze(input=out, dim=0)
-            output[batch_idx] = out
-            if self.bias is not None:
-                # Add the bias term for each filter.
-                # Bias has to be unsqueezed to the dimension of the out to
-                # properly sum up the values.
-                output[batch_idx] += self.bias.unsqueeze(1)
-
-        return output
+        return out
 
 
 if __name__ == "__main__":
