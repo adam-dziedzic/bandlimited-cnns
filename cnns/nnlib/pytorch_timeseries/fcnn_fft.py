@@ -41,7 +41,7 @@ data_folder = "TimeSeriesDatasets"
 ucr_path = os.path.join(dir_path, os.pardir, data_folder)
 results_folder = "results"
 
-num_epochs = 1  # 300
+num_epochs = 10  # 300
 
 # flist = ['Adiac', 'Beef', 'CBF', 'ChlorineConcentration', 'CinC_ECG_torso',
 #          'Coffee', 'Cricket_X', 'Cricket_Y', 'Cricket_Z',
@@ -104,7 +104,7 @@ parser.add_argument("-d", "--datasets", default="debug",
                     help="the type of datasets: all or debug.")
 parser.add_argument("-l", "--limit_size", default=256, type=int,
                     help="limit_size for the input for debug")
-parser.add_argument("-i", "--index_back", default=1, type=int,
+parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
@@ -567,7 +567,8 @@ def main(dataset_name):
         # Write the metadata.
         file.write("dataset," + str(dataset_name) + ",hostname," + str(
             hostname) + ",timestamp," + get_log_time() + ",num_epochs," + str(
-            args.epochs) + ",index_back," + str(args.index_back) + "\n")
+            args.epochs) + ",index_back," + str(
+            args.index_back) + ",conv_type," + str(args.conv_type) + "\n")
         # Write the header.
         file.write("epoch,train_loss,train_accuracy,test_loss,test_accuracy\n")
 
@@ -648,7 +649,8 @@ if __name__ == '__main__':
         # Write the metadata.
         file.write("UCR datasets,final results,hostname," + str(
             hostname) + ",timestamp," + get_log_time() + ",num_epochs," + str(
-            num_epochs) + ",index_back," + str(args.index_back) + "\n")
+            num_epochs) + ",index_back," + str(
+            args.index_back) + ",conv_type," + str(args.conv_type) + "\n")
         # Write the header.
         file.write(
             "dataset,train_loss,train_accuracy,test_loss,test_accuracy\n")
