@@ -651,7 +651,7 @@ class Conv1dfftSimple(Conv1dfftAutograd):
 
         if self.index_back is not None and self.index_back > 0:
             # 4 dims: batch, channel, time-series, complex values.
-            index_back = int(input_size * (self.index_back/100) + 1)
+            index_back = int(input_size * (self.index_back/100) // 2) + 1
             input = input[..., :-index_back, :]
             filter = filter[..., :-index_back, :]
 
@@ -691,7 +691,7 @@ class Conv1dfftSimpleForLoop(Conv1dfftAutograd):
         of the size of the input signal. This percentage of the input signal is
         the size - number of frequencies that will be discarded in the frequency
         domain. Calculations:
-        index_back = int(input_size * (self.index_back / 100) + 1) // 2
+        index_back = int(input_size * (self.index_back / 100) // 2) + 1
         """
         super(Conv1dfftSimpleForLoop, self).__init__(
             in_channels=in_channels, out_channels=out_channels,
@@ -738,7 +738,7 @@ class Conv1dfftSimpleForLoop(Conv1dfftAutograd):
         filter = torch.rfft(filter, 1)
 
         if self.index_back is not None and self.index_back > 0:
-            index_back = int(input_size * (self.index_back / 100) + 1) // 2
+            index_back = int(input_size * (self.index_back / 100) // 2) + 1
             input = input[..., :-index_back, :]
             filter = filter[..., :-index_back, :]
 
