@@ -105,7 +105,7 @@ parser.add_argument("-d", "--datasets", default="all",
                     help="the type of datasets: all or debug.")
 parser.add_argument("-l", "--limit_size", default=256, type=int,
                     help="limit_size for the input for debug")
-parser.add_argument("-i", "--index_back", default=0, type=int,
+parser.add_argument("-i", "--index_back", default=90, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
@@ -556,12 +556,12 @@ def test(model, device, test_loader, dataset_type="test"):
             pred = output.max(1, keepdim=True)[1]
             correct += pred.eq(target.view_as(pred)).sum().item()
 
-    test_loss /= len(test_loader.dataset)
-    accuracy = 100. * correct / len(test_loader.dataset)
-    print('{} set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
-        dataset_type, test_loss, correct, len(test_loader.dataset),
-        accuracy))
-    return test_loss, accuracy
+        test_loss /= len(test_loader.dataset)
+        accuracy = 100. * correct / len(test_loader.dataset)
+        print('{} set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
+            dataset_type, test_loss, correct, len(test_loader.dataset),
+            accuracy))
+        return test_loss, accuracy
 
 
 def main(dataset_name):
