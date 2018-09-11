@@ -567,7 +567,7 @@ def main(dataset_name):
         # Write the metadata.
         file.write("dataset," + str(dataset_name) + ",hostname," + str(
             hostname) + ",timestamp," + get_log_time() + ",num_epochs," + str(
-            args.epochs) + "\n")
+            args.epochs) + ",index_back," + str(args.index_back) + "\n")
         # Write the header.
         file.write("epoch,train_loss,train_accuracy,test_loss,test_accuracy\n")
 
