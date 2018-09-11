@@ -640,7 +640,6 @@ class Conv1dfftSimple(Conv1dfftAutograd):
         # Pad and transform the input.
         input = torch_pad(input, (0, self.kernel_size - 1))
         input = torch.rfft(input, 1)
-
         # Pad and transform the filters.
         filter = torch_pad(self.filter, (0, input_size - 1))
         filter = torch.rfft(filter, 1)
