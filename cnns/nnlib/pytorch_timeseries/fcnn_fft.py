@@ -428,12 +428,11 @@ class UCRDataset(Dataset):
 
         :return: transformed labels.
         """
-        labels = ((labels - labels.min()) / (labels.max() - labels.min()) * (
-                num_classes - 1)).astype(np.int_)
         # The nll (negative log likelihood) loss requires target labels to be of
         # type Long:
         # https://discuss.pytorch.org/t/expected-object-of-type-variable-torch-longtensor-but-found-type/11833/3?u=adam_dziedzic
-        return torch.tensor(labels, dtype=torch.long)
+        return ((labels - labels.min()) / (labels.max() - labels.min()) * (
+                num_classes - 1)).astype(np.int64)
 
     @property
     def width(self):
