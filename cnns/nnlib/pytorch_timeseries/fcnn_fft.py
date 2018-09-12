@@ -79,7 +79,7 @@ parser.add_argument('--test-batch-size', type=int, default=1000,
 parser.add_argument('--epochs', type=int, default=num_epochs, metavar='N',
                     help='number of epochs to train (default: {})'.format(
                         num_epochs))
-learning_rate = 0.001
+learning_rate = 0.0000001
 parser.add_argument('--lr', type=float, default=learning_rate, metavar='LR',
                     help='learning rate (default: {})'.format(
                         learning_rate))
@@ -105,7 +105,7 @@ parser.add_argument("-d", "--datasets", default="all",
                     help="the type of datasets: all or debug.")
 parser.add_argument("-l", "--limit_size", default=256, type=int,
                     help="limit_size for the input for debug")
-parser.add_argument("-i", "--index_back", default=90, type=int,
+parser.add_argument("-i", "--index_back", default=10, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
@@ -115,7 +115,7 @@ parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
                     help="should the data augmentation be applied")
 parser.add_argument("-g", "--is_debug", default=False, type=bool,
                     help="is it the debug mode execution")
-parser.add_argument("-c", "--conv_type", default="SIMPLE_FFT_FOR_LOOP",
+parser.add_argument("-c", "--conv_type", default="FFT1D",
                     # "FFT1D", "STANDARD". "AUTOGRAD", "SIMPLE_FFT"
                     help="the type of convolution, SPECTRAL_PARAM is with the "
                          "convolutional weights initialized in the spectral "
@@ -667,9 +667,10 @@ if __name__ == '__main__':
     if args.datasets == "all":
         flist = os.listdir(ucr_path)
     elif args.datasets == "debug":
-        flist = ["50words"]
-        # flist = ["Coffee"]
+        # flist = ["50words"]
+        flist = ["Coffee"]
         # flist = ["HandOutlines"]
+        # flist = ["ztest"]
     else:
         raise AttributeError("Unknown datasets: ", args.datasets)
 

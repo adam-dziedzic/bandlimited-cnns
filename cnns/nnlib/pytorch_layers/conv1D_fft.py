@@ -150,7 +150,8 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         half_fft_compressed_size = None
         if index_back is not None and index_back > 0:
-            half_fft_compressed_size = init_half_fft_size - index_back
+            index_back_fft = int(init_half_fft_size * (index_back / 100)) + 1
+            half_fft_compressed_size = init_half_fft_size - index_back_fft
         if out_size is not None:
             # We take onesided fft so the output after inverse fft should be out
             # size, thus the representation in spectral domain is twice smaller
@@ -483,11 +484,11 @@ class Conv1dfftAutograd(Module):
         self.reset_parameters()
 
     def reset_parameters(self):
+        n = self.in_channels
+        # We have only a single kernel size for 1D convolution.
+        n *= self.kernel_size
+        stdv = 1. / math.sqrt(n)
         if self.is_filter_value is False:
-            n = self.in_channels
-            # We have only a single kernel size for 1D convolution.
-            n *= self.kernel_size
-            stdv = 1. / math.sqrt(n)
             self.filter.data.uniform_(-stdv, stdv)
         if self.bias is not None and self.is_bias_value is False:
             self.bias.data.uniform_(-stdv, stdv)
