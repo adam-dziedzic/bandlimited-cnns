@@ -29,6 +29,7 @@ from torchvision.transforms import transforms
 
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfft
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftAutograd
+from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftCompressSignalOnly
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftSimple
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftSimpleForLoop
 from cnns.nnlib.utils.general_utils import ConvType
@@ -115,7 +116,7 @@ parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
                     help="should the data augmentation be applied")
 parser.add_argument("-g", "--is_debug", default=False, type=bool,
                     help="is it the debug mode execution")
-parser.add_argument("-c", "--conv_type", default="FFT1D",
+parser.add_argument("-c", "--conv_type", default="COMPRESS_INPUT_ONLY",
                     # "FFT1D", "STANDARD". "AUTOGRAD", "SIMPLE_FFT"
                     help="the type of convolution, SPECTRAL_PARAM is with the "
                          "convolutional weights initialized in the spectral "
@@ -220,6 +221,13 @@ class Conv(object):
                                           kernel_size=self.kernel_sizes[index],
                                           padding=(self.conv_pads[index] // 2),
                                           index_back=self.index_back)
+        elif self.conv_type is ConvType.COMPRESS_INPUT_ONLY:
+            return Conv1dfftCompressSignalOnly(
+                in_channels=in_channels, out_channels=self.out_channels[index],
+                stride=self.strides[index],
+                kernel_size=self.kernel_sizes[index],
+                padding=(self.conv_pads[index] // 2),
+                index_back=self.index_back)
         else:
             raise CONV_TYPE_ERROR
 
