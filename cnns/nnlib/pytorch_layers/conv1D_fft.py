@@ -652,7 +652,7 @@ class Conv1dfftSimple(Conv1dfftAutograd):
 
         if self.index_back is not None and self.index_back > 0:
             # 4 dims: batch, channel, time-series, complex values.
-            index_back = int(input_size * (self.index_back/100) // 2) + 1
+            index_back = int(input_size * (self.index_back / 100) // 2) + 1
             input = input[..., :-index_back, :]
             filter = filter[..., :-index_back, :]
 
@@ -742,6 +742,116 @@ class Conv1dfftSimpleForLoop(Conv1dfftAutograd):
             index_back = int(input_size * (self.index_back / 100) // 2) + 1
             input = input[..., :-index_back, :]
             filter = filter[..., :-index_back, :]
+
+        output = torch.zeros([batch_num, filter_num, out_size],
+                             dtype=input.dtype, device=input.device)
+
+        for batch_idx in range(batch_num):
+            # Broadcast each 1D signal with all filters.
+            signal = input[batch_idx].unsqueeze(0)
+            out = fast_jmul(signal, conj(filter))
+            if out.shape[-1] < fft_size:
+                out = complex_pad_simple(out, fft_size)
+            out = torch.irfft(out, 1, signal_sizes=(fft_size,))
+            if out.shape[-1] > out_size:
+                out = out[..., :out_size]
+
+            """
+            Sum up the elements from computed output maps for each input 
+            channel. Each output map has as many channels as the number of 
+            filters. Each filter contributes one channel for the output map. 
+            """
+            # Sum the input channels.
+            out = torch.sum(input=out, dim=1)
+            # `unsqueeze` the dimension for channels.
+            out = torch.unsqueeze(input=out, dim=0)
+            output[batch_idx] = out
+            if self.bias is not None:
+                # Add the bias term for each filter.
+                # Bias has to be unsqueezed to the dimension of the out to
+                # properly sum up the values.
+                output[batch_idx] += self.bias.unsqueeze(1)
+
+        return output
+
+
+class Conv1dfftCompressSignalOnly(Conv1dfftAutograd):
+
+    def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
+                 stride=None, padding=None, bias=True, index_back=None,
+                 out_size=None, filter_value=None, bias_value=None):
+        super(Conv1dfftCompressSignalOnly, self).__init__(
+            in_channels=in_channels, out_channels=out_channels,
+            kernel_size=kernel_size, stride=stride, padding=padding, bias=bias,
+            index_back=index_back, out_size=out_size, filter_value=filter_value,
+            bias_value=bias_value)
+
+    def forward(self, input):
+        """
+        This is a manual implementation of the forward pass with the
+        pytroch autograd used for the backward pass. We only compress the input
+        signal and then pad the filter to the new length of the input signal,
+        without any compression of the filter.
+
+        :param input: the input map (e.g., a 1D signal such as time-series
+        data.)
+        :return: the result of 1D convolution.
+
+        >>> x = np.array([[[1., 2., 3., 1., 4., 5., 10.]]])
+        >>> y = np.array([[[2., 1., 3.]]])
+        >>> b = np.array([0.0])
+        >>> print("Get the expected results from numpy correlate.")
+        >>> expected_result = np.correlate(x[0, 0, :], y[0, 0, :],
+        ... mode="valid")
+        >>> conv = Conv1dfftCompressSignalOnly(filter_value=torch.from_numpy(y),
+        >>> ... bias_value=torch.from_numpy(b))
+        >>> result = conv.forward(input=torch.from_numpy(x))
+        >>> np.testing.assert_array_almost_equal(
+        >>>     result, np.array([[expected_result]]))
+
+        >>> # test without compression
+        >>> x = np.array([[[1., 2., 3.]]])
+        >>> y = np.array([[[2., 1.]]])
+        >>> b = np.array([0.0])
+        >>> conv_param = {'pad' : 0, 'stride' :1}
+        >>> dout = np.array([[[0.1, -0.2]]])
+        >>> # first, get the expected results from the numpy
+        >>> # correlate function
+        >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:],
+        ... mode="valid")
+        >>> conv = Conv1dfftSimpleForLoop(filter_value=torch.from_numpy(y),
+        ... bias_value=torch.from_numpy(b))
+        >>> result = conv.forward(input=torch.from_numpy(x))
+        >>> np.testing.assert_array_almost_equal(result,
+        ... np.array([[expected_result]]))
+
+        """
+        batch_num = input.shape[0]
+        filter_num = self.filter.shape[0]
+        input_size = input.shape[-1]
+        filter_size = self.filter.shape[-1]
+        # Pad the input with the filter size (-1) for correctness.
+        fft_size = input_size + self.kernel_size - 1
+        out_size = input_size - self.kernel_size + 1
+
+        input = torch_pad(input, (0, self.kernel_size - 1))
+        # The input after fft is roughly 2 times smaller (with complex
+        # representation).
+        input = torch.rfft(input, 1)
+
+        if self.index_back is not None and self.index_back > 0:
+            # The index back has to be a least one coefficient (thus: + 1), and
+            # this is complex representation in the last dimension, so the
+            # length of the signal is the last by one dimension.
+            index_back = int(input.shape[-2] * (self.index_back / 100)) + 1
+            input = input[..., :-index_back, :]
+            # Estimate the size of initial siganl before fft if the outcome of
+            # the fft would be the current input value.
+            fft_size = (input.shape[-2] - 1) * 2
+
+        # Pad and transform the filters.
+        filter = torch_pad(self.filter, (0, fft_size - filter_size))
+        filter = torch.rfft(filter, 1)
 
         output = torch.zeros([batch_num, filter_num, out_size],
                              dtype=input.dtype, device=input.device)
