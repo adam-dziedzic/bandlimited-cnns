@@ -683,7 +683,7 @@ if __name__ == '__main__':
         # flist = ["Coffee"]
         # flist = ["HandOutlines"]
         # flist = ["ztest"]
-        flist = ["Cricket"]
+        flist = ["Cricket_X"]
     else:
         raise AttributeError("Unknown datasets: ", args.datasets)
 
