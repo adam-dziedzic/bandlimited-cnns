@@ -115,6 +115,25 @@ class TestPyTorchConv1d(unittest.TestCase):
         np.testing.assert_array_almost_equal(
             result, np.array([[expected_result_compressed]]), decimal=6)
 
+    def test_FunctionForwardWithCompressionPreserveEnergyLongInputLength7(self):
+        x = np.array([[[1., 2., 3., 1., 4., 5., 10.]]])
+        y = np.array([[[2., 1., 3.]]])
+        b = np.array([0.0])
+        # get the expected results from numpy correlate
+        expected_result_full = np.correlate(x[0, 0, :], y[0, 0, :],
+                                            mode="valid")
+        print("\nexpected_result_full: ", expected_result_full)
+        expected_result_compressed = np.array(
+            [14.59893 , 31.640892, 46.518675, 24.199734, 26.882395])
+        print("\nexpected_result_compressed: ", expected_result_compressed)
+
+        conv = Conv1dfftCompressSignalOnly(filter_value=torch.from_numpy(y),
+                                           bias_value=torch.from_numpy(b),
+                                           preserve_energy=80)
+        result = conv.forward(input=torch.from_numpy(x))
+        np.testing.assert_array_almost_equal(
+            result, np.array([[expected_result_compressed]]), decimal=6)
+
     def test_FunctionForwardNoCompressionLongInputLength8(self):
         x = np.array([[[1., 2., 3., 1., 4., 5., 10., 3.]]])
         y = np.array([[[2., 1., 3.]]])

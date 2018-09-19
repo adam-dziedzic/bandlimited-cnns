@@ -458,6 +458,68 @@ def get_full_energy(x):
     return full_energy, squared
 
 
+def get_full_energy_simple(x):
+    """
+    Return the full energy of the signal. The energy E(xfft) of a
+    sequence xfft is defined as the sum of energies
+    (squares of the amplitude |x|) at every point of the sequence.
+
+    see: http://www.cs.cmu.edu/~christos/PUBLICATIONS.OLDER/
+    sigmod94.pdf (equation 7)
+
+    :param x: an array of complex numbers
+    :return: the full energy of signal x
+
+    >>> # Add channels.
+    >>> x_torch = torch.tensor([[[-10.0, 1.5], [2.5, 1.8], [1.0, -9.0]],
+    ... [[-1.0, 2.5], [3.5, -0.1], [1.2, -9.5]]])
+    >>> # change the x_torch to a typical numpy array with complex numbers;
+    >>> # compare the results from numpy and pytorch
+    >>> x_numpy = x_torch[...,0].numpy() + 1.0j * x_torch[...,1].numpy()
+    >>> full_energy, squared = get_full_energy_simple(x_torch)
+    >>> expected_squared = np.power(np.absolute(np.array(x_numpy)), 2)
+    >>> expected_full_energy = np.sum(expected_squared)
+    >>> np.testing.assert_almost_equal(full_energy, expected_full_energy, \
+    ... decimal=4)
+    >>> np.testing.assert_array_almost_equal(squared, expected_squared,
+    ... decimal=4)
+
+    >>> x = torch.tensor([1.2, 1.0])
+    >>> full_energy, squared = get_full_energy_simple(x)
+    >>> np.testing.assert_almost_equal(full_energy, 2.4400, decimal=4)
+    >>> np.testing.assert_array_almost_equal(squared, torch.tensor([2.4400]))
+
+    >>> x_torch = torch.tensor([[1.2, 1.0], [0.5, 1.4]])
+    >>> # change the x_torch to a typical numpy array with complex numbers; compare the results from numpy and pytorch
+    >>> x_numpy = x_torch[...,0].numpy() + 1.0j * x_torch[...,1].numpy()
+    >>> full_energy, squared = get_full_energy_simple(x_torch)
+    >>> expected_squared = np.power(np.absolute(np.array(x_numpy)), 2)
+    >>> expected_full_energy = np.sum(expected_squared)
+    >>> np.testing.assert_almost_equal(full_energy, expected_full_energy, decimal=4)
+    >>> np.testing.assert_array_almost_equal(squared, expected_squared, decimal=4)
+
+    >>> x_torch = torch.tensor([[-10.0, 1.5], [2.5, 1.8], [1.0, -9.0]])
+    >>> # change the x_torch to a typical numpy array with complex numbers;
+    >>> # compare the results from numpy and pytorch
+    >>> x_numpy = x_torch[...,0].numpy() + 1.0j * x_torch[...,1].numpy()
+    >>> full_energy, squared = get_full_energy_simple(x_torch)
+    >>> expected_squared = np.power(np.absolute(np.array(x_numpy)), 2)
+    >>> expected_full_energy = np.sum(expected_squared)
+    >>> np.testing.assert_almost_equal(full_energy, expected_full_energy, decimal=4)
+    >>> np.testing.assert_array_almost_equal(squared, expected_squared, decimal=4)
+
+    """
+    # print(x[..., 0])
+    # print(x[..., 1])
+    # The signal in frequency domain is symmetric and pytorch already
+    # discards second half of the signal.
+    squared = torch.add(torch.pow(x[..., 0], 2),
+                        torch.pow(x[..., 1], 2)).squeeze()
+    # sum of squared values of the signal
+    full_energy = torch.sum(squared).item()
+    return full_energy, squared
+
+
 def preserve_energy_index(xfft, energy_rate=None, index_back=None):
     """
     To which index should we preserve the xfft signal (and discard
@@ -520,14 +582,54 @@ def preserve_energy_index(xfft, energy_rate=None, index_back=None):
         current_energy = 0.0
         preserved_energy = full_energy * energy_rate
         index = 0
-        while current_energy < preserved_energy and index < len(
-                squared):
+        while current_energy < preserved_energy and index < len(squared):
             current_energy += squared[index]
             index += 1
         return max(index, 1)
     elif index_back is not None:
         return len(xfft) - index_back
     return len(xfft)
+
+
+def preserve_energy_index_back(xfft, preserve_energy=None):
+    """
+    Give index_back for the given energy rate.
+
+    :param xfft: the input fft-ed signal
+    :param energy_rate: how much energy of xfft should be preserved?
+    :return: the index back (how many coefficient from the end of the signal
+    should be discarded?
+
+    >>> xfft = torch.tensor([[
+    ... [[5, 6], [3, 4], [1, 2]], [[0, 1], [1, 0], [2, 2]]],
+    ... [[[-1, 3], [1, 0], [0, 2]], [[1, 1], [1, -2], [3, 2]]]])
+    >>> index_back = preserve_energy_index_back(xfft, 50)
+    >>> np.testing.assert_equal(index_back, 2)
+
+    """
+    # The second dimension from the end is the length because this is a complex
+    # signal.
+    input_length = xfft.shape[-2]
+    if xfft is None or len(xfft) == 0:
+        return 0
+    squared = torch.add(torch.pow(xfft[..., 0], 2),
+                        torch.pow(xfft[..., 1], 2))
+    # Sum the batch and channel dimensions (we first reduce to many channels -
+    # first 0, and then to only a single channel - next 0 (the dimensions
+    # collapse one by one).
+    squared = squared.sum(dim=0).sum(dim=0)
+    assert len(squared) == input_length
+    # Sum of squared values of the signal of length input_length.
+    full_energy = torch.sum(squared).item()
+    current_energy = 0.0
+    preserved_energy = full_energy * preserve_energy / 100.0
+    index = 0
+    # Accumulate the energy (and increment the index) until the required
+    # preserved energy is reached.
+    while current_energy < preserved_energy and index < input_length:
+        current_energy += squared[index]
+        index += 1
+    return input_length - index
 
 
 def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None,

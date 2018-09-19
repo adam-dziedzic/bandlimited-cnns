@@ -7,6 +7,13 @@ import pickle
 from enum import Enum
 
 
+def get_log_time():
+    return time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
+
+
+additional_log_file = "additional-info-" + get_log_time() + ".log"
+
+
 class EnumWithNames(Enum):
     """
     The Enum classes that inherit from the EnumWithNames will get the get_names
@@ -93,10 +100,6 @@ def abs_error(x, y):
 def save_object(obj, filename):
     with open(filename, "wb") as output:
         pickle.dump(obj, output)
-
-
-def get_log_time():
-    return time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
 
 
 def plot_signal(signal, title="signal"):

@@ -19,9 +19,11 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_fft_signals
 from cnns.nnlib.pytorch_layers.pytorch_utils import fast_jmul
 from cnns.nnlib.pytorch_layers.pytorch_utils import from_tensor
 from cnns.nnlib.pytorch_layers.pytorch_utils import next_power2
+from cnns.nnlib.pytorch_layers.pytorch_utils import preserve_energy_index_back
 from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate
 from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate as conj
 from cnns.nnlib.pytorch_layers.pytorch_utils import to_tensor
+from cnns.nnlib.utils.general_utils import additional_log_file
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -39,8 +41,8 @@ class Conv1dfftFunction(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, input, filter, bias=None, padding=None, stride=None,
-                index_back=None, out_size=None, signal_ndim=1,
-                use_next_power2=False, is_manual=tensor([0])):
+                index_back=None, preserve_energy=100, out_size=None,
+                signal_ndim=1, use_next_power2=False, is_manual=tensor([0])):
         """
         Compute the forward pass for the 1D convolution.
 
@@ -59,6 +61,8 @@ class Conv1dfftFunction(torch.autograd.Function):
         omitted values).
         :param index_back: how many last elements in the fft-ed signal to
         discard.
+        :param preserve_energy: how much energy of the input should be
+        preserved.
         :param out_size: what is the expected output size - one can disard the
         elements in the frequency domain and do the spectral pooling within the
         convolution.
@@ -389,8 +393,8 @@ class Conv1dfftFunction(torch.autograd.Function):
 class Conv1dfftAutograd(Module):
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
                  stride=1, padding=0, dilation=1, groups=1, bias=True,
-                 index_back=None, out_size=None, filter_value=None,
-                 bias_value=None, use_next_power2=False,
+                 index_back=None, preserve_energy=100, out_size=None,
+                 filter_value=None, bias_value=None, use_next_power2=False,
                  is_manual=tensor([0])):
         """
         1D convolution using FFT implemented fully in PyTorch.
@@ -410,6 +414,8 @@ class Conv1dfftAutograd(Module):
         :param bias: (bool) - add bias or not
         :param index_back: how many frequency coefficients should be
         discarded
+        :param preserve_energy: how much energy should be preserved in the input
+        signal.
         :param out_size: what is the expected output size of the
         operation (when compression is used and the out_size is
         smaller than the size of the input to the convolution, then
@@ -475,6 +481,7 @@ class Conv1dfftAutograd(Module):
         self.stride = stride
         self.padding = padding
         self.index_back = index_back
+        self.preserve_energy = preserve_energy
         self.out_size = out_size
         self.use_next_power2 = use_next_power2
         self.stride = stride
@@ -554,8 +561,9 @@ class Conv1dfftAutograd(Module):
         return Conv1dfftFunction.forward(
             ctx=None, input=input, filter=self.filter, bias=self.bias,
             padding=self.padding, stride=self.stride,
-            index_back=self.index_back, out_size=self.out_size,
-            use_next_power2=self.use_next_power2, is_manual=self.is_manual)
+            index_back=self.index_back, preserve_energy=self.preserve_energy,
+            out_size=self.out_size, use_next_power2=self.use_next_power2,
+            is_manual=self.is_manual)
 
 
 class Conv1dfft(Conv1dfftAutograd):
@@ -779,12 +787,13 @@ class Conv1dfftCompressSignalOnly(Conv1dfftAutograd):
 
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
                  stride=None, padding=None, bias=True, index_back=None,
-                 out_size=None, filter_value=None, bias_value=None):
+                 preserve_energy=100, out_size=None, filter_value=None,
+                 bias_value=None):
         super(Conv1dfftCompressSignalOnly, self).__init__(
             in_channels=in_channels, out_channels=out_channels,
             kernel_size=kernel_size, stride=stride, padding=padding, bias=bias,
-            index_back=index_back, out_size=out_size, filter_value=filter_value,
-            bias_value=bias_value)
+            index_back=index_back, preserve_energy=preserve_energy,
+            out_size=out_size, filter_value=filter_value, bias_value=bias_value)
 
     def forward(self, input):
         """
@@ -839,11 +848,22 @@ class Conv1dfftCompressSignalOnly(Conv1dfftAutograd):
 
         out_size = input_size - self.kernel_size + 1
 
+        # Change from the percentage of how many coefficient should be discarded
+        # to the the actual number of coefficients to discard.
+        if self.index_back is not None and self.index_back > 0:
+            if self.preserve_energy is not None and self.preserve_energy < 100:
+                raise AttributeError(
+                    "Choose either preserve_energy or index_back")
+            index_back = int(input.shape[-2] * (self.index_back / 100)) + 1
+
+        if self.preserve_energy < 100:
+            self.index_back = preserve_energy_index_back(input,
+                                                         self.preserve_energy)
+
         if self.index_back is not None and self.index_back > 0:
             # The index back has to be a least one coefficient (thus: + 1), and
             # this is complex representation in the last dimension, so the
             # length of the signal is the last by one dimension.
-            index_back = int(input.shape[-2] * (self.index_back / 100)) + 1
             input = input[..., :-index_back, :]
             # Estimate the size of initial signal before fft if the outcome of
             # the fft would be the current input value.

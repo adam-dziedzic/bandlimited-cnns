@@ -35,6 +35,7 @@ from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftSimpleForLoop
 from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.general_utils import OptimizerType
 from cnns.nnlib.utils.general_utils import get_log_time
+from cnns.nnlib.utils.general_utils import additional_log_file
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 print("current working directory: ", dir_path)
@@ -110,6 +111,10 @@ parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
+parser.add_argument("-i", "--preserve_energy", default=100, type=int,
+                    help="How many energy should be preserved in the "
+                         "frequency representation of the signal? This "
+                         "is the compression in the FFT domain.")
 parser.add_argument("-b", "--mem_test", default=False, type=bool,
                     help="is it the memory test")
 parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
@@ -179,6 +184,7 @@ class Conv(object):
         self.conv_pads = conv_pads
         self.conv_type = ConvType[args.conv_type]
         self.index_back = args.index_back
+        self.preserve_energy = args.preserve_energy
 
     def get_conv(self, index):
         if index == 0:
@@ -227,7 +233,8 @@ class Conv(object):
                 stride=self.strides[index],
                 kernel_size=self.kernel_sizes[index],
                 padding=(self.conv_pads[index] // 2),
-                index_back=self.index_back)
+                index_back=self.index_back,
+                preserve_energy=self.preserve_energy)
         else:
             raise CONV_TYPE_ERROR
 
@@ -579,14 +586,16 @@ def main(dataset_name):
     """
     dataset_log_file = os.path.join(
         results_folder, get_log_time() + "-" + dataset_name + "-fcnn.log")
+    DATASET_HEADER = HEADER + ",dataset," + str(dataset_name)
     with open(dataset_log_file, "a") as file:
         # Write the metadata.
-        file.write("dataset," + str(dataset_name) + ",hostname," + str(
-            hostname) + ",timestamp," + get_log_time() + ",num_epochs," + str(
-            args.epochs) + ",index_back(%)," + str(
-            args.index_back) + ",conv_type," + str(args.conv_type) + "\n")
-        # Write the header.
+        file.write(DATASET_HEADER)
+        # Write the header with the names of the columns.
         file.write("epoch,train_loss,train_accuracy,test_loss,test_accuracy\n")
+
+    with open(additional_log_file, "a"):
+        # Write the metadata.
+        file.write(DATASET_HEADER)
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -666,12 +675,17 @@ if __name__ == '__main__':
     hostname = socket.gethostname()
     global_log_file = os.path.join(results_folder,
                                    get_log_time() + "-ucr-fcnn.log")
-    with open(global_log_file, "a") as file:
-        # Write the metadata.
-        file.write("UCR datasets,final results,hostname," + str(
+    HEADER = "UCR datasets,final results,hostname," + str(
             hostname) + ",timestamp," + get_log_time() + ",num_epochs," + str(
             num_epochs) + ",index_back(%)," + str(
-            args.index_back) + ",conv_type," + str(args.conv_type) + "\n")
+            args.index_back) + ",preserve_energy," + str(
+            args.preserve_energy) + ",conv_type," + str(args.conv_type) + "\n"
+    with open(additional_log_file, "a") as file:
+        # Write the metadata.
+        file.write(HEADER)
+    with open(global_log_file, "a") as file:
+        # Write the metadata.
+        file.write(HEADER)
         # Write the header.
         file.write(
             "dataset,train_loss,train_accuracy,test_loss,test_accuracy\n")
