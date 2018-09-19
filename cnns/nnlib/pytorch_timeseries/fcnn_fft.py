@@ -102,7 +102,7 @@ parser.add_argument("-w", "--workers", default=4, type=int,
                          "loaded in the main process")
 parser.add_argument("-n", "--net", default="fcnn",
                     help="the type of net: alexnet, densenet, resnet, fcnn.")
-parser.add_argument("-d", "--datasets", default="all",
+parser.add_argument("-d", "--datasets", default="debug",
                     help="the type of datasets: all or debug.")
 parser.add_argument("-l", "--limit_size", default=256, type=int,
                     help="limit_size for the input for debug")
@@ -235,8 +235,7 @@ class Conv(object):
 class FCNNPytorch(nn.Module):
 
     def __init__(self, input_size, num_classes, kernel_sizes=[8, 5, 3],
-                 out_channels=[128, 256, 128],
-                 strides=[1, 1, 1]):
+                 out_channels=[128, 256, 128], strides=[1, 1, 1]):
         """
         Create the FCNN model in PyTorch.
 
@@ -629,7 +628,8 @@ def main(dataset_name):
     scheduler = ReduceLROnPlateauPyTorch(optimizer=optimizer, mode='min',
                                          factor=0.5, patience=50)
 
-    train_loss = train_accuracy = test_loss = test_accuracy = None
+    # max = choose the best model.
+    max_train_loss = max_train_accuracy = max_test_loss = max_test_accuracy = 0.0
     for epoch in range(1, args.epochs + 1):
         train(model=model, device=device, train_loader=train_loader,
               optimizer=optimizer, epoch=epoch)
@@ -648,10 +648,17 @@ def main(dataset_name):
                 train_accuracy) + "," + str(test_loss) + "," + str(
                 test_accuracy) + "\n")
 
+        # Metric: select the best model based on the best train loss (minimal).
+        if train_loss < max_train_loss:
+            max_train_accuracy = train_accuracy
+            max_test_accuracy = test_accuracy
+            max_train_loss = train_loss
+            max_test_loss = test_loss
+
     with open(global_log_file, "a") as file:
-        file.write(dataset_name + "," + str(train_loss) + "," + str(
-            train_accuracy) + "," + str(test_loss) + "," + str(
-            test_accuracy) + "\n")
+        file.write(dataset_name + "," + str(max_train_loss) + "," + str(
+            max_train_accuracy) + "," + str(max_test_loss) + "," + str(
+            max_test_accuracy) + "\n")
 
 
 if __name__ == '__main__':
@@ -673,9 +680,10 @@ if __name__ == '__main__':
         flist = os.listdir(ucr_path)
     elif args.datasets == "debug":
         # flist = ["50words"]
-        flist = ["Coffee"]
+        # flist = ["Coffee"]
         # flist = ["HandOutlines"]
         # flist = ["ztest"]
+        flist = ["Cricket"]
     else:
         raise AttributeError("Unknown datasets: ", args.datasets)
 
