@@ -111,7 +111,7 @@ parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
-parser.add_argument("-i", "--preserve_energy", default=100, type=int,
+parser.add_argument("-p", "--preserve_energy", default=100, type=int,
                     help="How many energy should be preserved in the "
                          "frequency representation of the signal? This "
                          "is the compression in the FFT domain.")
@@ -121,7 +121,7 @@ parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
                     help="should the data augmentation be applied")
 parser.add_argument("-g", "--is_debug", default=False, type=bool,
                     help="is it the debug mode execution")
-parser.add_argument("-c", "--conv_type", default="COMPRESS_INPUT_ONLY",
+parser.add_argument("-c", "--conv_type", default="FFT1D",
                     # "FFT1D", "STANDARD". "AUTOGRAD", "SIMPLE_FFT"
                     help="the type of convolution, SPECTRAL_PARAM is with the "
                          "convolutional weights initialized in the spectral "
@@ -593,7 +593,7 @@ def main(dataset_name):
         # Write the header with the names of the columns.
         file.write("epoch,train_loss,train_accuracy,test_loss,test_accuracy\n")
 
-    with open(additional_log_file, "a"):
+    with open(additional_log_file, "a") as file:
         # Write the metadata.
         file.write(DATASET_HEADER)
 
@@ -694,10 +694,10 @@ if __name__ == '__main__':
         flist = os.listdir(ucr_path)
     elif args.datasets == "debug":
         # flist = ["50words"]
-        # flist = ["Coffee"]
+        flist = ["Coffee"]
         # flist = ["HandOutlines"]
         # flist = ["ztest"]
-        flist = ["Cricket_X"]
+        # flist = ["Cricket_X"]
     else:
         raise AttributeError("Unknown datasets: ", args.datasets)
 

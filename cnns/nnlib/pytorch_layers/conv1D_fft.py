@@ -387,7 +387,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             for ff in range(F):
                 db[ff] += torch.sum(dout[:, ff, :])
 
-        return dx, dw, db, None, None, None, None, None, None, None
+        return dx, dw, db, None, None, None, None, None, None, None, None
 
 
 class Conv1dfftAutograd(Module):
@@ -591,8 +591,8 @@ class Conv1dfft(Conv1dfftAutograd):
         """
         return Conv1dfftFunction.apply(
             input, self.filter, self.bias, self.padding, self.stride,
-            self.index_back, self.out_size, self.signal_ndim,
-            self.use_next_power2, self.is_manual)
+            self.index_back, self.preserve_energy, self.out_size,
+            self.signal_ndim, self.use_next_power2, self.is_manual)
 
 
 def test_run():
