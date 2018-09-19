@@ -832,12 +832,13 @@ class Conv1dfftCompressSignalOnly(Conv1dfftAutograd):
         filter_size = self.filter.shape[-1]
         # Pad the input with the filter size (-1) for correctness.
         fft_size = input_size + self.kernel_size - 1
-        out_size = input_size - self.kernel_size + 1
-
         input = torch_pad(input, (0, self.kernel_size - 1))
-        # The input after fft is roughly 2 times smaller (with complex
-        # representation).
+        # The input after fft is roughly 2 times smaller (in complex
+        # representation) in terms of the length of the signal in the frequency
+        # domain.
         input = torch.rfft(input, 1)
+
+        out_size = input_size - self.kernel_size + 1
 
         if self.index_back is not None and self.index_back > 0:
             # The index back has to be a least one coefficient (thus: + 1), and
@@ -845,7 +846,7 @@ class Conv1dfftCompressSignalOnly(Conv1dfftAutograd):
             # length of the signal is the last by one dimension.
             index_back = int(input.shape[-2] * (self.index_back / 100)) + 1
             input = input[..., :-index_back, :]
-            # Estimate the size of initial siganl before fft if the outcome of
+            # Estimate the size of initial signal before fft if the outcome of
             # the fft would be the current input value.
             fft_size = (input.shape[-2] - 1) * 2
 
