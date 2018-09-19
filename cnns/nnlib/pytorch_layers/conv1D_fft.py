@@ -800,14 +800,13 @@ class Conv1dfftCompressSignalOnly(Conv1dfftAutograd):
         >>> x = np.array([[[1., 2., 3., 1., 4., 5., 10.]]])
         >>> y = np.array([[[2., 1., 3.]]])
         >>> b = np.array([0.0])
-        >>> print("Get the expected results from numpy correlate.")
-        >>> expected_result = np.correlate(x[0, 0, :], y[0, 0, :],
-        ... mode="valid")
+        >>> # print("Get the expected results from numpy correlate.")
+        >>> expected_result = np.correlate(x[0, 0, :], y[0, 0, :], mode="valid")
         >>> conv = Conv1dfftCompressSignalOnly(filter_value=torch.from_numpy(y),
-        >>> ... bias_value=torch.from_numpy(b))
+        ... bias_value=torch.from_numpy(b))
         >>> result = conv.forward(input=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(
-        >>>     result, np.array([[expected_result]]))
+        ... result, np.array([[expected_result]]))
 
         >>> # test without compression
         >>> x = np.array([[[1., 2., 3.]]])
@@ -815,8 +814,8 @@ class Conv1dfftCompressSignalOnly(Conv1dfftAutograd):
         >>> b = np.array([0.0])
         >>> conv_param = {'pad' : 0, 'stride' :1}
         >>> dout = np.array([[[0.1, -0.2]]])
-        >>> # first, get the expected results from the numpy
-        >>> # correlate function
+        >>> # First, get the expected results from the numpy
+        >>> # correlate function.
         >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:],
         ... mode="valid")
         >>> conv = Conv1dfftSimpleForLoop(filter_value=torch.from_numpy(y),
@@ -866,6 +865,8 @@ class Conv1dfftCompressSignalOnly(Conv1dfftAutograd):
             out = torch.irfft(out, 1, signal_sizes=(fft_size,))
             if out.shape[-1] > out_size:
                 out = out[..., :out_size]
+            elif out.shape[-1] < out_size:
+                out = torch_pad(out, (0, out_size - out.shape[-1]))
 
             """
             Sum up the elements from computed output maps for each input 

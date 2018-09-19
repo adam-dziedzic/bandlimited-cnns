@@ -80,7 +80,7 @@ parser.add_argument('--test-batch-size', type=int, default=1000,
 parser.add_argument('--epochs', type=int, default=num_epochs, metavar='N',
                     help='number of epochs to train (default: {})'.format(
                         num_epochs))
-learning_rate = 0.0000001
+learning_rate = 0.001
 parser.add_argument('--lr', type=float, default=learning_rate, metavar='LR',
                     help='learning rate (default: {})'.format(
                         learning_rate))
@@ -88,7 +88,7 @@ parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
                     help='SGD momentum (default: 0.5)')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='disables CUDA training')
-parser.add_argument('--seed', type=int, default=1, metavar='S',
+parser.add_argument('--seed', type=int, default=31, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--log-interval', type=int, default=1, metavar='N',
                     help='how many batches to wait before logging training '
@@ -102,7 +102,7 @@ parser.add_argument("-w", "--workers", default=4, type=int,
                          "loaded in the main process")
 parser.add_argument("-n", "--net", default="fcnn",
                     help="the type of net: alexnet, densenet, resnet, fcnn.")
-parser.add_argument("-d", "--datasets", default="debug",
+parser.add_argument("-d", "--datasets", default="all",
                     help="the type of datasets: all or debug.")
 parser.add_argument("-l", "--limit_size", default=256, type=int,
                     help="limit_size for the input for debug")
@@ -537,9 +537,9 @@ def train(model, device, train_loader, optimizer, epoch):
         loss.backward()
         optimizer.step()
 
-    print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-        epoch, batch_idx * len(data), len(train_loader.dataset),
-               100. * batch_idx / len(train_loader), loss.item()))
+        print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+            epoch, batch_idx * len(data), len(train_loader.dataset),
+                   100. * batch_idx / len(train_loader), loss.item()))
 
 
 def test(model, device, test_loader, dataset_type="test"):
@@ -608,18 +608,15 @@ def main(dataset_name):
     train_dataset = UCRDataset(dataset_name, train=True)
     batch_size = min(len(train_dataset) // 10, args.min_batch_size)
     train_loader = torch.utils.data.DataLoader(
-        dataset=train_dataset, batch_size=batch_size, shuffle=True,
-        **kwargs)
+        dataset=train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
 
     test_dataset = UCRDataset(dataset_name, train=False)
     num_classes = test_dataset.num_classes
     width = test_dataset.width
     test_loader = torch.utils.data.DataLoader(
-        dataset=test_dataset, batch_size=batch_size, shuffle=True,
-        **kwargs)
+        dataset=test_dataset, batch_size=batch_size, shuffle=True, **kwargs)
 
-    model = getModelPyTorch(input_size=width,
-                            num_classes=num_classes)
+    model = getModelPyTorch(input_size=width, num_classes=num_classes)
     model.to(device)
 
     if optimizer_type is OptimizerType.MOMENTUM:
