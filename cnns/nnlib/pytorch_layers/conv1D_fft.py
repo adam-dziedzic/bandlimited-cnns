@@ -155,6 +155,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         half_fft_compressed_size = None
         if index_back is not None and index_back > 0:
             index_back_fft = int(init_half_fft_size * (index_back / 100)) + 1
+            print("index back fft: ", index_back_fft)
             half_fft_compressed_size = init_half_fft_size - index_back_fft
         if out_size is not None:
             # We take onesided fft so the output after inverse fft should be out
@@ -660,7 +661,8 @@ class Conv1dfftSimple(Conv1dfftAutograd):
 
         if self.index_back is not None and self.index_back > 0:
             # 4 dims: batch, channel, time-series, complex values.
-            index_back = int(input_size * (self.index_back / 100) // 2) + 1
+            input_size = input.shape[-2]
+            index_back = int(input_size * (self.index_back / 100)) + 1
             input = input[..., :-index_back, :]
             filter = filter[..., :-index_back, :]
 
@@ -854,7 +856,7 @@ class Conv1dfftCompressSignalOnly(Conv1dfftAutograd):
             if self.preserve_energy is not None and self.preserve_energy < 100:
                 raise AttributeError(
                     "Choose either preserve_energy or index_back")
-            index_back = int(input.shape[-2] * (self.index_back / 100)) + 1
+            self.index_back = int(input.shape[-2] * (self.index_back / 100)) + 1
 
         if self.preserve_energy < 100:
             self.index_back = preserve_energy_index_back(input,
@@ -864,7 +866,7 @@ class Conv1dfftCompressSignalOnly(Conv1dfftAutograd):
             # The index back has to be a least one coefficient (thus: + 1), and
             # this is complex representation in the last dimension, so the
             # length of the signal is the last by one dimension.
-            input = input[..., :-index_back, :]
+            input = input[..., :-self.index_back, :]
             # Estimate the size of initial signal before fft if the outcome of
             # the fft would be the current input value.
             fft_size = (input.shape[-2] - 1) * 2

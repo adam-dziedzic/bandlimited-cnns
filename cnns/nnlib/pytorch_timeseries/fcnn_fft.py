@@ -45,7 +45,7 @@ data_folder = "TimeSeriesDatasets"
 ucr_path = os.path.join(dir_path, os.pardir, data_folder)
 results_folder = "results"
 
-num_epochs = 1  # 300
+num_epochs = 5  # 300
 
 # flist = ['Adiac', 'Beef', 'CBF', 'ChlorineConcentration', 'CinC_ECG_torso',
 #          'Coffee', 'Cricket_X', 'Cricket_Y', 'Cricket_Z',
@@ -174,7 +174,7 @@ class Conv(object):
         Create the convolution object from which we fetch the convolution
         operations.
 
-        :param kernel_sizes: the sizes of the kernesl in each conv layer.
+        :param kernel_sizes: the sizes of the kernels in each conv layer.
         :param out_channels: the number of filters for each conv layer.
         :param strides: the strides for the convolutions.
         :param conv_pads: padding for each convolutional layer.
@@ -546,7 +546,7 @@ def train(model, device, train_loader, optimizer, epoch):
 
         print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
             epoch, batch_idx * len(data), len(train_loader.dataset),
-                   100. * batch_idx / len(train_loader), loss.item()))
+                   100.0 * batch_idx / len(train_loader), loss.item()))
 
 
 def test(model, device, test_loader, dataset_type="test"):
@@ -702,7 +702,7 @@ if __name__ == '__main__':
         flist = os.listdir(ucr_path)
     elif args.datasets == "debug":
         # flist = ["50words"]
-        flist = ["ztest", "Coffee"]
+        flist = ["Adiac"]
         # flist = ["HandOutlines"]
         # flist = ["ztest"]
         # flist = ["Cricket_X"]
@@ -715,6 +715,7 @@ if __name__ == '__main__':
     flist = sorted(flist, key=lambda s: s.lower())
     print("flist: ", flist)
     for ucr_dataset in flist:
+        print("Dataset: ", ucr_dataset)
         main(dataset_name=ucr_dataset)
 
     print("total elapsed time (sec): ", time.time() - start_time)

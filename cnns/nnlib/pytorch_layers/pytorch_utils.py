@@ -479,7 +479,7 @@ def get_full_energy_simple(x):
     >>> full_energy, squared = get_full_energy_simple(x_torch)
     >>> expected_squared = np.power(np.absolute(np.array(x_numpy)), 2)
     >>> expected_full_energy = np.sum(expected_squared)
-    >>> np.testing.assert_almost_equal(full_energy, expected_full_energy, \
+    >>> np.testing.assert_almost_equal(full_energy, expected_full_energy,
     ... decimal=4)
     >>> np.testing.assert_array_almost_equal(squared, expected_squared,
     ... decimal=4)
@@ -928,8 +928,8 @@ def correlate_fft_signals(xfft, yfft, fft_size: int,
     :param signal_ndim: the dimension of the signal (we set it to 1)
     :return: output signal after correlation of signals xfft and yfft
     """
-    # xfft = complex_pad_simple(xfft=xfft, fft_size=fft_size)
-    # yfft = complex_pad_simple(xfft=yfft, fft_size=fft_size)
+    xfft = complex_pad_simple(xfft=xfft, fft_size=fft_size)
+    yfft = complex_pad_simple(xfft=yfft, fft_size=fft_size)
 
     freq_mul = complex_mul(xfft, pytorch_conjugate(yfft))
 
