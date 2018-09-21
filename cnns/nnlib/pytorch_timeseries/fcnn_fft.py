@@ -8,6 +8,7 @@ Created on Fri Sep 07 17:20:19 2018
 import argparse
 import os
 import socket
+import sys
 import time
 
 import keras
@@ -34,8 +35,8 @@ from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftSimple
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftSimpleForLoop
 from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.general_utils import OptimizerType
-from cnns.nnlib.utils.general_utils import get_log_time
 from cnns.nnlib.utils.general_utils import additional_log_file
+from cnns.nnlib.utils.general_utils import get_log_time
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 print("current working directory: ", dir_path)
@@ -44,7 +45,7 @@ data_folder = "TimeSeriesDatasets"
 ucr_path = os.path.join(dir_path, os.pardir, data_folder)
 results_folder = "results"
 
-num_epochs = 300  # 300
+num_epochs = 1  # 300
 
 # flist = ['Adiac', 'Beef', 'CBF', 'ChlorineConcentration', 'CinC_ECG_torso',
 #          'Coffee', 'Cricket_X', 'Cricket_Y', 'Cricket_Z',
@@ -586,12 +587,13 @@ def main(dataset_name):
     """
     dataset_log_file = os.path.join(
         results_folder, get_log_time() + "-" + dataset_name + "-fcnn.log")
-    DATASET_HEADER = HEADER + ",dataset," + str(dataset_name)
+    DATASET_HEADER = HEADER + ",dataset," + str(dataset_name) + "\n"
     with open(dataset_log_file, "a") as file:
         # Write the metadata.
         file.write(DATASET_HEADER)
         # Write the header with the names of the columns.
-        file.write("epoch,train_loss,train_accuracy,test_loss,test_accuracy\n")
+        file.write(
+            "epoch,min_train_loss,max_train_accuracy,min_test_loss,max_test_accuracy,epoch_time\n")
 
     with open(additional_log_file, "a") as file:
         # Write the metadata.
@@ -637,9 +639,13 @@ def main(dataset_name):
     scheduler = ReduceLROnPlateauPyTorch(optimizer=optimizer, mode='min',
                                          factor=0.5, patience=50)
 
+    train_loss = train_accuracy = test_loss = test_accuracy = 0.0
     # max = choose the best model.
-    max_train_loss = max_train_accuracy = max_test_loss = max_test_accuracy = 0.0
+    min_train_loss = min_test_loss = sys.float_info.max
+    max_train_accuracy = max_test_accuracy = 0.0
+    dataset_start_time = time.time()
     for epoch in range(1, args.epochs + 1):
+        epoch_start_time = time.time()
         train(model=model, device=device, train_loader=train_loader,
               optimizer=optimizer, epoch=epoch)
         train_loss, train_accuracy = test(model=model, device=device,
@@ -655,19 +661,21 @@ def main(dataset_name):
         with open(dataset_log_file, "a") as file:
             file.write(str(epoch) + "," + str(train_loss) + "," + str(
                 train_accuracy) + "," + str(test_loss) + "," + str(
-                test_accuracy) + "\n")
+                test_accuracy) + "," + str(
+                time.time() - epoch_start_time) + "\n")
 
         # Metric: select the best model based on the best train loss (minimal).
-        if train_loss < max_train_loss:
+        if train_loss < min_train_loss:
+            min_train_loss = train_loss
             max_train_accuracy = train_accuracy
+            min_test_loss = test_loss
             max_test_accuracy = test_accuracy
-            max_train_loss = train_loss
-            max_test_loss = test_loss
 
     with open(global_log_file, "a") as file:
-        file.write(dataset_name + "," + str(max_train_loss) + "," + str(
-            max_train_accuracy) + "," + str(max_test_loss) + "," + str(
-            max_test_accuracy) + "\n")
+        file.write(dataset_name + "," + str(min_train_loss) + "," + str(
+            max_train_accuracy) + "," + str(min_test_loss) + "," + str(
+            max_test_accuracy) + "," + str(
+            time.time() - dataset_start_time) + "\n")
 
 
 if __name__ == '__main__':
@@ -676,25 +684,25 @@ if __name__ == '__main__':
     global_log_file = os.path.join(results_folder,
                                    get_log_time() + "-ucr-fcnn.log")
     HEADER = "UCR datasets,final results,hostname," + str(
-            hostname) + ",timestamp," + get_log_time() + ",num_epochs," + str(
-            num_epochs) + ",index_back(%)," + str(
-            args.index_back) + ",preserve_energy," + str(
-            args.preserve_energy) + ",conv_type," + str(args.conv_type) + "\n"
+        hostname) + ",timestamp," + get_log_time() + ",num_epochs," + str(
+        num_epochs) + ",index_back(%)," + str(
+        args.index_back) + ",preserve_energy," + str(
+        args.preserve_energy) + ",conv_type," + str(args.conv_type)
     with open(additional_log_file, "a") as file:
         # Write the metadata.
-        file.write(HEADER)
+        file.write(HEADER + "\n")
     with open(global_log_file, "a") as file:
         # Write the metadata.
         file.write(HEADER)
         # Write the header.
         file.write(
-            "dataset,train_loss,train_accuracy,test_loss,test_accuracy\n")
+            "dataset,train_loss,train_accuracy,test_loss,test_accuracy,execution_time\n")
 
     if args.datasets == "all":
         flist = os.listdir(ucr_path)
     elif args.datasets == "debug":
         # flist = ["50words"]
-        flist = ["Coffee"]
+        flist = ["ztest", "Coffee"]
         # flist = ["HandOutlines"]
         # flist = ["ztest"]
         # flist = ["Cricket_X"]
@@ -709,4 +717,4 @@ if __name__ == '__main__':
     for ucr_dataset in flist:
         main(dataset_name=ucr_dataset)
 
-    print("elapsed time (sec): ", time.time() - start_time)
+    print("total elapsed time (sec): ", time.time() - start_time)
