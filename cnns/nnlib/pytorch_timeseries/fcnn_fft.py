@@ -593,7 +593,7 @@ def main(dataset_name):
         file.write(DATASET_HEADER)
         # Write the header with the names of the columns.
         file.write(
-            "epoch,min_train_loss,max_train_accuracy,min_test_loss,max_test_accuracy,epoch_time\n")
+            "epoch,train_loss,train_accuracy,test_loss,test_accuracy,epoch_time\n")
 
     with open(additional_log_file, "a") as file:
         # Write the metadata.
@@ -687,7 +687,7 @@ if __name__ == '__main__':
         hostname) + ",timestamp," + get_log_time() + ",num_epochs," + str(
         num_epochs) + ",index_back(%)," + str(
         args.index_back) + ",preserve_energy," + str(
-        args.preserve_energy) + ",conv_type," + str(args.conv_type)
+        args.preserve_energy) + ",conv_type," + str(args.conv_type) + "\n"
     with open(additional_log_file, "a") as file:
         # Write the metadata.
         file.write(HEADER + "\n")
@@ -696,7 +696,7 @@ if __name__ == '__main__':
         file.write(HEADER)
         # Write the header.
         file.write(
-            "dataset,train_loss,train_accuracy,test_loss,test_accuracy,execution_time\n")
+            "dataset,min_train_loss,max_train_accuracy,min_test_loss,max_test_accuracy,execution_time\n")
 
     if args.datasets == "all":
         flist = os.listdir(ucr_path)
