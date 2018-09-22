@@ -4,9 +4,9 @@ Custom FFT based convolution that can rely on the autograd
 all differentiable Tensor operations in pytorch).
 """
 import logging
-import math
 import sys
 
+import math
 import numpy as np
 import torch
 from torch import tensor
@@ -18,6 +18,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import complex_pad_simple
 from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_fft_signals
 from cnns.nnlib.pytorch_layers.pytorch_utils import fast_jmul
 from cnns.nnlib.pytorch_layers.pytorch_utils import from_tensor
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_full_energy_simple
 from cnns.nnlib.pytorch_layers.pytorch_utils import next_power2
 from cnns.nnlib.pytorch_layers.pytorch_utils import preserve_energy_index_back
 from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate
@@ -41,8 +42,9 @@ class Conv1dfftFunction(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, input, filter, bias=None, padding=None, stride=None,
-                index_back=None, preserve_energy=100, out_size=None,
-                signal_ndim=1, use_next_power2=False, is_manual=tensor([0])):
+                index_back=None, preserve_energy=None, out_size=None,
+                signal_ndim=1, use_next_power2=False, is_manual=tensor([0]),
+                conv_name = ""):
         """
         Compute the forward pass for the 1D convolution.
 
@@ -71,12 +73,21 @@ class Conv1dfftFunction(torch.autograd.Function):
         FFT convolution to the next power of 2.
         :param is_manual: to check if the backward computation of convolution
         was computed manually.
+        :param conv_name: the name of the convolution.
 
         :return: the result of convolution
         """
         # print("execute forward pass 1D")
-        if index_back is not None and out_size is not None:
-            raise TypeError("Specify index_back or out_size not both.")
+        INPUT_ERROR = "Specify only one of: index_back, out_size, or " \
+                      "preserve_energy"
+        if (index_back is not None and index_back > 0) and out_size is not None:
+            raise TypeError(INPUT_ERROR)
+        if (index_back is not None and index_back > 0) and (
+                preserve_energy is not None and preserve_energy < 100):
+            raise TypeError(INPUT_ERROR)
+        if out_size is not None and (
+                preserve_energy is not None and preserve_energy < 100):
+            raise TypeError(INPUT_ERROR)
 
         # N - number of input maps (or images in the batch),
         # C - number of input channels,
@@ -153,9 +164,17 @@ class Conv1dfftFunction(torch.autograd.Function):
         init_half_fft_size = xfft.shape[-2]
 
         half_fft_compressed_size = None
+
+        index_back_fft = 0
         if index_back is not None and index_back > 0:
             index_back_fft = int(init_half_fft_size * (index_back / 100)) + 1
-            print("index back fft: ", index_back_fft)
+
+        if preserve_energy is not None and preserve_energy < 100:
+            index_back_fft = preserve_energy_index_back(xfft, preserve_energy)
+
+        if index_back_fft is not None and index_back_fft > 0:
+            # At least one frequency coefficient has to remain.
+            index_back_fft = min(init_half_fft_size - 1, index_back_fft)
             half_fft_compressed_size = init_half_fft_size - index_back_fft
         if out_size is not None:
             # We take onesided fft so the output after inverse fft should be out
@@ -166,11 +185,26 @@ class Conv1dfftFunction(torch.autograd.Function):
         # Complex numbers are represented as the pair of numbers in the last
         # dimension so we have to narrow the length of the last but one
         # dimension (-2).
+        full_energy, _ = get_full_energy_simple(xfft)
+
+        percent_retained_signal = 100
         if half_fft_compressed_size is not None:
+            percent_retained_signal = half_fft_compressed_size / init_half_fft_size * 100
             # xfft = xfft.narrow(dim=-2, start=0, length=half_fft_compressed_size)
             xfft = xfft[:, :, :half_fft_compressed_size, :]
             # yfft = yfft.narrow(dim=-2, start=0, length=half_fft_compressed_size)
             yfft = yfft[:, :, :half_fft_compressed_size, :]
+
+        preserved_energy, _ = get_full_energy_simple(xfft)
+        msg = "conv_name," + conv_name + ",index_back_fft," + str(
+            index_back_fft) + ",raw signal length," + str(
+            W) + ",init_half_fft_size," + str(
+            init_half_fft_size) + ",percent of preserved energy," + str(
+            preserved_energy / full_energy * 100) + (
+                  ",percent of retained signal,") + str(percent_retained_signal)
+        print(msg)
+        with open(additional_log_file, "a") as file:
+            file.write(msg + "\n")
 
         output = torch.zeros([N, F, out_W], dtype=input.dtype,
                              device=input.device)
@@ -376,6 +410,8 @@ class Conv1dfftFunction(torch.autograd.Function):
                 out = torch.sum(input=out, dim=0)
                 # `unsqueeze` the dimension 0 for the input data points (N).
                 out = torch.unsqueeze(input=out, dim=0)
+                print("out shape: ", out.size())
+                print("dw shape: ", dw.size())
                 dw[ff] = out
 
         if ctx.needs_input_grad[2]:
@@ -396,7 +432,7 @@ class Conv1dfftAutograd(Module):
                  stride=1, padding=0, dilation=1, groups=1, bias=True,
                  index_back=None, preserve_energy=100, out_size=None,
                  filter_value=None, bias_value=None, use_next_power2=False,
-                 is_manual=tensor([0])):
+                 is_manual=tensor([0]), conv_name=""):
         """
         1D convolution using FFT implemented fully in PyTorch.
 
@@ -433,6 +469,7 @@ class Conv1dfftAutograd(Module):
         FFT convolution to the next power of 2.
         :param is_manual: to check if the backward computation of convolution
         was computed manually.
+        :param conv_name: the name of the convolutional layer.
 
         Regarding the stride parameter: the number of pixels between
         adjacent receptive fields in the horizontal and vertical
@@ -488,6 +525,7 @@ class Conv1dfftAutograd(Module):
         self.stride = stride
         self.signal_ndim = 1
         self.is_manual = is_manual
+        self.conv_name = conv_name
 
         self.reset_parameters()
 
@@ -564,7 +602,7 @@ class Conv1dfftAutograd(Module):
             padding=self.padding, stride=self.stride,
             index_back=self.index_back, preserve_energy=self.preserve_energy,
             out_size=self.out_size, use_next_power2=self.use_next_power2,
-            is_manual=self.is_manual)
+            is_manual=self.is_manual, conv_name=self.conv_name)
 
 
 class Conv1dfft(Conv1dfftAutograd):
@@ -575,12 +613,13 @@ class Conv1dfft(Conv1dfftAutograd):
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
                  stride=None, padding=None, bias=True, index_back=None,
                  out_size=None, filter_value=None, bias_value=None,
-                 use_next_power2=False):
+                 use_next_power2=False, conv_name="", preserve_energy=None):
         super(Conv1dfft, self).__init__(
             in_channels=in_channels, out_channels=out_channels,
             kernel_size=kernel_size, stride=stride, padding=padding, bias=bias,
             index_back=index_back, out_size=out_size, filter_value=filter_value,
-            bias_value=bias_value, use_next_power2=use_next_power2)
+            bias_value=bias_value, use_next_power2=use_next_power2,
+            conv_name=conv_name, preserve_energy=preserve_energy)
 
     def forward(self, input):
         """

@@ -5,20 +5,21 @@ Created on Fri Sep 07 17:20:19 2018
 @author: ady@uchicago.edu
 """
 
-import argparse
 import os
-import socket
 import sys
-import time
 
+import argparse
 import keras
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import socket
+import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torchvision
 from keras.callbacks import ReduceLROnPlateau as ReduceLROnPlateauKeras
 from keras.models import Model
 from keras.utils import np_utils
@@ -141,6 +142,41 @@ else:
     device = torch.device("cpu")
 
 CONV_TYPE_ERROR = "Unknown type of convolution."
+
+
+class FlatTransformation(object):
+    """Transform a tensor to its flat representation
+
+    Given tensor (C,H,W), will flatten it to (C, W) - a single data dimension.
+
+    """
+
+    def __call__(self, tensor):
+        """
+        Args:
+            tensor (Tensor): Tensor image of size (C, H, W) to be whitened.
+
+        Returns:
+            Tensor: Flattened tensor (C, W)
+        """
+        C, H, W = tensor.size()
+        tensor = tensor.view(C, H * W)
+        return tensor
+
+
+transform_train = transforms.Compose([
+    transforms.RandomCrop(32, padding=4),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    FlatTransformation(),
+])
+
+transform_test = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    FlatTransformation(),
+])
 
 
 def getModelKeras(input_size, num_classes):
@@ -606,7 +642,7 @@ def main(dataset_name):
     device = torch.device("cuda" if use_cuda else "cpu")
     optimizer_type = OptimizerType[args.optimizer_type]
 
-    num_workers = 1
+    num_workers = 2
     pin_memory = True
     if use_cuda:
         kwargs = {'num_workers': num_workers, 'pin_memory': pin_memory}
@@ -615,16 +651,38 @@ def main(dataset_name):
         kwargs = {}
         torch.set_default_tensor_type(torch.FloatTensor)
 
-    train_dataset = UCRDataset(dataset_name, train=True)
-    batch_size = min(len(train_dataset) // 10, args.min_batch_size)
-    train_loader = torch.utils.data.DataLoader(
-        dataset=train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+    if dataset_name is "cifar10":
+        num_classes = 10
+        width = 32 * 32
+        batch_size = 128
+        train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True,
+                                                     download=True,
+                                                     transform=transform_train)
+        train_loader = torch.utils.data.DataLoader(train_dataset,
+                                                   batch_size=batch_size,
+                                                   shuffle=True,
+                                                   num_workers=num_workers)
 
-    test_dataset = UCRDataset(dataset_name, train=False)
-    num_classes = test_dataset.num_classes
-    width = test_dataset.width
-    test_loader = torch.utils.data.DataLoader(
-        dataset=test_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+        test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False,
+                                                    download=True,
+                                                    transform=transform_test)
+        test_loader = torch.utils.data.DataLoader(test_dataset,
+                                                  batch_size=batch_size,
+                                                  shuffle=False,
+                                                  num_workers=num_workers)
+
+    else:
+        train_dataset = UCRDataset(dataset_name, train=True)
+        batch_size = min(len(train_dataset) // 10, args.min_batch_size)
+        train_loader = torch.utils.data.DataLoader(
+            dataset=train_dataset, batch_size=batch_size, shuffle=True,
+            **kwargs)
+
+        test_dataset = UCRDataset(dataset_name, train=False)
+        num_classes = test_dataset.num_classes
+        width = test_dataset.width
+        test_loader = torch.utils.data.DataLoader(
+            dataset=test_dataset, batch_size=batch_size, shuffle=True, **kwargs)
 
     model = getModelPyTorch(input_size=width, num_classes=num_classes)
     model.to(device)
@@ -702,10 +760,11 @@ if __name__ == '__main__':
         flist = os.listdir(ucr_path)
     elif args.datasets == "debug":
         # flist = ["50words"]
-        flist = ["Adiac"]
+        # flist = ["Adiac"]
         # flist = ["HandOutlines"]
         # flist = ["ztest"]
         # flist = ["Cricket_X"]
+        flist = ["cifar10", "ztest"]
     else:
         raise AttributeError("Unknown datasets: ", args.datasets)
 
@@ -714,8 +773,8 @@ if __name__ == '__main__':
 
     flist = sorted(flist, key=lambda s: s.lower())
     print("flist: ", flist)
-    for ucr_dataset in flist:
-        print("Dataset: ", ucr_dataset)
-        main(dataset_name=ucr_dataset)
+    for dataset_name in flist:
+        print("Dataset: ", dataset_name)
+        main(dataset_name=dataset_name)
 
     print("total elapsed time (sec): ", time.time() - start_time)

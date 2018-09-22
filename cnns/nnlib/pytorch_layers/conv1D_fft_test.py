@@ -206,10 +206,8 @@ class TestPyTorchConv1d(unittest.TestCase):
         print("expected_result_numpy: ", expected_result_numpy)
         # expected_result = np.array(
         #     [[[4.25, 6.75, 10.25, 12.75, 16.25, 18.75, 22.25]]])
-        expected_result = np.array(
-            [[[2.893933, 7.958111, 9.305407, 13.347296, 16.041889, 18.573978,
-               22.75877]]]
-        )
+        expected_result = np.array([[[2.893933, 7.958111, 9.305407, 13.347296,
+                                      16.041889, 18.573978, 22.75877]]])
         conv = Conv1dfftSimple(filter_value=torch.from_numpy(y),
                                bias_value=torch.from_numpy(b), index_back=1)
         result = conv.forward(input=torch.from_numpy(x))
@@ -324,6 +322,66 @@ class TestPyTorchConv1d(unittest.TestCase):
         print("absolute divergence 3 indexes back: ",
               torch.sum(torch.abs(result_tensor - expected_result_tensor),
                         dim=-1).item())
+
+    def test_FunctionForwardCompressionConvFFTSimple70PercentIndexBack(self):
+        x = np.array([[[1., 2., 3., 4., 5., 6., 7., 8.]]])
+        y = np.array([[[2., 1.]]])
+        b = np.array([0.0])
+        # get the expected results from numpy correlate
+        expected_result_numpy = np.correlate(x[0, 0, :], y[0, 0, :],
+                                             mode="valid")
+        print("expected_result_numpy: ", expected_result_numpy)
+        # expected_result = np.array(
+        #     [[[4.25, 6.75, 10.25, 12.75, 16.25, 18.75, 22.25]]])
+        # expected_result = np.array(
+        #     [[[2.893933, 7.958111, 9.305407, 13.347296, 16.041889, 18.573978,
+        #        22.75877]]]
+        # )
+        # expected_result = np.array([[[1.893933, 6.958111, 11.305407,
+        #                               12.347296, 15.041889, 20.573978,
+        #                               21.75877]]])
+        expected_result = np.array(
+            [[[12., 12., 12., 12., 12., 12., 12.]]])
+
+        conv = Conv1dfftSimple(filter_value=torch.from_numpy(y),
+                               bias_value=torch.from_numpy(b), index_back=70)
+        result = conv.forward(input=torch.from_numpy(x))
+        print("actual result: ", result)
+        np.testing.assert_array_almost_equal(
+            x=np.array(expected_result), y=result,
+            err_msg="Expected x is different from computed y.")
+
+        expected_result_tensor = tensor([[expected_result_numpy]],
+                                        dtype=torch.float32)
+        result_tensor = tensor(result, dtype=torch.float32)
+        print("absolute divergence 4 indexes back: ",
+              torch.sum(torch.abs(result_tensor - expected_result_tensor),
+                        dim=-1).item())
+
+    def test_FunctionForwardCompressionConvFFTPreserveEnergy(self):
+        x = np.array([[[1., 2., 3., 4., 5., 6., 7., 8.]]])
+        y = np.array([[[2., 1.]]])
+        b = np.array([0.0])
+        # get the expected results from numpy correlate
+        expected_result_numpy = np.correlate(x[0, 0, :], y[0, 0, :],
+                                             mode="valid")
+        print("expected_result_numpy: ", expected_result_numpy)
+
+        for preserve_energy in [100., 99.5, 99.1, 99.0, 97., 96., 95., 90.,
+                                80.]:
+            conv = Conv1dfft(filter_value=torch.from_numpy(y),
+                             bias_value=torch.from_numpy(b),
+                             preserve_energy=preserve_energy)
+            result = conv.forward(input=torch.from_numpy(x))
+            print("actual result: ", result)
+
+            expected_result_tensor = tensor([[expected_result_numpy]],
+                                            dtype=torch.float32)
+            result_tensor = tensor(result, dtype=torch.float32)
+            print("absolute divergence for preserved energy {} is {}".format(
+                preserve_energy, torch.sum(
+                    torch.abs(result_tensor - expected_result_tensor),
+                    dim=-1).item()))
 
     def test_FunctionForwardSpectralPooling(self):
         x = np.array([[[1., 2., 3., 4., 5., 6., 7., 8.]]])
