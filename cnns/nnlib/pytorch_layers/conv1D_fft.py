@@ -44,7 +44,7 @@ class Conv1dfftFunction(torch.autograd.Function):
     def forward(ctx, input, filter, bias=None, padding=None, stride=None,
                 index_back=None, preserve_energy=None, out_size=None,
                 signal_ndim=1, use_next_power2=False, is_manual=tensor([0]),
-                conv_name = ""):
+                conv_name=""):
         """
         Compute the forward pass for the 1D convolution.
 
@@ -424,7 +424,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             for ff in range(F):
                 db[ff] += torch.sum(dout[:, ff, :])
 
-        return dx, dw, db, None, None, None, None, None, None, None, None
+        return dx, dw, db, None, None, None, None, None, None, None, None, None
 
 
 class Conv1dfftAutograd(Module):
@@ -632,7 +632,8 @@ class Conv1dfft(Conv1dfftAutograd):
         return Conv1dfftFunction.apply(
             input, self.filter, self.bias, self.padding, self.stride,
             self.index_back, self.preserve_energy, self.out_size,
-            self.signal_ndim, self.use_next_power2, self.is_manual)
+            self.signal_ndim, self.use_next_power2, self.is_manual,
+            self.conv_name)
 
 
 def test_run():

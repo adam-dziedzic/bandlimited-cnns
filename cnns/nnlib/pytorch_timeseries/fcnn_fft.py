@@ -242,7 +242,8 @@ class Conv(object):
                              kernel_size=self.kernel_sizes[index],
                              padding=(self.conv_pads[index] // 2),
                              index_back=self.index_back,
-                             use_next_power2=False)
+                             use_next_power2=False,
+                             conv_name="conv"+str(index))
         elif self.conv_type is ConvType.AUTOGRAD:
             return Conv1dfftAutograd(in_channels=in_channels,
                                      out_channels=self.out_channels[index],

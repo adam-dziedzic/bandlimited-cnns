@@ -123,8 +123,10 @@ class TestPyTorchConv1d(unittest.TestCase):
         expected_result_full = np.correlate(x[0, 0, :], y[0, 0, :],
                                             mode="valid")
         print("\nexpected_result_full: ", expected_result_full)
+        # expected_result_compressed = np.array(
+        #     [14.59893, 31.640892, 46.518675, 24.199734, 26.882395])
         expected_result_compressed = np.array(
-            [14.59893, 31.640892, 46.518675, 24.199734, 26.882395])
+            [42.426593, 46.477607, 35.418644, 31.677156, 0.])
         print("\nexpected_result_compressed: ", expected_result_compressed)
 
         conv = Conv1dfftCompressSignalOnly(filter_value=torch.from_numpy(y),
@@ -132,7 +134,8 @@ class TestPyTorchConv1d(unittest.TestCase):
                                            preserve_energy=80)
         result = conv.forward(input=torch.from_numpy(x))
         np.testing.assert_array_almost_equal(
-            result, np.array([[expected_result_compressed]]), decimal=6)
+            x=np.array([[expected_result_compressed]]), y=result, decimal=6,
+            err_msg=ERR_MSG)
 
     def test_FunctionForwardNoCompressionLongInputLength8(self):
         x = np.array([[[1., 2., 3., 1., 4., 5., 10., 3.]]])
@@ -388,8 +391,10 @@ class TestPyTorchConv1d(unittest.TestCase):
         y = np.array([[[2., 1.]]])
         b = np.array([0.0])
         # get the expected results from numpy correlate
+        # expected_result = np.array(
+        #     [[[2.771341, 5.15668, 9.354594, 14.419427]]])
         expected_result = np.array(
-            [[[2.771341, 5.15668, 9.354594, 14.419427]]])
+            [[[4.904259, 6.398284, 8.617751, 12.688923]]])
         conv = Conv1dfft(filter_value=torch.from_numpy(y),
                          bias_value=torch.from_numpy(b), out_size=4)
         result = conv.forward(input=torch.from_numpy(x))
@@ -608,8 +613,8 @@ class TestPyTorchConv1d(unittest.TestCase):
         expected_dx, expected_dw, expected_db = \
             conv_backward_naive_1D(dout.numpy(), cache)
 
-        dx, dw, db, _, _, _, _, _, _, _, _ = Conv1dfftFunction.backward(ctx,
-                                                                        dout)
+        dx, dw, db, _, _, _, _, _, _, _, _, _ = Conv1dfftFunction.backward(ctx,
+                                                                           dout)
 
         self.logger.debug("expected dx: " + str(expected_dx))
         self.logger.debug("computed dx: " + str(dx))
@@ -650,7 +655,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         print("expected_dw: ", expected_dw)
         print("expected_db: ", expected_db)
 
-        dx, dw, db, _, _, _, _, _, _, _, _ = Conv1dfftFunction.backward(
+        dx, dw, db, _, _, _, _, _, _, _, _, _ = Conv1dfftFunction.backward(
             ctx, dout)
 
         # are the gradients correct
@@ -691,8 +696,8 @@ class TestPyTorchConv1d(unittest.TestCase):
         print("expected_dw: ", expected_dw)
         print("expected_db: ", expected_db)
 
-        dx, dw, db, _, _, _, _, _, _, _, _ = Conv1dfftFunction.backward(ctx,
-                                                                        dout)
+        dx, dw, db, _, _, _, _, _, _, _, _, _ = Conv1dfftFunction.backward(ctx,
+                                                                           dout)
 
         # are the gradients correct
         np.testing.assert_array_almost_equal(
@@ -891,10 +896,12 @@ class TestPyTorchConv1d(unittest.TestCase):
         result_torch = conv_fft.forward(input=x_torch)
 
         result = result_torch.detach().numpy()
-        compressed_expected_result = np.array(
-            [[[-2.25, -5.75, -2.25, 15.25, -18.25]]])
+        # compressed_expected_result = np.array(
+        #     [[[-2.25, -5.75, -2.25, 15.25, -18.25]]])
         # compressed_expected_result = np.array(
         #     [[[-4., -3.999999, -4., 16.999998, -20.]]])
+        compressed_expected_result = np.array(
+            [[[-0.35, -7.95, 0.08, 12.97, -16.2]]])
         np.testing.assert_array_almost_equal(
             x=compressed_expected_result, y=result, decimal=2, err_msg=ERR_MSG)
 
@@ -908,18 +915,21 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         # are the gradients correct
         print("accurate expected_dx: ", expected_dx)
-        approximate_dx = np.array(
-            [[[0.175, -0.275, -1.125, 0.925, 1.375, -0.775, -0.325]]])
+        # approximate_dx = np.array(
+        #     [[[0.175, -0.275, -1.125, 0.925, 1.375, -0.775, -0.325]]])
         # approximate_dx = np.array(
         #     [[[0.2, -0.3, -1.1, 0.9, 1.4, -0.8, -0.3]]])
+        approximate_dx = np.array(
+            [[[0.199, -0.285, -1.13, 0.942, 1.347, -0.738, -0.368]]])
         np.testing.assert_array_almost_equal(
             x=approximate_dx, y=x_torch.grad, decimal=3,
             err_msg="Expected approximate x is different from computed y. The "
                     "exact x (that represents dx) is: {}".format(expected_dx))
         print("accurate expected_dw: ", expected_dw)
 
-        approximate_dw = np.array([[[0.675, -0.375, -1.125]]])
+        # approximate_dw = np.array([[[0.675, -0.375, -1.125]]])
         # approximate_dw = np.array([[[0.5, -0.2, -1.3]]])
+        approximate_dw = np.array([[[0.918, -0.635, -0.867]]])
 
         np.testing.assert_array_almost_equal(
             x=approximate_dw, y=y_torch.grad, decimal=3,
@@ -978,7 +988,8 @@ class TestPyTorchConv1d(unittest.TestCase):
         x = np.array([[[1., 2., 3.]]])
         y = np.array([[[2., 1.]]])
         b = np.array([0.0])
-        expected_result = [[[3.75, 7.25]]]
+        # expected_result = [[[3.75, 7.25]]]
+        expected_result = [[[3.666667, 7.333333]]]
         conv = Conv1dfftFunction()
         result = conv.forward(
             ctx=None, input=torch.from_numpy(x), index_back=1,
@@ -1003,7 +1014,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         x = np.array([[[1., 2., 3.]]])
         y = np.array([[[2., 1.]]])
         b = np.array([0.0])
-        expected_result = [3.75, 7.25]
+        expected_result = [3.666667, 7.333333]
         conv = Conv1dfftAutograd(
             filter_value=torch.from_numpy(y), bias_value=torch.from_numpy(b),
             index_back=1)
