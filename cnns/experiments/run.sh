@@ -32,3 +32,11 @@ PYTHONPATH=../../../ CUDA_VISIBLE_DEVICES=1 nohup ~/anaconda3/bin/python fcnn_ff
 PYTHONPATH=../../../ CUDA_VISIBLE_DEVICES=2 nohup ~/anaconda3/bin/python fcnn_fft.py --conv_type=COMPRESS_INPUT_ONLY --epochs=300 --index_back=50 >> index_back_50_percent_input_compression_only-2018-09-18-15-49.txt 2>&1 &
 
 PYTHONPATH=../../../ CUDA_VISIBLE_DEVICES=3 nohup ~/anaconda3/bin/python fcnn_fft.py --conv_type=COMPRESS_INPUT_ONLY --epochs=300 --index_back=90 >> index_back_90_percent_input_compression_only-2018-09-18-15-49.txt 2>&1 &
+
+
+PYTHONPATH=../../../ CUDA_VISIBLE_DEVICES=0 nohup ~/anaconda3/bin/python fcnn_fft.py --conv_type=FFT1D --datasets=debug --epochs=300 --index_back=0 --preserve_energy=80 >> index_back_0_preserve_energy_80_percent_full_fft1D-2018-09-22-12-26.txt 2>&1;
+
+PYTHONPATH=../../../ CUDA_VISIBLE_DEVICES=0 nohup ~/anaconda3/bin/python fcnn_fft.py --conv_type=FFT1D --datasets=debug --epochs=300 --index_back=0 --preserve_energy=70 >> index_back_0_preserve_energy_70_percent_full_fft1D-2018-09-22-12-26.txt 2>&1;
+
+
+PYTHONPATH=../../../ CUDA_VISIBLE_DEVICES=1 nohup ~/anaconda3/bin/python fcnn_fft.py --conv_type=FFT1D --datasets=debug --epochs=300 --index_back=0 --preserve_energy=90 >> index_back_0_preserve_energy_90_percent_full_fft1D-2018-09-22-12-26.txt 2>&1; PYTHONPATH=../../../ CUDA_VISIBLE_DEVICES=1 nohup ~/anaconda3/bin/python fcnn_fft.py --conv_type=FFT1D --datasets=debug --epochs=300 --index_back=0 --preserve_energy=95 >> index_back_0_preserve_energy_95_percent_full_fft1D-2018-09-22-12-26.txt 2>&1; PYTHONPATH=../../../ CUDA_VISIBLE_DEVICES=1 nohup ~/anaconda3/bin/python fcnn_fft.py --conv_type=FFT1D --datasets=debug --epochs=300 --index_back=0 --preserve_energy=99 >> index_back_0_preserve_energy_99_percent_full_fft1D-2018-09-22-12-26.txt 2>&1; PYTHONPATH=../../../ CUDA_VISIBLE_DEVICES=1 nohup ~/anaconda3/bin/python fcnn_fft.py --conv_type=FFT1D --datasets=debug --epochs=300 --index_back=0 --preserve_energy=50 >> index_back_0_preserve_energy_50_percent_full_fft1D-2018-09-22-12-26.txt 2>&1; PYTHONPATH=../../../ CUDA_VISIBLE_DEVICES=1 nohup ~/anaconda3/bin/python fcnn_fft.py --conv_type=FFT1D --datasets=debug --epochs=300 --index_back=0 --preserve_energy=10 >> index_back_0_preserve_energy_10_percent_full_fft1D-2018-09-22-12-26.txt 2>&1;

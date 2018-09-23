@@ -141,9 +141,9 @@ def to_tensor(value):
     :return: a tensor representing the value, tensor with value -1 represents
     the None input
     """
-    if value:
-        return tensor([value])
-    return tensor([-1])
+    if value is None:
+        return tensor([-1])
+    return tensor([value])
 
 
 def from_tensor(tensor_item):

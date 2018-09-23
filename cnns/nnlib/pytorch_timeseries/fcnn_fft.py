@@ -46,8 +46,20 @@ data_folder = "TimeSeriesDatasets"
 ucr_path = os.path.join(dir_path, os.pardir, data_folder)
 results_folder = "results"
 
-num_epochs = 5  # 300
+num_epochs = 300  # 300
 
+# flist = ['Adiac', 'Beef', 'CBF', 'ChlorineConcentration', 'CinC_ECG_torso',
+#          'Coffee', 'Cricket_X', 'Cricket_Y', 'Cricket_Z',
+#          'DiatomSizeReduction', 'ECGFiveDays', 'FaceAll', 'FaceFour',
+#          'FacesUCR', '50words', 'FISH', 'Gun_Point', 'Haptics',
+#          'InlineSkate', 'ItalyPowerDemand', 'Lighting2', 'Lighting7', 'MALLAT',
+#          'MedicalImages', 'MoteStrain', 'NonInvasiveFatalECG_Thorax1',
+#          'NonInvasiveFatalECG_Thorax2', 'OliveOil', 'OSULeaf',
+#          'SonyAIBORobotSurface', 'SonyAIBORobotSurfaceII', 'StarLightCurves',
+#          'SwedishLeaf', 'Symbols',
+#          'synthetic_control', 'Trace', 'TwoLeadECG', 'Two_Patterns',
+#          'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
+#          'uWaveGestureLibrary_Z', 'wafer', 'WordsSynonyms', 'yoga']
 # flist = ['Adiac', 'Beef', 'CBF', 'ChlorineConcentration', 'CinC_ECG_torso',
 #          'Coffee', 'Cricket_X', 'Cricket_Y', 'Cricket_Z',
 #          'DiatomSizeReduction', 'ECGFiveDays', 'FaceAll', 'FaceFour',
@@ -113,7 +125,7 @@ parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
-parser.add_argument("-p", "--preserve_energy", default=100, type=int,
+parser.add_argument("-p", "--preserve_energy", default=80, type=int,
                     help="How many energy should be preserved in the "
                          "frequency representation of the signal? This "
                          "is the compression in the FFT domain.")
@@ -205,17 +217,20 @@ def getModelKeras(input_size, num_classes):
 
 class Conv(object):
 
-    def __init__(self, kernel_sizes, out_channels, strides, conv_pads):
+    def __init__(self, kernel_sizes, in_channels, out_channels, strides,
+                 conv_pads):
         """
         Create the convolution object from which we fetch the convolution
         operations.
 
         :param kernel_sizes: the sizes of the kernels in each conv layer.
+        :param in_channels: number of channels in the input data.
         :param out_channels: the number of filters for each conv layer.
         :param strides: the strides for the convolutions.
         :param conv_pads: padding for each convolutional layer.
         """
         self.kernel_sizes = kernel_sizes
+        self.in_channels = in_channels
         self.out_channels = out_channels
         self.strides = strides
         self.conv_pads = conv_pads
@@ -225,7 +240,7 @@ class Conv(object):
 
     def get_conv(self, index):
         if index == 0:
-            in_channels = 1
+            in_channels = self.in_channels
         else:
             in_channels = self.out_channels[index - 1]
 
@@ -243,7 +258,8 @@ class Conv(object):
                              padding=(self.conv_pads[index] // 2),
                              index_back=self.index_back,
                              use_next_power2=False,
-                             conv_name="conv"+str(index))
+                             conv_index=index,
+                             preserve_energy=self.preserve_energy)
         elif self.conv_type is ConvType.AUTOGRAD:
             return Conv1dfftAutograd(in_channels=in_channels,
                                      out_channels=self.out_channels[index],
@@ -279,13 +295,15 @@ class Conv(object):
 
 class FCNNPytorch(nn.Module):
 
-    def __init__(self, input_size, num_classes, kernel_sizes=[8, 5, 3],
+    def __init__(self, input_size, num_classes, in_channels,
+                 kernel_sizes=[8, 5, 3],
                  out_channels=[128, 256, 128], strides=[1, 1, 1]):
         """
         Create the FCNN model in PyTorch.
 
         :param input_size: the length (width) of the time series.
         :param num_classes: number of output classes.
+        :param in_channels: number of channels in the input data.
         :param kernel_sizes: the sizes of the kernels in each conv layer.
         :param out_channels: the number of filters for each conv layer.
         :param strides: the strides for the convolutions.
@@ -293,6 +311,7 @@ class FCNNPytorch(nn.Module):
         super(FCNNPytorch, self).__init__()
         self.input_size = input_size
         self.num_classes = num_classes
+        self.in_channels = in_channels
         self.kernel_sizes = kernel_sizes
         self.out_channels = out_channels
         self.strides = strides
@@ -302,8 +321,9 @@ class FCNNPytorch(nn.Module):
         # For the "same" mode for the convolution, pad the input.
         conv_pads = [kernel_size - 1 for kernel_size in kernel_sizes]
 
-        conv = Conv(kernel_sizes=kernel_sizes, out_channels=out_channels,
-                    strides=strides, conv_pads=conv_pads)
+        conv = Conv(kernel_sizes=kernel_sizes, in_channels=in_channels,
+                    out_channels=out_channels, strides=strides,
+                    conv_pads=conv_pads)
 
         index = 0
         self.conv0 = conv.get_conv(index=index)
@@ -318,6 +338,20 @@ class FCNNPytorch(nn.Module):
         self.bn2 = nn.BatchNorm1d(num_features=out_channels[index])
         self.lin = nn.Linear(out_channels[index], num_classes)
 
+    def pad_out(self, out, index):
+        """
+        Pad the output to keep the size of the processed input the same through
+        all the layers.
+
+        :param out: the output of the previous layer
+        :param index: index of the conv layer.
+        :return:
+        """
+        if self.kernel_sizes[index] % 2 == 0:
+            # If kernel size is even, add one more padding value on the right.
+            out = F.pad(out, (0, 1), "constant", 0)
+        return out
+
     def forward(self, x):
         """
         The forward pass through the network.
@@ -329,25 +363,22 @@ class FCNNPytorch(nn.Module):
         out = x
 
         # 0th layer.
-        if self.kernel_sizes[0] % 2 == 0:
-            # If kernel size is even, add one more padding value on the right.
-            out = F.pad(out, (0, 1), "constant", 0)
+        index = 0
+        out = self.pad_out(out, index)
         out = self.conv0(out)
         out = self.bn0(out)
         out = self.relu(out)
 
         # 1st layer.
-        if self.kernel_sizes[1] % 2 == 0:
-            # If kernel size is even, add one more padding value on the right.
-            out = F.pad(out, (0, 1), "constant", 0)
+        index = 1
+        out = self.pad_out(out, index)
         out = self.conv1(out)
         out = self.bn1(out)
         out = self.relu(out)
 
         # 2nd layer.
-        if self.kernel_sizes[2] % 2 == 0:
-            # If kernel size is even, add one more padding value on the right.
-            out = F.pad(out, (0, 1), "constant", 0)
+        index = 2
+        out = self.pad_out(out, index)
         out = self.conv2(out)
         out = self.bn2(out)
         out = self.relu(out)
@@ -367,16 +398,18 @@ class FCNNPytorch(nn.Module):
         return out
 
 
-def getModelPyTorch(input_size, num_classes):
+def getModelPyTorch(input_size, num_classes, in_channels):
     """
     Get the PyTorch version of the FCNN model.
 
     :param input_size: the length (width) of the time series.
     :param num_classes: number of output classes.
+    :param in_channels: number of channels in the input data.
 
     :return: the model.
     """
-    return FCNNPytorch(input_size=input_size, num_classes=num_classes)
+    return FCNNPytorch(input_size=input_size, num_classes=num_classes,
+                       in_channels=in_channels)
 
 
 def readucr(filename, data_type):
@@ -548,7 +581,7 @@ def run_keras():
                                            patience=50, min_lr=0.0001)
 
         hist = model.fit(x_train, Y_train, batch_size=batch_size,
-                         nb_epoch=num_epochs,
+                         nb_epoch=args.epochs,
                          verbose=1, validation_data=(x_test, Y_test),
                          callbacks=[reduce_lr])
 
@@ -567,7 +600,7 @@ def train(model, device, train_loader, optimizer, epoch):
     :param device: cpu or gpu.
     :param train_loader: the training dataset.
     :param optimizer: Adam, Momemntum, etc.
-    :param epoch: number of epochs.
+    :param epoch: the current epoch number.
     """
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
@@ -652,10 +685,12 @@ def main(dataset_name):
         kwargs = {}
         torch.set_default_tensor_type(torch.FloatTensor)
 
+    in_channels = None  # number of channels in the input data
     if dataset_name is "cifar10":
         num_classes = 10
         width = 32 * 32
         batch_size = 128
+        in_channels = 3  # number of channels in the input data
         train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True,
                                                      download=True,
                                                      transform=transform_train)
@@ -673,6 +708,7 @@ def main(dataset_name):
                                                   num_workers=num_workers)
 
     else:
+        in_channels = 1  # number of channels in the input data
         train_dataset = UCRDataset(dataset_name, train=True)
         batch_size = min(len(train_dataset) // 10, args.min_batch_size)
         train_loader = torch.utils.data.DataLoader(
@@ -685,7 +721,8 @@ def main(dataset_name):
         test_loader = torch.utils.data.DataLoader(
             dataset=test_dataset, batch_size=batch_size, shuffle=True, **kwargs)
 
-    model = getModelPyTorch(input_size=width, num_classes=num_classes)
+    model = getModelPyTorch(input_size=width, num_classes=num_classes,
+                            in_channels=in_channels)
     model.to(device)
 
     if optimizer_type is OptimizerType.MOMENTUM:
@@ -744,7 +781,7 @@ if __name__ == '__main__':
                                    get_log_time() + "-ucr-fcnn.log")
     HEADER = "UCR datasets,final results,hostname," + str(
         hostname) + ",timestamp," + get_log_time() + ",num_epochs," + str(
-        num_epochs) + ",index_back(%)," + str(
+        args.epochs) + ",index_back(%)," + str(
         args.index_back) + ",preserve_energy," + str(
         args.preserve_energy) + ",conv_type," + str(args.conv_type) + "\n"
     with open(additional_log_file, "a") as file:
@@ -765,7 +802,58 @@ if __name__ == '__main__':
         # flist = ["HandOutlines"]
         # flist = ["ztest"]
         # flist = ["Cricket_X"]
-        flist = ["cifar10", "ztest"]
+        # flist = ["cifar10"]
+        # flist = ['50words', 'Adiac', 'ArrowHead', 'Beef', 'BeetleFly',
+        #         'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
+        #         'CinC_ECG_torso', 'Coffee', 'Computers', 'Cricket_X',
+        #         'Cricket_Y', 'Cricket_Z', 'DiatomSizeReduction',
+        #         'DistalPhalanxOutlineAgeGroup', 'DistalPhalanxOutlineCorrect',
+        #         'DistalPhalanxTW', 'Earthquakes', 'ECG200', 'ECG5000',
+        #         'ECGFiveDays', 'ElectricDevices', 'FaceAll', 'FaceFour',
+        #         'FacesUCR', 'FISH', 'FordA', 'FordB', 'Gun_Point', 'Ham',
+        #         'HandOutlines', 'Haptics', 'Herring', 'InlineSkate',
+        #         'InsectWingbeatSound', 'ItalyPowerDemand',
+        #         'LargeKitchenAppliances', 'Lighting2', 'Lighting7', 'MALLAT',
+        #         'Meat', 'MedicalImages', 'MiddlePhalanxOutlineAgeGroup',
+        #         'MiddlePhalanxOutlineCorrect', 'MiddlePhalanxTW', 'MoteStrain',
+        #         'NonInvasiveFatalECG_Thorax1', 'NonInvasiveFatalECG_Thorax2',
+        #         'OliveOil', 'OSULeaf', 'PhalangesOutlinesCorrect', 'Phoneme',
+        #         'Plane', 'ProximalPhalanxOutlineAgeGroup',
+        #         'ProximalPhalanxOutlineCorrect', 'ProximalPhalanxTW',
+        #         'RefrigerationDevices', 'ScreenType', 'ShapeletSim',
+        #         'ShapesAll', 'SmallKitchenAppliances', 'SonyAIBORobotSurface',
+        #         'SonyAIBORobotSurfaceII', 'StarLightCurves', 'Strawberry',
+        #         'SwedishLeaf', 'Symbols', 'synthetic_control',
+        #         'ToeSegmentation1', 'ToeSegmentation2', 'Trace', 'Two_Patterns',
+        #         'TwoLeadECG', 'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
+        #         'uWaveGestureLibrary_Z', 'UWaveGestureLibraryAll', 'wafer',
+        #         'Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass', 'yoga',
+        #         'ztest']
+        flist = ['Cricket_X',
+                 'Cricket_Y', 'Cricket_Z', 'DiatomSizeReduction',
+                 'DistalPhalanxOutlineAgeGroup', 'DistalPhalanxOutlineCorrect',
+                 'DistalPhalanxTW', 'Earthquakes', 'ECG200', 'ECG5000',
+                 'ECGFiveDays', 'ElectricDevices', 'FaceAll', 'FaceFour',
+                 'FacesUCR', 'FISH', 'FordA', 'FordB', 'Gun_Point', 'Ham',
+                 'HandOutlines', 'Haptics', 'Herring', 'InlineSkate',
+                 'InsectWingbeatSound', 'ItalyPowerDemand',
+                 'LargeKitchenAppliances', 'Lighting2', 'Lighting7', 'MALLAT',
+                 'Meat', 'MedicalImages', 'MiddlePhalanxOutlineAgeGroup',
+                 'MiddlePhalanxOutlineCorrect', 'MiddlePhalanxTW', 'MoteStrain',
+                 'NonInvasiveFatalECG_Thorax1', 'NonInvasiveFatalECG_Thorax2',
+                 'OliveOil', 'OSULeaf', 'PhalangesOutlinesCorrect', 'Phoneme',
+                 'Plane', 'ProximalPhalanxOutlineAgeGroup',
+                 'ProximalPhalanxOutlineCorrect', 'ProximalPhalanxTW',
+                 'RefrigerationDevices', 'ScreenType', 'ShapeletSim',
+                 'ShapesAll', 'SmallKitchenAppliances', 'SonyAIBORobotSurface',
+                 'SonyAIBORobotSurfaceII', 'StarLightCurves', 'Strawberry',
+                 'SwedishLeaf', 'Symbols', 'synthetic_control',
+                 'ToeSegmentation1', 'ToeSegmentation2', 'Trace',
+                 'Two_Patterns',
+                 'TwoLeadECG', 'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
+                 'uWaveGestureLibrary_Z', 'UWaveGestureLibraryAll', 'wafer',
+                 'Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass', 'yoga',
+                 'ztest']
     else:
         raise AttributeError("Unknown datasets: ", args.datasets)
 
