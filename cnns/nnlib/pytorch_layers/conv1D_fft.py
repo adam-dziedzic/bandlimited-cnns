@@ -4,9 +4,9 @@ Custom FFT based convolution that can rely on the autograd
 all differentiable Tensor operations in pytorch).
 """
 import logging
+import math
 import sys
 
-import math
 import numpy as np
 import torch
 from torch import tensor
@@ -182,9 +182,6 @@ class Conv1dfftFunction(torch.autograd.Function):
             # than the one in time domain.
             half_fft_compressed_size = out_size // 2 + 1
 
-        # Complex numbers are represented as the pair of numbers in the last
-        # dimension so we have to narrow the length of the last but one
-        # dimension (-2).
         full_energy, _ = get_full_energy_simple(xfft)
 
         percent_retained_signal = 100
@@ -196,7 +193,8 @@ class Conv1dfftFunction(torch.autograd.Function):
             yfft = yfft[:, :, :half_fft_compressed_size, :]
 
         preserved_energy, _ = get_full_energy_simple(xfft)
-        msg = "conv_name," + "conv"+str(conv_index) + ",index_back_fft," + str(
+        msg = "conv_name," + "conv" + str(
+            conv_index) + ",index_back_fft," + str(
             index_back_fft) + ",raw signal length," + str(
             W) + ",init_half_fft_size," + str(
             init_half_fft_size) + ",percent of preserved energy," + str(
@@ -735,11 +733,14 @@ class Conv1dfftSimple(Conv1dfftAutograd):
 
 class Conv1dfftSimpleForLoop(Conv1dfftAutograd):
 
-    def __init__(self, in_channels=None, out_channels=None,
-                 kernel_size=None,
+    def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
                  stride=None, padding=None, bias=True, index_back=None,
-                 out_size=None, filter_value=None, bias_value=None):
+                 preserve_energy=None, out_size=None, filter_value=None,
+                 bias_value=None, conv_index=None):
         """
+        A simple implementation of 1D convolution with a single for loop where
+        we iterate over the input signals and for each of them convolve it with
+        all the filters.
 
         :param index_back: this is changed. This is the percentage from 0 to 100
         of the size of the input signal. This percentage of the input signal is
@@ -750,10 +751,9 @@ class Conv1dfftSimpleForLoop(Conv1dfftAutograd):
         super(Conv1dfftSimpleForLoop, self).__init__(
             in_channels=in_channels, out_channels=out_channels,
             kernel_size=kernel_size, stride=stride, padding=padding,
-            bias=bias,
-            index_back=index_back, out_size=out_size,
-            filter_value=filter_value,
-            bias_value=bias_value)
+            bias=bias, index_back=index_back, preserve_energy=preserve_energy,
+            out_size=out_size, filter_value=filter_value, bias_value=bias_value,
+            conv_index=conv_index)
 
     def forward(self, input):
         """
@@ -791,10 +791,42 @@ class Conv1dfftSimpleForLoop(Conv1dfftAutograd):
         filter = torch_pad(self.filter, (0, input_size - 1))
         filter = torch.rfft(filter, 1)
 
+        # Change from the percentage of how many coefficient should be discarded
+        # to the the actual number of coefficients to discard.
         if self.index_back is not None and self.index_back > 0:
-            index_back = int(input_size * (self.index_back / 100) // 2) + 1
-            input = input[..., :-index_back, :]
-            filter = filter[..., :-index_back, :]
+            if self.preserve_energy is not None and self.preserve_energy < 100:
+                raise AttributeError(
+                    "Choose either preserve_energy or index_back or output size.")
+            self.index_back = int(input.shape[-2] * (self.index_back / 100)) + 1
+
+        if self.preserve_energy is not None and self.preserve_energy < 100:
+            self.index_back = preserve_energy_index_back(input,
+                                                         self.preserve_energy)
+
+        if self.index_back is not None and self.index_back > 0:
+            # At least 1 frequency coefficient has to remain.
+            init_half_fft_size = input.shape[-2]
+            self.index_back = min(init_half_fft_size - 1, self.index_back)
+            full_energy, _ = get_full_energy_simple(x=input)
+            input = input[..., :-self.index_back, :]
+            preserved_energy, _ = get_full_energy_simple(x=input)
+            filter = filter[..., :-self.index_back, :]
+            fft_size = input.shape[-2]
+
+            percent_retained_signal = (init_half_fft_size - self.index_back) / (
+                        init_half_fft_size * 100)
+            msg = "conv_name," + "conv" + str(
+                self.conv_index) + ",index_back," + str(
+                self.index_back) + ",fft_size," + str(
+                fft_size) + ",raw signal length," + str(
+                input_size) + ",init_half_fft_size," + str(
+                init_half_fft_size) + ",percent of preserved energy," + str(
+                preserved_energy / full_energy * 100) + (
+                      ",percent of retained signal,") + str(
+                percent_retained_signal)
+            print(msg)
+            with open(additional_log_file, "a") as file:
+                file.write(msg + "\n")
 
         output = torch.zeros([batch_num, filter_num, out_size],
                              dtype=input.dtype, device=input.device)
@@ -808,6 +840,8 @@ class Conv1dfftSimpleForLoop(Conv1dfftAutograd):
             out = torch.irfft(out, 1, signal_sizes=(fft_size,))
             if out.shape[-1] > out_size:
                 out = out[..., :out_size]
+            elif out.shape[-1] < out_size:
+                out = torch_pad(out, (0, out_size - out.shape[-1]))
 
             """
             Sum up the elements from computed output maps for each input 
@@ -830,15 +864,17 @@ class Conv1dfftSimpleForLoop(Conv1dfftAutograd):
 
 class Conv1dfftCompressSignalOnly(Conv1dfftAutograd):
 
-    def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
+    def __init__(self, in_channels=None, out_channels=None,
+                 kernel_size=None,
                  stride=None, padding=None, bias=True, index_back=None,
                  preserve_energy=100, out_size=None, filter_value=None,
-                 bias_value=None):
+                 bias_value=None, conv_index=None):
         super(Conv1dfftCompressSignalOnly, self).__init__(
             in_channels=in_channels, out_channels=out_channels,
-            kernel_size=kernel_size, stride=stride, padding=padding, bias=bias,
-            index_back=index_back, preserve_energy=preserve_energy,
-            out_size=out_size, filter_value=filter_value, bias_value=bias_value)
+            kernel_size=kernel_size, stride=stride, padding=padding,
+            bias=bias, index_back=index_back, preserve_energy=preserve_energy,
+            out_size=out_size, filter_value=filter_value, bias_value=bias_value,
+            conv_index=conv_index)
 
     def forward(self, input):
         """
@@ -890,29 +926,54 @@ class Conv1dfftCompressSignalOnly(Conv1dfftAutograd):
         # representation) in terms of the length of the signal in the frequency
         # domain.
         input = torch.rfft(input, 1)
+        init_half_fft_size = input.shape[-2]
 
         out_size = input_size - self.kernel_size + 1
 
-        # Change from the percentage of how many coefficient should be discarded
-        # to the the actual number of coefficients to discard.
+        # Change from the percentage of how many coefficient should be
+        # discarded to the the actual number of coefficients to discard.
         if self.index_back is not None and self.index_back > 0:
             if self.preserve_energy is not None and self.preserve_energy < 100:
                 raise AttributeError(
                     "Choose either preserve_energy or index_back")
-            self.index_back = int(input.shape[-2] * (self.index_back / 100)) + 1
+            # The index back has to be at least one coefficient removed
+            # (thus: + 1)
+            self.index_back = int(
+                input.shape[-2] * (self.index_back / 100)) + 1
 
-        if self.preserve_energy < 100:
-            self.index_back = preserve_energy_index_back(input,
-                                                         self.preserve_energy)
+        if self.preserve_energy is not None and self.preserve_energy < 100:
+            self.index_back = preserve_energy_index_back(
+                input, self.preserve_energy)
 
         if self.index_back is not None and self.index_back > 0:
-            # The index back has to be a least one coefficient (thus: + 1), and
-            # this is complex representation in the last dimension, so the
-            # length of the signal is the last by one dimension.
+            # At least as many frequency coefficient has to remain as the filter
+            # size.
+            self.index_back = min(input.shape[-2] - filter_size,
+                                  self.index_back)
+            # This is complex representation in the last dimension, so the
+            # length of the signal is the last but one dimension.
+            full_energy, _ = get_full_energy_simple(x=input)
             input = input[..., :-self.index_back, :]
-            # Estimate the size of initial signal before fft if the outcome of
-            # the fft would be the current input value.
-            fft_size = (input.shape[-2] - 1) * 2
+            preserved_energy, _ = get_full_energy_simple(x=input)
+
+            # Estimate the size of the initial signal before fft if the
+            # outcome of the fft would be the current input value.
+            # We need the size of fft be at least the filter size.
+            fft_size = max((input.shape[-2] - 1) * 2, filter_size)
+            percent_retained_signal = (init_half_fft_size - self.index_back) / (
+                        init_half_fft_size * 100)
+            msg = "conv_name," + "conv" + str(
+                self.conv_index) + ",index_back," + str(
+                self.index_back) + ",fft_size," + str(
+                fft_size) + ",raw signal length," + str(
+                input_size) + ",init_half_fft_size," + str(
+                init_half_fft_size) + ",percent of preserved energy," + str(
+                preserved_energy / full_energy * 100) + (
+                      ",percent of retained signal,") + str(
+                percent_retained_signal)
+            print(msg)
+            with open(additional_log_file, "a") as file:
+                file.write(msg + "\n")
 
         # Pad and transform the filters.
         filter = torch_pad(self.filter, (0, fft_size - filter_size))

@@ -864,6 +864,8 @@ if __name__ == '__main__':
     print("flist: ", flist)
     for dataset_name in flist:
         print("Dataset: ", dataset_name)
+        with open(additional_log_file, "a") as file:
+            file.write(dataset_name + "\n")
         main(dataset_name=dataset_name)
 
     print("total elapsed time (sec): ", time.time() - start_time)

@@ -368,18 +368,71 @@ class TestPyTorchConv1d(unittest.TestCase):
         # get the expected results from numpy correlate
         expected_result_numpy = np.correlate(x[0, 0, :], y[0, 0, :],
                                              mode="valid")
+        expected_result_tensor = tensor([[expected_result_numpy]],
+                                        dtype=torch.float32)
         print("expected_result_numpy: ", expected_result_numpy)
 
         for preserve_energy in [100., 99.5, 99.1, 99.0, 97., 96., 95., 90.,
-                                80.]:
+                                80., 10.]:
             conv = Conv1dfft(filter_value=torch.from_numpy(y),
                              bias_value=torch.from_numpy(b),
                              preserve_energy=preserve_energy)
             result = conv.forward(input=torch.from_numpy(x))
             print("actual result: ", result)
 
-            expected_result_tensor = tensor([[expected_result_numpy]],
-                                            dtype=torch.float32)
+            result_tensor = tensor(result, dtype=torch.float32)
+            print("absolute divergence for preserved energy {} is {}".format(
+                preserve_energy, torch.sum(
+                    torch.abs(result_tensor - expected_result_tensor),
+                    dim=-1).item()))
+
+    def test_FunctionForwardCompressionSignalOnlyPreserveEnergy(self):
+        x = np.array([[[1., 2., 3., 4., 5., 6., 7., 8.]]])
+        y = np.array([[[2., 1.]]])
+        b = np.array([0.0])
+        # get the expected results from numpy correlate
+        expected_result_numpy = np.correlate(x[0, 0, :], y[0, 0, :],
+                                             mode="valid")
+        expected_result_tensor = tensor([[expected_result_numpy]],
+                                        dtype=torch.float32)
+        print("expected_result_numpy: ", expected_result_numpy)
+
+        # preserve_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 90., 80., 10.]
+        preserve_energies = [50.0]
+        for preserve_energy in preserve_energies:
+            conv = Conv1dfftCompressSignalOnly(filter_value=torch.from_numpy(y),
+                                               bias_value=torch.from_numpy(b),
+                                               preserve_energy=preserve_energy)
+            result = conv.forward(input=torch.from_numpy(x))
+            print("actual result: ", result)
+
+            result_tensor = tensor(result, dtype=torch.float32)
+            print("absolute divergence for preserved energy {} is {}".format(
+                preserve_energy, torch.sum(
+                    torch.abs(result_tensor - expected_result_tensor),
+                    dim=-1).item()))
+
+    def test_FunctionForwardCompressionConvSimpleForLoopPreserveEnergy(self):
+        x = np.array([[[1., 2., 3., 4., 5., 6., 7., 8.]]])
+        y = np.array([[[2., 1.]]])
+        b = np.array([0.0])
+        # get the expected results from numpy correlate
+        expected_result_numpy = np.correlate(x[0, 0, :], y[0, 0, :],
+                                             mode="valid")
+        expected_result_tensor = tensor([[expected_result_numpy]],
+                                        dtype=torch.float32)
+        print("expected_result_numpy: ", expected_result_numpy)
+
+        preserve_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 90.,
+                             80., 10.]
+        # preserve_energies = [50.0]
+        for preserve_energy in preserve_energies:
+            conv = Conv1dfftSimpleForLoop(filter_value=torch.from_numpy(y),
+                                          bias_value=torch.from_numpy(b),
+                                          preserve_energy=preserve_energy)
+            result = conv.forward(input=torch.from_numpy(x))
+            print("actual result: ", result)
+
             result_tensor = tensor(result, dtype=torch.float32)
             print("absolute divergence for preserved energy {} is {}".format(
                 preserve_energy, torch.sum(
