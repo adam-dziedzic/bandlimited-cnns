@@ -387,6 +387,8 @@ class TestPyTorchConv1d(unittest.TestCase):
                     dim=-1).item()))
 
     def test_FunctionForwardCompressionSignalOnlyPreserveEnergy(self):
+        # x = np.array([[[1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13.,
+        #                 14., 15., 16., 17., 18., 19., 20.]]])
         x = np.array([[[1., 2., 3., 4., 5., 6., 7., 8.]]])
         y = np.array([[[2., 1.]]])
         b = np.array([0.0])
@@ -397,12 +399,14 @@ class TestPyTorchConv1d(unittest.TestCase):
                                         dtype=torch.float32)
         print("expected_result_numpy: ", expected_result_numpy)
 
-        # preserve_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 90., 80., 10.]
-        preserve_energies = [50.0]
+        preserve_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 90., 80.,
+                             10., 1.]
+        # preserve_energies = [50.0]
         for preserve_energy in preserve_energies:
             conv = Conv1dfftCompressSignalOnly(filter_value=torch.from_numpy(y),
                                                bias_value=torch.from_numpy(b),
-                                               preserve_energy=preserve_energy)
+                                               preserve_energy=preserve_energy,
+                                               use_next_power2=True)
             result = conv.forward(input=torch.from_numpy(x))
             print("actual result: ", result)
 
@@ -429,7 +433,9 @@ class TestPyTorchConv1d(unittest.TestCase):
         for preserve_energy in preserve_energies:
             conv = Conv1dfftSimpleForLoop(filter_value=torch.from_numpy(y),
                                           bias_value=torch.from_numpy(b),
-                                          preserve_energy=preserve_energy)
+                                          preserve_energy=preserve_energy,
+                                          use_next_power2=True,
+                                          is_complex_pad=True)
             result = conv.forward(input=torch.from_numpy(x))
             print("actual result: ", result)
 
