@@ -13,6 +13,7 @@ from torch import tensor
 from torch.nn import Module
 from torch.nn.functional import pad as torch_pad
 from torch.nn.parameter import Parameter
+from memory_profiler import profile
 
 from cnns.nnlib.pytorch_layers.pytorch_utils import complex_pad_simple
 from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_fft_signals
@@ -41,6 +42,7 @@ class Conv1dfftFunction(torch.autograd.Function):
     """
 
     @staticmethod
+    # @profile
     def forward(ctx, input, filter, bias=None, padding=None, stride=None,
                 index_back=None, preserve_energy=None, out_size=None,
                 signal_ndim=1, use_next_power2=False, is_manual=tensor([0]),
@@ -209,7 +211,10 @@ class Conv1dfftFunction(torch.autograd.Function):
             yfft = yfft[:, :, :half_fft_compressed_size, :]
 
         if is_debug is True:
-            percent_retained_signal = half_fft_compressed_size / init_half_fft_size * 100
+            if half_fft_compressed_size is None:
+                percent_retained_signal = 100
+            else:
+                percent_retained_signal = half_fft_compressed_size / init_half_fft_size * 100
             preserved_energy, _ = get_full_energy_simple(xfft)
             msg = "conv_name," + "conv" + str(
                 conv_index) + ",index_back_fft," + str(

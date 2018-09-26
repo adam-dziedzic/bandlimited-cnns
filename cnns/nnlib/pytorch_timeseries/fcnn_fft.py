@@ -27,7 +27,7 @@ from torch.nn.functional import log_softmax
 from torch.optim.lr_scheduler import \
     ReduceLROnPlateau as ReduceLROnPlateauPyTorch
 from torch.utils.data import Dataset
-from torchvision.transforms import transforms
+from torchvision import transforms
 
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfft
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftAutograd
@@ -43,7 +43,8 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 print("current working directory: ", dir_path)
 
 data_folder = "TimeSeriesDatasets"
-ucr_path = os.path.join(dir_path, os.pardir, data_folder)
+# ucr_path = os.path.join(dir_path, os.pardir, data_folder)
+ucr_path = os.path.join(os.pardir, data_folder)
 results_folder = "results"
 
 num_epochs = 300  # 300
@@ -838,7 +839,9 @@ if __name__ == '__main__':
         #         'uWaveGestureLibrary_Z', 'UWaveGestureLibraryAll', 'wafer',
         #         'Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass', 'yoga',
         #         'ztest']
-        flist = ['Adiac', 'Cricket_X',
+        flist = ['ArrowHead', 'Beef', 'BeetleFly',
+                 'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
+                 'CinC_ECG_torso', 'Coffee', 'Computers', 'Cricket_X',
                  'Cricket_Y', 'Cricket_Z', 'DiatomSizeReduction',
                  'DistalPhalanxOutlineAgeGroup', 'DistalPhalanxOutlineCorrect',
                  'DistalPhalanxTW', 'Earthquakes', 'ECG200', 'ECG5000',
