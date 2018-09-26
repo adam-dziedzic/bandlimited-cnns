@@ -103,6 +103,9 @@ parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
                     help='SGD momentum (default: 0.5)')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='disables CUDA training')
+parser.add_argument('--compress_filter', default=False,
+                    help='compress the filters for fft based convolution or '
+                         'only the input signals')
 parser.add_argument('--seed', type=int, default=31, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--log-interval', type=int, default=1, metavar='N',
@@ -218,7 +221,7 @@ def getModelKeras(input_size, num_classes):
 class Conv(object):
 
     def __init__(self, kernel_sizes, in_channels, out_channels, strides,
-                 conv_pads):
+                 conv_pads, is_debug):
         """
         Create the convolution object from which we fetch the convolution
         operations.
@@ -228,6 +231,7 @@ class Conv(object):
         :param out_channels: the number of filters for each conv layer.
         :param strides: the strides for the convolutions.
         :param conv_pads: padding for each convolutional layer.
+        :param is_debug: is the debug mode execution?
         """
         self.kernel_sizes = kernel_sizes
         self.in_channels = in_channels
@@ -237,6 +241,8 @@ class Conv(object):
         self.conv_type = ConvType[args.conv_type]
         self.index_back = args.index_back
         self.preserve_energy = args.preserve_energy
+        self.is_debug = args.is_deubg
+        self.compress_filter = args.compress_filter
 
     def get_conv(self, index):
         if index == 0:
@@ -259,7 +265,9 @@ class Conv(object):
                              index_back=self.index_back,
                              use_next_power2=False,
                              conv_index=index,
-                             preserve_energy=self.preserve_energy)
+                             preserve_energy=self.preserve_energy,
+                             is_debug=self.is_debug,
+                             compress_filter=self.compress_filter)
         elif self.conv_type is ConvType.AUTOGRAD:
             return Conv1dfftAutograd(in_channels=in_channels,
                                      out_channels=self.out_channels[index],
