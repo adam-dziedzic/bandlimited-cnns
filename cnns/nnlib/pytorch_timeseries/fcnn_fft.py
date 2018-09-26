@@ -136,7 +136,7 @@ parser.add_argument("-b", "--mem_test", default=False, type=bool,
                     help="is it the memory test")
 parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
                     help="should the data augmentation be applied")
-parser.add_argument("-g", "--is_debug", default=True, type=bool,
+parser.add_argument("-g", "--is_debug", default=False, type=bool,
                     help="is it the debug mode execution")
 parser.add_argument("-c", "--conv_type", default="FFT1D",
                     # "FFT1D", "STANDARD". "AUTOGRAD", "SIMPLE_FFT"
@@ -241,7 +241,7 @@ class Conv(object):
         self.conv_type = ConvType[args.conv_type]
         self.index_back = args.index_back
         self.preserve_energy = args.preserve_energy
-        self.is_debug = args.is_debug
+        self.is_debug = is_debug
         self.compress_filter = args.compress_filter
 
     def get_conv(self, index):

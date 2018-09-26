@@ -202,15 +202,14 @@ class Conv1dfftFunction(torch.autograd.Function):
         yfft = torch.rfft(padded_filter, signal_ndim=signal_ndim,
                           onesided=True)
 
-        percent_retained_signal = 100
         if half_fft_compressed_size is not None:
-            percent_retained_signal = half_fft_compressed_size / init_half_fft_size * 100
             # xfft = xfft.narrow(dim=-2, start=0, length=half_fft_compressed_size)
             xfft = xfft[:, :, :half_fft_compressed_size, :]
             # yfft = yfft.narrow(dim=-2, start=0, length=half_fft_compressed_size)
             yfft = yfft[:, :, :half_fft_compressed_size, :]
 
         if is_debug is True:
+            percent_retained_signal = half_fft_compressed_size / init_half_fft_size * 100
             preserved_energy, _ = get_full_energy_simple(xfft)
             msg = "conv_name," + "conv" + str(
                 conv_index) + ",index_back_fft," + str(
