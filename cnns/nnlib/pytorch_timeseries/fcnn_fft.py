@@ -60,18 +60,18 @@ num_epochs = 300  # 300
 #          'synthetic_control', 'Trace', 'TwoLeadECG', 'Two_Patterns',
 #          'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
 #          'uWaveGestureLibrary_Z', 'wafer', 'WordsSynonyms', 'yoga']
-# flist = ['Adiac', 'Beef', 'CBF', 'ChlorineConcentration', 'CinC_ECG_torso',
-#          'Coffee', 'Cricket_X', 'Cricket_Y', 'Cricket_Z',
-#          'DiatomSizeReduction', 'ECGFiveDays', 'FaceAll', 'FaceFour',
-#          'FacesUCR', '50words', 'FISH', 'Gun_Point', 'Haptics',
-#          'InlineSkate', 'ItalyPowerDemand', 'Lighting2', 'Lighting7', 'MALLAT',
-#          'MedicalImages', 'MoteStrain', 'NonInvasiveFatalECG_Thorax1',
-#          'NonInvasiveFatalECG_Thorax2', 'OliveOil', 'OSULeaf',
-#          'SonyAIBORobotSurface', 'SonyAIBORobotSurfaceII', 'StarLightCurves',
-#          'SwedishLeaf', 'Symbols',
-#          'synthetic_control', 'Trace', 'TwoLeadECG', 'Two_Patterns',
-#          'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
-#          'uWaveGestureLibrary_Z', 'wafer', 'WordsSynonyms', 'yoga']
+flist = ['Adiac', 'Beef', 'CBF', 'ChlorineConcentration', 'CinC_ECG_torso',
+         'Coffee', 'Cricket_X', 'Cricket_Y', 'Cricket_Z',
+         'DiatomSizeReduction', 'ECGFiveDays', 'FaceAll', 'FaceFour',
+         'FacesUCR', '50words', 'FISH', 'Gun_Point', 'Haptics',
+         'InlineSkate', 'ItalyPowerDemand', 'Lighting2', 'Lighting7', 'MALLAT',
+         'MedicalImages', 'MoteStrain', 'NonInvasiveFatalECG_Thorax1',
+         'NonInvasiveFatalECG_Thorax2', 'OliveOil', 'OSULeaf',
+         'SonyAIBORobotSurface', 'SonyAIBORobotSurfaceII', 'StarLightCurves',
+         'SwedishLeaf', 'Symbols',
+         'synthetic_control', 'Trace', 'TwoLeadECG', 'Two_Patterns',
+         'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
+         'uWaveGestureLibrary_Z', 'wafer', 'WordsSynonyms', 'yoga']
 # flist = ['Adiac', 'synthetic_control', "Coffee"]
 # flist = ["Coffee"]
 # flist = ["ztest"]
@@ -136,7 +136,7 @@ parser.add_argument("-b", "--mem_test", default=False, type=bool,
                     help="is it the memory test")
 parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
                     help="should the data augmentation be applied")
-parser.add_argument("-g", "--is_debug", default=False, type=bool,
+parser.add_argument("-g", "--is_debug", default=True, type=bool,
                     help="is it the debug mode execution")
 parser.add_argument("-c", "--conv_type", default="FFT1D",
                     # "FFT1D", "STANDARD". "AUTOGRAD", "SIMPLE_FFT"
@@ -837,7 +837,7 @@ if __name__ == '__main__':
         #         'uWaveGestureLibrary_Z', 'UWaveGestureLibraryAll', 'wafer',
         #         'Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass', 'yoga',
         #         'ztest']
-        flist = ['Cricket_X',
+        flist = ['Adiac', 'Cricket_X',
                  'Cricket_Y', 'Cricket_Z', 'DiatomSizeReduction',
                  'DistalPhalanxOutlineAgeGroup', 'DistalPhalanxOutlineCorrect',
                  'DistalPhalanxTW', 'Earthquakes', 'ECG200', 'ECG5000',

@@ -1,7 +1,8 @@
 import logging
+import unittest
+
 import numpy as np
 import torch
-import unittest
 from scipy import stats
 from torch import tensor
 
@@ -463,16 +464,83 @@ class TestPyTorchConv1d(unittest.TestCase):
             conv = Conv1dfft(filter_value=torch.from_numpy(y),
                              bias_value=torch.from_numpy(b),
                              preserve_energy=preserve_energy,
-                             is_debug=True, compress_filter=False,
+                             is_debug=True, compress_filter=True,
                              use_next_power2=False)
             result = conv.forward(input=torch.from_numpy(x))
             # print("actual result: ", result)
 
             result_tensor = tensor(result, dtype=torch.float32)
-            print("absolute divergence for preserved energy,{},is,{},stop".format(
-                preserve_energy, torch.sum(
-                    torch.abs(result_tensor - expected_result_tensor),
-                    dim=-1).item()))
+            print(
+                "absolute divergence for preserved energy,{},is,{},stop".format(
+                    preserve_energy, torch.sum(
+                        torch.abs(result_tensor - expected_result_tensor),
+                        dim=-1).item()))
+
+    def test_FunctionForwardCompressionConvFFTPreserveEnergyAdiac(self):
+        x = np.array([[[1.598, 1.5994, 1.5705, 1.5505, 1.5074, 1.4343, 1.369,
+                        1.3053, 1.2103, 1.1167, 1.024, 0.92598, 0.82811,
+                        0.73922, 0.64305, 0.55643, 0.46295, 0.36958, 0.27843,
+                        0.18583, 0.095532, 0.010646, -0.080856, -0.16555,
+                        -0.24349, -0.33543, -0.42611, -0.49749, -0.56685,
+                        -0.64986, -0.73225, -0.7778, -0.84298, -0.9173,
+                        -0.98797, -1.055, -1.0968, -1.1471, -1.1984, -1.2432,
+                        -1.2816, -1.3126, -1.3357, -1.3511, -1.3769, -1.3879,
+                        -1.3769, -1.3571, -1.3296, -1.2937, -1.2577, -1.2304,
+                        -1.1742, -1.1142, -1.072, -1.0068, -0.94893, -0.87017,
+                        -0.79017, -0.72451, -0.64284, -0.59163, -0.52139,
+                        -0.43063, -0.35085, -0.26986, -0.17364, -0.089113,
+                        -0.0039203, 0.085453, 0.17518, 0.26706, 0.36297,
+                        0.45238, 0.54911, 0.64982, 0.74624, 0.84566, 0.94633,
+                        1.0457, 1.1463, 1.2424, 1.344, 1.4418, 1.5407, 1.6241,
+                        1.6696, 1.6852, 1.6967, 1.6975, 1.6874, 1.6385, 1.5737,
+                        1.4786, 1.3769, 1.2766, 1.177, 1.0777, 0.9792, 0.88053,
+                        0.77793, 0.68164, 0.59043, 0.49275, 0.40434, 0.30859,
+                        0.21352, 0.12268, 0.037603, -0.052602, -0.13751,
+                        -0.2204, -0.31556, -0.39461, -0.44608, -0.53344,
+                        -0.60286, -0.67341, -0.73761, -0.81903, -0.88526,
+                        -0.95008, -1.0026, -1.063, -1.1252, -1.1658, -1.2043,
+                        -1.2485, -1.2738, -1.2844, -1.2733, -1.2867, -1.2919,
+                        -1.2886, -1.2777, -1.2581, -1.2314, -1.1973, -1.1563,
+                        -1.1105, -1.0845, -1.0258, -0.96255, -0.89507, -0.84781,
+                        -0.77254, -0.69457, -0.632, -0.55122, -0.48459,
+                        -0.40868, -0.32442, -0.24745, -0.16365, -0.076913,
+                        0.0088012, 0.097274, 0.1859, 0.284, 0.38121, 0.46303,
+                        0.55693, 0.65097, 0.7382, 0.83474, 0.92994, 1.0249,
+                        1.1209, 1.2172, 1.3125, 1.4029, 1.481, 1.521, 1.5642,
+                        1.5709, 1.5929]]])
+        print("length of the input signal: ", x.shape[-1])
+        y = np.array(
+            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
+        y = stats.zscore(y)
+        y = np.array([[y]])
+        print("length of the filter: ", y.shape[-1])
+        b = np.array([0.0])
+        # get the expected results from numpy correlate
+        expected_result_numpy = np.correlate(x[0, 0, :], y[0, 0, :],
+                                             mode="valid")
+        expected_result_tensor = tensor([[expected_result_numpy]],
+                                        dtype=torch.float32)
+        # print("expected_result_numpy: ", expected_result_numpy)
+
+        # preserved_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 85.,
+        #                       80., 70., 60., 50., 40., 10.]
+        preserved_energies = [90., 50.]
+
+        for preserve_energy in preserved_energies:
+            conv = Conv1dfft(filter_value=torch.from_numpy(y),
+                             bias_value=torch.from_numpy(b),
+                             preserve_energy=preserve_energy,
+                             is_debug=True, compress_filter=True,
+                             use_next_power2=False)
+            result = conv.forward(input=torch.from_numpy(x))
+            # print("actual result: ", result)
+
+            result_tensor = tensor(result, dtype=torch.float32)
+            print(
+                "absolute divergence for preserved energy,{},is,{},stop".format(
+                    preserve_energy, torch.sum(
+                        torch.abs(result_tensor - expected_result_tensor),
+                        dim=-1).item()))
 
     def test_FunctionForwardCompressionSignalOnlyPreserveEnergy(self):
         # x = np.array([[[1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12.,

@@ -462,7 +462,7 @@ class Conv1dfftAutograd(Module):
                  index_back=None, preserve_energy=100, out_size=None,
                  filter_value=None, bias_value=None, use_next_power2=False,
                  is_manual=tensor([0]), conv_index=None, is_complex_pad=True,
-                 is_debug=True, compress_filter=False):
+                 is_debug=True, compress_filter=True):
         """
         1D convolution using FFT implemented fully in PyTorch.
 
@@ -652,7 +652,7 @@ class Conv1dfft(Conv1dfftAutograd):
                  stride=None, padding=None, bias=True, index_back=None,
                  out_size=None, filter_value=None, bias_value=None,
                  use_next_power2=False, conv_index=None, preserve_energy=None,
-                 is_debug=False, compress_filter=False):
+                 is_debug=True, compress_filter=True):
         super(Conv1dfft, self).__init__(
             in_channels=in_channels, out_channels=out_channels,
             kernel_size=kernel_size, stride=stride, padding=padding, bias=bias,
