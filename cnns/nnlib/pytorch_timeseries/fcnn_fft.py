@@ -128,7 +128,7 @@ parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
-parser.add_argument("-p", "--preserve_energy", default=None, type=int,
+parser.add_argument("-p", "--preserve_energy", default=None, type=float,
                     help="How many energy should be preserved in the "
                          "frequency representation of the signal? This "
                          "is the compression in the FFT domain.")
