@@ -453,7 +453,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             for ff in range(F):
                 db[ff] += torch.sum(dout[:, ff, :])
 
-        return dx, dw, db, None, None, None, None, None, None, None, None, None, None
+        return dx, dw, db, None, None, None, None, None, None, None, None, None, None, None
 
 
 class Conv1dfftAutograd(Module):

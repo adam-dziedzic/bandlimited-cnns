@@ -60,18 +60,18 @@ num_epochs = 300  # 300
 #          'synthetic_control', 'Trace', 'TwoLeadECG', 'Two_Patterns',
 #          'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
 #          'uWaveGestureLibrary_Z', 'wafer', 'WordsSynonyms', 'yoga']
-flist = ['Adiac', 'Beef', 'CBF', 'ChlorineConcentration', 'CinC_ECG_torso',
-         'Coffee', 'Cricket_X', 'Cricket_Y', 'Cricket_Z',
-         'DiatomSizeReduction', 'ECGFiveDays', 'FaceAll', 'FaceFour',
-         'FacesUCR', '50words', 'FISH', 'Gun_Point', 'Haptics',
-         'InlineSkate', 'ItalyPowerDemand', 'Lighting2', 'Lighting7', 'MALLAT',
-         'MedicalImages', 'MoteStrain', 'NonInvasiveFatalECG_Thorax1',
-         'NonInvasiveFatalECG_Thorax2', 'OliveOil', 'OSULeaf',
-         'SonyAIBORobotSurface', 'SonyAIBORobotSurfaceII', 'StarLightCurves',
-         'SwedishLeaf', 'Symbols',
-         'synthetic_control', 'Trace', 'TwoLeadECG', 'Two_Patterns',
-         'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
-         'uWaveGestureLibrary_Z', 'wafer', 'WordsSynonyms', 'yoga']
+# flist = ['Adiac', 'Beef', 'CBF', 'ChlorineConcentration', 'CinC_ECG_torso',
+#          'Coffee', 'Cricket_X', 'Cricket_Y', 'Cricket_Z',
+#          'DiatomSizeReduction', 'ECGFiveDays', 'FaceAll', 'FaceFour',
+#          'FacesUCR', '50words', 'FISH', 'Gun_Point', 'Haptics',
+#          'InlineSkate', 'ItalyPowerDemand', 'Lighting2', 'Lighting7', 'MALLAT',
+#          'MedicalImages', 'MoteStrain', 'NonInvasiveFatalECG_Thorax1',
+#          'NonInvasiveFatalECG_Thorax2', 'OliveOil', 'OSULeaf',
+#          'SonyAIBORobotSurface', 'SonyAIBORobotSurfaceII', 'StarLightCurves',
+#          'SwedishLeaf', 'Symbols',
+#          'synthetic_control', 'Trace', 'TwoLeadECG', 'Two_Patterns',
+#          'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
+#          'uWaveGestureLibrary_Z', 'wafer', 'WordsSynonyms', 'yoga']
 # flist = ['Adiac', 'synthetic_control', "Coffee"]
 # flist = ["Coffee"]
 # flist = ["ztest"]
@@ -128,7 +128,7 @@ parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
-parser.add_argument("-p", "--preserve_energy", default=80, type=int,
+parser.add_argument("-p", "--preserve_energy", default=None, type=int,
                     help="How many energy should be preserved in the "
                          "frequency representation of the signal? This "
                          "is the compression in the FFT domain.")
@@ -221,7 +221,7 @@ def getModelKeras(input_size, num_classes):
 class Conv(object):
 
     def __init__(self, kernel_sizes, in_channels, out_channels, strides,
-                 conv_pads, is_debug):
+                 conv_pads, is_debug=True):
         """
         Create the convolution object from which we fetch the convolution
         operations.
@@ -241,7 +241,7 @@ class Conv(object):
         self.conv_type = ConvType[args.conv_type]
         self.index_back = args.index_back
         self.preserve_energy = args.preserve_energy
-        self.is_debug = args.is_deubg
+        self.is_debug = args.is_debug
         self.compress_filter = args.compress_filter
 
     def get_conv(self, index):
@@ -324,6 +324,7 @@ class FCNNPytorch(nn.Module):
         self.out_channels = out_channels
         self.strides = strides
         self.conv_type = ConvType[args.conv_type]
+        self.is_debug = args.is_debug
 
         self.relu = nn.ReLU(inplace=True)
         # For the "same" mode for the convolution, pad the input.
@@ -331,7 +332,7 @@ class FCNNPytorch(nn.Module):
 
         conv = Conv(kernel_sizes=kernel_sizes, in_channels=in_channels,
                     out_channels=out_channels, strides=strides,
-                    conv_pads=conv_pads)
+                    conv_pads=conv_pads, is_debug=self.is_debug)
 
         index = 0
         self.conv0 = conv.get_conv(index=index)
