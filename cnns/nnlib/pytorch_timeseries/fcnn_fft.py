@@ -839,7 +839,7 @@ if __name__ == '__main__':
         #         'uWaveGestureLibrary_Z', 'UWaveGestureLibraryAll', 'wafer',
         #         'Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass', 'yoga',
         #         'ztest']
-        flist = ['ArrowHead', 'Beef', 'BeetleFly',
+        flist = ['BeetleFly',
                  'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
                  'CinC_ECG_torso', 'Coffee', 'Computers', 'Cricket_X',
                  'Cricket_Y', 'Cricket_Z', 'DiatomSizeReduction',

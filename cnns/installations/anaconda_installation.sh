@@ -14,6 +14,8 @@ conda update conda --yes
 conda --version
 pip install --upgrade pip
 pip install matplotlib
+pip install memory_profiler
+
 
 
 
