@@ -25,8 +25,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import preserve_energy_index_back
 from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate
 from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate as conj
 from cnns.nnlib.pytorch_layers.pytorch_utils import to_tensor
-from cnns.nnlib.pytorch_layers.pytorch_utils import retain_big_coef_energy
-from cnns.nnlib.pytorch_layers.pytorch_utils import retain_big_coef_index
+from cnns.nnlib.pytorch_layers.pytorch_utils import retain_big_coef
 from cnns.nnlib.utils.general_utils import additional_log_file
 
 logger = logging.getLogger(__name__)
@@ -49,7 +48,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                 index_back=None, preserve_energy=None, out_size=None,
                 signal_ndim=1, use_next_power2=False, is_manual=tensor([0]),
                 conv_index=None, is_debug=True, compress_filter=True,
-                big_coef=True):
+                big_coef=False):
         """
         Compute the forward pass for the 1D convolution.
 
@@ -190,9 +189,8 @@ class Conv1dfftFunction(torch.autograd.Function):
         if index_back_fft is not None:
             # At least one frequency coefficient has to remain.
             index_back_fft = min(init_half_fft_size - 1, index_back_fft)
-
-        if big_coef is False:
-            half_fft_compressed_size = init_half_fft_size - index_back_fft
+            if big_coef is False:
+                half_fft_compressed_size = init_half_fft_size - index_back_fft
 
         full_energy = None
         if is_debug is True:
@@ -219,13 +217,11 @@ class Conv1dfftFunction(torch.autograd.Function):
             yfft = yfft[:, :, :half_fft_compressed_size, :]
         elif big_coef is True:
             if preserve_energy is not None and preserve_energy < 100:
-                xfft = retain_big_coef_energy(xfft,
-                                              preserve_energy=preserve_energy)
-                yfft = retain_big_coef_energy(yfft,
-                                              preserve_energy=preserve_energy)
+                xfft = retain_big_coef(xfft, preserve_energy=preserve_energy)
+                yfft = retain_big_coef(yfft, preserve_energy=preserve_energy)
             elif index_back_fft is not None and index_back_fft > 0:
-                xfft = retain_big_coef_index(xfft, index_back=index_back_fft)
-                yfft = retain_big_coef_index(yfft, index_back=index_back_fft)
+                xfft = retain_big_coef(xfft, index_back=index_back_fft)
+                yfft = retain_big_coef(yfft, index_back=index_back_fft)
 
         if is_debug is True:
             if half_fft_compressed_size is None:
@@ -425,7 +421,8 @@ class Conv1dfftFunction(torch.autograd.Function):
                 out_fft = correlate_fft_signals(
                     xfft=doutfft_nn, yfft=conjugate_yfft,
                     fft_size=fft_size)
-                start_index = left_pad + right_pad
+                start_index = 2 * filter_pad
+                # print("start index: ", start_index)
                 out = out_fft[:, :, start_index: start_index + W]
                 # Sum over all the Filters (F).
                 out = torch.sum(out, dim=0)
@@ -490,7 +487,8 @@ class Conv1dfftFunction(torch.autograd.Function):
             for ff in range(F):
                 db[ff] += torch.sum(dout[:, ff, :])
 
-        return dx, dw, db, None, None, None, None, None, None, None, None, None, None, None
+        return dx, dw, db, None, None, None, None, None, None, None, None, \
+               None, None, None, None
 
 
 class Conv1dfftAutograd(Module):
@@ -499,7 +497,7 @@ class Conv1dfftAutograd(Module):
                  index_back=None, preserve_energy=100, out_size=None,
                  filter_value=None, bias_value=None, use_next_power2=False,
                  is_manual=tensor([0]), conv_index=None, is_complex_pad=True,
-                 is_debug=True, compress_filter=True):
+                 is_debug=True, compress_filter=True, big_coef=False):
         """
         1D convolution using FFT implemented fully in PyTorch.
 
@@ -541,6 +539,8 @@ class Conv1dfftAutograd(Module):
         of the input signal and filter before the reverse fft is applied.
         :param is_debug: is this the debug mode execution?
         :param compress_filter: should we compress the filter?
+        :param big_coef: should we preserve only the largest coefficients in the
+        frequency domain?
 
         Regarding the stride parameter: the number of pixels between
         adjacent receptive fields in the horizontal and vertical
@@ -600,6 +600,7 @@ class Conv1dfftAutograd(Module):
         self.is_complex_pad = is_complex_pad
         self.is_debug = is_debug
         self.compress_filter = compress_filter
+        self.big_coef = big_coef
 
         self.reset_parameters()
 
@@ -677,7 +678,8 @@ class Conv1dfftAutograd(Module):
             index_back=self.index_back, preserve_energy=self.preserve_energy,
             out_size=self.out_size, use_next_power2=self.use_next_power2,
             is_manual=self.is_manual, conv_index=self.conv_index,
-            is_debug=self.is_debug, compress_filter=self.compress_filter)
+            is_debug=self.is_debug, compress_filter=self.compress_filter,
+            big_coef=self.big_coef)
 
 
 class Conv1dfft(Conv1dfftAutograd):
@@ -689,14 +691,15 @@ class Conv1dfft(Conv1dfftAutograd):
                  stride=None, padding=None, bias=True, index_back=None,
                  out_size=None, filter_value=None, bias_value=None,
                  use_next_power2=False, conv_index=None, preserve_energy=None,
-                 is_debug=True, compress_filter=True):
+                 is_debug=True, compress_filter=True, big_coef=False):
         super(Conv1dfft, self).__init__(
             in_channels=in_channels, out_channels=out_channels,
             kernel_size=kernel_size, stride=stride, padding=padding, bias=bias,
             index_back=index_back, out_size=out_size, filter_value=filter_value,
             bias_value=bias_value, use_next_power2=use_next_power2,
             conv_index=conv_index, preserve_energy=preserve_energy,
-            is_debug=is_debug, compress_filter=compress_filter)
+            is_debug=is_debug, compress_filter=compress_filter,
+            big_coef=big_coef)
 
     def forward(self, input):
         """
@@ -710,7 +713,7 @@ class Conv1dfft(Conv1dfftAutograd):
             input, self.filter, self.bias, self.padding, self.stride,
             self.index_back, self.preserve_energy, self.out_size,
             self.signal_ndim, self.use_next_power2, self.is_manual,
-            self.conv_index, self.is_debug, self.compress_filter)
+            self.conv_index, self.is_debug, self.compress_filter, self.big_coef)
 
 
 def test_run():

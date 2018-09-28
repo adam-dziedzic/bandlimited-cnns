@@ -372,9 +372,9 @@ def complex_mul2(x, y):
 
     # relational part of the complex number
     # result_rel = add(uavc, mul(mul(ub, vb), -1))
-    result_rel = a*c - b*d
+    result_rel = a * c - b * d
     # imaginary part of the complex number
-    result_im = a*d + b*c
+    result_im = a * d + b * c
     # use the last dimension: dim=-1
     result = cat(tensors=(result_rel, result_im), dim=-1)
     return result
@@ -1343,44 +1343,119 @@ def fast_jmul(input, filter):
     return out
 
 
-def retain_big_coef_energy(xfft, preserve_energy):
+def retain_big_coef(xfft, preserve_energy=None, index_back=None):
     """
-    Retain the largest coefficients to preserved the required energy.
+    Retain the largest coefficients to either to reach the required
+    preserve_energy or after removing index_back coefficients. Only one of them
+    should be chosen.
 
-    :param xfft: the input signal
+    :param xfft: the input signal (4 dimensions: batch size, channel, signal,
+    complex numbers).
     :param preserve_energy: the percentage of energy to be preserved
+    :param index_back: the number of zeroed out coefficients (starting from the
+    smallest one).
     :return: the zeroed-out small coefficients
 
-    >>> xfft = torch.tensor([[1., 2.], [3., 4.], [0.1, 0.1]])
+    >>> # Simple index_back.
+    >>> xfft = torch.tensor([[[[1., 2.], [3., 4.], [0.1, 0.1]]]])
+    >>> result = retain_big_coef_energy(xfft, index_back=1)
+    >>> expected = torch.tensor([[[[1., 2.], [3., 4.], [0.0, 0.0]]]])
+    >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
+
+    >>> # Simple preserved energy.
+    >>> xfft = torch.tensor([[[[1., 2.], [3., 4.], [0.1, 0.1]]]])
     >>> result = retain_big_coef_energy(xfft, preserve_energy=90)
-    >>> expected = torch.tensor([[1., 2.], [3., 4.], [0.0, 0.0]])
-    >>> np.testing.assert_equal(actual=result, desired=expected)
+    >>> expected = torch.tensor([[[[1., 2.], [3., 4.], [0.0, 0.0]]]])
+    >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
+
+    >>> # Simple preserved energy.
+    >>> xfft = torch.tensor([[[[1.1, 2.1], [30., 40.], [0.1, 0.1], [0.1, -0.8],
+    ... [0.0, -1.0]]]])
+    >>> result = retain_big_coef_energy(xfft, preserve_energy=5)
+    >>> expected = torch.tensor([[[[0.0, 0.0], [30., 40.], [0.0, 0.0],
+    ... [0.0, 0.0], [0.0, 0.0]]]])
+    >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
+
+    >>> # Simple index back.
+    >>> xfft = torch.tensor([[[[1.1, 2.1], [30., 40.], [0.1, 0.1], [0.1, -0.8],
+    ... [0.0, -1.0]]]])
+    >>> result = retain_big_coef_energy(xfft, index_back=3)
+    >>> expected = torch.tensor([[[[0.0, 0.0], [30., 40.], [0.0, 0.0],
+    ... [0.0, 0.0], [0.0, 0.0]]]])
+    >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
+
+    >>> # Check 2 channels for preserved energy.
+    >>> xfft = torch.tensor([[[[1., 2.], [3., 4.], [0.1, 0.1]],
+    ... [[0.0, 0.1], [2.0, -6.0], [0.01, 0.002]]]])
+    >>> result = retain_big_coef_energy(xfft, preserve_energy=90)
+    >>> expected = torch.tensor([[[[1., 2.], [3., 4.], [0.0, 0.0]],
+    ... [[0.0, 0.0], [2.0, -6.0], [0.0, 0.0]]]])
+    >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
+
+    >>> # Check 2 data points for preserved energy.
+    >>> xfft = torch.tensor([[[[1., 2.], [3., 4.], [0.1, 0.1]]],
+    ... [[[0.0, 0.1], [2.0, -6.0], [0.01, 0.002]]]])
+    >>> result = retain_big_coef_energy(xfft, preserve_energy=90)
+    >>> expected = torch.tensor([[[[1., 2.], [3., 4.], [0.0, 0.0]]],
+    ... [[[0.0, 0.0], [2.0, -6.0], [0.0, 0.0]]]])
+    >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
+
+    >>> # Check 2 channels for index back.
+    >>> xfft = torch.tensor([[[[1., 2.], [3., 4.], [0.1, 0.1]],
+    ... [[0.0, 0.1], [2.0, -6.0], [0.01, 0.002]]]])
+    >>> result = retain_big_coef_energy(xfft, preserve_energy=90)
+    >>> expected = torch.tensor([[[[1., 2.], [3., 4.], [0.0, 0.0]],
+    ... [[0.0, 0.0], [2.0, -6.0], [0.0, 0.0]]]])
+    >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
+
+    >>> # Check 2 data points for index back.
+    >>> xfft = torch.tensor([[[[1., 2.], [3., 4.], [0.1, 0.1]]],
+    ... [[[0.0, 0.1], [2.0, -6.0], [0.01, 0.002]]]])
+    >>> result = retain_big_coef_energy(xfft, preserve_energy=90)
+    >>> expected = torch.tensor([[[[1., 2.], [3., 4.], [0.0, 0.0]]],
+    ... [[[0.0, 0.0], [2.0, -6.0], [0.0, 0.0]]]])
+    >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
     """
+    INPUT_ERROR = "Specify only one of: index_back, preserve_energy"
+    if (index_back is not None and index_back > 0) and (
+            preserve_energy is not None and preserve_energy < 100):
+        raise TypeError(INPUT_ERROR)
     if xfft is None or len(xfft) == 0:
         return xfft
-    if preserve_energy is not None and preserve_energy < 100:
-        out = torch.zeros_like(xfft)
-        full_energy, squared = get_full_energy(xfft)
-        current_energy = 0.0
-        preserved_energy = full_energy * preserve_energy / 100
-        #TODO: create the priority queue with the pair: coefficient absolute
-        # value and the position (index) in the signal (array).
-        heap = []
-        for index, value in enumerate(squared):
-            # We want to get the largest coefficients.
-            heappush(heap, (-value, index))
-        while current_energy < preserved_energy:
-            _, index = heappop(heap)
-            current_energy += squared[index]
-            out[index] = xfft[index]
+    if (preserve_energy is not None and preserve_energy < 100) or (
+            index_back is not None and index_back > 0):
+        out = torch.zeros_like(xfft, device=xfft.device)
+        for data_point_index, data_point_value in enumerate(xfft):
+            for channel_index, channel_value in enumerate(data_point_value):
+                full_energy, squared = get_full_energy(channel_value)
+                current_energy = 0.0
+                added_indexes = 0
+                preserved_indexes = len(squared)
+                if index_back is not None:
+                    preserved_indexes = len(squared) - index_back
+                preserved_energy = full_energy
+                if preserve_energy is not None:
+                    preserved_energy = full_energy * preserve_energy / 100
+                # Creates the priority queue with the pair: coefficient
+                # absolute value and the position (index) in the signal
+                # (array).
+                heap = []
+                # Index and value of a coefficient.
+                for square_index, square_value in enumerate(squared):
+                    # We want to get the largest coefficients.
+                    heappush(heap, (-square_value, square_index))
+                while current_energy < preserved_energy and (
+                        added_indexes < preserved_indexes):
+                    neg_energy, coeff_index = heappop(heap)
+                    energy = (-neg_energy.item())
+                    # np.testing.assert_almost_equal(actual=energy,
+                    #                                desired=squared[coeff_index])
+                    current_energy += (-neg_energy)
+                    added_indexes += 1
+                    out[data_point_index, channel_index, coeff_index, :] = \
+                        xfft[data_point_index, channel_index, coeff_index, :]
         return out
     return xfft
-
-
-def retain_big_coef_index(xfft, preserve_energy):
-    #TODO: implement it
-    pass
-
 
 
 if __name__ == "__main__":

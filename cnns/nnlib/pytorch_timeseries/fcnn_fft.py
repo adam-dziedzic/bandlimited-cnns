@@ -104,9 +104,11 @@ parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
                     help='SGD momentum (default: 0.5)')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='disables CUDA training')
-parser.add_argument('--compress_filter', default=False,
+parser.add_argument('--compress_filter', default=True,
                     help='compress the filters for fft based convolution or '
                          'only the input signals')
+parser.add_argument('--big_coef', default=False,
+                    help='preserve the highest coefficients')
 parser.add_argument('--seed', type=int, default=31, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--log-interval', type=int, default=1, metavar='N',
@@ -121,7 +123,7 @@ parser.add_argument("-w", "--workers", default=4, type=int,
                          "loaded in the main process")
 parser.add_argument("-n", "--net", default="fcnn",
                     help="the type of net: alexnet, densenet, resnet, fcnn.")
-parser.add_argument("-d", "--datasets", default="debug",
+parser.add_argument("-d", "--datasets", default="all",
                     help="the type of datasets: all or debug.")
 parser.add_argument("-l", "--limit_size", default=256, type=int,
                     help="limit_size for the input for debug")
@@ -129,7 +131,7 @@ parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
-parser.add_argument("-p", "--preserve_energy", default=None, type=float,
+parser.add_argument("-p", "--preserve_energy", default=99, type=float,
                     help="How many energy should be preserved in the "
                          "frequency representation of the signal? This "
                          "is the compression in the FFT domain.")
@@ -244,6 +246,7 @@ class Conv(object):
         self.preserve_energy = args.preserve_energy
         self.is_debug = is_debug
         self.compress_filter = args.compress_filter
+        self.big_coef = args.big_coef
 
     def get_conv(self, index):
         if index == 0:
@@ -268,7 +271,8 @@ class Conv(object):
                              conv_index=index,
                              preserve_energy=self.preserve_energy,
                              is_debug=self.is_debug,
-                             compress_filter=self.compress_filter)
+                             compress_filter=self.compress_filter,
+                             big_coef=self.big_coef)
         elif self.conv_type is ConvType.AUTOGRAD:
             return Conv1dfftAutograd(in_channels=in_channels,
                                      out_channels=self.out_channels[index],
