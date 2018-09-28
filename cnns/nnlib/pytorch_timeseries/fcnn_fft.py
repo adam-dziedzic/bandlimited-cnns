@@ -104,10 +104,10 @@ parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
                     help='SGD momentum (default: 0.5)')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='disables CUDA training')
-parser.add_argument('--compress_filter', default=True,
+parser.add_argument('--compress_filter', default=False,
                     help='compress the filters for fft based convolution or '
                          'only the input signals')
-parser.add_argument('--big_coef', default=False,
+parser.add_argument('--big_coef', default=True,
                     help='preserve the highest coefficients')
 parser.add_argument('--seed', type=int, default=31, metavar='S',
                     help='random seed (default: 1)')
