@@ -8,6 +8,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import tensor
+from heapq import heappush, heappop
 
 
 class MockContext(object):
@@ -1340,6 +1341,46 @@ def fast_jmul(input, filter):
     out = torch.cat((out_re, out_im), -1)
 
     return out
+
+
+def retain_big_coef_energy(xfft, preserve_energy):
+    """
+    Retain the largest coefficients to preserved the required energy.
+
+    :param xfft: the input signal
+    :param preserve_energy: the percentage of energy to be preserved
+    :return: the zeroed-out small coefficients
+
+    >>> xfft = torch.tensor([[1., 2.], [3., 4.], [0.1, 0.1]])
+    >>> result = retain_big_coef_energy(xfft, preserve_energy=90)
+    >>> expected = torch.tensor([[1., 2.], [3., 4.], [0.0, 0.0]])
+    >>> np.testing.assert_equal(actual=result, desired=expected)
+    """
+    if xfft is None or len(xfft) == 0:
+        return xfft
+    if preserve_energy is not None and preserve_energy < 100:
+        out = torch.zeros_like(xfft)
+        full_energy, squared = get_full_energy(xfft)
+        current_energy = 0.0
+        preserved_energy = full_energy * preserve_energy / 100
+        #TODO: create the priority queue with the pair: coefficient absolute
+        # value and the position (index) in the signal (array).
+        heap = []
+        for index, value in enumerate(squared):
+            # We want to get the largest coefficients.
+            heappush(heap, (-value, index))
+        while current_energy < preserved_energy:
+            _, index = heappop(heap)
+            current_energy += squared[index]
+            out[index] = xfft[index]
+        return out
+    return xfft
+
+
+def retain_big_coef_index(xfft, preserve_energy):
+    #TODO: implement it
+    pass
+
 
 
 if __name__ == "__main__":
