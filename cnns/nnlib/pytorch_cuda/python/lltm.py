@@ -4,15 +4,17 @@ from torch.nn import functional as F
 
 
 class LLTM(torch.nn.Module):
-    def __init__(self, input_features, state_size):
+    def __init__(self, input_features, state_size, device):
         super(LLTM, self).__init__()
         self.input_features = input_features
         self.state_size = state_size
         # 3 * state_size for input gate, output gate and candidate cell gate.
         # input_features + state_size because we will multiply with [input, h].
         self.weights = torch.nn.Parameter(
-            torch.empty(3 * state_size, input_features + state_size))
-        self.bias = torch.nn.Parameter(torch.empty(3 * state_size))
+            torch.empty(3 * state_size, input_features + state_size,
+                         device=device))
+        self.bias = torch.nn.Parameter(torch.empty(1, 3 * state_size,
+                                                    device=device))
         self.reset_parameters()
 
     def reset_parameters(self):

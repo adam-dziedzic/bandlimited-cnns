@@ -9,6 +9,10 @@
 with_cuda=${1:-"TRUE"} # set to true to install for GPU
 conda_env=${2:-"base"} # we use pytorch mainly
 
+sudo rm /usr/bin/python
+sudo ln -s /home/cc/anaconda3/bin/python3.6 /usr/bin/python
+
+
 if [ "${with_cuda}" == "TRUE" ]; then
     echo "installation with CUDA support: it requires cuda and libdnn installed from NVIDIA!!!"
     echo "read: https://github.com/pytorch/pytorch"
@@ -26,10 +30,11 @@ echo "prepare python/conda for the installation"
 echo "conda environment for installation: "${conda_env}
 source activate ${conda_env}
 
-export CMAKE_PREFIX_PATH="$(dirname $(which conda))/../" # [anaconda root directory]
+# export CMAKE_PREFIX_PATH="$(dirname $(which conda))/../" # [anaconda root directory]
+export CMAKE_PREFIX_PATH=/home/${USER}/anaconda3
 
 # Install basic dependencies
-conda install -n ${conda_env} --yes libgcc numpy pyyaml mkl mkl-include setuptools cmake cffi typing
+conda install -n ${conda_env} --yes libgcc numpy pyyaml mkl mkl-include setuptools cmake cffi typing future
 conda install -n ${conda_env} --yes -c mingfeima mkldnn
 conda install -n ${conda_env} --yes -c caffe2 caffe
 
@@ -57,7 +62,7 @@ else
     cd pytorch
 fi
 
-python setup.py install
+/home/${USER}/anaconda3/bin/python setup.py install
 
 python -c "import torch; print('torch version: ', torch.__version__)"
 python -c "import torch; print('cuda version: ', torch.version.cuda)"

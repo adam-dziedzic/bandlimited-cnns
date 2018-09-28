@@ -24,7 +24,7 @@ from torch.nn.functional import log_softmax
 from torch.optim.lr_scheduler import \
     ReduceLROnPlateau as ReduceLROnPlateauPyTorch
 from torch.utils.data import Dataset
-from torchvision.transforms import transforms
+from torchvision import transforms
 
 from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.general_utils import OptimizerType
