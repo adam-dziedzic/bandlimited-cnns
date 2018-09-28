@@ -107,7 +107,7 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
 parser.add_argument('--compress_filter', default=False,
                     help='compress the filters for fft based convolution or '
                          'only the input signals')
-parser.add_argument('--big_coef', default=True,
+parser.add_argument('--big_coef', default=False,
                     help='preserve the highest coefficients')
 parser.add_argument('--seed', type=int, default=31, metavar='S',
                     help='random seed (default: 1)')
