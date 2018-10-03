@@ -28,9 +28,9 @@ sudo apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/
 sudo apt-get update
 sudo apt-get -y install cuda
 
-echo "export PATH=/usr/local/cuda/bin/:\$PATH; export LD_LIBRARY_PATH=/usr/local/cuda/lib64/:\$LD_LIBRARY_PATH; " >>~/.bashrc && source ~/.bashrc
+echo "export PATH=/usr/local/conv1D_cuda/bin/:\$PATH; export LD_LIBRARY_PATH=/usr/local/conv1D_cuda/lib64/:\$LD_LIBRARY_PATH; " >>~/.bashrc && source ~/.bashrc
 
-echo "show cuda version"
+echo "show conv1D_cuda version"
 cat /usr/local/cuda/version.txt
 
 echo "install CuDNN from NVidia"

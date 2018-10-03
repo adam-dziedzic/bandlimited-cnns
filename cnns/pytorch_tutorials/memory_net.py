@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Find cliffs in the execution of neural networks.
-Go to the level of C++ and cuda.
+Go to the level of C++ and conv1D_cuda.
 Find for what input size, the memory size is not sufficient.
 Run a single forward pass and a subsequent backward pass.
 
@@ -58,7 +58,7 @@ parser.add_argument("-w", "--workers", default=4, type=int,
                          "loader, 0 means that the data will be "
                          "loaded in the main process")
 parser.add_argument("-d", "--device", default="cpu",
-                    help="the type of device, e.g.: cpu, cuda, cuda:0, cuda:1, "
+                    help="the type of device, e.g.: cpu, conv1D_cuda, conv1D_cuda:0, conv1D_cuda:1, "
                          "etc.")
 parser.add_argument("-n", "--net", default="dense",
                     help="the type of net: alex, dense, res.")
@@ -85,9 +85,9 @@ current_file_name = __file__.split("/")[-1].split(".")[0]
 print("current file name: ", current_file_name)
 
 if torch.cuda.is_available():
-    print("cuda is available: ")
-    device = torch.device("cuda")
-    # torch.set_default_tensor_type('torch.cuda.FloatTensor')
+    print("conv1D_cuda is available: ")
+    device = torch.device("conv1D_cuda")
+    # torch.set_default_tensor_type('torch.conv1D_cuda.FloatTensor')
 else:
     device = torch.device("cpu")
 

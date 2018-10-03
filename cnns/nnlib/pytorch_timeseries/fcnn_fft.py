@@ -102,7 +102,7 @@ parser.add_argument('--lr', type=float, default=learning_rate, metavar='LR',
                         learning_rate))
 parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
                     help='SGD momentum (default: 0.5)')
-parser.add_argument('--no-cuda', action='store_true', default=False,
+parser.add_argument('--no-conv1D_cuda', action='store_true', default=False,
                     help='disables CUDA training')
 parser.add_argument('--compress_filter', default=False,
                     help='compress the filters for fft based convolution or '
@@ -153,9 +153,9 @@ current_file_name = __file__.split("/")[-1].split(".")[0]
 print("current file name: ", current_file_name)
 
 if torch.cuda.is_available():
-    print("cuda is available: ")
-    device = torch.device("cuda")
-    # torch.set_default_tensor_type('torch.cuda.FloatTensor')
+    print("conv1D_cuda is available: ")
+    device = torch.device("conv1D_cuda")
+    # torch.set_default_tensor_type('torch.conv1D_cuda.FloatTensor')
 else:
     device = torch.device("cpu")
 
@@ -687,7 +687,7 @@ def main(dataset_name):
 
     torch.manual_seed(args.seed)
 
-    device = torch.device("cuda" if use_cuda else "cpu")
+    device = torch.device("conv1D_cuda" if use_cuda else "cpu")
     optimizer_type = OptimizerType[args.optimizer_type]
 
     num_workers = 2
@@ -846,10 +846,7 @@ if __name__ == '__main__':
         #         'uWaveGestureLibrary_Z', 'UWaveGestureLibraryAll', 'wafer',
         #         'Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass', 'yoga',
         #         'ztest']
-        flist = ['BeetleFly',
-                 'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
-                 'CinC_ECG_torso', 'Coffee', 'Computers', 'Cricket_X',
-                 'Cricket_Y', 'Cricket_Z', 'DiatomSizeReduction',
+        flist = ['DiatomSizeReduction',
                  'DistalPhalanxOutlineAgeGroup', 'DistalPhalanxOutlineCorrect',
                  'DistalPhalanxTW', 'Earthquakes', 'ECG200', 'ECG5000',
                  'ECGFiveDays', 'ElectricDevices', 'FaceAll', 'FaceFour',

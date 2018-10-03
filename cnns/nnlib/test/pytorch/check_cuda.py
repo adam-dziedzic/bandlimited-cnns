@@ -1,4 +1,4 @@
 import torch
 
-print("Is cuda available: ", torch.cuda.is_available())
+print("Is conv1D_cuda available: ", torch.cuda.is_available())
 

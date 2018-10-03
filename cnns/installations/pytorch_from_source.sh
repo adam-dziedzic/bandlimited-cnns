@@ -14,7 +14,7 @@ sudo ln -s /home/cc/anaconda3/bin/python3.6 /usr/bin/python
 
 
 if [ "${with_cuda}" == "TRUE" ]; then
-    echo "installation with CUDA support: it requires cuda and libdnn installed from NVIDIA!!!"
+    echo "installation with CUDA support: it requires conv1D_cuda and libdnn installed from NVIDIA!!!"
     echo "read: https://github.com/pytorch/pytorch"
 elif [ "${with_cuda}" == "FALSE" ]; then
     echo "installation without CUDA support"
@@ -65,7 +65,7 @@ fi
 /home/${USER}/anaconda3/bin/python setup.py install
 
 python -c "import torch; print('torch version: ', torch.__version__)"
-python -c "import torch; print('cuda version: ', torch.version.cuda)"
+python -c "import torch; print('conv1D_cuda version: ', torch.version.conv1D_cuda)"
 
 
 

@@ -10,7 +10,7 @@ class TestMyReLU(unittest.TestCase):
         dtype = torch.float
         device = torch.device("cpu")
         # uncomment the line below to run on gpu
-        # device = torch.device("cuda:0")
+        # device = torch.device("conv1D_cuda:0")
 
         # To apply our Function, we use Function.apply method.
         # We alias this as 'relu'.

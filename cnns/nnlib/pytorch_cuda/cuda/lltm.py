@@ -5,7 +5,7 @@ import torch
 
 import lltm_cuda
 
-torch.manual_seed(42)
+torch.manual_seed(31)
 
 
 class LLTMFunction(Function):

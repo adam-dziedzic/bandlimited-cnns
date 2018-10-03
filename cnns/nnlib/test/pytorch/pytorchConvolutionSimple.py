@@ -7,7 +7,7 @@ from nnlib.utils.general_utils import reshape_3d_rest
 
 dtype = torch.float
 device = torch.device("cpu")
-# device = torch.device("cuda:2") # Uncomment this to run on GPU
+# device = torch.device("conv1D_cuda:2") # Uncomment this to run on GPU
 
 np.random.seed(231)
 

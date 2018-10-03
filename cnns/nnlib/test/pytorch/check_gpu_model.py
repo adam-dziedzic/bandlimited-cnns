@@ -122,7 +122,7 @@ print("is equal dimensions (64,10): ", is_equal)
 
 # Verify that CUDA is properly configured and you have a GPU available
 
-print("is cuda available: ", torch.cuda.is_available())
+print("is conv1D_cuda available: ", torch.cuda.is_available())
 
 gpu_dtype = torch.cuda.FloatTensor
 

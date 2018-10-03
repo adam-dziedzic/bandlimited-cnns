@@ -15,7 +15,7 @@ import pandas as pd
 import pickle as pk
 
 cuda = torch.cuda.is_available()
-print("is cuda available: ", cuda)
+print("is conv1D_cuda available: ", cuda)
 
 
 # Utils

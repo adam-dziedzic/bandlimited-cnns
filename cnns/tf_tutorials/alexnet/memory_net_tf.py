@@ -52,7 +52,7 @@ parser.add_argument("-w", "--workers", default=0, type=int,
 parser.add_argument("-d", "--device", default="/device:GPU:0",
                     help="the type of device, e.g.: cpu, /cpu:0, /device:GPU:1, etc.")
 parser.add_argument("-b", "--debug", default=False,
-                    help="the type of device, e.g.: cpu, cuda:0, cuda:1, etc.")
+                    help="the type of device, e.g.: cpu, conv1D_cuda:0, conv1D_cuda:1, etc.")
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
 print("current file name: ", current_file_name)

@@ -123,7 +123,7 @@ print("is equal dimensions (64,10): ", is_equal)
 
 # Verify that CUDA is properly configured and you have a GPU available
 
-print("is cuda available: ", torch.cuda.is_available())
+print("is conv1D_cuda available: ", torch.cuda.is_available())
 gpu_dtype = torch.cuda.FloatTensor
 
 if torch.cuda.is_available():
@@ -209,7 +209,7 @@ fixed_model_base = nn.Sequential(
     nn.Linear(1024, 10),
 )
 
-dtype = torch.FloatTensor  # torch.cuda.FloatTensor
+dtype = torch.FloatTensor  # torch.conv1D_cuda.FloatTensor
 cpu_model = fixed_model_base.type(dtype)
 
 loss_fn = nn.CrossEntropyLoss().type(dtype)

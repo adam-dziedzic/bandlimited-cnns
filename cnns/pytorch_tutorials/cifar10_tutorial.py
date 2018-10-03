@@ -267,10 +267,10 @@ for i in range(10):
 # Just like how you transfer a Tensor on to the GPU, you transfer the neural
 # net onto the GPU.
 #
-# Let's first define our device as the first visible cuda device if we have
+# Let's first define our device as the first visible conv1D_cuda device if we have
 # CUDA available:
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("conv1D_cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Assume that we are on a CUDA machine, then this should print a CUDA device:
 

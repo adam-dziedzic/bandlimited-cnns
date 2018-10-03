@@ -25,13 +25,13 @@ def test(X, h, C, device=torch.device("cpu")):
     for _ in range(100000):  # default: 100000
         start = time.time()
         new_h, new_C = rnn(X, (h, C))
-        if device is torch.device("cuda"):
+        if device is torch.device("conv1D_cuda"):
             torch.cuda.synchronize()
         forward += time.time() - start
 
         start = time.time()
         (new_h.sum() + new_C.sum()).backward()
-        if device is torch.device("cuda"):
+        if device is torch.device("conv1D_cuda"):
             torch.cuda.synchronize()
         backward += time.time() - start
 
@@ -40,12 +40,12 @@ def test(X, h, C, device=torch.device("cpu")):
 
 FORWARD_BACK_INFO = "device,{},mode,{},Forward,{:.3f},sec,Backward,{:.3f},sec"
 
-device = torch.device("cuda")
+device = torch.device("conv1D_cuda")
 
 X, h, C = init_vars(device=device)
 rnn = LLTM_CUDA(input_features, state_size, device=device).to(device)
 forward, backward = test(X, h, C, device=device)
-print(FORWARD_BACK_INFO.format(str(device), 'cuda', forward, backward))
+print(FORWARD_BACK_INFO.format(str(device), 'conv1D_cuda', forward, backward))
 
 X, h, C = init_vars(device=device)
 rnn = LLTM_PY(input_features, state_size, device=device).to(device)

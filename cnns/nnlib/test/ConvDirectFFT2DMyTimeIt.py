@@ -31,7 +31,7 @@ def abs_error(x, y):
 print("timeit: simple direct and FFT convolution for 1D")
 
 cuda_id = 0
-device = torch.device("cuda")
+device = torch.device("conv1D_cuda")
 
 np.random.seed(231)
 
@@ -232,7 +232,7 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
         torch_gpu_time = 0
         # let us run it only if CUDA is available
         if torch.cuda.is_available():
-            # creates a LongTensor and transfers it to GPU as torch.cuda.LongTensor
+            # creates a LongTensor and transfers it to GPU as torch.conv1D_cuda.LongTensor
             xtorch_gpu = xtorch.to(device=device)
             filterstorch_gpu = filterstorch.to(device=device)
             torch_gpu_time, result_torch_gpu = timeitrep(
