@@ -102,7 +102,7 @@ parser.add_argument('--lr', type=float, default=learning_rate, metavar='LR',
                         learning_rate))
 parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
                     help='SGD momentum (default: 0.5)')
-parser.add_argument('--no-conv1D_cuda', action='store_true', default=False,
+parser.add_argument('--no_cuda', action='store_true', default=False,
                     help='disables CUDA training')
 parser.add_argument('--compress_filter', default=False,
                     help='compress the filters for fft based convolution or '
@@ -154,8 +154,8 @@ print("current file name: ", current_file_name)
 
 if torch.cuda.is_available():
     print("conv1D_cuda is available: ")
-    device = torch.device("conv1D_cuda")
-    # torch.set_default_tensor_type('torch.conv1D_cuda.FloatTensor')
+    device = torch.device("cuda")
+    # torch.set_default_tensor_type('torch.cuda.FloatTensor')
 else:
     device = torch.device("cpu")
 
@@ -687,7 +687,7 @@ def main(dataset_name):
 
     torch.manual_seed(args.seed)
 
-    device = torch.device("conv1D_cuda" if use_cuda else "cpu")
+    device = torch.device("cuda" if use_cuda else "cpu")
     optimizer_type = OptimizerType[args.optimizer_type]
 
     num_workers = 2
@@ -794,12 +794,12 @@ if __name__ == '__main__':
     global_log_file = os.path.join(results_folder,
                                    get_log_time() + "-ucr-fcnn.log")
     HEADER = "UCR datasets,final results,hostname," + str(
-        hostname) + ",timestamp," + get_log_time() + "\n" + ",num_epochs," + str(
+        hostname) + ",timestamp," + get_log_time() + "\n,num_epochs," + str(
         args.epochs) + ",index_back(%)," + str(
         args.index_back) + ",preserve_energy," + str(
-        args.preserve_energy) + "\n" + ",conv_type," + str(
-        args.conv_type) + + ",big_coeff," + str(
-        args.big_coeff) + + ",compress_filter," + str(
+        args.preserve_energy) + "\n,conv_type," + str(
+        args.conv_type) + ",big_coeff," + str(
+        args.big_coef) + ",compress_filter," + str(
         args.compress_filter) + "\n"
     with open(additional_log_file, "a") as file:
         # Write the metadata.
