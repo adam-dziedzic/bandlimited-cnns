@@ -40,6 +40,23 @@ def test(X, h, C, device=torch.device("cpu")):
 
 FORWARD_BACK_INFO = "device,{},mode,{},Forward,{:.3f},sec,Backward,{:.3f},sec"
 
+device = torch.device("cuda")
+
+X, h, C = init_vars(device=device)
+rnn = LLTM_CUDA(input_features, state_size, device=device).to(device)
+forward, backward = test(X, h, C, device=device)
+print(FORWARD_BACK_INFO.format(str(device), 'cuda', forward, backward))
+
+X, h, C = init_vars(device=device)
+rnn = LLTM_PY(input_features, state_size, device=device).to(device)
+forward, backward = test(X, h, C, device=device)
+print(FORWARD_BACK_INFO.format(str(device), 'python', forward, backward))
+
+X, h, C = init_vars(device=device)
+rnn = LLTM_CPP(input_features, state_size, device=device).to(device)
+forward, backward = test(X, h, C, device=device)
+print(FORWARD_BACK_INFO.format(str(device), 'cpp', forward, backward))
+
 device = torch.device("cpu")
 
 X, h, C = init_vars(device=device)
@@ -52,22 +69,6 @@ rnn = LLTM_CPP(input_features, state_size, device=device)
 forward, backward = test(X, h, C, device=device)
 print(FORWARD_BACK_INFO.format(str(device), 'cpp', forward, backward))
 
-device = torch.device("cuda")
-
-X, h, C = init_vars(device=device)
-rnn = LLTM_PY(input_features, state_size, device=device).to(device)
-forward, backward = test(X, h, C, device=device)
-print(FORWARD_BACK_INFO.format(str(device), 'python', forward, backward))
-
-X, h, C = init_vars(device=device)
-rnn = LLTM_CPP(input_features, state_size, device=device).to(device)
-forward, backward = test(X, h, C, device=device)
-print(FORWARD_BACK_INFO.format(str(device), 'cpp', forward, backward))
-
-X, h, C = init_vars(device=device)
-rnn = LLTM_CUDA(input_features, state_size, device=device).to(device)
-forward, backward = test(X, h, C, device=device)
-print(FORWARD_BACK_INFO.format(str(device), 'cuda', forward, backward))
 
 """
 ssh://cc@129.114.108.89:22/home/cc/anaconda3/bin/python -u /home/cc/code/time-series-ml/cnns/nnlib/pytorch_cuda/benchmark.py

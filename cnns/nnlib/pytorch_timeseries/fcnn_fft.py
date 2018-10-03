@@ -107,7 +107,7 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
 parser.add_argument('--compress_filter', default=False,
                     help='compress the filters for fft based convolution or '
                          'only the input signals')
-parser.add_argument('--big_coef', default=False,
+parser.add_argument('--big_coef', default=True,
                     help='preserve the highest coefficients')
 parser.add_argument('--seed', type=int, default=31, metavar='S',
                     help='random seed (default: 1)')
@@ -794,10 +794,13 @@ if __name__ == '__main__':
     global_log_file = os.path.join(results_folder,
                                    get_log_time() + "-ucr-fcnn.log")
     HEADER = "UCR datasets,final results,hostname," + str(
-        hostname) + ",timestamp," + get_log_time() + ",num_epochs," + str(
+        hostname) + ",timestamp," + get_log_time() + "\n" + ",num_epochs," + str(
         args.epochs) + ",index_back(%)," + str(
         args.index_back) + ",preserve_energy," + str(
-        args.preserve_energy) + ",conv_type," + str(args.conv_type) + "\n"
+        args.preserve_energy) + "\n" + ",conv_type," + str(
+        args.conv_type) + + ",big_coeff," + str(
+        args.big_coeff) + + ",compress_filter," + str(
+        args.compress_filter) + "\n"
     with open(additional_log_file, "a") as file:
         # Write the metadata.
         file.write(HEADER + "\n")
