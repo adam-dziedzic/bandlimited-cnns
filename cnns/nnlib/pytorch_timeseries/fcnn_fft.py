@@ -107,7 +107,7 @@ parser.add_argument('--no_cuda', action='store_true', default=False,
 parser.add_argument('--compress_filter', default=False,
                     help='compress the filters for fft based convolution or '
                          'only the input signals')
-parser.add_argument('--big_coef', default=True,
+parser.add_argument('--big_coef', default=False,
                     help='preserve the highest coefficients')
 parser.add_argument('--seed', type=int, default=31, metavar='S',
                     help='random seed (default: 1)')
@@ -139,7 +139,7 @@ parser.add_argument("-b", "--mem_test", default=False, type=bool,
                     help="is it the memory test")
 parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
                     help="should the data augmentation be applied")
-parser.add_argument("-g", "--is_debug", default=False, type=bool,
+parser.add_argument("-g", "--is_debug", default=True, type=bool,
                     help="is it the debug mode execution")
 parser.add_argument("-c", "--conv_type", default="FFT1D",
                     # "FFT1D", "STANDARD". "AUTOGRAD", "SIMPLE_FFT"
@@ -814,6 +814,7 @@ if __name__ == '__main__':
     if args.datasets == "all":
         flist = os.listdir(ucr_path)
     elif args.datasets == "debug":
+        flist = ["ztest"]
         # flist = ["50words"]
         # flist = ["Adiac"]
         # flist = ["HandOutlines"]
@@ -846,30 +847,30 @@ if __name__ == '__main__':
         #         'uWaveGestureLibrary_Z', 'UWaveGestureLibraryAll', 'wafer',
         #         'Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass', 'yoga',
         #         'ztest']
-        flist = ['DiatomSizeReduction',
-                 'DistalPhalanxOutlineAgeGroup', 'DistalPhalanxOutlineCorrect',
-                 'DistalPhalanxTW', 'Earthquakes', 'ECG200', 'ECG5000',
-                 'ECGFiveDays', 'ElectricDevices', 'FaceAll', 'FaceFour',
-                 'FacesUCR', 'FISH', 'FordA', 'FordB', 'Gun_Point', 'Ham',
-                 'HandOutlines', 'Haptics', 'Herring', 'InlineSkate',
-                 'InsectWingbeatSound', 'ItalyPowerDemand',
-                 'LargeKitchenAppliances', 'Lighting2', 'Lighting7', 'MALLAT',
-                 'Meat', 'MedicalImages', 'MiddlePhalanxOutlineAgeGroup',
-                 'MiddlePhalanxOutlineCorrect', 'MiddlePhalanxTW', 'MoteStrain',
-                 'NonInvasiveFatalECG_Thorax1', 'NonInvasiveFatalECG_Thorax2',
-                 'OliveOil', 'OSULeaf', 'PhalangesOutlinesCorrect', 'Phoneme',
-                 'Plane', 'ProximalPhalanxOutlineAgeGroup',
-                 'ProximalPhalanxOutlineCorrect', 'ProximalPhalanxTW',
-                 'RefrigerationDevices', 'ScreenType', 'ShapeletSim',
-                 'ShapesAll', 'SmallKitchenAppliances', 'SonyAIBORobotSurface',
-                 'SonyAIBORobotSurfaceII', 'StarLightCurves', 'Strawberry',
-                 'SwedishLeaf', 'Symbols', 'synthetic_control',
-                 'ToeSegmentation1', 'ToeSegmentation2', 'Trace',
-                 'Two_Patterns',
-                 'TwoLeadECG', 'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
-                 'uWaveGestureLibrary_Z', 'UWaveGestureLibraryAll', 'wafer',
-                 'Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass', 'yoga',
-                 'ztest']
+        # flist = ['DiatomSizeReduction',
+        #          'DistalPhalanxOutlineAgeGroup', 'DistalPhalanxOutlineCorrect',
+        #          'DistalPhalanxTW', 'Earthquakes', 'ECG200', 'ECG5000',
+        #          'ECGFiveDays', 'ElectricDevices', 'FaceAll', 'FaceFour',
+        #          'FacesUCR', 'FISH', 'FordA', 'FordB', 'Gun_Point', 'Ham',
+        #          'HandOutlines', 'Haptics', 'Herring', 'InlineSkate',
+        #          'InsectWingbeatSound', 'ItalyPowerDemand',
+        #          'LargeKitchenAppliances', 'Lighting2', 'Lighting7', 'MALLAT',
+        #          'Meat', 'MedicalImages', 'MiddlePhalanxOutlineAgeGroup',
+        #          'MiddlePhalanxOutlineCorrect', 'MiddlePhalanxTW', 'MoteStrain',
+        #          'NonInvasiveFatalECG_Thorax1', 'NonInvasiveFatalECG_Thorax2',
+        #          'OliveOil', 'OSULeaf', 'PhalangesOutlinesCorrect', 'Phoneme',
+        #          'Plane', 'ProximalPhalanxOutlineAgeGroup',
+        #          'ProximalPhalanxOutlineCorrect', 'ProximalPhalanxTW',
+        #          'RefrigerationDevices', 'ScreenType', 'ShapeletSim',
+        #          'ShapesAll', 'SmallKitchenAppliances', 'SonyAIBORobotSurface',
+        #          'SonyAIBORobotSurfaceII', 'StarLightCurves', 'Strawberry',
+        #          'SwedishLeaf', 'Symbols', 'synthetic_control',
+        #          'ToeSegmentation1', 'ToeSegmentation2', 'Trace',
+        #          'Two_Patterns',
+        #          'TwoLeadECG', 'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
+        #          'uWaveGestureLibrary_Z', 'UWaveGestureLibraryAll', 'wafer',
+        #          'Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass', 'yoga',
+        #          'ztest']
     else:
         raise AttributeError("Unknown datasets: ", args.datasets)
 
