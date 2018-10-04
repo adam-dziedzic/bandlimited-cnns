@@ -10,11 +10,17 @@ X = torch.randn(batch_size, input_features)
 h = torch.randn(batch_size, state_size)
 C = torch.randn(batch_size, state_size)
 
-rnn = LLTM(input_features, state_size)
+if torch.cuda.is_available():
+    print("Cuda is available.")
+    device = torch.device('cuda')
+else:
+    device = torch.device('cpu')
+
+rnn = LLTM(input_features, state_size, device=device)
 
 forward = 0
 backward = 0
-for _ in range(100000):
+for _ in range(1000):  # 100000
     start = time.time()
     new_h, new_C = rnn(X, (h, C))
     forward += time.time() - start

@@ -97,6 +97,7 @@ __global__ void lltm_cuda_backward_kernel(
         d_candidate_cell * d_elu(gate_weights[candidate_cell_index]);
   }
 }
+
 } // namespace
 
 std::vector<at::Tensor> lltm_cuda_forward(

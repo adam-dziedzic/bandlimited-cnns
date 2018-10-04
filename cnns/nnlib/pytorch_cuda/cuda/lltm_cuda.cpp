@@ -75,7 +75,8 @@ std::vector<at::Tensor> lltm_backward(
       weights);
 }
 
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-  m.def("forward", &lltm_forward, "LLTM forward (CUDA)");
-  m.def("backward", &lltm_backward, "LLTM backward (CUDA)");
+  m.def("forward", &lltm_forward, "lltm forward (CUDA)");
+  m.def("backward", &lltm_backward, "lltm backward (CUDA)");
 }

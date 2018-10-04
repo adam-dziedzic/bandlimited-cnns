@@ -6,6 +6,8 @@ import numpy as np
 import torch
 from cnns.nnlib.pytorch_layers.conv1D_cuda.conv import Conv1dfftCuda
 
+import conv1D_cuda
+
 
 class TestPyTorchConv1d(unittest.TestCase):
 
@@ -32,3 +34,8 @@ class TestPyTorchConv1d(unittest.TestCase):
         result = conv.forward(input=torch.from_numpy(x))
         np.testing.assert_array_almost_equal(
             result, np.array([[expected_result]]))
+
+    def test_plus_reduce(self):
+        x = torch.tensor([1, 2, 3, 4])
+        result = conv1D_cuda.plus_reduce(x)
+        np.testing.assert_almost_equal(result, torch.tensor(10))
