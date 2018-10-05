@@ -25,9 +25,10 @@ template<typename scalar_t>
 __global__ void plus_reduce_cuda_kernel(
         scalar_t *input,
         const int64_t __restrict__ input_size,
-        scalar_t *total_sum) {
+        void *total_sum_ptr) {
     const unsigned int tid = threadIdx.x;
     const unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;
+    scalar_t* total_sum = (scalar_t*) total_sum_ptr;
 
     // Each block loads its elements into shared memory, padding with 0 if
     // input_size is not a multiple of blocksize.
@@ -57,18 +58,20 @@ __global__ void plus_reduce_cuda_kernel(
     if (tid == 0) atomicAdd(total_sum, x[0]);
 }
 
+
 at::Tensor plus_reduce_cuda(at::Tensor input) {
     // at::Scalar total_sum = at::Scalar()
-    at::Tensor total_sum = at::zeros({1});
+    // TensorOpions options = TensorOptions(input.device());
+    at::Tensor total_sum = at::zeros({1}, at::device(input.device()).dtype(input.scalar_type()));
+    void* total_sum_ptr = total_sum.data_ptr();
     const int64_t input_size = input.size(0);
 
     const dim3 blocks((input_size + blocksize - 1) / blocksize, blocksize);
 
     AT_DISPATCH_FLOATING_TYPES(input.type(), "plus_reduce_cuda", ([&] {
         plus_reduce_cuda_kernel<scalar_t> << < blocks, blocksize >> >
-                                                       (input.data<scalar_t>(), input_size, total_sum.data<scalar_t>());
+                                                       (input.data<scalar_t>(), input_size, total_sum_ptr);
     }));
-
     return total_sum;
 }
 
