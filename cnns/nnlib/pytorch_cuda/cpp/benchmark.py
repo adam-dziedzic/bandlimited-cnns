@@ -12,7 +12,7 @@ C = torch.randn(batch_size, state_size)
 
 if torch.cuda.is_available():
     print("Cuda is available.")
-    device = torch.device('cuda')
+    device = torch.device('cuda_lltm')
 else:
     device = torch.device('cpu')
 

@@ -2,7 +2,7 @@ import torch
 import time
 from cnns.nnlib.pytorch_cuda.cpp.lltm import LLTM as LLTM_CPP
 from cnns.nnlib.pytorch_cuda.python.lltm import LLTM as LLTM_PY
-from cnns.nnlib.pytorch_cuda.cuda.lltm import LLTM as LLTM_CUDA
+from cnns.nnlib.pytorch_cuda.cuda_lltm.lltm import LLTM as LLTM_CUDA
 
 batch_size = 16
 input_features = 32

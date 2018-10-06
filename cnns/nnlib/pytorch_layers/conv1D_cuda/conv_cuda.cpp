@@ -19,7 +19,7 @@ std::vector<at::Tensor> conv_cuda_backward(
     at::Tensor WW,
     at::Tensor fft_size);
 
-at::Tensor plus_reduce_cuda(at::Tensor input);
+float plus_reduce_cuda(at::Tensor input);
 
 // C++ interface
 
@@ -60,13 +60,13 @@ std::vector<at::Tensor> conv_backward(
   return conv_cuda_backward(dout, xfft, yfft, W, WW, fft_size);
 }
 
-at::Tensor plus_reduce(at::Tensor input) {
+float plus_reduce(at::Tensor input) {
   CHECK_INPUT(input);
   return plus_reduce_cuda(input);
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-  m.def("forward", &conv_forward, "Conv forward (CUDA)");
-  m.def("backward", &conv_backward, "Conv backward (CUDA)");
+  // m.def("forward", &conv_forward, "Conv forward (CUDA)");
+  // m.def("backward", &conv_backward, "Conv backward (CUDA)");
   m.def("plus_reduce", &plus_reduce, "plus_reduce (CUDA)");
 }

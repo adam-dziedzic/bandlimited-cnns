@@ -23,12 +23,12 @@ const int blocksize = 1024;
 
 template<typename scalar_t>
 __global__ void plus_reduce_cuda_kernel(
-        scalar_t *input,
-        const int64_t __restrict__ input_size,
-        void *total_sum_ptr) {
+        const scalar_t *input,
+        const int64_t input_size,
+        float *total_sum_ptr) {
+
     const unsigned int tid = threadIdx.x;
     const unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;
-    scalar_t* total_sum = (scalar_t*) total_sum_ptr;
 
     // Each block loads its elements into shared memory, padding with 0 if
     // input_size is not a multiple of blocksize.
@@ -54,24 +54,27 @@ __global__ void plus_reduce_cuda_kernel(
     }
 
     // Thread 0 now holds the sum of all the input values to this block. Have it
-    // add that sum to the running total.
-    if (tid == 0) atomicAdd(total_sum, x[0]);
+    // add that sum to the running total. atomicAdd has no templating so we have
+    // to define precisely the argument of at least one of the arguments.
+    if (tid == 0) atomicAdd(total_sum_ptr, (float)x[0]);
 }
 
 
-at::Tensor plus_reduce_cuda(at::Tensor input) {
+float plus_reduce_cuda(at::Tensor input) {
     // at::Scalar total_sum = at::Scalar()
     // TensorOpions options = TensorOptions(input.device());
-    at::Tensor total_sum = at::zeros({1}, at::device(input.device()).dtype(input.scalar_type()));
-    void* total_sum_ptr = total_sum.data_ptr();
+    // at::Tensor total_sum = at::zeros({1}, at::device(input.device()).dtype(input.scalar_type()));
+    // void* total_sum_ptr = total_sum.data_ptr();
+    float total_sum = 0.0;
     const int64_t input_size = input.size(0);
 
     const dim3 blocks((input_size + blocksize - 1) / blocksize, blocksize);
 
     AT_DISPATCH_FLOATING_TYPES(input.type(), "plus_reduce_cuda", ([&] {
-        plus_reduce_cuda_kernel<scalar_t> << < blocks, blocksize >> >
-                                                       (input.data<scalar_t>(), input_size, total_sum_ptr);
+        plus_reduce_cuda_kernel<scalar_t><<< blocks, blocksize >>>
+                                                       (input.data<scalar_t>(), input_size, &total_sum);
     }));
+    // at::Tensor result = at::tensor({total_sum});
     return total_sum;
 }
 

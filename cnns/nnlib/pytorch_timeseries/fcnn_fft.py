@@ -154,8 +154,8 @@ print("current file name: ", current_file_name)
 
 if torch.cuda.is_available():
     print("conv1D_cuda is available: ")
-    device = torch.device("cuda")
-    # torch.set_default_tensor_type('torch.cuda.FloatTensor')
+    device = torch.device("cuda_lltm")
+    # torch.set_default_tensor_type('torch.cuda_lltm.FloatTensor')
 else:
     device = torch.device("cpu")
 
@@ -687,7 +687,7 @@ def main(dataset_name):
 
     torch.manual_seed(args.seed)
 
-    device = torch.device("cuda" if use_cuda else "cpu")
+    device = torch.device("cuda_lltm" if use_cuda else "cpu")
     optimizer_type = OptimizerType[args.optimizer_type]
 
     num_workers = 2
