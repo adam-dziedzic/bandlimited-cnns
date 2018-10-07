@@ -35,6 +35,7 @@ from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftCompressSignalOnly
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftSimple
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftSimpleForLoop
 from cnns.nnlib.utils.general_utils import ConvType
+from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import OptimizerType
 from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import get_log_time
@@ -104,11 +105,6 @@ parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
                     help='SGD momentum (default: 0.5)')
 parser.add_argument('--no_cuda', action='store_true', default=False,
                     help='disables CUDA training')
-parser.add_argument('--compress_filter', default=False,
-                    help='compress the filters for fft based convolution or '
-                         'only the input signals')
-parser.add_argument('--big_coef', default=False,
-                    help='preserve the highest coefficients')
 parser.add_argument('--seed', type=int, default=31, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--log-interval', type=int, default=1, metavar='N',
@@ -123,7 +119,7 @@ parser.add_argument("-w", "--workers", default=4, type=int,
                          "loaded in the main process")
 parser.add_argument("-n", "--net", default="fcnn",
                     help="the type of net: alexnet, densenet, resnet, fcnn.")
-parser.add_argument("-d", "--datasets", default="all",
+parser.add_argument("-d", "--datasets", default="debug",
                     help="the type of datasets: all or debug.")
 parser.add_argument("-l", "--limit_size", default=256, type=int,
                     help="limit_size for the input for debug")
@@ -131,7 +127,7 @@ parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
-parser.add_argument("-p", "--preserve_energy", default=99, type=float,
+parser.add_argument("-p", "--preserve_energy", default=90, type=float,
                     help="How many energy should be preserved in the "
                          "frequency representation of the signal? This "
                          "is the compression in the FFT domain.")
@@ -147,6 +143,10 @@ parser.add_argument("-c", "--conv_type", default="FFT1D",
                          "convolutional weights initialized in the spectral "
                          "domain, please choose from: " + ",".join(
                         ConvType.get_names()))
+parser.add_argument("--compress_type", default="LOW_COEFF",
+                    # "STANDARD", "BIG_COEFF", "LOW_COEFF"
+                    help="the type of compression to be applied: " + ",".join(
+                        CompressType.get_names()))
 args = parser.parse_args()
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
@@ -154,8 +154,8 @@ print("current file name: ", current_file_name)
 
 if torch.cuda.is_available():
     print("conv1D_cuda is available: ")
-    device = torch.device("cuda_lltm")
-    # torch.set_default_tensor_type('torch.cuda_lltm.FloatTensor')
+    device = torch.device("cuda")
+    # torch.set_default_tensor_type('torch.cuda.FloatTensor')
 else:
     device = torch.device("cpu")
 
@@ -245,8 +245,7 @@ class Conv(object):
         self.index_back = args.index_back
         self.preserve_energy = args.preserve_energy
         self.is_debug = is_debug
-        self.compress_filter = args.compress_filter
-        self.big_coef = args.big_coef
+        self.compress_type = CompressType[args.compress_type]
 
     def get_conv(self, index):
         if index == 0:
@@ -271,8 +270,7 @@ class Conv(object):
                              conv_index=index,
                              preserve_energy=self.preserve_energy,
                              is_debug=self.is_debug,
-                             compress_filter=self.compress_filter,
-                             big_coef=self.big_coef)
+                             compress_type=self.compress_type)
         elif self.conv_type is ConvType.AUTOGRAD:
             return Conv1dfftAutograd(in_channels=in_channels,
                                      out_channels=self.out_channels[index],
@@ -687,7 +685,7 @@ def main(dataset_name):
 
     torch.manual_seed(args.seed)
 
-    device = torch.device("cuda_lltm" if use_cuda else "cpu")
+    device = torch.device("cuda" if use_cuda else "cpu")
     optimizer_type = OptimizerType[args.optimizer_type]
 
     num_workers = 2
@@ -798,9 +796,8 @@ if __name__ == '__main__':
         args.epochs) + ",index_back(%)," + str(
         args.index_back) + ",preserve_energy," + str(
         args.preserve_energy) + "\n,conv_type," + str(
-        args.conv_type) + ",big_coeff," + str(
-        args.big_coef) + ",compress_filter," + str(
-        args.compress_filter) + "\n"
+        args.conv_type) + ",compress_type," + str(
+        args.compress_type) + "\n"
     with open(additional_log_file, "a") as file:
         # Write the metadata.
         file.write(HEADER + "\n")

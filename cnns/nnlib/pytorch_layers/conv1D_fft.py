@@ -13,7 +13,7 @@ from torch import tensor
 from torch.nn import Module
 from torch.nn.functional import pad as torch_pad
 from torch.nn.parameter import Parameter
-from memory_profiler import profile
+# from memory_profiler import profile
 
 from cnns.nnlib.pytorch_layers.pytorch_utils import complex_pad_simple
 from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_fft_signals
@@ -26,7 +26,9 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate
 from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate as conj
 from cnns.nnlib.pytorch_layers.pytorch_utils import to_tensor
 from cnns.nnlib.pytorch_layers.pytorch_utils import retain_big_coef
+from cnns.nnlib.pytorch_layers.pytorch_utils import retain_low_coef
 from cnns.nnlib.utils.general_utils import additional_log_file
+from cnns.nnlib.utils.general_utils import CompressType
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -47,8 +49,8 @@ class Conv1dfftFunction(torch.autograd.Function):
     def forward(ctx, input, filter, bias=None, padding=None, stride=None,
                 index_back=None, preserve_energy=None, out_size=None,
                 signal_ndim=1, use_next_power2=False, is_manual=tensor([0]),
-                conv_index=None, is_debug=True, compress_filter=True,
-                big_coef=False):
+                conv_index=None, is_debug=True,
+                compress_type=CompressType.STANDARD):
         """
         Compute the forward pass for the 1D convolution.
 
@@ -79,11 +81,12 @@ class Conv1dfftFunction(torch.autograd.Function):
         was computed manually.
         :param conv_index: the index of the convolution.
         :param is_debug: is the debug mode of execution.
-        :param compress_filter: should the filter be compressed or only the
-        input signal.
-        :param big_coef: should we keep only the largest coefficients or delete
+        :param compress_type: NO_FILGER - should the filter be compressed or only the
+        input signal? BIG_COEF: should we keep only the largest coefficients or delete
         the coefficients from the end of the signal representation in the
-        frequency domain.
+        frequency domain? STANDARD: cut off the same number of coefficients
+        for each signal and filter in the batch based on the whole energy of the
+        signals in the batch.
 
         :return: the result of convolution.
         """
@@ -176,7 +179,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         if index_back is not None and index_back > 0:
             index_back_fft = int(init_half_fft_size * (index_back / 100)) + 1
 
-        if big_coef is False:
+        if compress_type is CompressType.STANDARD:
             if preserve_energy is not None and preserve_energy < 100:
                 index_back_fft = preserve_energy_index_back(xfft,
                                                             preserve_energy)
@@ -189,7 +192,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         if index_back_fft is not None:
             # At least one frequency coefficient has to remain.
             index_back_fft = min(init_half_fft_size - 1, index_back_fft)
-            if big_coef is False:
+            if compress_type is CompressType.STANDARD:
                 half_fft_compressed_size = init_half_fft_size - index_back_fft
 
         full_energy = None
@@ -198,7 +201,8 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         # fft of the filters.
         fft_size_filter = fft_size
-        if compress_filter is False and half_fft_compressed_size is not None:
+        if compress_type is CompressType.NO_FILTER and (
+                half_fft_compressed_size is not None):
             fft_size_filter = (half_fft_compressed_size - 1) * 2
 
         fft_padding_filter = fft_size_filter - (WW + 2 * filter_pad)
@@ -211,23 +215,33 @@ class Conv1dfftFunction(torch.autograd.Function):
                           onesided=True)
 
         if half_fft_compressed_size is not None:
-            # xfft = xfft.narrow(dim=-2, start=0, length=half_fft_compressed_size)
+            # xfft = xfft.narrow(dim=-2, start=0,
+            # length=half_fft_compressed_size)
             xfft = xfft[:, :, :half_fft_compressed_size, :]
-            # yfft = yfft.narrow(dim=-2, start=0, length=half_fft_compressed_size)
+            # yfft = yfft.narrow(dim=-2, start=0,
+            # length=half_fft_compressed_size)
             yfft = yfft[:, :, :half_fft_compressed_size, :]
-        elif big_coef is True:
+        elif compress_type is CompressType.BIG_COEFF:
             if preserve_energy is not None and preserve_energy < 100:
                 xfft = retain_big_coef(xfft, preserve_energy=preserve_energy)
                 yfft = retain_big_coef(yfft, preserve_energy=preserve_energy)
             elif index_back_fft is not None and index_back_fft > 0:
                 xfft = retain_big_coef(xfft, index_back=index_back_fft)
                 yfft = retain_big_coef(yfft, index_back=index_back_fft)
+        elif compress_type is CompressType.LOW_COEFF:
+            if preserve_energy is not None and preserve_energy < 100:
+                xfft = retain_low_coef(xfft, preserve_energy=preserve_energy)
+                yfft = retain_low_coef(yfft, preserve_energy=preserve_energy)
+            elif index_back_fft is not None and index_back_fft > 0:
+                xfft = retain_low_coef(xfft, index_back=index_back_fft)
+                yfft = retain_low_coef(yfft, index_back=index_back_fft)
 
         if is_debug is True:
             if half_fft_compressed_size is None:
                 percent_retained_signal = 100
             else:
-                percent_retained_signal = half_fft_compressed_size / init_half_fft_size * 100
+                percent_retained_signal = 100 * (
+                        half_fft_compressed_size / init_half_fft_size)
             preserved_energy, _ = get_full_energy_simple(xfft)
             msg = "conv_name," + "conv" + str(
                 conv_index) + ",index_back_fft," + str(
@@ -281,13 +295,14 @@ class Conv1dfftFunction(torch.autograd.Function):
         if stride is not None and stride > 1:
             output = output[:, :, 0::stride]
 
-        compress_filter_ctx = 1 if compress_filter else 0
-
         if ctx:
             ctx.save_for_backward(xfft, yfft, to_tensor(W), to_tensor(WW),
                                   to_tensor(fft_size), is_manual,
                                   to_tensor(conv_index),
-                                  to_tensor(compress_filter_ctx))
+                                  to_tensor(compress_type.value),
+                                  to_tensor(is_debug),
+                                  to_tensor(preserve_energy),
+                                  to_tensor(index_back_fft))
 
         return output
 
@@ -314,15 +329,20 @@ class Conv1dfftFunction(torch.autograd.Function):
         :return: gradients for input map x, filter w and bias b
         """
         # print("execute backward pass 1D")
-        xfft, yfft, W, WW, fft_size, is_manual, conv_index, compress_filter_ctx = ctx.saved_tensors
+        xfft, yfft, W, WW, fft_size, is_manual, conv_index, compress_type, is_debug, preserve_energy, index_back_fft = ctx.saved_tensors
         is_manual[0] = 1  # Mark the manual execution of the backward pass.
         W = from_tensor(W)
         WW = from_tensor(WW)
         fft_size = from_tensor(fft_size)
         signal_ndim = 1
         conv_index = from_tensor(conv_index)  # for the debug/test purposes
-        compress_filter_ctx = from_tensor(compress_filter_ctx)
-        compress_grad = True if compress_filter_ctx == 1 else False
+        compress_type = CompressType(from_tensor(compress_type))
+        is_debug = True if is_debug == 1 else False
+        preserve_energy = from_tensor(preserve_energy)
+        index_back_fft = from_tensor(index_back_fft)
+
+        if is_debug:
+            print("Conv layer index: ", conv_index)
 
         # The last dimension (_) for xfft and yfft is the 2 element complex
         # number.
@@ -334,7 +354,8 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         # fft of the gradient.
         fft_size_grad = fft_size
-        if compress_grad is False and half_fft_compressed_size is not None:
+        if compress_type is CompressType.NO_FILTER and (
+                half_fft_compressed_size is not None):
             # Decreases the required padding for grad thus we do not have to
             # compress the signal in frequency domain (by removing the
             # coefficients from the end of the signal).
@@ -363,6 +384,18 @@ class Conv1dfftFunction(torch.autograd.Function):
             # doutfft = doutfft.narrow(dim=-2, start=0,
             #                          length=half_fft_compressed_size)
             doutfft = doutfft[:, :, :half_fft_compressed_size, :]
+        elif compress_type is CompressType.BIG_COEFF:
+            if preserve_energy is not None and preserve_energy < 100:
+                doutfft = retain_big_coef(doutfft,
+                                          preserve_energy=preserve_energy)
+            elif index_back_fft is not None and index_back_fft > 0:
+                doutfft = retain_big_coef(doutfft, index_back=index_back_fft)
+        elif compress_type is CompressType.LOW_COEFF:
+            if preserve_energy is not None and preserve_energy < 100:
+                doutfft = retain_low_coef(doutfft,
+                                          preserve_energy=preserve_energy)
+            elif index_back_fft is not None and index_back_fft > 0:
+                doutfft = retain_low_coef(doutfft, index_back=index_back_fft)
 
         if ctx.needs_input_grad[0]:
             # Initialize gradient output tensors.
@@ -488,7 +521,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                 db[ff] += torch.sum(dout[:, ff, :])
 
         return dx, dw, db, None, None, None, None, None, None, None, None, \
-               None, None, None, None
+               None, None, None
 
 
 class Conv1dfftAutograd(Module):
@@ -497,7 +530,7 @@ class Conv1dfftAutograd(Module):
                  index_back=None, preserve_energy=100, out_size=None,
                  filter_value=None, bias_value=None, use_next_power2=False,
                  is_manual=tensor([0]), conv_index=None, is_complex_pad=True,
-                 is_debug=True, compress_filter=True, big_coef=False):
+                 is_debug=True, compress_type=CompressType.STANDARD):
         """
         1D convolution using FFT implemented fully in PyTorch.
 
@@ -538,9 +571,9 @@ class Conv1dfftAutograd(Module):
         :param is_complex_pad: is padding applied to the complex representation
         of the input signal and filter before the reverse fft is applied.
         :param is_debug: is this the debug mode execution?
-        :param compress_filter: should we compress the filter?
-        :param big_coef: should we preserve only the largest coefficients in the
-        frequency domain?
+        :param compress_type: the type of FFT compression, NO_FILTER - do not
+        compress the filter. BIG_COEF: preserve only the largest coefficients
+        in the frequency domain.
 
         Regarding the stride parameter: the number of pixels between
         adjacent receptive fields in the horizontal and vertical
@@ -599,8 +632,7 @@ class Conv1dfftAutograd(Module):
         self.conv_index = conv_index
         self.is_complex_pad = is_complex_pad
         self.is_debug = is_debug
-        self.compress_filter = compress_filter
-        self.big_coef = big_coef
+        self.compress_type = compress_type
 
         self.reset_parameters()
 
@@ -678,8 +710,7 @@ class Conv1dfftAutograd(Module):
             index_back=self.index_back, preserve_energy=self.preserve_energy,
             out_size=self.out_size, use_next_power2=self.use_next_power2,
             is_manual=self.is_manual, conv_index=self.conv_index,
-            is_debug=self.is_debug, compress_filter=self.compress_filter,
-            big_coef=self.big_coef)
+            is_debug=self.is_debug, compress_type=self.compress_type)
 
 
 class Conv1dfft(Conv1dfftAutograd):
@@ -691,15 +722,14 @@ class Conv1dfft(Conv1dfftAutograd):
                  stride=None, padding=None, bias=True, index_back=None,
                  out_size=None, filter_value=None, bias_value=None,
                  use_next_power2=False, conv_index=None, preserve_energy=None,
-                 is_debug=True, compress_filter=True, big_coef=False):
+                 is_debug=True, compress_type=CompressType.STANDARD):
         super(Conv1dfft, self).__init__(
             in_channels=in_channels, out_channels=out_channels,
             kernel_size=kernel_size, stride=stride, padding=padding, bias=bias,
             index_back=index_back, out_size=out_size, filter_value=filter_value,
             bias_value=bias_value, use_next_power2=use_next_power2,
             conv_index=conv_index, preserve_energy=preserve_energy,
-            is_debug=is_debug, compress_filter=compress_filter,
-            big_coef=big_coef)
+            is_debug=is_debug, compress_type=compress_type)
 
     def forward(self, input):
         """
@@ -713,7 +743,7 @@ class Conv1dfft(Conv1dfftAutograd):
             input, self.filter, self.bias, self.padding, self.stride,
             self.index_back, self.preserve_energy, self.out_size,
             self.signal_ndim, self.use_next_power2, self.is_manual,
-            self.conv_index, self.is_debug, self.compress_filter, self.big_coef)
+            self.conv_index, self.is_debug, self.compress_type)
 
 
 def test_run():

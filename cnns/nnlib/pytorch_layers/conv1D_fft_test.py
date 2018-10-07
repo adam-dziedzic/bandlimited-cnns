@@ -15,6 +15,8 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import MockContext
 from cnns.nnlib.utils.log_utils import get_logger
 from cnns.nnlib.utils.log_utils import set_up_logging
 
+from cnns.nnlib.utils.general_utils import CompressType
+
 ERR_MSG = "Expected x is different from computed y."
 
 convTypes = [Conv1dfftAutograd, Conv1dfft, Conv1dfftSimple,
@@ -438,7 +440,8 @@ class TestPyTorchConv1d(unittest.TestCase):
             conv = Conv1dfft(filter_value=torch.from_numpy(y),
                              bias_value=torch.from_numpy(b),
                              preserve_energy=preserve_energy,
-                             is_debug=True, compress_filter=False)
+                             is_debug=True,
+                             compress_type=CompressType.NO_FILTER)
             result = conv.forward(input=torch.from_numpy(x))
             print("actual result: ", result)
 
@@ -448,7 +451,7 @@ class TestPyTorchConv1d(unittest.TestCase):
                     torch.abs(result_tensor - expected_result_tensor),
                     dim=-1).item()))
 
-    def test_FunctionForwardCompressionConvFFTPreserveEnergy50words(self):
+    def test_FunctionForwardCompressionConvFFTPreserveEnergy50wordsBigCoeff(self):
         x = fifty_words
         print("length of the input signal: ", x.shape[-1])
         y = np.array(
@@ -473,17 +476,55 @@ class TestPyTorchConv1d(unittest.TestCase):
             conv = Conv1dfft(filter_value=torch.from_numpy(y),
                              bias_value=torch.from_numpy(b),
                              preserve_energy=preserve_energy,
-                             is_debug=True, compress_filter=True,
+                             is_debug=True,
                              use_next_power2=False,
-                             big_coef=True)
+                             compress_type=CompressType.BIG_COEFF)
             result = conv.forward(input=torch.from_numpy(x))
             # print("actual result: ", result)
 
-            result_tensor = tensor(result, dtype=torch.float32)
+            result = result.float()
             print(
                 "absolute divergence for preserved energy,{},is,{},stop".format(
                     preserve_energy, torch.sum(
-                        torch.abs(result_tensor - expected_result_tensor),
+                        torch.abs(result - expected_result_tensor),
+                        dim=-1).item()))
+
+    def test_FunctionForwardCompressionConvFFTPreserveEnergy50wordsLowCoeff(self):
+        x = fifty_words
+        print("length of the input signal: ", x.shape[-1])
+        y = np.array(
+            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
+        y = stats.zscore(y)
+        y = np.array([[y]])
+        print("length of the filter: ", y.shape[-1])
+        b = np.array([0.0])
+        # get the expected results from numpy correlate
+        expected_result_numpy = np.correlate(x[0, 0, :], y[0, 0, :],
+                                             mode="valid")
+        expected_result_tensor = tensor([[expected_result_numpy]],
+                                        dtype=torch.float32)
+        # print("expected_result_numpy: ", expected_result_numpy)
+
+        preserved_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 85.,
+                              80., 70., 60., 50., 40., 10.]
+        # preserved_energies = [95.]
+        # indexes_back = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+
+        for preserve_energy in preserved_energies:
+            conv = Conv1dfft(filter_value=torch.from_numpy(y),
+                             bias_value=torch.from_numpy(b),
+                             preserve_energy=preserve_energy,
+                             is_debug=True,
+                             use_next_power2=False,
+                             compress_type=CompressType.LOW_COEFF)
+            result = conv.forward(input=torch.from_numpy(x))
+            # print("actual result: ", result)
+
+            result = result.float()
+            print(
+                "absolute divergence for preserved energy,{},is,{},stop".format(
+                    preserve_energy, torch.sum(
+                        torch.abs(result - expected_result_tensor),
                         dim=-1).item()))
 
     def test_FunctionForwardCompressionConvFFTIndexBack50words(self):
@@ -512,12 +553,12 @@ class TestPyTorchConv1d(unittest.TestCase):
                              bias_value=torch.from_numpy(b),
                              index_back=index_back,
                              preserve_energy=None,
-                             is_debug=True, compress_filter=True,
+                             is_debug=True, compress_type=CompressType.LOW_COEFF,
                              use_next_power2=False)
             result = conv.forward(input=torch.from_numpy(x))
             # print("actual result: ", result)
 
-            result_tensor = tensor(result, dtype=torch.float32)
+            result_tensor = result.float()
             print(
                 "absolute divergence for index back,{},is,{},stop".format(
                     index_back, torch.sum(
@@ -550,9 +591,9 @@ class TestPyTorchConv1d(unittest.TestCase):
                              bias_value=torch.from_numpy(b),
                              index_back=index_back,
                              preserve_energy=None,
-                             is_debug=True, compress_filter=True,
+                             is_debug=True,
                              use_next_power2=False,
-                             big_coef=True)
+                             compress_type=CompressType.BIG_COEFF)
             result = conv.forward(input=torch.from_numpy(x))
             # print("actual result: ", result)
 
@@ -617,8 +658,9 @@ class TestPyTorchConv1d(unittest.TestCase):
             conv = Conv1dfft(filter_value=torch.from_numpy(y),
                              bias_value=torch.from_numpy(b),
                              preserve_energy=preserve_energy,
-                             is_debug=True, compress_filter=True,
-                             use_next_power2=False)
+                             is_debug=True,
+                             use_next_power2=False,
+                             compress_type=CompressType.STANDARD)
             result = conv.forward(input=torch.from_numpy(x))
             # print("actual result: ", result)
 
@@ -915,7 +957,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         expected_dx, expected_dw, expected_db = \
             conv_backward_naive_1D(dout.numpy(), cache)
 
-        dx, dw, db, _, _, _, _, _, _, _, _, _, _, _, _ = Conv1dfftFunction.backward(
+        dx, dw, db, _, _, _, _, _, _, _, _, _, _, _ = Conv1dfftFunction.backward(
             ctx,
             dout)
 
@@ -958,7 +1000,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         print("expected_dw: ", expected_dw)
         print("expected_db: ", expected_db)
 
-        dx, dw, db, _, _, _, _, _, _, _, _, _, _, _, _ = Conv1dfftFunction.backward(
+        dx, dw, db, _, _, _, _, _, _, _, _, _, _, _ = Conv1dfftFunction.backward(
             ctx, dout)
 
         # are the gradients correct
@@ -999,7 +1041,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         print("expected_dw: ", expected_dw)
         print("expected_db: ", expected_db)
 
-        dx, dw, db, _, _, _, _, _, _, _, _, _, _, _, _ = Conv1dfftFunction.backward(
+        dx, dw, db, _, _, _, _, _, _, _, _, _, _, _ = Conv1dfftFunction.backward(
             ctx,
             dout)
 

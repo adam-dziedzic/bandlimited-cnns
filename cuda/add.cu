@@ -25,7 +25,7 @@ int main(void) {
     y[i] = 2.0f;
   }
 
-  // Run the kernel on 1M elements on the CPU.
+  // Run the kernel on 1M elements on the GPU.
   // add(N, x, y);
   add<<<1, 1>>>(N, x, y);
 

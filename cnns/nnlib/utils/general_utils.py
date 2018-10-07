@@ -58,6 +58,26 @@ class ConvType(EnumWithNames):
     COMPRESS_INPUT_ONLY = 9
 
 
+class CompressType(EnumWithNames):
+    """
+
+    >>> compress_type = CompressType.BIG_COEFF
+    >>> assert compress_type.value == 2
+    >>> compress_type = CompressType(3)
+    >>> assert compress_type is CompressType.LOW_COEFF
+    """
+    # Compress both the input signal and the filter.
+    STANDARD = 1
+    # Preserve the largest (biggest) coefficients and zero-out the lowest
+    # (smallest) coefficients.
+    BIG_COEFF = 2
+    # Preserve only the lowest coefficients but zero-out the highest
+    # coefficients.
+    LOW_COEFF = 3
+    # Compress the filters for fft based convolution or only the input signals.
+    NO_FILTER = 4
+
+
 def energy(x):
     """
     Calculate the energy of the signal.
