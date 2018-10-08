@@ -46,7 +46,7 @@ class Conv1dfftFunction(torch.autograd.Function):
 
     @staticmethod
     # @profile
-    def forward(ctx, input, filter, bias=None, padding=None, stride=None,
+    def forward(ctx, x, filter, bias=None, padding=None, stride=None,
                 index_back=None, preserve_energy=None, out_size=None,
                 signal_ndim=1, use_next_power2=False, is_manual=tensor([0]),
                 conv_index=None, is_debug=True,
@@ -57,7 +57,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         :param ctx: context to save intermediate results, in other
         words, a context object that can be used to stash information
         for backward computation
-        :param input: the input map to the convolution (e.g. a time-series).
+        :param x: the input map to the convolution (e.g. a time-series).
 
         The other parameters are similar to the ones in the
         PyTorchConv2dAutograd class.
@@ -105,7 +105,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         # N - number of input maps (or images in the batch),
         # C - number of input channels,
         # W - width of the input (the length of the time-series).
-        N, C, W = input.size()
+        N, C, W = x.size()
 
         # F - number of filters,
         # C - number of channels in each filter,
@@ -166,10 +166,10 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         left_x_pad = filter_pad + padding_count
         right_x_pad = padding_count + filter_pad + dout_pad + fft_padding_x
-        padded_x = torch_pad(input, (left_x_pad, right_x_pad), 'constant', 0)
+        x = torch_pad(x, (left_x_pad, right_x_pad), 'constant', 0)
         # fft of the input signals.
-        xfft = torch.rfft(padded_x, signal_ndim=signal_ndim, onesided=True)
-
+        xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=True)
+        x = None
         # The last dimension (-1) has size 2 as it represents the complex
         # numbers with real and imaginary parts. The last but one dimension
         # (-2) represents the length of the signal in the frequency domain.
@@ -209,10 +209,11 @@ class Conv1dfftFunction(torch.autograd.Function):
         # We have to pad the filter (at least the filter size - 1).
         # fft_padding_filter can be negative number if
         right_filter_pad = max(filter_pad, filter_pad + fft_padding_filter)
-        padded_filter = torch_pad(filter, (filter_pad, right_filter_pad),
+        filter = torch_pad(filter, (filter_pad, right_filter_pad),
                                   'constant', 0)
-        yfft = torch.rfft(padded_filter, signal_ndim=signal_ndim,
+        yfft = torch.rfft(filter, signal_ndim=signal_ndim,
                           onesided=True)
+        filter = None
 
         if is_debug:
             print("conv_name," + "conv" + str(conv_index))
@@ -262,8 +263,8 @@ class Conv1dfftFunction(torch.autograd.Function):
             with open(additional_log_file, "a") as file:
                 file.write(msg + "\n")
 
-        output = torch.zeros([N, F, out_W], dtype=input.dtype,
-                             device=input.device)
+        output = torch.zeros([N, F, out_W], dtype=xfft.dtype,
+                             device=xfft.device)
 
         for nn in range(N):  # For each time-series in the batch.
             # Take one time series and un-squeeze it for broadcasting with
@@ -272,9 +273,9 @@ class Conv1dfftFunction(torch.autograd.Function):
             out_fft = correlate_fft_signals(
                 xfft=xfft_nn, yfft=yfft, fft_size=fft_size)
             if out_fft.shape[-1] > out_W:
-                out_slice = out_fft[..., :out_W]
+                out_fft = out_fft[..., :out_W]
             elif out_fft.shape[-1] < out_W:
-                out_slice = torch_pad(out_fft, (0, out_W - out_fft.shape[-1]))
+                out_fft = torch_pad(out_fft, (0, out_W - out_fft.shape[-1]))
 
             """
             Sum up the elements from computed output maps for each input 
@@ -282,10 +283,10 @@ class Conv1dfftFunction(torch.autograd.Function):
             filters. Each filter contributes one channel for the output map. 
             """
             # Sum the input channels.
-            out_sum = torch.sum(input=out_slice, dim=1)
+            out_fft = torch.sum(input=out_fft, dim=1)
             # `unsqueeze` the dimension for channels.
-            out_dim = torch.unsqueeze(input=out_sum, dim=0)
-            output[nn] = out_dim
+            out_fft = torch.unsqueeze(input=out_fft, dim=0)
+            output[nn] = out_fft
             if bias is not None:
                 # Add the bias term for each filter.
                 # Bias has to be unsqueezed to the dimension of the out to
@@ -687,7 +688,7 @@ class Conv1dfftAutograd(Module):
         >>> expected_result = [3.75, 7.25]
         >>> conv = Conv1dfftAutograd(filter_value=torch.from_numpy(y),
         ... bias_value=torch.from_numpy(b), index_back=1)
-        >>> result = conv.forward(input=torch.from_numpy(x))
+        >>> result = conv.forward(x=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(result,
         ... np.array([[expected_result]]))
 
@@ -703,12 +704,12 @@ class Conv1dfftAutograd(Module):
         ... mode="valid")
         >>> conv = Conv1dfftAutograd(filter_value=torch.from_numpy(y),
         ... bias_value=torch.from_numpy(b))
-        >>> result = conv.forward(input=torch.from_numpy(x))
+        >>> result = conv.forward(x=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(result,
         ... np.array([[expected_result]]))
         """
         return Conv1dfftFunction.forward(
-            ctx=None, input=input, filter=self.filter, bias=self.bias,
+            ctx=None, x=input, filter=self.filter, bias=self.bias,
             padding=self.padding, stride=self.stride,
             index_back=self.index_back, preserve_energy=self.preserve_energy,
             out_size=self.out_size, use_next_power2=self.use_next_power2,
@@ -798,7 +799,7 @@ class Conv1dfftSimple(Conv1dfftAutograd):
         ... mode="valid")
         >>> conv = Conv1dfftSimple(filter_value=torch.from_numpy(y),
         ... bias_value=torch.from_numpy(b))
-        >>> result = conv.forward(input=torch.from_numpy(x))
+        >>> result = conv.forward(x=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(result,
         ... np.array([[expected_result]]))
         """
@@ -889,7 +890,7 @@ class Conv1dfftSimpleForLoop(Conv1dfftAutograd):
         ... mode="valid")
         >>> conv = Conv1dfftSimpleForLoop(filter_value=torch.from_numpy(y),
         ... bias_value=torch.from_numpy(b))
-        >>> result = conv.forward(input=torch.from_numpy(x))
+        >>> result = conv.forward(x=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(result,
         ... np.array([[expected_result]]))
         """
@@ -1017,7 +1018,7 @@ class Conv1dfftCompressSignalOnly(Conv1dfftAutograd):
         >>> expected_result = np.correlate(x[0, 0, :], y[0, 0, :], mode="valid")
         >>> conv = Conv1dfftCompressSignalOnly(filter_value=torch.from_numpy(y),
         ... bias_value=torch.from_numpy(b))
-        >>> result = conv.forward(input=torch.from_numpy(x))
+        >>> result = conv.forward(x=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(
         ... result, np.array([[expected_result]]))
 
@@ -1033,7 +1034,7 @@ class Conv1dfftCompressSignalOnly(Conv1dfftAutograd):
         ... mode="valid")
         >>> conv = Conv1dfftSimpleForLoop(filter_value=torch.from_numpy(y),
         ... bias_value=torch.from_numpy(b))
-        >>> result = conv.forward(input=torch.from_numpy(x))
+        >>> result = conv.forward(x=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(result,
         ... np.array([[expected_result]]))
 

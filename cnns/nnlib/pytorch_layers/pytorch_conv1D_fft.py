@@ -304,7 +304,7 @@ class PyTorchConv1dAutograd(Module):
         >>> conv = PyTorchConv2dAutograd(filter=torch.from_numpy(y),
         ... bias=torch.from_numpy(b),
         ... preserve_energy_rate=conv_param['preserve_energy_rate'])
-        >>> result = conv.forward(input=torch.from_numpy(x))
+        >>> result = conv.forward(x=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(result,
         ... np.array([[expected_result]]))
 
@@ -320,7 +320,7 @@ class PyTorchConv1dAutograd(Module):
         ... mode="valid")
         >>> conv = PyTorchConv2dAutograd(filter=torch.from_numpy(y),
         ... bias=torch.from_numpy(b))
-        >>> result = conv.forward(input=torch.from_numpy(x))
+        >>> result = conv.forward(x=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(result,
         ... np.array([[expected_result]]))
         """

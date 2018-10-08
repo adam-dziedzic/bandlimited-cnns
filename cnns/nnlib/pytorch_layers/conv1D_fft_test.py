@@ -757,7 +757,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         self.logger.debug("expected result: " + str(expected_result))
 
         conv = Conv1dfftFunction()
-        result = conv.forward(ctx=None, input=torch.from_numpy(x),
+        result = conv.forward(ctx=None, x=torch.from_numpy(x),
                               filter=torch.from_numpy(y),
                               bias=torch.from_numpy(b))
         self.logger.debug("obtained result: " + str(result))
@@ -794,7 +794,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         self.logger.debug("expected result: " + str(expected_result))
 
         conv = Conv1dfftFunction()
-        result = conv.forward(ctx=None, input=torch.from_numpy(x),
+        result = conv.forward(ctx=None, x=torch.from_numpy(x),
                               filter=torch.from_numpy(y),
                               bias=torch.from_numpy(b))
         self.logger.debug("obtained result: " + str(result))
@@ -832,7 +832,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         self.logger.debug("expected result: " + str(expected_result))
 
         conv = Conv1dfftFunction()
-        result = conv.forward(ctx=None, input=torch.from_numpy(x),
+        result = conv.forward(ctx=None, x=torch.from_numpy(x),
                               filter=torch.from_numpy(y),
                               bias=torch.from_numpy(b))
         self.logger.debug("obtained result: " + str(result))
@@ -876,7 +876,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         self.logger.debug("expected result: " + str(expected_result))
 
         conv = Conv1dfftFunction()
-        result = conv.forward(ctx=None, input=torch.from_numpy(x),
+        result = conv.forward(ctx=None, x=torch.from_numpy(x),
                               filter=torch.from_numpy(y),
                               bias=torch.from_numpy(b))
         self.logger.debug("obtained result: " + str(result))
@@ -947,7 +947,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         ctx = MockContext()
         ctx.set_needs_input_grad(3)
         result_torch = Conv1dfftFunction.forward(
-            ctx, input=x_torch, filter=y_torch, bias=b_torch)
+            ctx, x=x_torch, filter=y_torch, bias=b_torch)
         result = result_torch.detach().numpy()
         np.testing.assert_array_almost_equal(
             result, np.array(expected_result))
@@ -987,7 +987,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         ctx = MockContext()
         ctx.set_needs_input_grad(3)
         result_torch = Conv1dfftFunction.forward(
-            ctx, input=x_torch, filter=y_torch, bias=b_torch)
+            ctx, x=x_torch, filter=y_torch, bias=b_torch)
         result = result_torch.detach().numpy()
         np.testing.assert_array_almost_equal(result, np.array(expected_result))
 
@@ -1028,7 +1028,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         ctx = MockContext()
         ctx.set_needs_input_grad(3)
         result_torch = Conv1dfftFunction.forward(
-            ctx, input=x_torch, filter=y_torch, bias=b_torch)
+            ctx, x=x_torch, filter=y_torch, bias=b_torch)
         result = result_torch.detach().numpy()
         np.testing.assert_array_almost_equal(result, np.array(expected_result))
 
@@ -1338,7 +1338,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         expected_result = [[[3.666667, 7.333333]]]
         conv = Conv1dfftFunction()
         result = conv.forward(
-            ctx=None, input=torch.from_numpy(x), index_back=1,
+            ctx=None, x=torch.from_numpy(x), index_back=1,
             filter=torch.from_numpy(y), bias=torch.from_numpy(b))
         np.testing.assert_array_almost_equal(result, np.array(expected_result))
 

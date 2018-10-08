@@ -490,7 +490,7 @@ class PyTorchConv2dAutograd(Module):
         >>> b = tensor([1.0, 0.0])
         >>> conv = PyTorchConv2dAutograd(filter_value=y, bias=b, index_back=0,
         ... padding=(1, 1), stride=(2, 2))
-        >>> result = conv.forward(input=x)
+        >>> result = conv.forward(x=x)
         >>> expect = np.array([[[
         ... [-2.0, 1.0,-3.0],
         ... [-1.0, 1.0,-3.0],
@@ -553,7 +553,7 @@ class PyTorchConv2dAutograd(Module):
         >>> b = tensor([1.0, 0.0])
         >>> conv = PyTorchConv2dAutograd(filter_value=y, bias=b, index_back=0,
         ... padding=0)
-        >>> result = conv.forward(input=x)
+        >>> result = conv.forward(x=x)
         >>> expect = np.array(
         ... [[[[-2.0000e+00, -1.0000e+00,  1.0000e+00, -2.0000e+00, -3.0000e+00],
         ... [ 5.0000e+00,  2.0000e+00, -2.0000e+00,  1.0000e+00, -6.0000e+00],
@@ -577,7 +577,7 @@ class PyTorchConv2dAutograd(Module):
         >>> b = tensor([0.0])
         >>> conv = PyTorchConv2dAutograd(filter_value=y, bias=b, index_back=1,
         ... use_next_power2=False)
-        >>> result = conv.forward(input=x)
+        >>> result = conv.forward(x=x)
         >>> expect = np.array([[[[21.5, 22.0], [17.5, 13.]]]])
         >>> np.testing.assert_array_almost_equal(x=expect, y=result,
         ... err_msg="The expected array x and computed y are not almost equal.")
@@ -589,7 +589,7 @@ class PyTorchConv2dAutograd(Module):
         >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         >>> b = tensor([0.0])
         >>> conv = PyTorchConv2dAutograd(filter_value=y, bias=b, index_back=0)
-        >>> result = conv.forward(input=x)
+        >>> result = conv.forward(x=x)
         >>> expect = np.array([[[[22.0, 22.0], [18., 14.]]]])
         >>> np.testing.assert_array_almost_equal(x=expect, y=result,
         ... err_msg="The expected array x and computed y are not almost equal.")
@@ -601,7 +601,7 @@ class PyTorchConv2dAutograd(Module):
         >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         >>> b = tensor([-1.0])
         >>> conv = PyTorchConv2dAutograd(filter_value=y, bias=b, index_back=0)
-        >>> result = conv.forward(input=x)
+        >>> result = conv.forward(x=x)
         >>> expect = np.array([[[[21.0, 21.0], [17., 13.]]]])
         >>> np.testing.assert_array_almost_equal(x=expect, y=result,
         ... err_msg="The expected array x and computed y are not almost equal.")
@@ -614,7 +614,7 @@ class PyTorchConv2dAutograd(Module):
         >>> b = tensor([0.0])
         >>> conv = PyTorchConv2dAutograd(filter_value=y, bias=b, index_back=0,
         ... use_next_power2=False)
-        >>> result = conv.forward(input=x)
+        >>> result = conv.forward(x=x)
         >>> expect = np.array([[[[22.0, 22.0], [18., 14.]]]])
         >>> np.testing.assert_array_almost_equal(x=expect, y=result,
         ... err_msg="The expected array x and computed y are not almost equal.")
@@ -626,7 +626,7 @@ class PyTorchConv2dAutograd(Module):
         ... [[[-1.0, 1.0], [2.0, 3.0]], [[-2.0, 1.0], [1.0, -3.0]]]])
         >>> b = tensor([0.0, 0.0])
         >>> conv = PyTorchConv2dAutograd(filter_value=y, bias=b, index_back=0)
-        >>> result = conv.forward(input=x)
+        >>> result = conv.forward(x=x)
         >>> expect = np.array([[[[23.0, 32.0], [30., 4.]],[[11.0, 12.0],
         ... [13.0, -11.0]]]])
         >>> np.testing.assert_array_almost_equal(x=expect, y=result, decimal=5,

@@ -1714,7 +1714,7 @@ def retain_big_coef_bulk(xfft, preserve_energy=None, index_back=None):
             index_back is not None and index_back > 0):
         out = torch.zeros_like(xfft, device=xfft.device)
         full_energy_bulk, squared_bulk = get_full_energy_bulk(xfft)
-        plot_signal_freq(squared_bulk[0, 0].numpy())
+        # plot_signal_freq(squared_bulk[0, 0].numpy())
         squared_bulk, indices_bulk = torch.sort(squared_bulk, descending=True)
         N, C, _, _ = xfft.size()
         for data_point_index in range(N):

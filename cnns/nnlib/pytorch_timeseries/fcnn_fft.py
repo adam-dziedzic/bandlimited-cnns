@@ -369,15 +369,13 @@ class FCNNPytorch(nn.Module):
             out = F.pad(out, (0, 1), "constant", 0)
         return out
 
-    def forward(self, x):
+    def forward(self, out):
         """
         The forward pass through the network.
 
-        :param x: the input data for the network.
+        :param out: the input data for the network.
         :return: the output class.
         """
-
-        out = x
 
         # 0th layer.
         index = 0
