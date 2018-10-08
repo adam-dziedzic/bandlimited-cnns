@@ -119,7 +119,7 @@ parser.add_argument("-w", "--workers", default=4, type=int,
                          "loaded in the main process")
 parser.add_argument("-n", "--net", default="fcnn",
                     help="the type of net: alexnet, densenet, resnet, fcnn.")
-parser.add_argument("-d", "--datasets", default="all",
+parser.add_argument("-d", "--datasets", default="debug",
                     help="the type of datasets: all or debug.")
 parser.add_argument("-l", "--limit_size", default=256, type=int,
                     help="limit_size for the input for debug")
@@ -143,7 +143,7 @@ parser.add_argument("-c", "--conv_type", default="FFT1D",
                          "convolutional weights initialized in the spectral "
                          "domain, please choose from: " + ",".join(
                         ConvType.get_names()))
-parser.add_argument("--compress_type", default="LOW_COEFF",
+parser.add_argument("--compress_type", default="BIG_COEFF",
                     # "STANDARD", "BIG_COEFF", "LOW_COEFF"
                     help="the type of compression to be applied: " + ",".join(
                         CompressType.get_names()))
@@ -722,7 +722,10 @@ def main(dataset_name):
     else:
         in_channels = 1  # number of channels in the input data
         train_dataset = UCRDataset(dataset_name, train=True)
-        batch_size = min(len(train_dataset) // 10, args.min_batch_size)
+        train_size = len(train_dataset)
+        batch_size = args.min_batch_size
+        if train_size < batch_size:
+            batch_size = train_size
         train_loader = torch.utils.data.DataLoader(
             dataset=train_dataset, batch_size=batch_size, shuffle=True,
             **kwargs)
@@ -811,7 +814,8 @@ if __name__ == '__main__':
     if args.datasets == "all":
         flist = os.listdir(ucr_path)
     elif args.datasets == "debug":
-        flist = ["ztest"]
+        # flist = ["zTest"]
+        flist = ["zTest50words"]
         # flist = ["50words"]
         # flist = ["Adiac"]
         # flist = ["HandOutlines"]

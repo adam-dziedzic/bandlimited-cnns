@@ -25,7 +25,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import preserve_energy_index_back
 from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate
 from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate as conj
 from cnns.nnlib.pytorch_layers.pytorch_utils import to_tensor
-from cnns.nnlib.pytorch_layers.pytorch_utils import retain_big_coef
+from cnns.nnlib.pytorch_layers.pytorch_utils import retain_big_coef_bulk
 from cnns.nnlib.pytorch_layers.pytorch_utils import retain_low_coef
 from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import CompressType
@@ -223,11 +223,11 @@ class Conv1dfftFunction(torch.autograd.Function):
             yfft = yfft[:, :, :half_fft_compressed_size, :]
         elif compress_type is CompressType.BIG_COEFF:
             if preserve_energy is not None and preserve_energy < 100:
-                xfft = retain_big_coef(xfft, preserve_energy=preserve_energy)
-                yfft = retain_big_coef(yfft, preserve_energy=preserve_energy)
+                xfft = retain_big_coef_bulk(xfft, preserve_energy=preserve_energy)
+                yfft = retain_big_coef_bulk(yfft, preserve_energy=preserve_energy)
             elif index_back_fft is not None and index_back_fft > 0:
-                xfft = retain_big_coef(xfft, index_back=index_back_fft)
-                yfft = retain_big_coef(yfft, index_back=index_back_fft)
+                xfft = retain_big_coef_bulk(xfft, index_back=index_back_fft)
+                yfft = retain_big_coef_bulk(yfft, index_back=index_back_fft)
         elif compress_type is CompressType.LOW_COEFF:
             if preserve_energy is not None and preserve_energy < 100:
                 xfft = retain_low_coef(xfft, preserve_energy=preserve_energy)
@@ -386,10 +386,10 @@ class Conv1dfftFunction(torch.autograd.Function):
             doutfft = doutfft[:, :, :half_fft_compressed_size, :]
         elif compress_type is CompressType.BIG_COEFF:
             if preserve_energy is not None and preserve_energy < 100:
-                doutfft = retain_big_coef(doutfft,
+                doutfft = retain_big_coef_bulk(doutfft,
                                           preserve_energy=preserve_energy)
             elif index_back_fft is not None and index_back_fft > 0:
-                doutfft = retain_big_coef(doutfft, index_back=index_back_fft)
+                doutfft = retain_big_coef_bulk(doutfft, index_back=index_back_fft)
         elif compress_type is CompressType.LOW_COEFF:
             if preserve_energy is not None and preserve_energy < 100:
                 doutfft = retain_low_coef(doutfft,

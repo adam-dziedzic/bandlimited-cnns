@@ -521,6 +521,71 @@ def get_full_energy_simple(x):
     return full_energy, squared
 
 
+def get_full_energy_bulk(x):
+    """
+    Return the full energy of the signals. The energy E(xfft) of a
+    sequence xfft is defined as the sum of energies
+    (squares of the amplitude |x|) at every point of the sequence.
+
+    see: http://www.cs.cmu.edu/~christos/PUBLICATIONS.OLDER/
+    sigmod94.pdf (equation 7)
+
+    :param x: an array of complex numbers
+    :return: the full energy of signal x
+
+    >>> # Add channels.
+    >>> x_torch = torch.tensor([[[-10.0, 1.5], [2.5, 1.8], [1.0, -9.0]],
+    ... [[-1.0, 2.5], [3.5, -0.1], [1.2, -9.5]]])
+    >>> # change the x_torch to a typical numpy array with complex numbers;
+    >>> # compare the results from numpy and pytorch
+    >>> full_energy, squared = get_full_energy_bulk(x_torch)
+    >>> x_numpy = x_torch[...,0].numpy() + 1.0j * x_torch[...,1].numpy()
+    >>> # print("x_numpy: ", x_numpy)
+    >>> expected_squared = np.power(np.absolute(np.array(x_numpy)), 2)
+    >>> expected_full_energy = np.sum(expected_squared, axis=-1)
+    >>> # print("expected_full_energy: ", expected_full_energy)
+    >>> np.testing.assert_almost_equal(full_energy, expected_full_energy,
+    ... decimal=4)
+    >>> np.testing.assert_array_almost_equal(squared, expected_squared,
+    ... decimal=4)
+
+    >>> x = torch.tensor([1.2, 1.0])
+    >>> full_energy, squared = get_full_energy_bulk(x)
+    >>> np.testing.assert_almost_equal(full_energy, 2.4400, decimal=4)
+    >>> np.testing.assert_array_almost_equal(squared, torch.tensor([2.4400]))
+
+    >>> x_torch = torch.tensor([[1.2, 1.0], [0.5, 1.4]])
+    >>> # change the x_torch to a typical numpy array with complex numbers; compare the results from numpy and pytorch
+    >>> full_energy, squared = get_full_energy_bulk(x_torch)
+    >>> x_numpy = x_torch[...,0].numpy() + 1.0j * x_torch[...,1].numpy()
+    >>> expected_squared = np.power(np.absolute(np.array(x_numpy)), 2)
+    >>> expected_full_energy = np.sum(expected_squared)
+    >>> np.testing.assert_almost_equal(full_energy, expected_full_energy, decimal=4)
+    >>> np.testing.assert_array_almost_equal(squared, expected_squared, decimal=4)
+
+    >>> x_torch = torch.tensor([[-10.0, 1.5], [2.5, 1.8], [1.0, -9.0]])
+    >>> # change the x_torch to a typical numpy array with complex numbers;
+    >>> # compare the results from numpy and pytorch
+    >>> full_energy, squared = get_full_energy_bulk(x_torch)
+    >>> x_numpy = x_torch[...,0].numpy() + 1.0j * x_torch[...,1].numpy()
+    >>> expected_squared = np.power(np.absolute(np.array(x_numpy)), 2)
+    >>> expected_full_energy = np.sum(expected_squared)
+    >>> np.testing.assert_almost_equal(full_energy, expected_full_energy, decimal=4)
+    >>> np.testing.assert_array_almost_equal(squared, expected_squared, decimal=4)
+
+    """
+    # print(x[..., 0])
+    # print(x[..., 1])
+    # The signal in frequency domain is symmetric and pytorch already
+    # discards second half of the signal.
+    real_squared = torch.pow(x[..., 0], 2)
+    img_squared = torch.pow(x[..., 1], 2)
+    squared = torch.add(real_squared, img_squared)
+    # sum of squared values of the signal
+    full_energy = torch.sum(squared, dim=-1, keepdim=True)
+    return full_energy, squared
+
+
 def preserve_energy_index(xfft, energy_rate=None, index_back=None):
     """
     To which index should we preserve the xfft signal (and discard
@@ -1559,6 +1624,118 @@ def retain_big_coef(xfft, preserve_energy=None, index_back=None):
                     #                                desired=squared[coeff_index])
                     current_energy += (-neg_energy)
                     added_indexes += 1
+                    out[data_point_index, channel_index, coeff_index, :] = \
+                        xfft[data_point_index, channel_index, coeff_index, :]
+        return out
+    return xfft
+
+
+def retain_big_coef_bulk(xfft, preserve_energy=None, index_back=None):
+    """
+    Retain the largest coefficients to either to reach the required
+    preserve_energy or after removing index_back coefficients. Only one of them
+    should be chosen.
+
+    :param xfft: the input signal (4 dimensions: batch size, channel, signal,
+    complex numbers).
+    :param preserve_energy: the percentage of energy to be preserved
+    :param index_back: the number of zeroed out coefficients (starting from the
+    smallest one).
+    :return: the zeroed-out small coefficients
+
+    >>> # Simple index_back.
+    >>> xfft = torch.tensor([[[[1., 2.], [3., 4.], [0.1, 0.1]]]])
+    >>> result = retain_big_coef_bulk(xfft, index_back=1)
+    >>> expected = torch.tensor([[[[1., 2.], [3., 4.], [0.0, 0.0]]]])
+    >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
+
+    >>> # Simple preserved energy.
+    >>> xfft = torch.tensor([[[[1., 2.], [3., 4.], [0.1, 0.1]]]])
+    >>> result = retain_big_coef_bulk(xfft, preserve_energy=90)
+    >>> expected = torch.tensor([[[[1., 2.], [3., 4.], [0.0, 0.0]]]])
+    >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
+
+    >>> # Simple preserved energy.
+    >>> xfft = torch.tensor([[[[1.1, 2.1], [30., 40.], [0.1, 0.1], [0.1, -0.8],
+    ... [0.0, -1.0]]]])
+    >>> result = retain_big_coef_bulk(xfft, preserve_energy=5)
+    >>> expected = torch.tensor([[[[0.0, 0.0], [30., 40.], [0.0, 0.0],
+    ... [0.0, 0.0], [0.0, 0.0]]]])
+    >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
+
+    >>> # Simple index back.
+    >>> xfft = torch.tensor([[[[0.1, 0.1], [30., 40.], [1.1, 2.1], [0.1, -0.8],
+    ... [0.0, -1.0]]]])
+    >>> result = retain_big_coef_bulk(xfft, index_back=3)
+    >>> expected = torch.tensor([[[[0.0, 0.0], [30., 40.], [1.1, 2.1],
+    ... [0.0, 0.0], [0.0, 0.0]]]])
+    >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
+
+    >>> # Check 2 channels for preserved energy.
+    >>> xfft = torch.tensor([[[[1., 2.], [3., 4.], [0.1, 0.1]],
+    ... [[0.0, 0.1], [2.0, -6.0], [0.01, 0.002]]]])
+    >>> result = retain_big_coef_bulk(xfft, preserve_energy=90)
+    >>> expected = torch.tensor([[[[1., 2.], [3., 4.], [0.0, 0.0]],
+    ... [[0.0, 0.0], [2.0, -6.0], [0.0, 0.0]]]])
+    >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
+
+    >>> # Check 2 data points for preserved energy.
+    >>> xfft = torch.tensor([[[[1., 2.], [3., 4.], [0.1, 0.1]]],
+    ... [[[0.0, 0.1], [2.0, -6.0], [0.01, 0.002]]]])
+    >>> result = retain_big_coef_bulk(xfft, preserve_energy=90)
+    >>> expected = torch.tensor([[[[1., 2.], [3., 4.], [0.0, 0.0]]],
+    ... [[[0.0, 0.0], [2.0, -6.0], [0.0, 0.0]]]])
+    >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
+
+    >>> # Check 2 channels for index back.
+    >>> xfft = torch.tensor([[[[1., 2.], [3., 4.], [0.1, 0.1]],
+    ... [[0.0, 0.1], [2.0, -6.0], [0.01, 0.002]]]])
+    >>> result = retain_big_coef_bulk(xfft, preserve_energy=90)
+    >>> expected = torch.tensor([[[[1., 2.], [3., 4.], [0.0, 0.0]],
+    ... [[0.0, 0.0], [2.0, -6.0], [0.0, 0.0]]]])
+    >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
+
+    >>> # Check 2 data points for index back.
+    >>> xfft = torch.tensor([[[[1., 2.], [3., 4.], [0.1, 0.1]]],
+    ... [[[0.01, 0.002], [2.0, -6.0], [0.0, 0.1]]]])
+    >>> result = retain_big_coef_bulk(xfft, index_back=1)
+    >>> expected = torch.tensor([[[[1., 2.], [3., 4.], [0.0, 0.0]]],
+    ... [[[0.0, 0.0], [2.0, -6.0], [0.0, 0.1]]]])
+    >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
+    """
+    INPUT_ERROR = "Specify only one of: index_back, preserve_energy"
+    if (index_back is not None and index_back > 0) and (
+            preserve_energy is not None and preserve_energy < 100):
+        raise TypeError(INPUT_ERROR)
+    if xfft is None or len(xfft) == 0:
+        return xfft
+    if (preserve_energy is not None and preserve_energy < 100) or (
+            index_back is not None and index_back > 0):
+        out = torch.zeros_like(xfft, device=xfft.device)
+        full_energy_bulk, squared_bulk = get_full_energy_bulk(xfft)
+        squared_bulk, indices_bulk = torch.sort(squared_bulk, descending=True)
+        N, C, _, _ = xfft.size()
+        for data_point_index in range(N):
+            for channel_index in range(C):
+                full_energy = full_energy_bulk[data_point_index, channel_index]
+                squared = squared_bulk[data_point_index, channel_index]
+                indices = indices_bulk[data_point_index, channel_index]
+                current_energy = 0.0
+                added_index = 0
+                # Number of coefficients in the squared array (the amplitudes of
+                # the coefficients).
+                preserved_indexes = len(squared)
+                if index_back is not None:
+                    preserved_indexes -= index_back
+                preserved_energy = full_energy
+                if preserve_energy is not None:
+                    preserved_energy = full_energy * preserve_energy / 100
+                while current_energy < preserved_energy and (
+                        added_index < preserved_indexes):
+                    energy = squared[added_index]
+                    coeff_index = indices[added_index]
+                    current_energy += energy
+                    added_index += 1
                     out[data_point_index, channel_index, coeff_index, :] = \
                         xfft[data_point_index, channel_index, coeff_index, :]
         return out
