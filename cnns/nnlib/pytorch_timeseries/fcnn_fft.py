@@ -37,6 +37,7 @@ from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftSimpleForLoop
 from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import OptimizerType
+from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import get_log_time
 
@@ -147,6 +148,10 @@ parser.add_argument("--compress_type", default="BIG_COEFF",
                     # "STANDARD", "BIG_COEFF", "LOW_COEFF"
                     help="the type of compression to be applied: " + ",".join(
                         CompressType.get_names()))
+parser.add_argument("--network_type", default="SMALL",
+                    # "STANDARD", "SMALL"
+                    help="the type of network: " + ",".join(
+                        NetworkType.get_names()))
 args = parser.parse_args()
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
@@ -420,8 +425,14 @@ def getModelPyTorch(input_size, num_classes, in_channels):
 
     :return: the model.
     """
+    out_channels = None
+    network_type = NetworkType[args.network_type]
+    if network_type == NetworkType.SMALL:
+        out_channels = [1, 1, 1]
+    elif network_type == NetworkType.STANDARD:
+        out_channels = [128, 256, 128]
     return FCNNPytorch(input_size=input_size, num_classes=num_classes,
-                       in_channels=in_channels)
+                       in_channels=in_channels, out_channels=out_channels)
 
 
 def readucr(filename, data_type):

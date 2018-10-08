@@ -214,6 +214,9 @@ class Conv1dfftFunction(torch.autograd.Function):
         yfft = torch.rfft(padded_filter, signal_ndim=signal_ndim,
                           onesided=True)
 
+        if is_debug:
+            print("conv_name," + "conv" + str(conv_index))
+
         if half_fft_compressed_size is not None:
             # xfft = xfft.narrow(dim=-2, start=0,
             # length=half_fft_compressed_size)

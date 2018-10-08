@@ -78,6 +78,11 @@ class CompressType(EnumWithNames):
     NO_FILTER = 4
 
 
+class NetworkType(EnumWithNames):
+    STANDARD = 1
+    SMALL = 2
+
+
 def energy(x):
     """
     Calculate the energy of the signal.
@@ -122,12 +127,16 @@ def save_object(obj, filename):
         pickle.dump(obj, output)
 
 
-def plot_signal(signal, title="signal"):
+def plot_signal(signal, title="signal", xlabel="Time"):
     plt.plot(range(0, len(signal)), signal)
     plt.title(title)
-    plt.xlabel('time')
+    plt.xlabel(xlabel)
     plt.ylabel('Amplitude')
     plt.show()
+
+
+def plot_signal_freq(signal, title="signal", xlabel="Frequency"):
+    plot_signal(signal, title, xlabel)
 
 
 def plot_signals(x, y, title="", xlabel="Time", ylabel="Amplitude",
