@@ -995,8 +995,8 @@ def correlate_fft_signals(xfft, yfft, fft_size: int,
     :param signal_ndim: the dimension of the signal (we set it to 1)
     :return: output signal after correlation of signals xfft and yfft
     """
-    xfft = complex_pad_simple(xfft=xfft, fft_size=fft_size)
-    yfft = complex_pad_simple(xfft=yfft, fft_size=fft_size)
+    # xfft = complex_pad_simple(xfft=xfft, fft_size=fft_size)
+    # yfft = complex_pad_simple(xfft=yfft, fft_size=fft_size)
 
     freq_mul = complex_mul(xfft, pytorch_conjugate(yfft))
 

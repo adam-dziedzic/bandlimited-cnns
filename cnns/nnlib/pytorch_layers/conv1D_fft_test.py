@@ -1456,29 +1456,34 @@ class TestPyTorchConv1d(unittest.TestCase):
         self.logger.debug("expected result: " + str(expected_result))
 
         dtype = torch.float
-        x_torch = tensor(x, requires_grad=True, dtype=dtype)
-        y_torch = tensor(y, requires_grad=True, dtype=dtype)
-        b_torch = tensor(b, requires_grad=True, dtype=dtype)
+        device = torch.device("cpu")
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        x_torch = tensor(x, requires_grad=True, dtype=dtype, device=device)
+        y_torch = tensor(y, requires_grad=True, dtype=dtype, device=device)
+        b_torch = tensor(b, requires_grad=True, dtype=dtype, device=device)
         conv = Conv1dfft(filter_value=y_torch, bias_value=b_torch)
         result_torch = conv.forward(input=x_torch)
-        result = result_torch.detach().numpy()
+
+        # dout = tensor(result/100.0, dtype=dtype)
+        dout = torch.randn(result_torch.shape, dtype=dtype, device=device)
+
+        result_torch.backward(dout)
+
+        result = result_torch.cpu().detach().numpy()
         self.logger.debug("obtained result: " + str(result))
         np.testing.assert_array_almost_equal(result, np.array(expected_result))
 
         conv_param = {'pad': 0, 'stride': 1}
         expected_result, cache = conv_forward_naive_1D(x, y, b, conv_param)
 
-        # dout = tensor(result/100.0, dtype=dtype)
-        dout = torch.randn(result_torch.shape)
         # get the expected result from the backward pass
         expected_dx, expected_dw, expected_db = \
-            conv_backward_naive_1D(dout.numpy(), cache)
-
-        result_torch.backward(dout)
+            conv_backward_naive_1D(dout.cpu().numpy(), cache)
 
         # Assert that we executed the backward pass manually (value is 1) and
         # not via PyTorch's autograd (for autograd: conv.is_manual[0] == 0).
-        assert conv.is_manual[0] == 1
+        assert 1 == conv.is_manual[0]
 
         # print()
         # print("expected dx: " + str(expected_dx))
