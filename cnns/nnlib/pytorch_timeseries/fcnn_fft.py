@@ -88,11 +88,11 @@ plt.switch_backend('agg')
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch TimeSeries')
 min_batch_size = 16
-parser.add_argument('--min-batch-size', type=int, default=min_batch_size,
+parser.add_argument('--min_batch_size', type=int, default=min_batch_size,
                     metavar='N',
                     help='input batch size for training (default: {})'.format(
                         min_batch_size))
-parser.add_argument('--test-batch-size', type=int, default=1000,
+parser.add_argument('--test_batch_size', type=int, default=1000,
                     metavar='N',
                     help='input batch size for testing (default: 1000)')
 parser.add_argument('--epochs', type=int, default=num_epochs, metavar='N',
@@ -449,7 +449,7 @@ def getData(fname):
     x_train, y_train = readucr(fname + '/' + fname + '_TRAIN')
     x_test, y_test = readucr(fname + '/' + fname + '_TEST')
     num_classes = len(np.unique(y_test))
-    batch_size = min(x_train.shape[0] // 10, 16)
+    batch_size = min(x_train.shape[0] // 10, args.min_batch_size)
 
     y_train = ((y_train - y_train.min()) / (y_train.max() - y_train.min()) * (
             num_classes - 1)).astype(int)
