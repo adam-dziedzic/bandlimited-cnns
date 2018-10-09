@@ -157,7 +157,8 @@ args = parser.parse_args()
 current_file_name = __file__.split("/")[-1].split(".")[0]
 print("current file name: ", current_file_name)
 
-if torch.cuda.is_available():
+use_cuda = True if args.no_cuda is False else False
+if torch.cuda.is_available() and use_cuda:
     print("conv1D_cuda is available: ")
     device = torch.device("cuda")
     # torch.set_default_tensor_type('torch.cuda.FloatTensor')
@@ -811,7 +812,8 @@ if __name__ == '__main__':
         args.epochs) + ",index_back(%)," + str(
         args.index_back) + ",preserve_energy," + str(
         args.preserve_energy) + "\n,conv_type," + str(
-        args.conv_type) + ",compress_type," + str(
+        args.conv_type) + ",batch_size," + str(
+        args.min_batch_size) + ",compress_type," + str(
         args.compress_type) + "\n"
     with open(additional_log_file, "a") as file:
         # Write the metadata.
