@@ -196,12 +196,12 @@ class Conv1dfftFunction(torch.autograd.Function):
             if compress_type is CompressType.STANDARD:
                 half_fft_compressed_size = init_half_fft_size - index_back_fft
 
-        if half_fft_compressed_size is not None:
-            xfft = xfft[:, :, :half_fft_compressed_size, :]
-
         full_energy = None
         if is_debug is True:
             full_energy, _ = get_full_energy_simple(xfft)
+
+        if half_fft_compressed_size is not None:
+            xfft = xfft[:, :, :half_fft_compressed_size, :]
 
         # fft of the filters.
         fft_size_filter = fft_size
