@@ -128,7 +128,7 @@ parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
-parser.add_argument("-p", "--preserve_energy", default=90, type=float,
+parser.add_argument("-p", "--preserve_energy", default=10, type=float,
                     help="How many energy should be preserved in the "
                          "frequency representation of the signal? This "
                          "is the compression in the FFT domain.")
@@ -766,11 +766,14 @@ def main(dataset_name):
     dataset_start_time = time.time()
     for epoch in range(1, args.epochs + 1):
         epoch_start_time = time.time()
+        print("training for epoch: ", epoch)
         train(model=model, device=device, train_loader=train_loader,
               optimizer=optimizer, epoch=epoch)
+        print("test train set for epoch: ", epoch)
         train_loss, train_accuracy = test(model=model, device=device,
                                           test_loader=train_loader,
                                           dataset_type="train")
+        print("test test set for epoch: ", epoch)
         test_loss, test_accuracy = test(model=model, device=device,
                                         test_loader=test_loader,
                                         dataset_type="test")

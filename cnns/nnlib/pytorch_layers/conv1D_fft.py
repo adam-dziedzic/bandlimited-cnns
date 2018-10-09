@@ -149,7 +149,8 @@ class Conv1dfftFunction(torch.autograd.Function):
         WWW: [WW-1][WWW][WW-1][W-1]
         """
         filter_pad = WW - 1  # padding from the filter
-        dout_pad = out_W - 1  # padding from the flowing back gradient fft-ed map
+        # padding from the flowing back gradient fft-ed map
+        dout_pad = out_W - 1
         init_fft_size = W + 2 * padding_count + 2 * filter_pad + dout_pad
         if use_next_power2:
             fft_size = next_power2(init_fft_size)
@@ -178,6 +179,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         half_fft_compressed_size = None
         index_back_fft = None
         if index_back is not None and index_back > 0:
+            # At least one coefficient is removed.
             index_back_fft = int(init_half_fft_size * (index_back / 100)) + 1
 
         if compress_type is CompressType.STANDARD:
@@ -187,11 +189,12 @@ class Conv1dfftFunction(torch.autograd.Function):
             if out_size is not None:
                 # We take onesided fft so the output after inverse fft should
                 # be out size, thus the representation in spectral domain is
-                # twice smaller than the one in time domain.
+                # twice smaller than the one in time domain. We require at least
+                # one fft coefficient retained.
                 half_fft_compressed_size = out_size // 2 + 1
 
         if index_back_fft is not None:
-            # At least one frequency coefficient has to remain.
+            # At least one frequency coefficient has to be removed.
             index_back_fft = min(init_half_fft_size - 1, index_back_fft)
             if compress_type is CompressType.STANDARD:
                 half_fft_compressed_size = init_half_fft_size - index_back_fft
@@ -201,13 +204,16 @@ class Conv1dfftFunction(torch.autograd.Function):
             full_energy, _ = get_full_energy_simple(xfft)
 
         if half_fft_compressed_size is not None:
+            # We request at least one coefficient to remain.
+            half_fft_compressed_size = max(1, half_fft_compressed_size)
             xfft = xfft[:, :, :half_fft_compressed_size, :]
 
         # fft of the filters.
         fft_size_filter = fft_size
         if compress_type is CompressType.NO_FILTER and (
                 half_fft_compressed_size is not None):
-            fft_size_filter = (half_fft_compressed_size - 1) * 2
+            # At least 1 coefficient in the filter.
+            fft_size_filter = max(1, (half_fft_compressed_size - 1) * 2)
 
         fft_padding_filter = fft_size_filter - (WW + 2 * filter_pad)
         # We have to pad the filter (at least the filter size - 1).
@@ -249,14 +255,19 @@ class Conv1dfftFunction(torch.autograd.Function):
                 percent_retained_signal = 100 * (
                         half_fft_compressed_size / init_half_fft_size)
             preserved_energy, _ = get_full_energy_simple(xfft)
+            # The xfft can be only with zeros thus the full energy is zero.
+            percent_preserved_energy = 0.0
+            if full_energy > 0.0:
+                percent_preserved_energy = preserved_energy / full_energy * 100
             msg = "conv_name," + "conv" + str(
                 conv_index) + ",index_back_fft," + str(
                 index_back_fft) + ",raw signal length," + str(
                 W) + ",fft_size," + str(
                 fft_size) + ",init_half_fft_size," + str(
                 init_half_fft_size) + ",half_fft_compressed_size," + str(
-                half_fft_compressed_size) + ",percent of preserved energy," + str(
-                preserved_energy / full_energy * 100) + (
+                half_fft_compressed_size) + (
+                      ",percent of preserved energy,") + str(
+                percent_preserved_energy) + (
                       ",percent of retained signal,") + str(
                 percent_retained_signal) + ",fft_size_filter," + str(
                 fft_size_filter) + ",half_filter_fft_size," + str(
@@ -327,7 +338,8 @@ class Conv1dfftFunction(torch.autograd.Function):
                 # out to properly sum up the values.
                 output[nn] += bias.unsqueeze(1)
 
-        # TODO: how to compute the backward pass for the strided FFT convolution?
+        # TODO: how to compute the backward pass for the strided FFT
+        # convolution?
         # Add additional zeros in the places of the output that were removed
         # by striding.
         if stride is not None and stride > 1:
@@ -974,13 +986,14 @@ class Conv1dfftSimpleForLoop(Conv1dfftAutograd):
 
             percent_retained_signal = (
                                               init_half_fft_size - self.index_back) / init_half_fft_size * 100
+            percent_preserved_energy = preserved_energy / full_energy * 100
             msg = "conv_name," + "conv" + str(
                 self.conv_index) + ",index_back," + str(
                 self.index_back) + ",init_fft_size," + str(
                 init_fft_size) + ",raw signal length," + str(
                 input_size) + ",init_half_fft_size," + str(
                 init_half_fft_size) + ",percent of preserved energy," + str(
-                preserved_energy / full_energy * 100) + (
+                percent_preserved_energy) + (
                       ",percent of retained signal,") + str(
                 percent_retained_signal)
             print(msg)
@@ -1125,15 +1138,16 @@ class Conv1dfftCompressSignalOnly(Conv1dfftAutograd):
             # outcome of the fft would be the current input value.
             # We need the size of fft be at least the filter size.
             fft_size = max((input.shape[-2] - 1) * 2, filter_size)
-            percent_retained_signal = (
-                                              init_half_fft_size - self.index_back) / init_half_fft_size * 100
+            percent_retained_signal = 100 * (
+                        init_half_fft_size - self.index_back) / init_half_fft_size
+            percent_preserved_energy = preserved_energy / full_energy * 100
             msg = "conv_name," + "conv" + str(
                 self.conv_index) + ",index_back," + str(
                 self.index_back) + ",fft_size," + str(
                 fft_size) + ",raw signal length," + str(
                 input_size) + ",init_half_fft_size," + str(
                 init_half_fft_size) + ",percent of preserved energy," + str(
-                preserved_energy / full_energy * 100) + (
+                percent_preserved_energy) + (
                       ",percent of retained signal,") + str(
                 percent_retained_signal)
             print(msg)
