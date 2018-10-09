@@ -292,6 +292,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                 # Bias has to be unsqueezed to the dimension of the out to
                 # properly sum up the values.
                 output[nn] += bias.unsqueeze(1)
+                
 
         # TODO: how to compute the backward pass for the strided FFT convolution?
         # Add additional zeros in the places of the output that were removed
