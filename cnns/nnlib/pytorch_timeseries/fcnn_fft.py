@@ -41,6 +41,8 @@ from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import get_log_time
 
+from memory_profiler import profile
+
 dir_path = os.path.dirname(os.path.realpath(__file__))
 print("current working directory: ", dir_path)
 
@@ -312,6 +314,7 @@ class Conv(object):
 
 class FCNNPytorch(nn.Module):
 
+    # @profile
     def __init__(self, input_size, num_classes, in_channels,
                  kernel_sizes=[8, 5, 3],
                  out_channels=[128, 256, 128], strides=[1, 1, 1]):
@@ -613,7 +616,7 @@ def run_keras():
         print(log.loc[log['loss'].idxmin]['loss'],
               log.loc[log['loss'].idxmin]['val_acc'])
 
-
+# @profile
 def train(model, device, train_loader, optimizer, epoch):
     """
     Train the model.
@@ -671,6 +674,7 @@ def test(model, device, test_loader, dataset_type="test"):
         return test_loss, accuracy
 
 
+@profile
 def main(dataset_name):
     """
     The main training.
@@ -711,7 +715,8 @@ def main(dataset_name):
     if dataset_name is "cifar10":
         num_classes = 10
         width = 32 * 32
-        batch_size = 128
+        # standard batch size is 32
+        batch_size = args.min_batch_size
         in_channels = 3  # number of channels in the input data
         train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True,
                                                      download=True,
@@ -829,13 +834,14 @@ if __name__ == '__main__':
         flist = os.listdir(ucr_path)
     elif args.datasets == "debug":
         # flist = ["zTest"]
-        flist = ["zTest50words"]
+        # flist = ["zTest50words"]
+        # flist = ["InlineSkate"]
         # flist = ["50words"]
         # flist = ["Adiac"]
         # flist = ["HandOutlines"]
         # flist = ["ztest"]
         # flist = ["Cricket_X"]
-        # flist = ["cifar10"]
+        flist = ["cifar10"]
         # flist = ['50words', 'Adiac', 'ArrowHead', 'Beef', 'BeetleFly',
         #         'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
         #         'CinC_ECG_torso', 'Coffee', 'Computers', 'Cricket_X',

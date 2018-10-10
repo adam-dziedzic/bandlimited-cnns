@@ -13,7 +13,7 @@ from torch import tensor
 from torch.nn import Module
 from torch.nn.functional import pad as torch_pad
 from torch.nn.parameter import Parameter
-# from memory_profiler import profile
+from memory_profiler import profile
 
 from cnns.nnlib.pytorch_layers.pytorch_utils import complex_pad_simple
 from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_fft_signals
@@ -171,7 +171,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         x = torch_pad(x, (left_x_pad, right_x_pad), 'constant', 0)
         # fft of the input signals.
         xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=True)
-        x = None
+        del x
         # The last dimension (-1) has size 2 as it represents the complex
         # numbers with real and imaginary parts. The last but one dimension
         # (-2) represents the length of the signal in the frequency domain.
@@ -223,7 +223,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                            'constant', 0)
         yfft = torch.rfft(filter, signal_ndim=signal_ndim,
                           onesided=True)
-        filter = None
+        del filter
 
         if is_debug:
             print("conv_name," + "conv" + str(conv_index))
@@ -357,6 +357,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         return output
 
     @staticmethod
+    # @profile
     def backward(ctx, dout):
         """
         Compute the gradient using FFT.
@@ -402,6 +403,17 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         dx = dw = db = None
 
+        # Gradient for the bias.
+        if ctx.needs_input_grad[2]:
+            # The number of bias elements is equal to the number of filters.
+            db = torch.zeros(F, device=xfft.device, dtype=xfft.dtype)
+
+            # Calculate dB (the gradient for the bias term).
+            # We sum up all the incoming gradients for each filter
+            # bias (as in the affine layer).
+            for ff in range(F):
+                db[ff] += torch.sum(dout[:, ff, :])
+
         # fft of the gradient.
         fft_size_grad = fft_size
         if compress_type is CompressType.NO_FILTER and (
@@ -423,7 +435,9 @@ class Conv1dfftFunction(torch.autograd.Function):
         fft_pad = fft_size_grad - (filter_pad + out_W + filter_pad)
         right_pad = filter_pad + fft_pad
         dout = torch_pad(dout, (left_pad, right_pad), 'constant', 0)
+
         doutfft = torch.rfft(dout, signal_ndim=signal_ndim, onesided=True)
+        del dout
 
         # If the compression was done in the forward pass, then we have to
         # compress the pure fft-ed version of the flowing back gradient:
@@ -502,12 +516,12 @@ class Conv1dfftFunction(torch.autograd.Function):
                 # the input channel dimension 1. Then we sum up over all filter
                 # F, but also produce gradients for all the channels C.
                 doutfft_nn = doutfft[nn, :, :].unsqueeze(1)
-                out_fft = correlate_fft_signals(
+                out = correlate_fft_signals(
                     xfft=doutfft_nn, yfft=conjugate_yfft,
                     fft_size=fft_size)
                 start_index = 2 * filter_pad
                 # print("start index: ", start_index)
-                out = out_fft[:, :, start_index: start_index + W]
+                out = out[:, :, start_index: start_index + W]
                 # Sum over all the Filters (F).
                 out = torch.sum(out, dim=0)
                 out = torch.unsqueeze(input=out, dim=0)
@@ -547,10 +561,10 @@ class Conv1dfftFunction(torch.autograd.Function):
                 # Gather all the contributions to the output that were caused
                 # by a given filter.
                 doutfft_ff = doutfft[:, ff, :].unsqueeze(1)
-                out_fft = correlate_fft_signals(
+                out = correlate_fft_signals(
                     xfft=xfft, yfft=doutfft_ff, fft_size=fft_size,
                     signal_ndim=signal_ndim)
-                out = out_fft[:, :, :WW]
+                out = out[:, :, :WW]
                 # For a given filter, we have to sum up all its contributions
                 # to all the input maps.
                 out = torch.sum(input=out, dim=0)
@@ -560,16 +574,6 @@ class Conv1dfftFunction(torch.autograd.Function):
                 #     "conv"+str(conv_index), out.size(), dw.size(), str(N),
                 #     str(C), str(F)))
                 dw[ff] = out
-
-        if ctx.needs_input_grad[2]:
-            # The number of bias elements is equal to the number of filters.
-            db = torch.zeros(F, device=xfft.device, dtype=xfft.dtype)
-
-            # Calculate dB (the gradient for the bias term).
-            # We sum up all the incoming gradients for each filter
-            # bias (as in the affine layer).
-            for ff in range(F):
-                db[ff] += torch.sum(dout[:, ff, :])
 
         return dx, dw, db, None, None, None, None, None, None, None, None, \
                None, None, None
