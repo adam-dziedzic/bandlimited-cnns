@@ -10,6 +10,7 @@ import torch.nn.functional as F
 from torch import tensor
 from heapq import heappush, heappop
 from cnns.nnlib.utils.general_utils import plot_signal_freq
+from cnns.nnlib.utils.general_utils import mem_log_file
 
 
 class MockContext(object):
@@ -1742,6 +1743,23 @@ def retain_big_coef_bulk(xfft, preserve_energy=None, index_back=None):
                         xfft[data_point_index, channel_index, coeff_index, :]
         return out
     return xfft
+
+
+def cuda_mem_show(is_debug=True, info=""):
+    if torch.cuda.is_available() and is_debug is True:
+        with open(mem_log_file, "a") as f:
+            f.write("info," + str(info) + ",memory allocated," + str(torch.cuda.memory_allocated()) +
+                    ",max memory allocated," + str(
+                torch.cuda.max_memory_allocated()) +
+                    ",memory cached," + str(torch.cuda.memory_cached()) +
+                    ",max memory cached," + str(
+                torch.cuda.max_memory_cached()) + "\n")
+
+
+def cuda_mem_empty(is_debug=True):
+    if torch.cuda.is_available() and is_debug is True:
+        print("cuda empty cache")
+        torch.cuda.empty_cache()
 
 
 if __name__ == "__main__":

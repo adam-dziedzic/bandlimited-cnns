@@ -38,7 +38,9 @@ from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import OptimizerType
 from cnns.nnlib.utils.general_utils import NetworkType
+from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import additional_log_file
+from cnns.nnlib.utils.general_utils import mem_log_file
 from cnns.nnlib.utils.general_utils import get_log_time
 
 from memory_profiler import profile
@@ -116,7 +118,11 @@ parser.add_argument('--log-interval', type=int, default=1, metavar='N',
 parser.add_argument("--optimizer_type", default="ADAM",
                     help="the type of the optimizer, please choose from: " +
                          ",".join(OptimizerType.get_names()))
-parser.add_argument("-w", "--workers", default=4, type=int,
+parser.add_argument("--memory_type", default="STANDARD",
+                    # "STANDARD", "PINNED"
+                    help="the type of the memory used, please choose from: " +
+                         ",".join(MemoryType.get_names()))
+parser.add_argument("-w", "--workers", default=1, type=int,
                     help="number of workers to fetch data for pytorch data "
                          "loader, 0 means that the data will be "
                          "loaded in the main process")
@@ -695,6 +701,10 @@ def main(dataset_name):
         # Write the metadata.
         file.write(DATASET_HEADER)
 
+    with open(mem_log_file, "a") as file:
+        # Write the metadata.
+        file.write(DATASET_HEADER)
+
     use_cuda = not args.no_cuda and torch.cuda.is_available()
 
     torch.manual_seed(args.seed)
@@ -702,8 +712,10 @@ def main(dataset_name):
     device = torch.device("cuda" if use_cuda else "cpu")
     optimizer_type = OptimizerType[args.optimizer_type]
 
-    num_workers = 2
-    pin_memory = True
+    num_workers = args.workers
+    pin_memory = False
+    if MemoryType[args.memory_type] is MemoryType.PINNED:
+        pin_memory = True
     if use_cuda:
         kwargs = {'num_workers': num_workers, 'pin_memory': pin_memory}
         torch.set_default_tensor_type(torch.cuda.FloatTensor)
@@ -724,7 +736,7 @@ def main(dataset_name):
         train_loader = torch.utils.data.DataLoader(train_dataset,
                                                    batch_size=batch_size,
                                                    shuffle=True,
-                                                   num_workers=num_workers)
+                                                   **kwargs)
 
         test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False,
                                                     download=True,
@@ -732,7 +744,7 @@ def main(dataset_name):
         test_loader = torch.utils.data.DataLoader(test_dataset,
                                                   batch_size=batch_size,
                                                   shuffle=False,
-                                                  num_workers=num_workers)
+                                                  **kwargs)
 
     else:
         in_channels = 1  # number of channels in the input data

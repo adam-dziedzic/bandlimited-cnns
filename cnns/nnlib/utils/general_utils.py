@@ -12,6 +12,7 @@ def get_log_time():
 
 
 additional_log_file = "additional-info-" + get_log_time() + ".log"
+mem_log_file = "mem_log-" + get_log_time() + ".log"
 
 
 class EnumWithNames(Enum):
@@ -29,6 +30,11 @@ class OptimizerType(EnumWithNames):
     MOMENTUM = 1
     ADAM = 2
     SGD = 3
+
+
+class MemoryType(EnumWithNames):
+    STANDARD = 1
+    PINNED = 2
 
 
 class RunType(EnumWithNames):
