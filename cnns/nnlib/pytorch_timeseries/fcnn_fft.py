@@ -85,13 +85,12 @@ num_epochs = 300  # 300
 # flist = ["Adiac"]
 # flist = os.listdir(ucr_path)
 # Sort the list based, not case sensitive.
-
 # switch backend to be able to save the graphic files on the servers
 plt.switch_backend('agg')
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch TimeSeries')
-min_batch_size = 16
+min_batch_size = 64
 parser.add_argument('--min_batch_size', type=int, default=min_batch_size,
                     metavar='N',
                     help='input batch size for training (default: {})'.format(
@@ -144,7 +143,7 @@ parser.add_argument("-b", "--mem_test", default=False, type=bool,
                     help="is it the memory test")
 parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
                     help="should the data augmentation be applied")
-parser.add_argument("-g", "--is_debug", default=True, type=bool,
+parser.add_argument("-g", "--is_debug", default=False, type=bool,
                     help="is it the debug mode execution")
 parser.add_argument("-c", "--conv_type", default="FFT1D",
                     # "FFT1D", "STANDARD". "AUTOGRAD", "SIMPLE_FFT"
