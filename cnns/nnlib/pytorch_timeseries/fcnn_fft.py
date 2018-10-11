@@ -43,7 +43,7 @@ from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import mem_log_file
 from cnns.nnlib.utils.general_utils import get_log_time
 
-from memory_profiler import profile
+# from memory_profiler import profile
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 print("current working directory: ", dir_path)
@@ -122,7 +122,7 @@ parser.add_argument("--memory_type", default="STANDARD",
                     # "STANDARD", "PINNED"
                     help="the type of the memory used, please choose from: " +
                          ",".join(MemoryType.get_names()))
-parser.add_argument("-w", "--workers", default=1, type=int,
+parser.add_argument("-w", "--workers", default=4, type=int,
                     help="number of workers to fetch data for pytorch data "
                          "loader, 0 means that the data will be "
                          "loaded in the main process")
@@ -136,15 +136,15 @@ parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
-parser.add_argument("-p", "--preserve_energy", default=10, type=float,
-                    help="How many energy should be preserved in the "
+parser.add_argument("-p", "--preserve_energy", default=90, type=float,
+                    help="How much energy should be preserved in the "
                          "frequency representation of the signal? This "
                          "is the compression in the FFT domain.")
 parser.add_argument("-b", "--mem_test", default=False, type=bool,
                     help="is it the memory test")
 parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
                     help="should the data augmentation be applied")
-parser.add_argument("-g", "--is_debug", default=True, type=bool,
+parser.add_argument("-g", "--is_debug", default=False, type=bool,
                     help="is it the debug mode execution")
 parser.add_argument("-c", "--conv_type", default="FFT1D",
                     # "FFT1D", "STANDARD". "AUTOGRAD", "SIMPLE_FFT"
@@ -156,7 +156,7 @@ parser.add_argument("--compress_type", default="STANDARD",
                     # "STANDARD", "BIG_COEFF", "LOW_COEFF"
                     help="the type of compression to be applied: " + ",".join(
                         CompressType.get_names()))
-parser.add_argument("--network_type", default="SMALL",
+parser.add_argument("--network_type", default="STANDARD",
                     # "STANDARD", "SMALL"
                     help="the type of network: " + ",".join(
                         NetworkType.get_names()))
@@ -680,7 +680,7 @@ def test(model, device, test_loader, dataset_type="test"):
         return test_loss, accuracy
 
 
-@profile
+# @profile
 def main(dataset_name):
     """
     The main training.
@@ -831,7 +831,7 @@ if __name__ == '__main__':
         args.preserve_energy) + "\n,conv_type," + str(
         args.conv_type) + ",batch_size," + str(
         args.min_batch_size) + ",compress_type," + str(
-        args.compress_type) + "\n"
+        args.compress_type) + ",network_type," + str(args.network_type) + "\n"
     with open(additional_log_file, "a") as file:
         # Write the metadata.
         file.write(HEADER + "\n")

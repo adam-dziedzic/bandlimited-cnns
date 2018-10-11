@@ -1747,6 +1747,7 @@ def retain_big_coef_bulk(xfft, preserve_energy=None, index_back=None):
 
 def cuda_mem_show(is_debug=True, info=""):
     if torch.cuda.is_available() and is_debug is True:
+        cuda_mem_empty(is_debug=is_debug)
         with open(mem_log_file, "a") as f:
             f.write("info," + str(info) + ",memory allocated," + str(torch.cuda.memory_allocated()) +
                     ",max memory allocated," + str(
