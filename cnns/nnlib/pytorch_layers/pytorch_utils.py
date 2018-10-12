@@ -5,12 +5,16 @@ The latest version of Pytorch (in the main branch 2018.06.30)
 supports tensor flipping.
 """
 import numpy as np
+import re
 import torch
+from torch import tensor
 import torch.nn.functional as F
 from torch import tensor
 from heapq import heappush, heappop
 from cnns.nnlib.utils.general_utils import plot_signal_freq
 from cnns.nnlib.utils.general_utils import mem_log_file
+import gc
+from functools import reduce
 
 
 class MockContext(object):
@@ -546,6 +550,7 @@ def get_full_energy_bulk(x):
     >>> expected_squared = np.power(np.absolute(np.array(x_numpy)), 2)
     >>> expected_full_energy = np.sum(expected_squared, axis=-1)
     >>> # print("expected_full_energy: ", expected_full_energy)
+    >>> expected_full_energy = np.expand_dims(expected_full_energy, axis=1)
     >>> np.testing.assert_almost_equal(full_energy, expected_full_energy,
     ... decimal=4)
     >>> np.testing.assert_array_almost_equal(squared, expected_squared,
@@ -1749,12 +1754,8 @@ def cuda_mem_show(is_debug=True, info=""):
     if torch.cuda.is_available() and is_debug is True:
         cuda_mem_empty(is_debug=is_debug)
         with open(mem_log_file, "a") as f:
-            f.write("info," + str(info) + ",memory allocated," + str(torch.cuda.memory_allocated()) +
-                    ",max memory allocated," + str(
-                torch.cuda.max_memory_allocated()) +
-                    ",memory cached," + str(torch.cuda.memory_cached()) +
-                    ",max memory cached," + str(
-                torch.cuda.max_memory_cached()) + "\n")
+            f.write(
+                f"info,{info},memory allocated,{torch.cuda.memory_allocated()},max memory allocated,{torch.cuda.max_memory_allocated()},memory cached,{torch.cuda.memory_cached()},max memory cached,{torch.cuda.max_memory_cached()},total nr of cuda tensor elements,{get_tensors_elem_number()}\n")
 
 
 def cuda_mem_empty(is_debug=True):
@@ -1763,9 +1764,91 @@ def cuda_mem_empty(is_debug=True):
         torch.cuda.empty_cache()
 
 
+def get_all_tensor_names():
+    """
+    >>> t1 = tensor([1])
+    >>> a3 = tensor([1, 2, 3])
+    >>> # print(get_all_tensor_names())
+    >>> names = get_all_tensor_names()
+    >>> assert len(names) == 2
+    >>> assert names == {'a3', 't1'}
+    """
+    tensor_names = set()
+    try:
+        for obj in gc.get_objects():
+            obj_names = re.findall(r"'(\w+)': tensor\(", str(obj))
+            tensor_names.update(obj_names)
+    except:
+        pass
+    return tensor_names
+
+
+def get_tensors(only_cuda=True):
+    """
+    https://discuss.pytorch.org/t/how-to-debug-causes-of-gpu-memory-leaks/6741/3?u=adam_dziedzic
+
+    :return: list of active PyTorch tensors
+    >>> import torch
+    >>> from torch import tensor
+    >>> device = torch.device("cuda")
+    >>> t1 = tensor([1], device=device)
+    >>> a3 = tensor([[1, 2], [3, 4]], device=device)
+    >>> # print(get_all_tensor_names())
+    >>> tensors = [tensor_obj for tensor_obj in get_cuda_tensors()]
+    >>> print(tensors)
+    >>> assert len(tensors) == 2
+    >>> assert tensors[1].size() == (2, 2)
+    """
+    import gc
+    for obj in gc.get_objects():
+        try:
+            if torch.is_tensor(obj):
+                tensor = obj
+            elif hasattr(obj, 'data') and torch.is_tensor(obj.data):
+                tensor = obj.data
+            else:
+                continue
+
+            if only_cuda:
+                if tensor.is_cuda:
+                    yield tensor
+            else:
+                yield tensor
+        except:
+            pass
+
+
+def get_tensors_elem_number(only_cuda=True):
+    """
+    Get total number of elements in tensors.
+
+    :return: the total number of elements (floats, doubles, etc.) in tensors
+    """
+    tensors = [tensor_obj for tensor_obj in get_tensors(only_cuda=only_cuda)]
+    total_elem = 0
+    for tensor_obj in tensors:
+        sizes = [size for size in tensor_obj.size()]
+        if len(sizes) == 1:
+            total_elem += sizes[0]
+        elif len(sizes) > 1:
+            total_elem += reduce((lambda x, y: x * y), sizes)
+    return total_elem
+
+
 if __name__ == "__main__":
     import sys
     import doctest
+
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        t1 = tensor([1], device=device)
+        a3 = tensor([[1, 2], [3, 4]], device=device)
+        for tensor_obj in get_tensors():
+            print("tensor_obj: ", tensor_obj)
+
+        total_elem_nr = get_tensors_elem_number()
+        print("total elem nr: ", total_elem_nr)
+        assert total_elem_nr == 5
 
     # you can run it from the console: python pytorch_util.py -v
     sys.exit(doctest.testmod()[0])

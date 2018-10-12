@@ -14,6 +14,11 @@ from torch.nn import Module
 from torch.nn.functional import pad as torch_pad
 from torch.nn.parameter import Parameter
 # from memory_profiler import profile
+from cnns.nnlib.pytorch_layers.gpu_profile import gpu_profile
+import os
+
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['GPU_DEBUG'] = '0'
 
 from cnns.nnlib.pytorch_layers.pytorch_utils import complex_pad_simple
 from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_fft_signals
@@ -93,11 +98,13 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         :return: the result of convolution.
         """
+        if is_debug:
+            gpu_profile(frame=sys._getframe(), event='line', arg=None)
 
         if is_debug:
-            print("execute forward pass 1D")
-            cuda_mem_empty()
+            print(f"execute forward pass 1D for layer index {conv_index}")
             cuda_mem_show(info="forward start")
+
         INPUT_ERROR = "Specify only one of: index_back, out_size, or " \
                       "preserve_energy"
         if (index_back is not None and index_back > 0) and out_size is not None:
@@ -175,11 +182,16 @@ class Conv1dfftFunction(torch.autograd.Function):
         left_x_pad = filter_pad + padding_count
         right_x_pad = padding_count + filter_pad + dout_pad + fft_padding_x
         x = torch_pad(x, (left_x_pad, right_x_pad), 'constant', 0)
+        if is_debug:
+            cuda_mem_show(info="input pad")
+
         # fft of the input signals.
         xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=True)
         del x
+
         if is_debug:
             cuda_mem_show(info="input fft")
+
         # The last dimension (-1) has size 2 as it represents the complex
         # numbers with real and imaginary parts. The last but one dimension
         # (-2) represents the length of the signal in the frequency domain.
@@ -201,8 +213,8 @@ class Conv1dfftFunction(torch.autograd.Function):
                 # one fft coefficient retained.
                 half_fft_compressed_size = out_size // 2 + 1
 
-        if is_debug:
-            cuda_mem_show(info="compute index back")
+        # if is_debug:
+        #     cuda_mem_show(info="compute index back")
 
         if index_back_fft is not None:
             # At least one frequency coefficient has to be removed.
@@ -212,18 +224,23 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         full_energy = None
         if is_debug is True:
-            full_energy, _ = get_full_energy_simple(xfft)
+            full_energy, squared = get_full_energy_simple(xfft)
 
-        if is_debug:
             cuda_mem_show(info="get full energy")
+
+            del squared
+
+            cuda_mem_show(info="delete amplitudes")
 
         if half_fft_compressed_size is not None:
             # We request at least one coefficient to remain.
             half_fft_compressed_size = max(1, half_fft_compressed_size)
             # xfft = xfft[:, :, :half_fft_compressed_size, :]
-            xfft_compressed = xfft.narrow(dim=2, start=0, length=half_fft_compressed_size)
+            xfft_compressed = xfft.narrow(dim=2, start=0,
+                                          length=half_fft_compressed_size)
             del xfft
             xfft = xfft_compressed
+
         if is_debug:
             cuda_mem_show(info="compress input")
 
@@ -240,24 +257,29 @@ class Conv1dfftFunction(torch.autograd.Function):
         right_filter_pad = max(filter_pad, filter_pad + fft_padding_filter)
         filter = torch_pad(filter, (filter_pad, right_filter_pad),
                            'constant', 0)
+
+        if is_debug:
+            cuda_mem_show(info="filter pad")
+
         yfft = torch.rfft(filter, signal_ndim=signal_ndim, onesided=True)
         del filter
         if is_debug:
-            cuda_mem_show(info="fft filter")
+            cuda_mem_show(info="filter fft")
 
         if is_debug:
             print("conv_name," + "conv" + str(conv_index))
 
         if half_fft_compressed_size is not None:
             # yfft = yfft[:, :, :half_fft_compressed_size, :]
-            yfft_compressed = yfft.narrow(dim=-2, start=0, length=half_fft_compressed_size)
+            yfft_compressed = yfft.narrow(dim=-2, start=0,
+                                          length=half_fft_compressed_size)
             del yfft
             yfft = yfft_compressed
 
         if is_debug:
             cuda_mem_show(info="compress filter")
 
-        elif compress_type is CompressType.BIG_COEFF:
+        if compress_type is CompressType.BIG_COEFF:
             if preserve_energy is not None and preserve_energy < 100:
                 xfft = retain_big_coef_bulk(xfft,
                                             preserve_energy=preserve_energy)
@@ -274,33 +296,34 @@ class Conv1dfftFunction(torch.autograd.Function):
                 xfft = retain_low_coef(xfft, index_back=index_back_fft)
                 yfft = retain_low_coef(yfft, index_back=index_back_fft)
 
-        if is_debug is True:
-            if half_fft_compressed_size is None:
-                percent_retained_signal = 100
-            else:
-                percent_retained_signal = 100 * (
-                        half_fft_compressed_size / init_half_fft_size)
-            preserved_energy, _ = get_full_energy_simple(xfft)
-            # The xfft can be only with zeros thus the full energy is zero.
-            percent_preserved_energy = 0.0
-            if full_energy > 0.0:
-                percent_preserved_energy = preserved_energy / full_energy * 100
-            msg = "conv_name," + "conv" + str(
-                conv_index) + ",index_back_fft," + str(
-                index_back_fft) + ",raw signal length," + str(
-                W) + ",fft_size," + str(
-                fft_size) + ",init_half_fft_size," + str(
-                init_half_fft_size) + ",half_fft_compressed_size," + str(
-                half_fft_compressed_size) + (
-                      ",percent of preserved energy,") + str(
-                percent_preserved_energy) + (
-                      ",percent of retained signal,") + str(
-                percent_retained_signal) + ",fft_size_filter," + str(
-                fft_size_filter) + ",half_filter_fft_size," + str(
-                yfft.shape[-2]) + ",new-line"
-            print(msg)
-            with open(additional_log_file, "a") as file:
-                file.write(msg + "\n")
+        # if is_debug is True:
+        #     if half_fft_compressed_size is None:
+        #         percent_retained_signal = 100
+        #     else:
+        #         percent_retained_signal = 100 * (
+        #                 half_fft_compressed_size / init_half_fft_size)
+        #     preserved_energy, squared = get_full_energy_simple(xfft)
+        #     del squared
+        #     # The xfft can be only with zeros thus the full energy is zero.
+        #     percent_preserved_energy = 0.0
+        #     if full_energy > 0.0:
+        #         percent_preserved_energy = preserved_energy / full_energy * 100
+        #     msg = "conv_name," + "conv" + str(
+        #         conv_index) + ",index_back_fft," + str(
+        #         index_back_fft) + ",raw signal length," + str(
+        #         W) + ",fft_size," + str(
+        #         fft_size) + ",init_half_fft_size," + str(
+        #         init_half_fft_size) + ",half_fft_compressed_size," + str(
+        #         half_fft_compressed_size) + (
+        #               ",percent of preserved energy,") + str(
+        #         percent_preserved_energy) + (
+        #               ",percent of retained signal,") + str(
+        #         percent_retained_signal) + ",fft_size_filter," + str(
+        #         fft_size_filter) + ",half_filter_fft_size," + str(
+        #         yfft.shape[-2]) + ",new-line"
+        #     print(msg)
+        #     with open(additional_log_file, "a") as file:
+        #         file.write(msg + "\n")
 
         # # 2 is for the complex numbers
         # output = torch.zeros([N, F, xfft.size()[-2], 2], dtype=xfft.dtype,
@@ -365,6 +388,9 @@ class Conv1dfftFunction(torch.autograd.Function):
                 # out to properly sum up the values.
                 output[nn] += bias.unsqueeze(1)
 
+        if is_debug:
+            cuda_mem_show(info="compute output")
+
         # TODO: how to compute the backward pass for the strided FFT
         # convolution?
         # Add additional zeros in the places of the output that were removed
@@ -383,7 +409,6 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         if is_debug:
             cuda_mem_show(info="forward end")
-            cuda_mem_empty()
 
         return output
 
@@ -423,9 +448,11 @@ class Conv1dfftFunction(torch.autograd.Function):
         index_back_fft = from_tensor(index_back_fft)
 
         if is_debug:
+            gpu_profile(frame=sys._getframe(), event='line', arg=None)
+
+        if is_debug:
             print("execute backward pass 1D")
             print("Conv layer index: ", conv_index)
-            cuda_mem_empty()
             cuda_mem_show(info="backward start")
 
         # The last dimension (_) for xfft and yfft is the 2 element complex
@@ -483,7 +510,7 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         if half_fft_compressed_size < init_half_fft_grad_size:
             doutfft_compressed = doutfft.narrow(dim=-2, start=0,
-                                     length=half_fft_compressed_size)
+                                                length=half_fft_compressed_size)
             del doutfft
             doutfft = doutfft_compressed
             # doutfft = doutfft[:, :, :half_fft_compressed_size, :]
@@ -625,7 +652,6 @@ class Conv1dfftFunction(torch.autograd.Function):
                 cuda_mem_show(info="after gradient filter")
 
         if is_debug:
-            cuda_mem_empty()
             cuda_mem_show(info="backward end")
 
         return dx, dw, db, None, None, None, None, None, None, None, None, \

@@ -168,3 +168,4 @@ def plot_signals(x, y, title="", xlabel="Time", ylabel="Amplitude",
     plt.xlabel(xlabel, fontsize=fontsize)
     plt.ylabel(ylabel, fontsize=fontsize)
     plt.show()
+
