@@ -1762,9 +1762,10 @@ def retain_big_coef_bulk(xfft, preserve_energy=None, index_back=None):
 def cuda_mem_show(is_debug=True, info=""):
     if torch.cuda.is_available() and is_debug is True:
         cuda_mem_empty(is_debug=is_debug)
+        only_cuda = True
         with open(mem_log_file, "a") as f:
             f.write(
-                f"info,{info},memory allocated,{torch.cuda.memory_allocated()},max memory allocated,{torch.cuda.max_memory_allocated()},memory cached,{torch.cuda.memory_cached()},max memory cached,{torch.cuda.max_memory_cached()},total nr of cuda tensor elements,{get_tensors_elem_count()}\n")
+                f"info,{info},memory allocated,{torch.cuda.memory_allocated()},max memory allocated,{torch.cuda.max_memory_allocated()},memory cached,{torch.cuda.memory_cached()},max memory cached,{torch.cuda.max_memory_cached()},total nr (count) of cuda tensor elements,{get_tensors_elem_count(only_cuda=only_cuda)},total size of cuda tensors,{get_tensors_elem_size(only_cuda=only_cuda)}\n")
 
 
 def cuda_mem_empty(is_debug=True):
@@ -1933,6 +1934,29 @@ def get_tensors_elem_size_count(only_cuda=True):
         total_size += count * get_elem_size(tensor_obj)
         total_count += count
     return total_size, total_count
+
+
+def get_tensors_elem_size(only_cuda=True):
+    """
+    Get total size of elements in tensors.
+
+    :return: the total size in bytes and total count (number) of elements
+    (floats, doubles, etc.) in tensors.
+
+    >>> clean_gc_return = map((lambda obj: del_object(obj)), gc.get_objects())
+    >>> device = "cuda" if torch.cuda.is_available() else "cpu"
+    >>> device = torch.device(device)
+    >>> only_cuda = True if torch.cuda.is_available() else False
+    >>> t1 = tensor([1, 2, 3, 4], dtype=torch.int32, device=device)
+    >>> t4 = tensor([1., 2., 3.], dtype=torch.double, device=device)
+    >>> only_cuda = True if torch.cuda.is_available() else False
+    >>> size = get_tensors_elem_size(only_cuda=only_cuda)
+    >>> assert size == 40
+    """
+    total_size = 0
+    for tensor_obj in get_tensors(only_cuda=only_cuda):
+        total_size += tensor_obj.numel() * get_elem_size(tensor_obj)
+    return total_size
 
 
 if __name__ == "__main__":

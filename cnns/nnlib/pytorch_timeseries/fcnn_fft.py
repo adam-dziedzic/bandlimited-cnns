@@ -42,6 +42,7 @@ from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import mem_log_file
 from cnns.nnlib.utils.general_utils import get_log_time
+from cnns.nnlib.datasets.ucr.dataset import UCRDataset
 
 # from memory_profiler import profile
 
@@ -90,7 +91,7 @@ plt.switch_backend('agg')
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch TimeSeries')
-min_batch_size = 64
+min_batch_size = 256
 parser.add_argument('--min_batch_size', type=int, default=min_batch_size,
                     metavar='N',
                     help='input batch size for training (default: {})'.format(
@@ -127,7 +128,7 @@ parser.add_argument("-w", "--workers", default=4, type=int,
                          "loaded in the main process")
 parser.add_argument("-n", "--net", default="fcnn",
                     help="the type of net: alexnet, densenet, resnet, fcnn.")
-parser.add_argument("-d", "--datasets", default="all",
+parser.add_argument("-d", "--datasets", default="debug",
                     help="the type of datasets: all or debug.")
 parser.add_argument("-l", "--limit_size", default=256, type=int,
                     help="limit_size for the input for debug")
@@ -145,6 +146,8 @@ parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
                     help="should the data augmentation be applied")
 parser.add_argument("-g", "--is_debug", default=True, type=bool,
                     help="is it the debug mode execution")
+parser.add_argument("--sample_count_limit", default=256, type=int,
+                    help="number of samples taken from the dataset")
 parser.add_argument("-c", "--conv_type", default="FFT1D",
                     # "FFT1D", "STANDARD". "AUTOGRAD", "SIMPLE_FFT"
                     help="the type of convolution, SPECTRAL_PARAM is with the "
@@ -477,118 +480,6 @@ def getData(fname):
     return x_train, y_train, x_test, y_test, batch_size, num_classes
 
 
-class ToTensor(object):
-    """Transform the numpy array to a tensor."""
-
-    def __call__(self, input):
-        """
-        :param input: numpy array.
-        :return: PyTorch's tensor.
-        """
-        # Transform data on the cpu.
-        return torch.tensor(input, device=torch.device("cpu"),
-                            dtype=torch.float)
-
-
-class AddChannel(object):
-    """Add channel dimension to the input time series."""
-
-    def __call__(self, input):
-        """
-        Rescale the channels.
-
-        :param image: the input image
-        :return: rescaled image with the required number of channels:return:
-        """
-        # We receive only a single array of values as input, so have to add the
-        # channel as the zero-th dimension.
-        return torch.unsqueeze(input, dim=0)
-
-
-class UCRDataset(Dataset):
-    """One of the time-series datasets from the UCR archive."""
-
-    def __init__(
-            self, dataset_name, transformations=transforms.Compose(
-                [ToTensor(), AddChannel()]), train=True):
-        """
-        :param dataset_name: the name of the dataset to fetch from file on disk.
-        :param
-        :param transformations: pytorch transforms for transforms and tensor conversion.
-        """
-
-        if train is True:
-            suffix = "_TRAIN"
-        else:
-            suffix = "_TEST"
-        csv_path = os.path.join(ucr_path, dataset_name, dataset_name + suffix)
-        self.data = pd.read_csv(csv_path, header=None)
-        self.labels = np.asarray(self.data.iloc[:, 0])
-        self.num_classes = len(np.unique(self.labels))
-        self.labels = self.__transform_labels(labels=self.labels,
-                                              num_classes=self.num_classes)
-        self.width = len(np.asarray(self.data.iloc[0, 1:]))
-        self.transformations = transformations
-
-    @staticmethod
-    def __transform_labels(labels, num_classes):
-        """
-        Start class numbering from 0, and provide them in range from 0 to
-        self.num_classes - 1.
-
-        Example:
-        y_train = np.array([-1, 2, 3, 3, -1, 2])
-        nb_classes = 3
-        ((y_train - y_train.min()) / (y_train.max() - y_train.min()) * (nb_classes - 1)).astype(int)
-        Out[45]: array([0, 1, 2, 2, 0, 1])
-
-        >>> labels = __transofrm_labels(labels = np.array([-1, 2, 3, 3, -1, 2]),
-        ... num_classes=3)
-        >>> np.testing.assert_arrays_equal(x=labels,
-        ... y=np.array([0, 1, 2, 2, 0, 1]))
-
-        :param labels: labels.
-        :param num_classes: number of classes.
-
-        :return: transformed labels.
-        """
-        # The nll (negative log likelihood) loss requires target labels to be of
-        # type Long:
-        # https://discuss.pytorch.org/t/expected-object-of-type-variable-torch-longtensor-but-found-type/11833/3?u=adam_dziedzic
-        return ((labels - labels.min()) / (labels.max() - labels.min()) * (
-                num_classes - 1)).astype(np.int64)
-
-    @property
-    def width(self):
-        return self.__width
-
-    @width.setter
-    def width(self, val):
-        self.__width = val
-
-    @property
-    def num_classes(self):
-        return self.__num_classes
-
-    @num_classes.setter
-    def num_classes(self, val):
-        self.__num_classes = val
-
-    def __getitem__(self, index):
-        label = self.labels[index]
-        # Take the row index and all values starting from the second column.
-        input = np.asarray(self.data.iloc[index][1:])
-        # Transform time-series input to tensor.
-        if self.transformations is not None:
-            input = self.transformations(input)
-        # Return the time-series and the label.
-        return input, label
-
-    def __len__(self):
-        # self.data.index - The index(row labels) of the DataFrame.
-        return len(self.data.index)
-
-
 def run_keras():
     for each in flist:
         fname = each
@@ -620,6 +511,7 @@ def run_keras():
         log = pd.DataFrame(hist.history)
         print(log.loc[log['loss'].idxmin]['loss'],
               log.loc[log['loss'].idxmin]['val_acc'])
+
 
 # @profile
 def train(model, device, train_loader, optimizer, epoch):
@@ -686,6 +578,7 @@ def main(dataset_name):
 
     :param dataset_name: the name of the dataset from UCR.
     """
+    is_debug = args.is_debug
     dataset_log_file = os.path.join(
         results_folder, get_log_time() + "-" + dataset_name + "-fcnn.log")
     DATASET_HEADER = HEADER + ",dataset," + str(dataset_name) + "\n"
@@ -719,10 +612,11 @@ def main(dataset_name):
         kwargs = {'num_workers': num_workers, 'pin_memory': pin_memory}
         torch.set_default_tensor_type(torch.cuda.FloatTensor)
     else:
-        kwargs = {}
+        kwargs = {'num_workers': num_workers}
         torch.set_default_tensor_type(torch.FloatTensor)
 
     in_channels = None  # number of channels in the input data
+    sample_count = args.sample_count_limit
     if dataset_name is "cifar10":
         num_classes = 10
         width = 32 * 32
@@ -732,7 +626,11 @@ def main(dataset_name):
         train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True,
                                                      download=True,
                                                      transform=transform_train)
-        train_loader = torch.utils.data.DataLoader(train_dataset,
+        if is_debug and sample_count > 0:
+            train_dataset.train_data = train_dataset.train_data[:sample_count]
+            train_dataset.train_labels = train_dataset.train_labels[
+                                         :sample_count]
+        train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
                                                    batch_size=batch_size,
                                                    shuffle=True,
                                                    **kwargs)
@@ -740,14 +638,19 @@ def main(dataset_name):
         test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False,
                                                     download=True,
                                                     transform=transform_test)
-        test_loader = torch.utils.data.DataLoader(test_dataset,
+        if is_debug and sample_count > 0:
+            test_dataset.test_data = test_dataset.test_data[:sample_count]
+            test_dataset.test_labels = test_dataset.test_labels[:sample_count]
+        test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
                                                   batch_size=batch_size,
                                                   shuffle=False,
                                                   **kwargs)
 
-    else:
+    elif dataset_name in os.listdir(ucr_path):  # dataset from UCR archive
         in_channels = 1  # number of channels in the input data
         train_dataset = UCRDataset(dataset_name, train=True)
+        if is_debug and sample_count > 0:
+            train_dataset.data = train_dataset.data[0:sample_count]
         train_size = len(train_dataset)
         batch_size = args.min_batch_size
         if train_size < batch_size:
@@ -757,10 +660,14 @@ def main(dataset_name):
             **kwargs)
 
         test_dataset = UCRDataset(dataset_name, train=False)
+        if is_debug and sample_count > 0:
+            test_dataset.data = test_dataset.data[0:sample_count]
         num_classes = test_dataset.num_classes
         width = test_dataset.width
         test_loader = torch.utils.data.DataLoader(
             dataset=test_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+    else:
+        raise ValueError(f"Unknown dataset: {dataset_name}")
 
     model = getModelPyTorch(input_size=width, num_classes=num_classes,
                             in_channels=in_channels)
@@ -844,15 +751,15 @@ if __name__ == '__main__':
     if args.datasets == "all":
         flist = os.listdir(ucr_path)
     elif args.datasets == "debug":
+        # flist = ["50words"]
+        flist = ["cifar10"]
         # flist = ["zTest"]
         # flist = ["zTest50words"]
         # flist = ["InlineSkate"]
-        # flist = ["50words"]
         # flist = ["Adiac"]
         # flist = ["HandOutlines"]
         # flist = ["ztest"]
         # flist = ["Cricket_X"]
-        flist = ["cifar10"]
         # flist = ['50words', 'Adiac', 'ArrowHead', 'Beef', 'BeetleFly',
         #         'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
         #         'CinC_ECG_torso', 'Coffee', 'Computers', 'Cricket_X',

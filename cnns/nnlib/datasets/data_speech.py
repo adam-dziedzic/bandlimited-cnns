@@ -29,6 +29,7 @@ def smart_open(filename, mode=None):
 Utility functions.
 """
 
+
 def swbd_utt_to_label(utt):
     return "_".join(utt.split("_")[:-2])
 
@@ -43,6 +44,7 @@ def swbd_utts_to_labels(utts):
 """
 Main function to read the data.
 """
+
 
 def load_swbd_labelled(rng, data_dir, min_count=1):
     """
@@ -103,6 +105,3 @@ def load_swbd_labelled(rng, data_dir, min_count=1):
     test_x, test_labels = filter_set(test_x, test_labels)
 
     return [(train_x, train_labels), (dev_x, dev_labels), (test_x, test_labels)]
-
-
-
