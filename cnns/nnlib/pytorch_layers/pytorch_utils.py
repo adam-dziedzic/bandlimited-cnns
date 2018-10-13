@@ -1397,6 +1397,9 @@ def fast_jmul(input, filter):
     >>> xy = fast_jmul(x, y)
     >>> np.testing.assert_array_equal(xy,
     ... tensor([[[-4., 7.], [1., 7.]], [[108.,   0.], [ -8.,  16.]]]))
+    >>> del x
+    >>> del y
+    >>> del xy
     """
     a = input[..., :1]
     b = input[..., 1:]
@@ -1488,6 +1491,8 @@ def retain_low_coef(xfft, preserve_energy=None, index_back=None):
     >>> expected = torch.tensor([[[[1., 2.], [3., 4.], [0.0, 0.0]]],
     ... [[[0.0, 0.1], [2.0, -6.0], [0.0, 0.0]]]])
     >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
+    >>> del xfft
+    >>> del expected
     """
     INPUT_ERROR = "Specify only one of: index_back, preserve_energy"
     if (index_back is not None and index_back > 0) and (
@@ -1594,6 +1599,8 @@ def retain_big_coef(xfft, preserve_energy=None, index_back=None):
     >>> expected = torch.tensor([[[[1., 2.], [3., 4.], [0.0, 0.0]]],
     ... [[[0.0, 0.0], [2.0, -6.0], [0.0, 0.1]]]])
     >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
+    >>> del xfft
+    >>> del expected
     """
     INPUT_ERROR = "Specify only one of: index_back, preserve_energy"
     if (index_back is not None and index_back > 0) and (
@@ -1709,6 +1716,8 @@ def retain_big_coef_bulk(xfft, preserve_energy=None, index_back=None):
     >>> expected = torch.tensor([[[[1., 2.], [3., 4.], [0.0, 0.0]]],
     ... [[[0.0, 0.0], [2.0, -6.0], [0.0, 0.1]]]])
     >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
+    >>> del xfft
+    >>> del expected
     """
     INPUT_ERROR = "Specify only one of: index_back, preserve_energy"
     if (index_back is not None and index_back > 0) and (
@@ -1755,7 +1764,7 @@ def cuda_mem_show(is_debug=True, info=""):
         cuda_mem_empty(is_debug=is_debug)
         with open(mem_log_file, "a") as f:
             f.write(
-                f"info,{info},memory allocated,{torch.cuda.memory_allocated()},max memory allocated,{torch.cuda.max_memory_allocated()},memory cached,{torch.cuda.memory_cached()},max memory cached,{torch.cuda.max_memory_cached()},total nr of cuda tensor elements,{get_tensors_elem_number()}\n")
+                f"info,{info},memory allocated,{torch.cuda.memory_allocated()},max memory allocated,{torch.cuda.max_memory_allocated()},memory cached,{torch.cuda.memory_cached()},max memory cached,{torch.cuda.max_memory_cached()},total nr of cuda tensor elements,{get_tensors_elem_count()}\n")
 
 
 def cuda_mem_empty(is_debug=True):
@@ -1766,12 +1775,17 @@ def cuda_mem_empty(is_debug=True):
 
 def get_all_tensor_names():
     """
+    >>> clean_gc_return = map((lambda obj: del_object(obj)), gc.get_objects())
     >>> t1 = tensor([1])
     >>> a3 = tensor([1, 2, 3])
     >>> # print(get_all_tensor_names())
     >>> names = get_all_tensor_names()
+    >>> # print("tensor names: ", names)
+    >>> # print("lenght of tensor names: ", len(names))
     >>> assert len(names) == 2
     >>> assert names == {'a3', 't1'}
+    >>> del t1
+    >>> del a3
     """
     tensor_names = set()
     try:
@@ -1783,6 +1797,10 @@ def get_all_tensor_names():
     return tensor_names
 
 
+def del_object(obj):
+    del obj
+
+
 def get_tensors(only_cuda=True):
     """
     https://discuss.pytorch.org/t/how-to-debug-causes-of-gpu-memory-leaks/6741/3?u=adam_dziedzic
@@ -1790,14 +1808,21 @@ def get_tensors(only_cuda=True):
     :return: list of active PyTorch tensors
     >>> import torch
     >>> from torch import tensor
-    >>> device = torch.device("cuda")
+    >>> clean_gc_return = map((lambda obj: del_object(obj)), gc.get_objects())
+    >>> device = "cuda" if torch.cuda.is_available() else "cpu"
+    >>> device = torch.device(device)
+    >>> only_cuda = True if torch.cuda.is_available() else False
     >>> t1 = tensor([1], device=device)
     >>> a3 = tensor([[1, 2], [3, 4]], device=device)
     >>> # print(get_all_tensor_names())
-    >>> tensors = [tensor_obj for tensor_obj in get_cuda_tensors()]
-    >>> print(tensors)
+    >>> tensors = [tensor_obj for tensor_obj in get_tensors()]
+    >>> # print(tensors)
+    >>> # We doubled each t1, a3 tensors because of the tensors collection.
     >>> assert len(tensors) == 2
     >>> assert tensors[1].size() == (2, 2)
+    >>> del t1
+    >>> del a3
+    >>> clean_gc_return = map((lambda obj: del_object(obj)), tensors)
     """
     import gc
     for obj in gc.get_objects():
@@ -1818,21 +1843,96 @@ def get_tensors(only_cuda=True):
             pass
 
 
-def get_tensors_elem_number(only_cuda=True):
+def get_tensors_elem_count(only_cuda=True):
     """
     Get total number of elements in tensors.
 
-    :return: the total number of elements (floats, doubles, etc.) in tensors
+    :return: the total number of elements (floats, doubles, etc.) in tensors.
     """
     tensors = [tensor_obj for tensor_obj in get_tensors(only_cuda=only_cuda)]
     total_elem = 0
     for tensor_obj in tensors:
-        sizes = [size for size in tensor_obj.size()]
-        if len(sizes) == 1:
-            total_elem += sizes[0]
-        elif len(sizes) > 1:
-            total_elem += reduce((lambda x, y: x * y), sizes)
+        # sizes = [size for size in tensor_obj.size()]
+        # if len(sizes) == 1:
+        #     total_elem += sizes[0]
+        # elif len(sizes) > 1:
+        #     total_elem += reduce((lambda x, y: x * y), sizes)
+        total_elem += tensor_obj.numel()
     return total_elem
+
+
+def get_elem_size(tensor_obj):
+    """
+
+    :param tensor_obj: a tensor
+    :return: the size in bytes of a single element in the tensor based on its
+    type
+
+    >>> t1 = tensor([1,2,3], dtype=torch.int32)
+    >>> size = get_elem_size(t1)
+    >>> assert size == 4
+    >>> del t1
+    >>> t2 = tensor([1.,2.,3.], dtype=torch.float)
+    >>> size = get_elem_size(t2)
+    >>> assert size == 4
+    >>> del t2
+    >>> t3 = tensor([1.,2.,3.], dtype=torch.float16)
+    >>> size = get_elem_size(t3)
+    >>> assert size == 2
+    >>> del t3
+    >>> t4 = tensor([1.,2.,3.], dtype=torch.double)
+    >>> size = get_elem_size(t4)
+    >>> assert size == 8
+    >>> del t4
+    """
+    obj_type = tensor_obj.dtype
+
+    if (obj_type is torch.float64) or (obj_type is torch.double) or (
+            obj_type is torch.int64) or (obj_type is torch.long):
+        return 8
+    elif (obj_type is torch.float32) or (obj_type is torch.float) or (
+            obj_type is torch.int32) or (obj_type is torch.int):
+        return 4
+    elif (obj_type is torch.float16) or (obj_type is torch.half) or (
+            obj_type is torch.int16) or (obj_type is torch.short):
+        return 2
+    elif (obj_type is torch.int8) or (obj_type is torch.uint8):
+        return 1
+    else:
+        raise AttributeError(f"Unknown torch type: {obj_type}")
+
+
+def get_tensors_elem_size_count(only_cuda=True):
+    """
+    Get total size of elements in tensors.
+
+    :return: the total size in bytes and total count (number) of elements
+    (floats, doubles, etc.) in tensors.
+
+    >>> clean_gc_return = map((lambda obj: del_object(obj)), gc.get_objects())
+    >>> device = "cuda" if torch.cuda.is_available() else "cpu"
+    >>> device = torch.device(device)
+    >>> only_cuda = True if torch.cuda.is_available() else False
+    >>> t1 = tensor([1, 2, 3, 4], dtype=torch.int32, device=device)
+    >>> t4 = tensor([1., 2., 3.], dtype=torch.double, device=device)
+    >>> only_cuda = True if torch.cuda.is_available() else False
+    >>> size, count = get_tensors_elem_size_count(only_cuda=only_cuda)
+    >>> assert size == 40
+    >>> assert count == 7
+    """
+    tensors = [tensor_obj for tensor_obj in get_tensors(only_cuda=only_cuda)]
+    total_size = 0
+    total_count = 0
+    for tensor_obj in tensors:
+        # sizes = [size for size in tensor_obj.size()]
+        # if len(sizes) == 1:
+        #     total_count += sizes[0]
+        # elif len(sizes) > 1:
+        #     total_count += reduce((lambda x, y: x * y), sizes)
+        count = tensor_obj.numel()
+        total_size += count * get_elem_size(tensor_obj)
+        total_count += count
+    return total_size, total_count
 
 
 if __name__ == "__main__":
@@ -1843,12 +1943,15 @@ if __name__ == "__main__":
         device = torch.device("cuda")
         t1 = tensor([1], device=device)
         a3 = tensor([[1, 2], [3, 4]], device=device)
+        tensor_obj = None
         for tensor_obj in get_tensors():
             print("tensor_obj: ", tensor_obj)
-
-        total_elem_nr = get_tensors_elem_number()
+        del tensor_obj
+        total_elem_nr = get_tensors_elem_count()
         print("total elem nr: ", total_elem_nr)
         assert total_elem_nr == 5
+        del t1
+        del a3
 
     # you can run it from the console: python pytorch_util.py -v
     sys.exit(doctest.testmod()[0])
