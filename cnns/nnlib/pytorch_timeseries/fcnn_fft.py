@@ -70,7 +70,7 @@ parser.add_argument('--min_batch_size', type=int, default=min_batch_size,
                     metavar='N',
                     help='input batch size for training (default: {})'.format(
                         min_batch_size))
-parser.add_argument('--test_batch_size', type=int, default=1000,
+parser.add_argument('--test_batch_size', type=int, default=min_batch_size,
                     metavar='N',
                     help='input batch size for testing (default: 1000)')
 parser.add_argument('--epochs', type=int, default=num_epochs, metavar='N',
@@ -104,8 +104,6 @@ parser.add_argument("-n", "--net", default="fcnn",
                     help="the type of net: alexnet, densenet, resnet, fcnn.")
 parser.add_argument("-d", "--datasets", default="all",
                     help="the type of datasets: all or debug.")
-parser.add_argument("-l", "--limit_size", default=256, type=int,
-                    help="limit_size for the input dataset for debug")
 parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
