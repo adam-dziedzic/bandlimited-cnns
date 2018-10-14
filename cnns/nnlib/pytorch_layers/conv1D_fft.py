@@ -17,8 +17,8 @@ from torch.nn.parameter import Parameter
 from cnns.nnlib.pytorch_layers.gpu_profile import gpu_profile
 import os
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['GPU_DEBUG'] = '0'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['GPU_DEBUG'] = '0'
 
 from cnns.nnlib.pytorch_layers.pytorch_utils import complex_pad_simple
 from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_fft_signals
@@ -497,11 +497,14 @@ class Conv1dfftFunction(torch.autograd.Function):
         right_pad = filter_pad + fft_pad
         dout = torch_pad(dout, (left_pad, right_pad), 'constant', 0)
 
+        if is_debug:
+            cuda_mem_show(info="gradient pad")
+
         doutfft = torch.rfft(dout, signal_ndim=signal_ndim, onesided=True)
         del dout
 
         if is_debug:
-            cuda_mem_show(info="fft gradient")
+            cuda_mem_show(info="gradient fft")
 
         # If the compression was done in the forward pass, then we have to
         # compress the pure fft-ed version of the flowing back gradient:
@@ -669,7 +672,7 @@ class Conv1dfft(Module):
                  use_next_power2=False, conv_index=None, preserve_energy=None,
                  is_debug=True, compress_type=CompressType.STANDARD,
                  is_manual=tensor([0]), dilation=0, groups=0,
-                 is_complex_pad=False):
+                 is_complex_pad=False, dtype=None):
         """
         1D convolution using FFT implemented fully in PyTorch.
 
@@ -713,6 +716,7 @@ class Conv1dfft(Module):
         :param compress_type: the type of FFT compression, NO_FILTER - do not
         compress the filter. BIG_COEF: preserve only the largest coefficients
         in the frequency domain.
+        :param dtype: the data type of PyTorch tensors.
 
         Regarding the stride parameter: the number of pixels between
         adjacent receptive fields in the horizontal and vertical
@@ -736,7 +740,8 @@ class Conv1dfft(Module):
                                  "in_channels and kernel_size) to generate the "
                                  "filter.")
             self.filter = Parameter(
-                torch.randn(out_channels, in_channels, kernel_size))
+                torch.randn(out_channels, in_channels, kernel_size,
+                            dtype=dtype))
         else:
             self.is_filter_value = True
             self.filter = filter_value
@@ -748,7 +753,7 @@ class Conv1dfft(Module):
         if bias_value is None:
             self.is_bias_value = False
             if bias is True:
-                self.bias = Parameter(torch.randn(out_channels))
+                self.bias = Parameter(torch.randn(out_channels, dtype=dtype))
             else:
                 self.register_parameter('bias', None)
                 self.bias = None

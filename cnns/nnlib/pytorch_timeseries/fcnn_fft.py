@@ -39,10 +39,15 @@ from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import OptimizerType
 from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.utils.general_utils import MemoryType
+from cnns.nnlib.utils.general_utils import TensorType
+from cnns.nnlib.utils.general_utils import NextPower2
+from cnns.nnlib.utils.general_utils import DebugMode
 from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import mem_log_file
 from cnns.nnlib.utils.general_utils import get_log_time
 from cnns.nnlib.datasets.ucr.dataset import UCRDataset
+from cnns.nnlib.datasets.ucr.dataset import ToTensor
+from cnns.nnlib.datasets.ucr.dataset import AddChannel
 
 # from memory_profiler import profile
 
@@ -56,37 +61,6 @@ results_folder = "results"
 
 num_epochs = 300  # 300
 
-# flist = ['Adiac', 'Beef', 'CBF', 'ChlorineConcentration', 'CinC_ECG_torso',
-#          'Coffee', 'Cricket_X', 'Cricket_Y', 'Cricket_Z',
-#          'DiatomSizeReduction', 'ECGFiveDays', 'FaceAll', 'FaceFour',
-#          'FacesUCR', '50words', 'FISH', 'Gun_Point', 'Haptics',
-#          'InlineSkate', 'ItalyPowerDemand', 'Lighting2', 'Lighting7', 'MALLAT',
-#          'MedicalImages', 'MoteStrain', 'NonInvasiveFatalECG_Thorax1',
-#          'NonInvasiveFatalECG_Thorax2', 'OliveOil', 'OSULeaf',
-#          'SonyAIBORobotSurface', 'SonyAIBORobotSurfaceII', 'StarLightCurves',
-#          'SwedishLeaf', 'Symbols',
-#          'synthetic_control', 'Trace', 'TwoLeadECG', 'Two_Patterns',
-#          'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
-#          'uWaveGestureLibrary_Z', 'wafer', 'WordsSynonyms', 'yoga']
-# flist = ['Adiac', 'Beef', 'CBF', 'ChlorineConcentration', 'CinC_ECG_torso',
-#          'Coffee', 'Cricket_X', 'Cricket_Y', 'Cricket_Z',
-#          'DiatomSizeReduction', 'ECGFiveDays', 'FaceAll', 'FaceFour',
-#          'FacesUCR', '50words', 'FISH', 'Gun_Point', 'Haptics',
-#          'InlineSkate', 'ItalyPowerDemand', 'Lighting2', 'Lighting7', 'MALLAT',
-#          'MedicalImages', 'MoteStrain', 'NonInvasiveFatalECG_Thorax1',
-#          'NonInvasiveFatalECG_Thorax2', 'OliveOil', 'OSULeaf',
-#          'SonyAIBORobotSurface', 'SonyAIBORobotSurfaceII', 'StarLightCurves',
-#          'SwedishLeaf', 'Symbols',
-#          'synthetic_control', 'Trace', 'TwoLeadECG', 'Two_Patterns',
-#          'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
-#          'uWaveGestureLibrary_Z', 'wafer', 'WordsSynonyms', 'yoga']
-# flist = ['Adiac', 'synthetic_control', "Coffee"]
-# flist = ["Coffee"]
-# flist = ["ztest"]
-# flist = ["Adiac"]
-# flist = os.listdir(ucr_path)
-# Sort the list based, not case sensitive.
-# switch backend to be able to save the graphic files on the servers
 plt.switch_backend('agg')
 
 # Training settings
@@ -106,8 +80,8 @@ learning_rate = 0.001
 parser.add_argument('--lr', type=float, default=learning_rate, metavar='LR',
                     help='learning rate (default: {})'.format(
                         learning_rate))
-parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
-                    help='SGD momentum (default: 0.5)')
+parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
+                    help='SGD momentum (default: 0.9)')
 parser.add_argument('--no_cuda', action='store_true', default=False,
                     help='disables CUDA training')
 parser.add_argument('--seed', type=int, default=31, metavar='S',
@@ -131,7 +105,7 @@ parser.add_argument("-n", "--net", default="fcnn",
 parser.add_argument("-d", "--datasets", default="debug",
                     help="the type of datasets: all or debug.")
 parser.add_argument("-l", "--limit_size", default=256, type=int,
-                    help="limit_size for the input for debug")
+                    help="limit_size for the input dataset for debug")
 parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
@@ -144,8 +118,9 @@ parser.add_argument("-b", "--mem_test", default=False, type=bool,
                     help="is it the memory test")
 parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
                     help="should the data augmentation be applied")
-parser.add_argument("-g", "--is_debug", default=True, type=bool,
-                    help="is it the debug mode execution")
+parser.add_argument("-g", "--is_debug", default="TRUE",  # TRUE or FALSE
+                    help="is it the debug mode execution: " + ",".join(
+                        DebugMode.get_names()))
 parser.add_argument("--sample_count_limit", default=256, type=int,
                     help="number of samples taken from the dataset")
 parser.add_argument("-c", "--conv_type", default="FFT1D",
@@ -162,6 +137,16 @@ parser.add_argument("--network_type", default="STANDARD",
                     # "STANDARD", "SMALL"
                     help="the type of network: " + ",".join(
                         NetworkType.get_names()))
+parser.add_argument("--tensor_type", default="FLOAT16",
+                    # "FLOAT32", "FLOAT16", "DOUBLE", "INT"
+                    help="the tensor data type: " + ",".join(
+                        TensorType.get_names()))
+parser.add_argument("--next_power2", default="TRUE",
+                    # "TRUE", "FALSE"
+                    help="should we extend the input to the lenght of a power "
+                         "of 2 before taking its fft? " + ",".join(
+                        NextPower2.get_names()))
+
 args = parser.parse_args()
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
@@ -240,7 +225,7 @@ def getModelKeras(input_size, num_classes):
 class Conv(object):
 
     def __init__(self, kernel_sizes, in_channels, out_channels, strides,
-                 conv_pads, is_debug=True):
+                 conv_pads, is_debug=True, dtype=None):
         """
         Create the convolution object from which we fetch the convolution
         operations.
@@ -263,6 +248,19 @@ class Conv(object):
         self.is_debug = is_debug
         self.compress_type = CompressType[args.compress_type]
 
+        self.dtype = dtype
+        if self.dtype is None:
+            tensor_type = TensorType[args.tensor_type]
+            if tensor_type is TensorType.FLOAT32:
+                self.dtype = torch.float32
+            elif tensor_type is TensorType.FLOAT16:
+                self.dtype = torch.float16
+            elif tensor_type is TensorType.DOUBLE:
+                self.dtype = torch.double
+            else:
+                raise ValueError(f"Unknown dtype: {tensor_type}")
+            self.dtype = dtype
+
     def get_conv(self, index):
         if index == 0:
             in_channels = self.in_channels
@@ -276,17 +274,20 @@ class Conv(object):
                              kernel_size=self.kernel_sizes[index],
                              padding=(self.conv_pads[index] // 2))
         elif self.conv_type is ConvType.FFT1D:
+            next_power2 = NextPower2[args.next_power2]
+            next_power2 = True if next_power2 is NextPower2.TRUE else False
             return Conv1dfft(in_channels=in_channels,
                              out_channels=self.out_channels[index],
                              stride=self.strides[index],
                              kernel_size=self.kernel_sizes[index],
                              padding=(self.conv_pads[index] // 2),
                              index_back=self.index_back,
-                             use_next_power2=False,
+                             use_next_power2=next_power2,
                              conv_index=index,
                              preserve_energy=self.preserve_energy,
                              is_debug=self.is_debug,
-                             compress_type=self.compress_type)
+                             compress_type=self.compress_type,
+                             dtype=self.dtype)
         elif self.conv_type is ConvType.AUTOGRAD:
             return Conv1dfftAutograd(in_channels=in_channels,
                                      out_channels=self.out_channels[index],
@@ -344,7 +345,8 @@ class FCNNPytorch(nn.Module):
         self.out_channels = out_channels
         self.strides = strides
         self.conv_type = ConvType[args.conv_type]
-        self.is_debug = args.is_debug
+        is_debug = True if DebugMode[args.is_debug] is DebugMode.TRUE else False
+        self.is_debug = is_debug
 
         self.relu = nn.ReLU(inplace=True)
         # For the "same" mode for the convolution, pad the input.
@@ -514,7 +516,7 @@ def run_keras():
 
 
 # @profile
-def train(model, device, train_loader, optimizer, epoch):
+def train(model, device, train_loader, optimizer, epoch, dtype=torch.float):
     """
     Train the model.
 
@@ -523,10 +525,11 @@ def train(model, device, train_loader, optimizer, epoch):
     :param train_loader: the training dataset.
     :param optimizer: Adam, Momemntum, etc.
     :param epoch: the current epoch number.
+    :param dtype: the type of the tensors.
     """
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
-        data, target = data.to(device), target.to(device)
+        data, target = data.to(device=device, dtype=dtype), target.to(device)
         optimizer.zero_grad()
         output = model(data)
         loss = F.nll_loss(output, target)
@@ -541,13 +544,14 @@ def train(model, device, train_loader, optimizer, epoch):
                    100.0 * batch_idx / len(train_loader), loss.item()))
 
 
-def test(model, device, test_loader, dataset_type="test"):
+def test(model, device, test_loader, dataset_type="test", dtype=torch.float):
     """
 
     :param model: deep learning model.
     :param device: cpu or gpu.
     :param test_loader: the input data.
     :param dataset_type: test or train.
+    :param dtype: the data type of the tensor.
     :return: test loss and accuracy.
     """
     model.eval()
@@ -555,7 +559,8 @@ def test(model, device, test_loader, dataset_type="test"):
     correct = 0
     with torch.no_grad():
         for data, target in test_loader:
-            data, target = data.to(device), target.to(device)
+            data, target = data.to(device=device, dtype=dtype), target.to(
+                device)
             output = model(data)
             test_loss += F.nll_loss(output, target,
                                     reduction='sum').item()  # sum up batch loss
@@ -578,7 +583,7 @@ def main(dataset_name):
 
     :param dataset_name: the name of the dataset from UCR.
     """
-    is_debug = args.is_debug
+    is_debug = True if DebugMode[args.is_debug] is True else False
     dataset_log_file = os.path.join(
         results_folder, get_log_time() + "-" + dataset_name + "-fcnn.log")
     DATASET_HEADER = HEADER + ",dataset," + str(dataset_name) + "\n"
@@ -610,10 +615,25 @@ def main(dataset_name):
         pin_memory = True
     if use_cuda:
         kwargs = {'num_workers': num_workers, 'pin_memory': pin_memory}
-        torch.set_default_tensor_type(torch.cuda.FloatTensor)
+        if TensorType[args.tensor_type] is TensorType.FLOAT32:
+            torch.set_default_tensor_type(torch.cuda.FloatTensor)
+        elif TensorType[args.tensor_type] is TensorType.FLOAT16:
+            torch.set_default_tensor_type(torch.cuda.HalfTensor)
+        elif TensorType[args.tensor_type] is TensorType.DOUBLE:
+            torch.set_default_tensor_type(torch.cuda.DoubleTensor)
     else:
         kwargs = {'num_workers': num_workers}
-        torch.set_default_tensor_type(torch.FloatTensor)
+        if TensorType[args.tensor_type] is TensorType.FLOAT32:
+            torch.set_default_tensor_type(torch.FloatTensor)
+        elif TensorType[args.tensor_type] is TensorType.FLOAT16:
+            torch.set_default_tensor_type(torch.HalfTensor)
+        elif TensorType[args.tensor_type] is TensorType.DOUBLE:
+            torch.set_default_tensor_type(torch.DoubleTensor)
+    dtype = torch.float
+    if TensorType[args.tensor_type] is TensorType.FLOAT16:
+        dtype = torch.float16
+    elif TensorType[args.tensor_type] is TensorType.DOUBLE:
+        dtype = torch.double
 
     in_channels = None  # number of channels in the input data
     sample_count = args.sample_count_limit
@@ -648,9 +668,12 @@ def main(dataset_name):
 
     elif dataset_name in os.listdir(ucr_path):  # dataset from UCR archive
         in_channels = 1  # number of channels in the input data
-        train_dataset = UCRDataset(dataset_name, train=True)
+        train_dataset = UCRDataset(dataset_name, train=True,
+                                   transformations=transforms.Compose(
+                                       [ToTensor(dtype=torch.float),
+                                        AddChannel()]))
         if is_debug and sample_count > 0:
-            train_dataset.data = train_dataset.data[0:sample_count]
+            train_dataset.set_length(sample_count)
         train_size = len(train_dataset)
         batch_size = args.min_batch_size
         if train_size < batch_size:
@@ -659,9 +682,12 @@ def main(dataset_name):
             dataset=train_dataset, batch_size=batch_size, shuffle=True,
             **kwargs)
 
-        test_dataset = UCRDataset(dataset_name, train=False)
+        test_dataset = UCRDataset(dataset_name, train=False,
+                                  transformations=transforms.Compose(
+                                      [ToTensor(dtype=torch.float),
+                                       AddChannel()]))
         if is_debug and sample_count > 0:
-            test_dataset.data = test_dataset.data[0:sample_count]
+            test_dataset.set_length(sample_count)
         num_classes = test_dataset.num_classes
         width = test_dataset.width
         test_loader = torch.utils.data.DataLoader(
@@ -692,15 +718,15 @@ def main(dataset_name):
         epoch_start_time = time.time()
         print("training for epoch: ", epoch)
         train(model=model, device=device, train_loader=train_loader,
-              optimizer=optimizer, epoch=epoch)
+              optimizer=optimizer, epoch=epoch, dtype=dtype)
         print("test train set for epoch: ", epoch)
         train_loss, train_accuracy = test(model=model, device=device,
                                           test_loader=train_loader,
-                                          dataset_type="train")
+                                          dataset_type="train", dtype=dtype)
         print("test test set for epoch: ", epoch)
         test_loss, test_accuracy = test(model=model, device=device,
                                         test_loader=test_loader,
-                                        dataset_type="test")
+                                        dataset_type="test", dtype=dtype)
         # Scheduler step is based only on the train data, we do not use the
         # test data to schedule the decrease in the learning rate.
         scheduler.step(train_loss)
@@ -730,14 +756,11 @@ if __name__ == '__main__':
     hostname = socket.gethostname()
     global_log_file = os.path.join(results_folder,
                                    get_log_time() + "-ucr-fcnn.log")
+    args_dict = vars(args)
+    args_str = ",".join(
+        [str(key) + ":" + str(value) for key, value in args_dict.items()])
     HEADER = "UCR datasets,final results,hostname," + str(
-        hostname) + ",timestamp," + get_log_time() + "\n,num_epochs," + str(
-        args.epochs) + ",index_back(%)," + str(
-        args.index_back) + ",preserve_energy," + str(
-        args.preserve_energy) + "\n,conv_type," + str(
-        args.conv_type) + ",batch_size," + str(
-        args.min_batch_size) + ",compress_type," + str(
-        args.compress_type) + ",network_type," + str(args.network_type) + "\n"
+        hostname) + ",timestamp," + get_log_time() + "," + str(args_str)
     with open(additional_log_file, "a") as file:
         # Write the metadata.
         file.write(HEADER + "\n")
@@ -751,8 +774,8 @@ if __name__ == '__main__':
     if args.datasets == "all":
         flist = os.listdir(ucr_path)
     elif args.datasets == "debug":
-        # flist = ["50words"]
-        flist = ["cifar10"]
+        flist = ["50words"]
+        # flist = ["cifar10"]
         # flist = ["zTest"]
         # flist = ["zTest50words"]
         # flist = ["InlineSkate"]

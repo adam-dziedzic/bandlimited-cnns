@@ -64,6 +64,23 @@ class ConvType(EnumWithNames):
     COMPRESS_INPUT_ONLY = 9
 
 
+class TensorType(EnumWithNames):
+    FLOAT32 = 1
+    DOUBLE = 2
+    FLOAT16 = 3
+    INT = 4
+
+
+class NextPower2(EnumWithNames):
+    TRUE = 1
+    FALSE = 2
+
+
+class DebugMode(EnumWithNames):
+    TRUE = 1
+    FALSE = 2
+
+
 class CompressType(EnumWithNames):
     """
 

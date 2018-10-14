@@ -9,6 +9,9 @@ import numpy as np
 class ToTensor(object):
     """Transform the numpy array to a tensor."""
 
+    def __init__(self, dtype=torch.float):
+        self.dtype = dtype
+
     def __call__(self, input):
         """
         :param input: numpy array.
@@ -16,7 +19,7 @@ class ToTensor(object):
         """
         # Transform data on the cpu.
         return torch.tensor(input, device=torch.device("cpu"),
-                            dtype=torch.float)
+                            dtype=self.dtype)
 
 
 class AddChannel(object):
@@ -40,13 +43,17 @@ class UCRDataset(Dataset):
     def __init__(
             self, dataset_name, transformations=transforms.Compose(
                 [ToTensor(), AddChannel()]), train=True,
-            ucr_path=os.path.join(os.pardir, os.pardir, "TimeSeriesDataset")):
+            ucr_path=None):
         """
         :param dataset_name: the name of the dataset to fetch from file on disk.
-        :param
-        :param transformations: pytorch transforms for transforms and tensor conversion.
+        :param transformations: pytorch transforms for transforms and tensor
+        conversion.
+        :param ucr_path: the path to the ucr dataset.
         """
-
+        if ucr_path is None:
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            ucr_path = os.path.join(dir_path, os.pardir, os.pardir,
+                                    "TimeSeriesDatasets")
         if train is True:
             suffix = "_TRAIN"
         else:
