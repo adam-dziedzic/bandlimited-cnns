@@ -65,7 +65,7 @@ plt.switch_backend('agg')
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch TimeSeries')
-min_batch_size = 256
+min_batch_size = 16
 parser.add_argument('--min_batch_size', type=int, default=min_batch_size,
                     metavar='N',
                     help='input batch size for training (default: {})'.format(
@@ -102,7 +102,7 @@ parser.add_argument("-w", "--workers", default=4, type=int,
                          "loaded in the main process")
 parser.add_argument("-n", "--net", default="fcnn",
                     help="the type of net: alexnet, densenet, resnet, fcnn.")
-parser.add_argument("-d", "--datasets", default="debug",
+parser.add_argument("-d", "--datasets", default="all",
                     help="the type of datasets: all or debug.")
 parser.add_argument("-l", "--limit_size", default=256, type=int,
                     help="limit_size for the input dataset for debug")
@@ -110,7 +110,7 @@ parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
-parser.add_argument("-p", "--preserve_energy", default=90, type=float,
+parser.add_argument("-p", "--preserve_energy", default=99, type=float,
                     help="How much energy should be preserved in the "
                          "frequency representation of the signal? This "
                          "is the compression in the FFT domain.")
@@ -118,11 +118,11 @@ parser.add_argument("-b", "--mem_test", default=False, type=bool,
                     help="is it the memory test")
 parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
                     help="should the data augmentation be applied")
-parser.add_argument("-g", "--is_debug", default="TRUE",  # TRUE or FALSE
+parser.add_argument("-g", "--is_debug", default="FALSE",  # TRUE or FALSE
                     help="is it the debug mode execution: " + ",".join(
                         DebugMode.get_names()))
-parser.add_argument("--sample_count_limit", default=256, type=int,
-                    help="number of samples taken from the dataset")
+parser.add_argument("--sample_count_limit", default=0, type=int,
+                    help="number of samples taken from the dataset (0 - inactive)")
 parser.add_argument("-c", "--conv_type", default="FFT1D",
                     # "FFT1D", "STANDARD". "AUTOGRAD", "SIMPLE_FFT"
                     help="the type of convolution, SPECTRAL_PARAM is with the "
@@ -137,7 +137,7 @@ parser.add_argument("--network_type", default="STANDARD",
                     # "STANDARD", "SMALL"
                     help="the type of network: " + ",".join(
                         NetworkType.get_names()))
-parser.add_argument("--tensor_type", default="FLOAT16",
+parser.add_argument("--tensor_type", default="FLOAT32",
                     # "FLOAT32", "FLOAT16", "DOUBLE", "INT"
                     help="the tensor data type: " + ",".join(
                         TensorType.get_names()))
