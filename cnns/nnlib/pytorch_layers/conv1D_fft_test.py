@@ -1537,6 +1537,7 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         result_torch = conv.forward(x_torch)
 
+        print("Get all tensors visible in the test case: ")
         tensors = get_tensors(only_cuda=False, is_debug=True)
         print("tensors: ", ",".join([str(tensor) for tensor in tensors]))
 

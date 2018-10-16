@@ -408,9 +408,9 @@ class Conv1dfftFunction(torch.autograd.Function):
                                   to_tensor(preserve_energy),
                                   to_tensor(index_back_fft))
 
-        print("context type: ", type(ctx))
-        tensors = get_tensors(only_cuda=False, is_debug=True)
-        print("tensors: ", ",".join([str(tensor) for tensor in tensors]))
+        # print("context type: ", type(ctx))
+        # tensors = get_tensors(only_cuda=False, is_debug=True)
+        # print("tensors: ", ",".join([str(tensor) for tensor in tensors]))
 
         if is_debug:
             cuda_mem_show(info="forward end")

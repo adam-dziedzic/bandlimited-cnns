@@ -1770,7 +1770,7 @@ def cuda_mem_show(is_debug=True, info=""):
 
 def cuda_mem_empty(is_debug=True):
     if torch.cuda.is_available() and is_debug is True:
-        print("cuda empty cache")
+        # print("cuda empty cache")
         torch.cuda.empty_cache()
 
 
@@ -1819,45 +1819,50 @@ def get_tensors(only_cuda=False, is_debug=False):
     >>> tensors = [tensor_obj for tensor_obj in get_tensors(only_cuda=only_cuda)]
     >>> # print(tensors)
     >>> # We doubled each t1, a3 tensors because of the tensors collection.
-    >>> assert len(tensors) == 2
-    >>> assert tensors[1].size() == (2, 2)
+    >>> expected_tensor_length = 2
+    >>> assert len(tensors) == expected_tensor_length, f"Expected length of tensors {expected_tensor_length}, but got {len(tensors)}, the tensors: {tensors}"
+    >>> exp_size = (2,2)
+    >>> act_size = tensors[1].size()
+    >>> assert exp_size == act_size, f"Expected size {exp_size} but got: {act_size}"
     >>> del t1
     >>> del a3
     >>> clean_gc_return = map((lambda obj: del_object(obj)), tensors)
     """
-    tensors = []
+    add_all_tensors = False if only_cuda is True else True
+    tensors = {}
+
+    def add_tensor(obj):
+        tensor = None
+        if torch.is_tensor(obj):
+            tensor = obj
+        elif hasattr(obj, 'data') and torch.is_tensor(obj.data):
+            tensor = obj.data
+        else:
+            return
+
+        if (only_cuda and tensor.is_cuda) or add_all_tensors:
+            tensors[id(tensor)] = tensor
+
     for obj in gc.get_objects():
         try:
             if is_debug:
-                if hasattr(torch.autograd.function, "Conv1dfftFunctionBackward"):
-                    if isinstance(obj,
-                                  torch.autograd.function.Conv1dfftFunctionBackward):
-                        print("obj: ", obj)
-                        print("saved tensors: ", obj.saved_tensors)
-                if isinstance(obj,
-                              torch.autograd.function._ContextMethodMixin):
-                    print("obj: ", obj)
-                    print("saved tensors: ", obj.saved_tensors)
                 if hasattr(obj, 'saved_tensors'):
                     print("obj: ", obj)
+                    print("type: ", type(obj))
+                    if "NestedIOFunction" in str(obj):
+                        print("based on string search: NestedIOFunction obj")
+                        print(obj)
+                        print("type of the object: ", type(obj))
+                        print(dir(obj))
+                        print(obj.saved_tensors)
+                        for tensor_obj in obj.saved_tensors:
+                            print("saved tensor: ", tensor_obj)
+                            print("dir obj tensor_obj: ", tensor_obj)
                     print("saved tensors: ", obj.saved_tensors)
 
-            tensor = None
-            if torch.is_tensor(obj):
-                tensor = obj
-            elif hasattr(obj, 'data') and torch.is_tensor(obj.data):
-                tensor = obj.data
-            else:
-                continue
-
-            if only_cuda:
-                if tensor.is_cuda:
-                    tensors.append(tensor)
-            else:
-                tensors.append(tensor)
         except Exception as ex:
             print("Exception: ", ex)
-    return tensors
+    return tensors.values()  # return a list of tensors
 
 
 def get_tensors_elem_count(only_cuda=True):
@@ -1866,7 +1871,7 @@ def get_tensors_elem_count(only_cuda=True):
 
     :return: the total number of elements (floats, doubles, etc.) in tensors.
     """
-    tensors = [tensor_obj for tensor_obj in get_tensors(only_cuda=only_cuda)]
+    tensors = get_tensors(only_cuda=only_cuda)
     total_elem = 0
     for tensor_obj in tensors:
         # sizes = [size for size in tensor_obj.size()]
@@ -1934,8 +1939,8 @@ def get_tensors_elem_size_count(only_cuda=True):
     >>> t4 = tensor([1., 2., 3.], dtype=torch.double, device=device)
     >>> only_cuda = True if torch.cuda.is_available() else False
     >>> size, count = get_tensors_elem_size_count(only_cuda=only_cuda)
-    >>> assert size == 40
-    >>> assert count == 7
+    >>> assert size == 40, "Expected size 40, but got {size}"
+    >>> assert count == 7, "Expected count 7, but got {count}"
     """
     tensors = [tensor_obj for tensor_obj in get_tensors(only_cuda=only_cuda)]
     total_size = 0
