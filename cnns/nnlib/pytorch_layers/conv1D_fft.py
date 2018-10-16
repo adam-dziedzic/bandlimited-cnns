@@ -32,6 +32,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate as conj
 from cnns.nnlib.pytorch_layers.pytorch_utils import to_tensor
 from cnns.nnlib.pytorch_layers.pytorch_utils import retain_big_coef_bulk
 from cnns.nnlib.pytorch_layers.pytorch_utils import retain_low_coef
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_tensors
 from cnns.nnlib.pytorch_layers.pytorch_utils import cuda_mem_empty
 from cnns.nnlib.pytorch_layers.pytorch_utils import cuda_mem_show
 # from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul
@@ -406,6 +407,10 @@ class Conv1dfftFunction(torch.autograd.Function):
                                   to_tensor(is_debug),
                                   to_tensor(preserve_energy),
                                   to_tensor(index_back_fft))
+
+        print("context type: ", type(ctx))
+        tensors = get_tensors(only_cuda=False, is_debug=True)
+        print("tensors: ", ",".join([str(tensor) for tensor in tensors]))
 
         if is_debug:
             cuda_mem_show(info="forward end")
@@ -856,10 +861,10 @@ class Conv1dfftAutograd(Conv1dfft):
         >>> b = np.array([0.0])
         >>> conv_param = {'pad' : 0, 'stride' :1}
         >>> # the 1 index back does not change the result in this case
-        >>> expected_result = [3.75, 7.25]
+        >>> expected_result = [3.666667, 7.333333]
         >>> conv = Conv1dfftAutograd(filter_value=torch.from_numpy(y),
         ... bias_value=torch.from_numpy(b), index_back=1)
-        >>> result = conv.forward(x=torch.from_numpy(x))
+        >>> result = conv.forward(input=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(result,
         ... np.array([[expected_result]]))
 
@@ -875,7 +880,7 @@ class Conv1dfftAutograd(Conv1dfft):
         ... mode="valid")
         >>> conv = Conv1dfftAutograd(filter_value=torch.from_numpy(y),
         ... bias_value=torch.from_numpy(b))
-        >>> result = conv.forward(x=torch.from_numpy(x))
+        >>> result = conv.forward(input=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(result,
         ... np.array([[expected_result]]))
         """
@@ -937,7 +942,7 @@ class Conv1dfftSimple(Conv1dfftAutograd):
         ... mode="valid")
         >>> conv = Conv1dfftSimple(filter_value=torch.from_numpy(y),
         ... bias_value=torch.from_numpy(b))
-        >>> result = conv.forward(x=torch.from_numpy(x))
+        >>> result = conv.forward(input=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(result,
         ... np.array([[expected_result]]))
         """
@@ -1028,7 +1033,7 @@ class Conv1dfftSimpleForLoop(Conv1dfftAutograd):
         ... mode="valid")
         >>> conv = Conv1dfftSimpleForLoop(filter_value=torch.from_numpy(y),
         ... bias_value=torch.from_numpy(b))
-        >>> result = conv.forward(x=torch.from_numpy(x))
+        >>> result = conv.forward(input=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(result,
         ... np.array([[expected_result]]))
         """
@@ -1157,7 +1162,7 @@ class Conv1dfftCompressSignalOnly(Conv1dfftAutograd):
         >>> expected_result = np.correlate(x[0, 0, :], y[0, 0, :], mode="valid")
         >>> conv = Conv1dfftCompressSignalOnly(filter_value=torch.from_numpy(y),
         ... bias_value=torch.from_numpy(b))
-        >>> result = conv.forward(x=torch.from_numpy(x))
+        >>> result = conv.forward(input=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(
         ... result, np.array([[expected_result]]))
 
@@ -1173,7 +1178,7 @@ class Conv1dfftCompressSignalOnly(Conv1dfftAutograd):
         ... mode="valid")
         >>> conv = Conv1dfftSimpleForLoop(filter_value=torch.from_numpy(y),
         ... bias_value=torch.from_numpy(b))
-        >>> result = conv.forward(x=torch.from_numpy(x))
+        >>> result = conv.forward(input=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(result,
         ... np.array([[expected_result]]))
 

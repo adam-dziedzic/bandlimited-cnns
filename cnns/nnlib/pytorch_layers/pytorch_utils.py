@@ -1802,7 +1802,7 @@ def del_object(obj):
     del obj
 
 
-def get_tensors(only_cuda=True):
+def get_tensors(only_cuda=False, is_debug=False):
     """
     https://discuss.pytorch.org/t/how-to-debug-causes-of-gpu-memory-leaks/6741/3?u=adam_dziedzic
 
@@ -1816,7 +1816,7 @@ def get_tensors(only_cuda=True):
     >>> t1 = tensor([1], device=device)
     >>> a3 = tensor([[1, 2], [3, 4]], device=device)
     >>> # print(get_all_tensor_names())
-    >>> tensors = [tensor_obj for tensor_obj in get_tensors()]
+    >>> tensors = [tensor_obj for tensor_obj in get_tensors(only_cuda=only_cuda)]
     >>> # print(tensors)
     >>> # We doubled each t1, a3 tensors because of the tensors collection.
     >>> assert len(tensors) == 2
@@ -1825,9 +1825,24 @@ def get_tensors(only_cuda=True):
     >>> del a3
     >>> clean_gc_return = map((lambda obj: del_object(obj)), tensors)
     """
-    import gc
+    tensors = []
     for obj in gc.get_objects():
         try:
+            if is_debug:
+                if hasattr(torch.autograd.function, "Conv1dfftFunctionBackward"):
+                    if isinstance(obj,
+                                  torch.autograd.function.Conv1dfftFunctionBackward):
+                        print("obj: ", obj)
+                        print("saved tensors: ", obj.saved_tensors)
+                if isinstance(obj,
+                              torch.autograd.function._ContextMethodMixin):
+                    print("obj: ", obj)
+                    print("saved tensors: ", obj.saved_tensors)
+                if hasattr(obj, 'saved_tensors'):
+                    print("obj: ", obj)
+                    print("saved tensors: ", obj.saved_tensors)
+
+            tensor = None
             if torch.is_tensor(obj):
                 tensor = obj
             elif hasattr(obj, 'data') and torch.is_tensor(obj.data):
@@ -1837,11 +1852,12 @@ def get_tensors(only_cuda=True):
 
             if only_cuda:
                 if tensor.is_cuda:
-                    yield tensor
+                    tensors.append(tensor)
             else:
-                yield tensor
-        except:
-            pass
+                tensors.append(tensor)
+        except Exception as ex:
+            print("Exception: ", ex)
+    return tensors
 
 
 def get_tensors_elem_count(only_cuda=True):
@@ -1963,16 +1979,23 @@ if __name__ == "__main__":
     import sys
     import doctest
 
+    clean_gc_return = map((lambda obj: del_object(obj)), gc.get_objects())
     if torch.cuda.is_available():
         device = torch.device("cuda")
         t1 = tensor([1], device=device)
         a3 = tensor([[1, 2], [3, 4]], device=device)
         tensor_obj = None
-        for tensor_obj in get_tensors():
+
+        tensors = get_tensors(only_cuda=True, is_debug=True)
+        for tensor_obj in tensors:
+            print("tensor: ", tensor_obj)
+
+        tensors = get_tensors(only_cuda=True)
+        for tensor_obj in tensors:
             print("tensor_obj: ", tensor_obj)
         del tensor_obj
         total_elem_nr = get_tensors_elem_count()
-        print("total elem nr: ", total_elem_nr)
+        print("total number of elements (items) in all tensors: ", total_elem_nr)
         assert total_elem_nr == 5
         del t1
         del a3

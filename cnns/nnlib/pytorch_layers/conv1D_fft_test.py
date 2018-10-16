@@ -1,8 +1,9 @@
 import logging
 import unittest
-
+import gc
 import numpy as np
 import torch
+from torch import tensor
 from scipy import stats
 from torch import tensor
 
@@ -12,6 +13,8 @@ from cnns.nnlib.pytorch_layers.conv1D_fft \
     import Conv1dfftFunction, Conv1dfftAutograd, Conv1dfft, Conv1dfftSimple, \
     Conv1dfftCompressSignalOnly, Conv1dfftSimpleForLoop
 from cnns.nnlib.pytorch_layers.pytorch_utils import MockContext
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_tensors
+from cnns.nnlib.pytorch_layers.pytorch_utils import del_object
 from cnns.nnlib.utils.log_utils import get_logger
 from cnns.nnlib.utils.log_utils import set_up_logging
 
@@ -451,7 +454,8 @@ class TestPyTorchConv1d(unittest.TestCase):
                     torch.abs(result_tensor - expected_result_tensor),
                     dim=-1).item()))
 
-    def test_FunctionForwardCompressionConvFFTPreserveEnergy50wordsBigCoeff(self):
+    def test_FunctionForwardCompressionConvFFTPreserveEnergy50wordsBigCoeff(
+            self):
         x = fifty_words
         print("length of the input signal: ", x.shape[-1])
         y = np.array(
@@ -489,7 +493,8 @@ class TestPyTorchConv1d(unittest.TestCase):
                         torch.abs(result - expected_result_tensor),
                         dim=-1).item()))
 
-    def test_FunctionForwardCompressionConvFFTPreserveEnergy50wordsLowCoeff(self):
+    def test_FunctionForwardCompressionConvFFTPreserveEnergy50wordsLowCoeff(
+            self):
         x = fifty_words
         print("length of the input signal: ", x.shape[-1])
         y = np.array(
@@ -553,7 +558,8 @@ class TestPyTorchConv1d(unittest.TestCase):
                              bias_value=torch.from_numpy(b),
                              index_back=index_back,
                              preserve_energy=None,
-                             is_debug=True, compress_type=CompressType.LOW_COEFF,
+                             is_debug=True,
+                             compress_type=CompressType.LOW_COEFF,
                              use_next_power2=False)
             result = conv.forward(input=torch.from_numpy(x))
             # print("actual result: ", result)
@@ -1504,6 +1510,56 @@ class TestPyTorchConv1d(unittest.TestCase):
         np.testing.assert_array_almost_equal(
             x=expected_db, y=b_torch.grad, decimal=5,
             err_msg="Expected x is different from computed y.")
+
+    def test_FunctionForwardBackwardCountTensors(self):
+        print()
+        print("Test forward manual pass and counting tensors within ctx.")
+
+        clean_gc_return = map((lambda obj: del_object(obj)), gc.get_objects())
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = torch.device(device)
+        only_cuda = True if torch.cuda.is_available() else False
+
+        x = np.array([[[1.0, 2.0, 3.0, 4.0, 5.0, -1.0, 3.0]]])
+        y = np.array([[[2.0, 1.0, -2.0]]])
+        b = np.array([0.0])
+        dtype = torch.float
+        x_torch = tensor(x, requires_grad=True, dtype=dtype, device=device)
+        y_torch = tensor(y, requires_grad=True, dtype=dtype, device=device)
+        b_torch = tensor(b, requires_grad=True, dtype=dtype, device=device)
+
+        conv_param = {'pad': 0, 'stride': 1}
+        expected_result, cache = conv_forward_naive_1D(x=x, w=y, b=b,
+                                                       conv_param=conv_param)
+
+        print("expected result out for the forward pass: ", expected_result)
+        conv = Conv1dfft(filter_value=y_torch, bias_value=b_torch)
+
+        result_torch = conv.forward(x_torch)
+
+        tensors = get_tensors(only_cuda=False, is_debug=True)
+        print("tensors: ", ",".join([str(tensor) for tensor in tensors]))
+
+        result = result_torch.cpu().detach().numpy()
+        np.testing.assert_array_almost_equal(
+            result, np.array(expected_result))
+
+        dout = tensor([[[0.1, -0.2, 0.1, -0.1, 0.3]]], dtype=dtype,
+                      device=device)
+
+        result_torch.backward(dout)
+
+        # get the expected result from the backward pass
+        expected_dx, expected_dw, expected_db = \
+            conv_backward_naive_1D(dout.cpu().numpy(), cache)
+
+        # are the gradients correct
+        np.testing.assert_array_almost_equal(x_torch.grad,
+                                             expected_dx)
+        np.testing.assert_array_almost_equal(y_torch.grad,
+                                             expected_dw)
+        np.testing.assert_array_almost_equal(b_torch.grad,
+                                             expected_db)
 
 
 if __name__ == '__main__':
