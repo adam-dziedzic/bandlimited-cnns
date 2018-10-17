@@ -1769,13 +1769,13 @@ def retain_big_coef_bulk(xfft, preserve_energy=None, index_back=None):
     return xfft
 
 
-def cuda_mem_show(is_debug=True, info=""):
+def cuda_mem_show(is_debug=True, info="", omit_obj_ids=[]):
     if torch.cuda.is_available() and is_debug is True:
         cuda_mem_empty(is_debug=is_debug)
         only_cuda = True
         with open(mem_log_file, "a") as f:
             f.write(
-                f"info,{info},memory allocated,{torch.cuda.memory_allocated()},max memory allocated,{torch.cuda.max_memory_allocated()},memory cached,{torch.cuda.memory_cached()},max memory cached,{torch.cuda.max_memory_cached()},total nr (count) of cuda tensor elements,{get_tensors_elem_count(only_cuda=only_cuda)},total size of cuda tensors,{get_tensors_elem_size(only_cuda=only_cuda)}\n")
+                f"info,{info},memory allocated,{torch.cuda.memory_allocated()},max memory allocated,{torch.cuda.max_memory_allocated()},memory cached,{torch.cuda.memory_cached()},max memory cached,{torch.cuda.max_memory_cached()},total nr (count) of cuda tensor elements,{get_tensors_elem_count(only_cuda=only_cuda)},total size of cuda tensors,{get_tensors_elem_size(only_cuda=only_cuda, omit_obj_ids)}\n")
 
 
 def cuda_mem_empty(is_debug=True):
@@ -1963,9 +1963,14 @@ def get_tensors_elem_size_count(only_cuda=True):
     return total_size, total_count
 
 
-def get_tensors_elem_size(only_cuda=True):
+def get_tensors_elem_size(only_cuda=True, omit_obj_ids=[]):
     """
     Get total size of elements in tensors.
+
+    :param only_cuda: count only tensors on gpu
+    :param omit_obj_ids: omit the objects with a given id (for example, we
+    don't want to count object twice, it saved_tensors in the context in the
+    backward pass and the retrieved objects (tensors) from the context.
 
     :return: the total size in bytes and total count (number) of elements
     (floats, doubles, etc.) in tensors.
@@ -1982,7 +1987,8 @@ def get_tensors_elem_size(only_cuda=True):
     """
     total_size = 0
     for tensor_obj in get_tensors(only_cuda=only_cuda):
-        total_size += tensor_obj.numel() * get_elem_size(tensor_obj)
+        if id(tensor_obj) not in omit_obj_ids:
+            total_size += tensor_obj.numel() * get_elem_size(tensor_obj)
     return total_size
 
 

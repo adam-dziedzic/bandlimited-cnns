@@ -58,7 +58,7 @@ class Conv1dfftFunction(torch.autograd.Function):
     def forward(ctx, x, filter, bias=None, padding=None, stride=None,
                 index_back=None, preserve_energy=None, out_size=None,
                 signal_ndim=1, use_next_power2=False, is_manual=tensor([0]),
-                conv_index=None, is_debug=True,
+                conv_index=None, is_debug=False,
                 compress_type=CompressType.STANDARD):
         """
         Compute the forward pass for the 1D convolution.
@@ -99,8 +99,8 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         :return: the result of convolution.
         """
-        if is_debug:
-            gpu_profile(frame=sys._getframe(), event='line', arg=None)
+        # if is_debug:
+        #     gpu_profile(frame=sys._getframe(), event='line', arg=None)
 
         if is_debug:
             print(f"execute forward pass 1D for layer index {conv_index}")
@@ -442,11 +442,16 @@ class Conv1dfftFunction(torch.autograd.Function):
         :param dout: output gradient
         :return: gradients for input map x, filter w and bias b
         """
+
         xfft, yfft, W, WW, fft_size, is_manual, conv_index, compress_type, is_debug, preserve_energy, index_back_fft = ctx.saved_tensors
         need_input_grad = ctx.needs_input_grad[0]
         need_filter_grad = ctx.needs_input_grad[1]
         need_bias_grad = ctx.needs_input_grad[2]
+
+        for tensor_obj in ctx.saved_tensors:
+            del tensor_obj
         del ctx
+
         dtype = xfft.dtype
         device = xfft.device
 
@@ -461,13 +466,14 @@ class Conv1dfftFunction(torch.autograd.Function):
         preserve_energy = from_tensor(preserve_energy)
         index_back_fft = from_tensor(index_back_fft)
 
-        if is_debug:
-            gpu_profile(frame=sys._getframe(), event='line', arg=None)
-
+        omit_obj_ids = [id(ctx)]
         if is_debug:
             print("execute backward pass 1D")
+            cuda_mem_show(info="backward start", omit_obj_ids=omit_obj_ids)
             print("Conv layer index: ", conv_index)
-            cuda_mem_show(info="backward start")
+
+        # if is_debug:
+        #     gpu_profile(frame=sys._getframe(), event='line', arg=None)
 
         # The last dimension (_) for xfft and yfft is the 2 element complex
         # number.
@@ -512,13 +518,13 @@ class Conv1dfftFunction(torch.autograd.Function):
         dout = torch_pad(dout, (left_pad, right_pad), 'constant', 0)
 
         if is_debug:
-            cuda_mem_show(info="gradient pad")
+            cuda_mem_show(info="gradient pad", omit_obj_ids=omit_obj_ids)
 
         doutfft = torch.rfft(dout, signal_ndim=signal_ndim, onesided=True)
         del dout
 
         if is_debug:
-            cuda_mem_show(info="gradient fft")
+            cuda_mem_show(info="gradient fft", omit_obj_ids=omit_obj_ids)
 
         # If the compression was done in the forward pass, then we have to
         # compress the pure fft-ed version of the flowing back gradient:
@@ -533,7 +539,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             # doutfft = doutfft[:, :, :half_fft_compressed_size, :]
 
         if is_debug:
-            cuda_mem_show(info="compress gradient")
+            cuda_mem_show(info="compress gradient", omit_obj_ids=omit_obj_ids)
 
         elif compress_type is CompressType.BIG_COEFF:
             if preserve_energy is not None and preserve_energy < 100:
@@ -618,7 +624,8 @@ class Conv1dfftFunction(torch.autograd.Function):
             del conjugate_yfft
 
             if is_debug:
-                cuda_mem_show(info="after gradient input")
+                cuda_mem_show(info="after gradient input",
+                              omit_obj_ids=omit_obj_ids)
 
         if need_filter_grad is True:
             dw = torch.zeros([F, C, WW], dtype=dtype, device=device)
@@ -671,10 +678,11 @@ class Conv1dfftFunction(torch.autograd.Function):
             del xfft
 
             if is_debug:
-                cuda_mem_show(info="after gradient filter")
+                cuda_mem_show(info="after gradient filter",
+                              omit_obj_ids=omit_obj_ids)
 
         if is_debug:
-            cuda_mem_show(info="backward end")
+            cuda_mem_show(info="backward end", omit_obj_ids=omit_obj_ids)
 
         return dx, dw, db, None, None, None, None, None, None, None, None, \
                None, None, None
@@ -689,7 +697,7 @@ class Conv1dfft(Module):
                  stride=None, padding=None, bias=True, index_back=None,
                  out_size=None, filter_value=None, bias_value=None,
                  use_next_power2=False, conv_index=None, preserve_energy=None,
-                 is_debug=True, compress_type=CompressType.STANDARD,
+                 is_debug=False, compress_type=CompressType.STANDARD,
                  is_manual=tensor([0]), dilation=0, groups=0,
                  is_complex_pad=False, dtype=None):
         """
@@ -830,7 +838,7 @@ class Conv1dfftAutograd(Conv1dfft):
                  index_back=None, preserve_energy=100, out_size=None,
                  filter_value=None, bias_value=None, use_next_power2=False,
                  is_manual=tensor([0]), conv_index=None, is_complex_pad=True,
-                 is_debug=True, compress_type=CompressType.STANDARD):
+                 is_debug=False, compress_type=CompressType.STANDARD):
         super(Conv1dfftAutograd, self).__init__(
             in_channels=in_channels, out_channels=out_channels,
             kernel_size=kernel_size, stride=stride, padding=padding, bias=bias,
