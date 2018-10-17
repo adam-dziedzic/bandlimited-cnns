@@ -1775,7 +1775,7 @@ def cuda_mem_show(is_debug=True, info="", omit_obj_ids=[]):
         only_cuda = True
         with open(mem_log_file, "a") as f:
             f.write(
-                f"info,{info},memory allocated,{torch.cuda.memory_allocated()},max memory allocated,{torch.cuda.max_memory_allocated()},memory cached,{torch.cuda.memory_cached()},max memory cached,{torch.cuda.max_memory_cached()},total nr (count) of cuda tensor elements,{get_tensors_elem_count(only_cuda=only_cuda)},total size of cuda tensors,{get_tensors_elem_size(only_cuda=only_cuda, omit_obj_ids)}\n")
+                f"info,{info},memory allocated,{torch.cuda.memory_allocated()},max memory allocated,{torch.cuda.max_memory_allocated()},memory cached,{torch.cuda.memory_cached()},max memory cached,{torch.cuda.max_memory_cached()},total nr (count) of cuda tensor elements,{get_tensors_elem_count(only_cuda=only_cuda)},total size of cuda tensors,{get_tensors_elem_size(only_cuda=only_cuda, omit_obj_ids=omit_obj_ids)}\n")
 
 
 def cuda_mem_empty(is_debug=True):
