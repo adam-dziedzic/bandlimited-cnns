@@ -1769,13 +1769,16 @@ def retain_big_coef_bulk(xfft, preserve_energy=None, index_back=None):
     return xfft
 
 
-def cuda_mem_show(is_debug=True, info="", omit_obj_ids=[]):
+def cuda_mem_show(is_debug=True, info="", omit_objs=[]):
     if torch.cuda.is_available() and is_debug is True:
         cuda_mem_empty(is_debug=is_debug)
         only_cuda = True
+        tensor_size = get_tensors_elem_size(only_cuda=only_cuda,
+                                            omit_objs=omit_objs)
+        tensor_count = get_tensors_elem_count(only_cuda=only_cuda)
         with open(mem_log_file, "a") as f:
             f.write(
-                f"info,{info},memory allocated,{torch.cuda.memory_allocated()},max memory allocated,{torch.cuda.max_memory_allocated()},memory cached,{torch.cuda.memory_cached()},max memory cached,{torch.cuda.max_memory_cached()},total nr (count) of cuda tensor elements,{get_tensors_elem_count(only_cuda=only_cuda)},total size of cuda tensors,{get_tensors_elem_size(only_cuda=only_cuda, omit_obj_ids=omit_obj_ids)}\n")
+                f"info,{info},memory allocated,{torch.cuda.memory_allocated()},max memory allocated,{torch.cuda.max_memory_allocated()},memory cached,{torch.cuda.memory_cached()},max memory cached,{torch.cuda.max_memory_cached()},total nr (count) of cuda tensor elements,{tensor_count},total size of cuda tensors,{tensor_size}\n")
 
 
 def cuda_mem_empty(is_debug=True):
@@ -1812,7 +1815,7 @@ def del_object(obj):
     del obj
 
 
-def get_tensors(only_cuda=False, is_debug=False):
+def get_tensors(only_cuda=False, is_debug=False, omit_objs=[]):
     """
     https://discuss.pytorch.org/t/how-to-debug-causes-of-gpu-memory-leaks/6741/3?u=adam_dziedzic
 
@@ -1842,6 +1845,7 @@ def get_tensors(only_cuda=False, is_debug=False):
     # To avoid counting the same tensor twice, create a dictionary of tensors,
     # each one identified by its id (the in memory address).
     tensors = {}
+    # omit_obj_ids = [id(obj) for obj in omit_objs]
 
     def add_tensor(obj):
         tensor = None
@@ -1860,7 +1864,7 @@ def get_tensors(only_cuda=False, is_debug=False):
             # Add the obj if it is a tensor.
             add_tensor(obj)
             # Some tensors are "saved & hidden" for the backward pass.
-            if hasattr(obj, 'saved_tensors'):
+            if hasattr(obj, 'saved_tensors') and (id(obj) not in omit_objs):
                 for tensor_obj in obj.saved_tensors:
                     add_tensor(tensor_obj)
         except Exception as ex:
@@ -1963,12 +1967,12 @@ def get_tensors_elem_size_count(only_cuda=True):
     return total_size, total_count
 
 
-def get_tensors_elem_size(only_cuda=True, omit_obj_ids=[]):
+def get_tensors_elem_size(only_cuda=True, omit_objs=[]):
     """
     Get total size of elements in tensors.
 
     :param only_cuda: count only tensors on gpu
-    :param omit_obj_ids: omit the objects with a given id (for example, we
+    :param omit_obs: omit the objects (for example, we
     don't want to count object twice, it saved_tensors in the context in the
     backward pass and the retrieved objects (tensors) from the context.
 
@@ -1986,9 +1990,8 @@ def get_tensors_elem_size(only_cuda=True, omit_obj_ids=[]):
     >>> assert size == 40
     """
     total_size = 0
-    for tensor_obj in get_tensors(only_cuda=only_cuda):
-        if id(tensor_obj) not in omit_obj_ids:
-            total_size += tensor_obj.numel() * get_elem_size(tensor_obj)
+    for tensor_obj in get_tensors(only_cuda=only_cuda, omit_objs=omit_objs):
+        total_size += tensor_obj.numel() * get_elem_size(tensor_obj)
     return total_size
 
 

@@ -527,13 +527,21 @@ def train(model, device, train_loader, optimizer, epoch, dtype=torch.float):
     """
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
-        data, target = data.to(device=device, dtype=dtype), target.to(device)
+        data, target = data.to(device=device, dtype=dtype), target.to(device=device)
         optimizer.zero_grad()
         output = model(data)
+        # compute loss with higher precision
+        if dtype is torch.float16:
+            output = output.to(dtype=torch.float32)
         loss = F.nll_loss(output, target)
+
         # The cross entropy loss combines `log_softmax` and `nll_loss` in
         # a single function.
         # loss = F.cross_entropy(output, target)
+
+        # go back to float16
+        if dtype is torch.float16:
+            loss = loss.to(dtype=torch.float16)
         loss.backward()
         optimizer.step()
 

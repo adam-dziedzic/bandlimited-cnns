@@ -1523,7 +1523,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         x = np.array([[[1.0, 2.0, 3.0, 4.0, 5.0, -1.0, 3.0]]])
         y = np.array([[[2.0, 1.0, -2.0]]])
         b = np.array([0.0])
-        dtype = torch.float
+        dtype = torch.float32
         x_torch = tensor(x, requires_grad=True, dtype=dtype, device=device)
         y_torch = tensor(y, requires_grad=True, dtype=dtype, device=device)
         b_torch = tensor(b, requires_grad=True, dtype=dtype, device=device)
@@ -1541,10 +1541,11 @@ class TestPyTorchConv1d(unittest.TestCase):
         tensors = get_tensors(only_cuda=False, is_debug=True)
         print("tensors: ", ",".join([str(tensor) for tensor in tensors]))
 
-        """The forward pass returns 11 tensors and the local code in the method
-        created 3 tensor, which gives 14 tensors in total."""
-        #TODO Find where the 4 more tensors come from.
-        expect = 14 + 4
+        """The forward pass saves 11 tensors for backward pass,the local code 
+        in the method created 3 tensors, the output result_torch is another 
+        tensor, which gives 15 tensors in total. Additionally, the device,
+        dtype and the input to Conv1dfft constructor is the tensor is_manual."""
+        expect = 15 + 3
         assert len(tensors) == expect, f"Expected {expect} tensors but got {len(tensors)}"
 
         result = result_torch.cpu().detach().numpy()

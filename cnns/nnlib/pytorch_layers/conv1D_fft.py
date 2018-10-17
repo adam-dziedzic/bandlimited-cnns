@@ -32,6 +32,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate as conj
 from cnns.nnlib.pytorch_layers.pytorch_utils import to_tensor
 from cnns.nnlib.pytorch_layers.pytorch_utils import retain_big_coef_bulk
 from cnns.nnlib.pytorch_layers.pytorch_utils import retain_low_coef
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_elem_size
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_tensors
 from cnns.nnlib.pytorch_layers.pytorch_utils import cuda_mem_empty
 from cnns.nnlib.pytorch_layers.pytorch_utils import cuda_mem_show
@@ -450,7 +451,12 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         for tensor_obj in ctx.saved_tensors:
             del tensor_obj
-        omit_obj_ids = [id(ctx)]
+        omit_objs = [id(ctx)]
+
+        total_size = 0
+        for tensor_obj in ctx.saved_tensors:
+            total_size += tensor_obj.numel() * get_elem_size(tensor_obj)
+        print("size of the context: ", total_size)
         del ctx
 
         dtype = xfft.dtype
@@ -469,7 +475,7 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         if is_debug:
             print("execute backward pass 1D")
-            cuda_mem_show(info="backward start", omit_obj_ids=omit_obj_ids)
+            cuda_mem_show(info="backward start", omit_objs=omit_objs)
             print("Conv layer index: ", conv_index)
 
         # if is_debug:
@@ -518,13 +524,13 @@ class Conv1dfftFunction(torch.autograd.Function):
         dout = torch_pad(dout, (left_pad, right_pad), 'constant', 0)
 
         if is_debug:
-            cuda_mem_show(info="gradient pad", omit_obj_ids=omit_obj_ids)
+            cuda_mem_show(info="gradient pad", omit_objs=omit_objs)
 
         doutfft = torch.rfft(dout, signal_ndim=signal_ndim, onesided=True)
         del dout
 
         if is_debug:
-            cuda_mem_show(info="gradient fft", omit_obj_ids=omit_obj_ids)
+            cuda_mem_show(info="gradient fft", omit_objs=omit_objs)
 
         # If the compression was done in the forward pass, then we have to
         # compress the pure fft-ed version of the flowing back gradient:
@@ -539,7 +545,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             # doutfft = doutfft[:, :, :half_fft_compressed_size, :]
 
         if is_debug:
-            cuda_mem_show(info="compress gradient", omit_obj_ids=omit_obj_ids)
+            cuda_mem_show(info="compress gradient", omit_objs=omit_objs)
 
         elif compress_type is CompressType.BIG_COEFF:
             if preserve_energy is not None and preserve_energy < 100:
@@ -625,7 +631,7 @@ class Conv1dfftFunction(torch.autograd.Function):
 
             if is_debug:
                 cuda_mem_show(info="after gradient input",
-                              omit_obj_ids=omit_obj_ids)
+                              omit_objs=omit_objs)
 
         if need_filter_grad is True:
             dw = torch.zeros([F, C, WW], dtype=dtype, device=device)
@@ -679,10 +685,10 @@ class Conv1dfftFunction(torch.autograd.Function):
 
             if is_debug:
                 cuda_mem_show(info="after gradient filter",
-                              omit_obj_ids=omit_obj_ids)
+                              omit_objs=omit_objs)
 
         if is_debug:
-            cuda_mem_show(info="backward end", omit_obj_ids=omit_obj_ids)
+            cuda_mem_show(info="backward end", omit_objs=omit_objs)
 
         return dx, dw, db, None, None, None, None, None, None, None, None, \
                None, None, None
