@@ -1541,6 +1541,12 @@ class TestPyTorchConv1d(unittest.TestCase):
         tensors = get_tensors(only_cuda=False, is_debug=True)
         print("tensors: ", ",".join([str(tensor) for tensor in tensors]))
 
+        """The forward pass returns 11 tensors and the local code in the method
+        created 3 tensor, which gives 14 tensors in total."""
+        #TODO Find where the 4 more tensors come from.
+        expect = 14 + 4
+        assert len(tensors) == expect, f"Expected {expect} tensors but got {len(tensors)}"
+
         result = result_torch.cpu().detach().numpy()
         np.testing.assert_array_almost_equal(
             result, np.array(expected_result))

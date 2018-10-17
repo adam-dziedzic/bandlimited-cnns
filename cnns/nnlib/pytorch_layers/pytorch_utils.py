@@ -15,6 +15,13 @@ from cnns.nnlib.utils.general_utils import plot_signal_freq
 from cnns.nnlib.utils.general_utils import mem_log_file
 import gc
 from functools import reduce
+from cnns.nnlib.utils.log_utils import get_logger
+from cnns.nnlib.utils.log_utils import set_up_logging
+import logging
+
+logger = get_logger(name=__name__)
+logger.setLevel(logging.DEBUG)
+logger.info("Set up test")
 
 
 class MockContext(object):
@@ -363,6 +370,8 @@ def complex_mul2(x, y):
     >>> xy = complex_mul2(x, y)
     >>> np.testing.assert_array_equal(xy,
     ... tensor([[[-4., 7.], [1., 7.]], [[108.,   0.], [ -8.,  16.]]]))
+    >>> del x
+    >>> del y
     """
     # mul = torch.mul
     # add = torch.add
@@ -415,6 +424,7 @@ def pytorch_conjugate(x):
     >>> x = pytorch_conjugate(x)
     >>> np.testing.assert_array_equal(x, tensor([[[[1, -2], [3, -4], [5, -6]],
     ... [[3, -2], [1, 0], [0, -3]], [[1, -2], [8, -9], [10, -121]]]]))
+    >>> del x
     """
     con_x = x.clone()
     con_x.narrow(dim=-1, start=1, length=1).mul_(-1)
@@ -1829,6 +1839,8 @@ def get_tensors(only_cuda=False, is_debug=False):
     >>> clean_gc_return = map((lambda obj: del_object(obj)), tensors)
     """
     add_all_tensors = False if only_cuda is True else True
+    # To avoid counting the same tensor twice, create a dictionary of tensors,
+    # each one identified by its id (the in memory address).
     tensors = {}
 
     def add_tensor(obj):
@@ -1845,23 +1857,16 @@ def get_tensors(only_cuda=False, is_debug=False):
 
     for obj in gc.get_objects():
         try:
-            if is_debug:
-                if hasattr(obj, 'saved_tensors'):
-                    print("obj: ", obj)
-                    print("type: ", type(obj))
-                    if "NestedIOFunction" in str(obj):
-                        print("based on string search: NestedIOFunction obj")
-                        print(obj)
-                        print("type of the object: ", type(obj))
-                        print(dir(obj))
-                        print(obj.saved_tensors)
-                        for tensor_obj in obj.saved_tensors:
-                            print("saved tensor: ", tensor_obj)
-                            print("dir obj tensor_obj: ", tensor_obj)
-                    print("saved tensors: ", obj.saved_tensors)
-
+            # Add the obj if it is a tensor.
+            add_tensor(obj)
+            # Some tensors are "saved & hidden" for the backward pass.
+            if hasattr(obj, 'saved_tensors'):
+                for tensor_obj in obj.saved_tensors:
+                    add_tensor(tensor_obj)
         except Exception as ex:
-            print("Exception: ", ex)
+            pass
+            # print("Exception: ", ex)
+            # logger.debug(f"Exception: {str(ex)}")
     return tensors.values()  # return a list of tensors
 
 
@@ -1939,8 +1944,9 @@ def get_tensors_elem_size_count(only_cuda=True):
     >>> t4 = tensor([1., 2., 3.], dtype=torch.double, device=device)
     >>> only_cuda = True if torch.cuda.is_available() else False
     >>> size, count = get_tensors_elem_size_count(only_cuda=only_cuda)
-    >>> assert size == 40, "Expected size 40, but got {size}"
-    >>> assert count == 7, "Expected count 7, but got {count}"
+    >>> # print("tensors: ", get_tensors())
+    >>> assert size == 40, f"Expected size 40, but got {size}"
+    >>> assert count == 7, f"Expected count 7, but got {count}"
     """
     tensors = [tensor_obj for tensor_obj in get_tensors(only_cuda=only_cuda)]
     total_size = 0
@@ -1988,22 +1994,25 @@ if __name__ == "__main__":
     if torch.cuda.is_available():
         device = torch.device("cuda")
         t1 = tensor([1], device=device)
-        a3 = tensor([[1, 2], [3, 4]], device=device)
+        a3 = tensor([[1, -2], [3, -4]], device=device)
         tensor_obj = None
 
         tensors = get_tensors(only_cuda=True, is_debug=True)
         for tensor_obj in tensors:
             print("tensor: ", tensor_obj)
-
+        del tensor_obj
         tensors = get_tensors(only_cuda=True)
         for tensor_obj in tensors:
             print("tensor_obj: ", tensor_obj)
         del tensor_obj
         total_elem_nr = get_tensors_elem_count()
-        print("total number of elements (items) in all tensors: ", total_elem_nr)
-        assert total_elem_nr == 5
+        print("total number of elements (items) in all tensors: ",
+              total_elem_nr)
+        expected = 5
+        assert total_elem_nr == 5, f"Expected {expected} but got: {total_elem_nr}"
         del t1
         del a3
+        del tensors
 
     # you can run it from the console: python pytorch_util.py -v
     sys.exit(doctest.testmod()[0])

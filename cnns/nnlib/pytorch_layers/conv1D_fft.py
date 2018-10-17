@@ -106,6 +106,9 @@ class Conv1dfftFunction(torch.autograd.Function):
             print(f"execute forward pass 1D for layer index {conv_index}")
             cuda_mem_show(info="forward start")
 
+        device = x.device
+        dtype = x.dtype
+
         INPUT_ERROR = "Specify only one of: index_back, out_size, or " \
                       "preserve_energy"
         if (index_back is not None and index_back > 0) and out_size is not None:
@@ -357,8 +360,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         #     # properly sum up the values.
         #     output += bias.unsqueeze(1)
 
-        output = torch.zeros([N, F, out_W], dtype=xfft.dtype,
-                             device=xfft.device)
+        output = torch.zeros([N, F, out_W], dtype=dtype, device=device)
 
         for nn in range(N):  # For each time-series in the batch.
             # Take one time series and un-squeeze it for broadcasting with
@@ -441,6 +443,13 @@ class Conv1dfftFunction(torch.autograd.Function):
         :return: gradients for input map x, filter w and bias b
         """
         xfft, yfft, W, WW, fft_size, is_manual, conv_index, compress_type, is_debug, preserve_energy, index_back_fft = ctx.saved_tensors
+        need_input_grad = ctx.needs_input_grad[0]
+        need_filter_grad = ctx.needs_input_grad[1]
+        need_bias_grad = ctx.needs_input_grad[2]
+        del ctx
+        dtype = xfft.dtype
+        device = xfft.device
+
         is_manual[0] = 1  # Mark the manual execution of the backward pass.
         W = from_tensor(W)
         WW = from_tensor(WW)
@@ -469,9 +478,9 @@ class Conv1dfftFunction(torch.autograd.Function):
         dx = dw = db = None
 
         # Gradient for the bias.
-        if ctx.needs_input_grad[2]:
+        if need_bias_grad is True:
             # The number of bias elements is equal to the number of filters.
-            db = torch.zeros(F, device=xfft.device, dtype=xfft.dtype)
+            db = torch.zeros(F, device=device, dtype=dtype)
 
             # Calculate dB (the gradient for the bias term).
             # We sum up all the incoming gradients for each filter
@@ -540,7 +549,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             elif index_back_fft is not None and index_back_fft > 0:
                 doutfft = retain_low_coef(doutfft, index_back=index_back_fft)
 
-        if ctx.needs_input_grad[0]:
+        if need_input_grad is True:
             # Initialize gradient output tensors.
             # the x used for convolution was with padding
             """
@@ -581,8 +590,9 @@ class Conv1dfftFunction(torch.autograd.Function):
             [0, dx1, dx2, dx3, 0] * [w2, w1] = 
             [dx1*w1, dx1*w2 + dx2*w1, dx2*w2 + dx3*w1, dx3*w2]
             """
-            dx = torch.zeros([N, C, W], dtype=xfft.dtype, device=xfft.device)
+            dx = torch.zeros([N, C, W], dtype=dtype, device=device)
             conjugate_yfft = pytorch_conjugate(yfft)
+            del yfft
             for nn in range(N):
                 # Take one time series and unsqueeze it for broadcast with
                 # many gradients dout. We assign 1 to the input channel C.
@@ -605,11 +615,13 @@ class Conv1dfftFunction(torch.autograd.Function):
                 out = torch.unsqueeze(input=out, dim=0)
                 dx[nn] = out
 
+            del conjugate_yfft
+
             if is_debug:
                 cuda_mem_show(info="after gradient input")
 
-        if ctx.needs_input_grad[1]:
-            dw = torch.zeros([F, C, WW], dtype=yfft.dtype, device=xfft.device)
+        if need_filter_grad is True:
+            dw = torch.zeros([F, C, WW], dtype=dtype, device=device)
             # Calculate dw - the gradient for the filters w.
             # By chain rule dw is computed as: dout*x
             """
@@ -655,6 +667,8 @@ class Conv1dfftFunction(torch.autograd.Function):
                 #     "conv"+str(conv_index), out.size(), dw.size(), str(N),
                 #     str(C), str(F)))
                 dw[ff] = out
+
+            del xfft
 
             if is_debug:
                 cuda_mem_show(info="after gradient filter")
