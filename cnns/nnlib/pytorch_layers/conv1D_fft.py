@@ -450,6 +450,7 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         for tensor_obj in ctx.saved_tensors:
             del tensor_obj
+        omit_obj_ids = [id(ctx)]
         del ctx
 
         dtype = xfft.dtype
@@ -466,7 +467,6 @@ class Conv1dfftFunction(torch.autograd.Function):
         preserve_energy = from_tensor(preserve_energy)
         index_back_fft = from_tensor(index_back_fft)
 
-        omit_obj_ids = [id(ctx)]
         if is_debug:
             print("execute backward pass 1D")
             cuda_mem_show(info="backward start", omit_obj_ids=omit_obj_ids)
