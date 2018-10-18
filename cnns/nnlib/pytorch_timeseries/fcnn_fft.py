@@ -527,21 +527,15 @@ def train(model, device, train_loader, optimizer, epoch, dtype=torch.float):
     """
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
-        data, target = data.to(device=device, dtype=dtype), target.to(device=device)
+        data, target = data.to(device=device, dtype=dtype), target.to(
+            device=device)
         optimizer.zero_grad()
         output = model(data)
-        # compute loss with higher precision
-        if dtype is torch.float16:
-            output = output.to(dtype=torch.float32)
         loss = F.nll_loss(output, target)
 
         # The cross entropy loss combines `log_softmax` and `nll_loss` in
         # a single function.
         # loss = F.cross_entropy(output, target)
-
-        # go back to float16
-        if dtype is torch.float16:
-            loss = loss.to(dtype=torch.float16)
         loss.backward()
         optimizer.step()
 
@@ -569,9 +563,6 @@ def test(model, device, test_loader, dataset_type="test", dtype=torch.float):
             data, target = data.to(device=device, dtype=dtype), target.to(
                 device)
             output = model(data)
-            # compute loss with higher precision
-            if dtype is torch.float16:
-                output = output.to(dtype=torch.float32)
             test_loss += F.nll_loss(output, target,
                                     reduction='sum').item()  # sum up batch loss
             counter += 1
@@ -708,6 +699,17 @@ def main(dataset_name):
     model = getModelPyTorch(input_size=width, num_classes=num_classes,
                             in_channels=in_channels)
     model.to(device)
+    if dtype is torch.float16:
+        """
+        You want to make sure that the BatchNormalization layers use float32 for 
+        accumulation or you will have convergence issues.
+        https://discuss.pytorch.org/t/training-with-half-precision/11815
+        """
+        model.half()  # convert to half precision
+        for layer in model.modules():
+            if isinstance(layer, nn.BatchNorm2d) or isinstance(layer,
+                                                               nn.BatchNorm1d):
+                layer.float()
 
     if optimizer_type is OptimizerType.MOMENTUM:
         optimizer = optim.SGD(model.parameters(), lr=args.lr,
