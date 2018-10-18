@@ -52,12 +52,15 @@ from cnns.nnlib.datasets.ucr.dataset import AddChannel
 # from memory_profiler import profile
 
 try:
-    from apex import amp
-    from apex.parallel import DistributedDataParallel as DDP
-    from apex.fp16_utils import *
+    import apex
 except ImportError:
     raise ImportError("""Please install apex from 
     https://www.github.com/nvidia/apex to run this code.""")
+
+from apex import amp
+from apex.parallel import DistributedDataParallel as DDP
+from apex.fp16_utils import *
+from apex.fp16_utils import network_to_half
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 print("current working directory: ", dir_path)
@@ -152,6 +155,11 @@ parser.add_argument("--next_power2", default="TRUE",
                     help="should we extend the input to the length of a power "
                          "of 2 before taking its fft? " + ",".join(
                         NextPower2.get_names()))
+parser.add_argument('--static-loss-scale', type=float, default=1,
+                    help='Static loss scale, positive power of 2 values can improve fp16 convergence.')
+parser.add_argument('--dynamic-loss-scale', action='store_true',
+                    help='Use dynamic loss scaling.  If supplied, this argument supersedes ' +
+                         '--static-loss-scale.')
 
 args = parser.parse_args()
 
@@ -546,7 +554,10 @@ def train(model, device, train_loader, optimizer, epoch,
         properly scale the loss and clear internal per-iteration state.
         """
         amp_handle = amp.init()
-        optimizer = amp_handle.wrap_optimizer(optimizer)
+        # optimizer = amp_handle.wrap_optimizer(optimizer)
+        optimizer = FP16_Optimizer(optimizer,
+                                   static_loss_scale=args.static_loss_scale,
+                                   dynamic_loss_scale=args.dynamic_loss_scale)
 
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
@@ -573,9 +584,10 @@ def train(model, device, train_loader, optimizer, epoch,
 
             # with amp_handle.scale_loss(loss, optimizer) as scaled_loss:
             #     scaled_loss.backward()
-            optimizer.scale_loss(loss)
-
-        loss.backward()
+            # loss = optimizer.scale_loss(loss)
+            optimizer.backward(loss)
+        else:
+            loss.backward()
 
         optimizer.step()
 
@@ -744,7 +756,8 @@ def main(dataset_name):
         accumulation or you will have convergence issues.
         https://discuss.pytorch.org/t/training-with-half-precision/11815
         """
-        model.half()  # convert to half precision
+        # model.half()  # convert to half precision
+        model = network_to_half(model)
         for layer in model.modules():
             if isinstance(layer, nn.BatchNorm1d) or isinstance(layer,
                                                                nn.BatchNorm2d):
