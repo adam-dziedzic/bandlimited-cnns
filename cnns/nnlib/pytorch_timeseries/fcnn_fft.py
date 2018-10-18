@@ -51,6 +51,13 @@ from cnns.nnlib.datasets.ucr.dataset import AddChannel
 
 # from memory_profiler import profile
 
+try:
+    from apex.parallel import DistributedDataParallel as DDP
+    from apex.fp16_utils import *
+except ImportError:
+    raise ImportError("""Please install apex from 
+    https://www.github.com/nvidia/apex to run this code.""")
+
 dir_path = os.path.dirname(os.path.realpath(__file__))
 print("current working directory: ", dir_path)
 
@@ -729,8 +736,8 @@ def main(dataset_name):
         """
         model.half()  # convert to half precision
         for layer in model.modules():
-            if isinstance(layer, nn.BatchNorm2d) or isinstance(layer,
-                                                               nn.BatchNorm1d):
+            if isinstance(layer, nn.BatchNorm1d) or isinstance(layer,
+                                                               nn.BatchNorm2d):
                 layer.float()
 
     """

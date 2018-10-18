@@ -24,4 +24,5 @@ sudo pip install typing
 # bash ${code_path}pytorch_from_source.sh
 bash ${code_path}pytorch_installation.sh
 bash ${code_path}tensorflow_installation.sh
+bash ${code_path}nvidia_apex.sh
 
