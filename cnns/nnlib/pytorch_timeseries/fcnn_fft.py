@@ -102,7 +102,7 @@ parser.add_argument("-w", "--workers", default=4, type=int,
                          "loaded in the main process")
 parser.add_argument("-n", "--net", default="fcnn",
                     help="the type of net: alexnet, densenet, resnet, fcnn.")
-parser.add_argument("-d", "--datasets", default="all",
+parser.add_argument("-d", "--datasets", default="debug",
                     help="the type of datasets: all or debug.")
 parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
@@ -135,13 +135,13 @@ parser.add_argument("--network_type", default="STANDARD",
                     # "STANDARD", "SMALL"
                     help="the type of network: " + ",".join(
                         NetworkType.get_names()))
-parser.add_argument("--tensor_type", default="FLOAT32",
+parser.add_argument("--tensor_type", default="FLOAT16",
                     # "FLOAT32", "FLOAT16", "DOUBLE", "INT"
                     help="the tensor data type: " + ",".join(
                         TensorType.get_names()))
 parser.add_argument("--next_power2", default="TRUE",
                     # "TRUE", "FALSE"
-                    help="should we extend the input to the lenght of a power "
+                    help="should we extend the input to the length of a power "
                          "of 2 before taking its fft? " + ",".join(
                         NextPower2.get_names()))
 
@@ -564,21 +564,25 @@ def test(model, device, test_loader, dataset_type="test", dtype=torch.float):
     test_loss = 0
     correct = 0
     with torch.no_grad():
+        counter = 0
         for data, target in test_loader:
             data, target = data.to(device=device, dtype=dtype), target.to(
                 device)
             output = model(data)
+            # compute loss with higher precision
+            if dtype is torch.float16:
+                output = output.to(dtype=torch.float32)
             test_loss += F.nll_loss(output, target,
                                     reduction='sum').item()  # sum up batch loss
+            counter += 1
             # get the index of the max log-probability
             pred = output.max(1, keepdim=True)[1]
             correct += pred.eq(target.view_as(pred)).sum().item()
 
-        test_loss /= len(test_loader.dataset)
-        accuracy = 100. * correct / len(test_loader.dataset)
+        test_loss /= counter
+        accuracy = 100. * correct / counter
         print('{} set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
-            dataset_type, test_loss, correct, len(test_loader.dataset),
-            accuracy))
+            dataset_type, test_loss, correct, counter, accuracy))
         return test_loss, accuracy
 
 
@@ -780,14 +784,14 @@ if __name__ == '__main__':
     if args.datasets == "all":
         flist = os.listdir(ucr_path)
     elif args.datasets == "debug":
-        flist = ["50words"]
+        # flist = ["50words"]
         # flist = ["cifar10"]
         # flist = ["zTest"]
         # flist = ["zTest50words"]
         # flist = ["InlineSkate"]
         # flist = ["Adiac"]
         # flist = ["HandOutlines"]
-        # flist = ["ztest"]
+        flist = ["ztest"]
         # flist = ["Cricket_X"]
         # flist = ['50words', 'Adiac', 'ArrowHead', 'Beef', 'BeetleFly',
         #         'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
