@@ -52,6 +52,7 @@ from cnns.nnlib.datasets.ucr.dataset import AddChannel
 # from memory_profiler import profile
 
 try:
+    from apex import amp
     from apex.parallel import DistributedDataParallel as DDP
     from apex.fp16_utils import *
 except ImportError:
@@ -525,19 +526,28 @@ def run_keras():
 
 
 # @profile
-def train(model, params, device, train_loader, optimizer, epoch,
+def train(model, device, train_loader, optimizer, epoch,
           dtype=torch.float):
     """
     Train the model.
 
     :param model: deep learning model.
-    :param params: the model parameters (might be copied for float16 type).
     :param device: cpu or gpu.
     :param train_loader: the training dataset.
     :param optimizer: Adam, Momemntum, etc.
     :param epoch: the current epoch number.
     :param dtype: the type of the tensors.
     """
+
+    amp_handle = None
+    if dtype is torch.float16:
+        """
+        amp_handle: tells it where backpropagation occurs so that it can 
+        properly scale the loss and clear internal per-iteration state.
+        """
+        amp_handle = amp.init()
+        optimizer = amp_handle.wrap_optimizer(optimizer)
+
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device=device, dtype=dtype), target.to(
@@ -549,24 +559,25 @@ def train(model, params, device, train_loader, optimizer, epoch,
         # The cross entropy loss combines `log_softmax` and `nll_loss` in
         # a single function.
         # loss = F.cross_entropy(output, target)
-        loss.backward()
+
         if dtype is torch.float16:
             """
-            At each optimization step in the training loop, perform the following:
+            https://github.com/NVIDIA/apex/tree/master/apex/amp
+            
+            Not used: at each optimization step in the training loop, perform 
+            the following:
             Cast gradients to FP32. If a loss was scaled, descale the gradients.
             Apply updates in FP32 precision and copy the updated parameters to 
             the model, casting them to FP16.
             """
-            set_grad(params, list(model.parameters()))
-            if scale_factor != 1:
-                for param in params:
-                    param.grad.data = param.grad.data / args.loss_scale
-            optimizer.step()
-            params = list(model.parameters())
-            for i in range(len(params)):
-                params[i].data.copy_(param_copy[i].data)
-        else:
-            optimizer.step()
+
+            # with amp_handle.scale_loss(loss, optimizer) as scaled_loss:
+            #     scaled_loss.backward()
+            optimizer.scale_loss(loss)
+
+        loss.backward()
+
+        optimizer.step()
 
         print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
             epoch, batch_idx * len(data), len(train_loader.dataset),
@@ -586,23 +597,22 @@ def test(model, device, test_loader, dataset_type="test", dtype=torch.float):
     model.eval()
     test_loss = 0
     correct = 0
+    counter = len(test_loader.dataset)
     with torch.no_grad():
-        counter = 0
         for data, target in test_loader:
             data, target = data.to(device=device, dtype=dtype), target.to(
                 device)
             output = model(data)
             test_loss += F.nll_loss(output, target,
                                     reduction='sum').item()  # sum up batch loss
-            counter += 1
             # get the index of the max log-probability
             pred = output.max(1, keepdim=True)[1]
             correct += pred.eq(target.view_as(pred)).sum().item()
 
         test_loss /= counter
         accuracy = 100. * correct / counter
-        print('{} set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
-            dataset_type, test_loss, correct, counter, accuracy))
+        print(
+            f"""{dataset_type} set: Average loss: {test_loss}, Accuracy: {correct}/{counter} ({accuracy}%)""")
         return test_loss, accuracy
 
 
@@ -740,18 +750,7 @@ def main(dataset_name):
                                                                nn.BatchNorm2d):
                 layer.float()
 
-    """
-    Create 32-bit master copy of the parameters. Create the optimizer using the 
-    master copy of the parameters.
-    https://docs.nvidia.com/deeplearning/sdk/mixed-precision-training/index.html
-    """
-    if dtype is torch.float16:
-        params = [param.clone().type(torch.cuda.FloatTensor).detach() for param
-                  in model.parameters()]
-        for param in params:
-            param.requires_grad = True
-    else:
-        params = model.parameters()
+    params = model.parameters()
 
     if optimizer_type is OptimizerType.MOMENTUM:
         optimizer = optim.SGD(params, lr=args.lr, momentum=args.momentum)

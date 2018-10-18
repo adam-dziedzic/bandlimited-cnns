@@ -302,7 +302,7 @@ def complex_mul(x, y):
     # imaginary part of the complex number
     result_im = uc * va + uavc
     # use the last dimension: dim=-1
-    result = cat(tensors=(result_rel, result_im), dim=-1)
+    result = cat((result_rel, result_im), dim=-1)
     return result
 
 
