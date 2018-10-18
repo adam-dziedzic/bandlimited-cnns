@@ -323,7 +323,7 @@ class FCNNPytorch(nn.Module):
 
     # @profile
     def __init__(self, input_size, num_classes, in_channels,
-                 kernel_sizes=[8, 5, 3],
+                 dtype=torch.float32, kernel_sizes=[8, 5, 3],
                  out_channels=[128, 256, 128], strides=[1, 1, 1]):
         """
         Create the FCNN model in PyTorch.
@@ -331,6 +331,7 @@ class FCNNPytorch(nn.Module):
         :param input_size: the length (width) of the time series.
         :param num_classes: number of output classes.
         :param in_channels: number of channels in the input data.
+        :param dtype: global - the type of pytorch data/weights.
         :param kernel_sizes: the sizes of the kernels in each conv layer.
         :param out_channels: the number of filters for each conv layer.
         :param strides: the strides for the convolutions.
@@ -339,6 +340,7 @@ class FCNNPytorch(nn.Module):
         self.input_size = input_size
         self.num_classes = num_classes
         self.in_channels = in_channels
+        self.dtype = dtype
         self.kernel_sizes = kernel_sizes
         self.out_channels = out_channels
         self.strides = strides
@@ -425,13 +427,14 @@ class FCNNPytorch(nn.Module):
         return out
 
 
-def getModelPyTorch(input_size, num_classes, in_channels):
+def getModelPyTorch(input_size, num_classes, in_channels, dtype=torch.float32):
     """
     Get the PyTorch version of the FCNN model.
 
     :param input_size: the length (width) of the time series.
     :param num_classes: number of output classes.
     :param in_channels: number of channels in the input data.
+    :param dtype: global - the type of torch data/weights.
 
     :return: the model.
     """
@@ -442,7 +445,8 @@ def getModelPyTorch(input_size, num_classes, in_channels):
     elif network_type == NetworkType.STANDARD:
         out_channels = [128, 256, 128]
     return FCNNPytorch(input_size=input_size, num_classes=num_classes,
-                       in_channels=in_channels, out_channels=out_channels)
+                       in_channels=in_channels, out_channels=out_channels,
+                       dtype=dtype)
 
 
 def readucr(filename, data_type):
@@ -514,11 +518,13 @@ def run_keras():
 
 
 # @profile
-def train(model, device, train_loader, optimizer, epoch, dtype=torch.float):
+def train(model, params, device, train_loader, optimizer, epoch,
+          dtype=torch.float):
     """
     Train the model.
 
     :param model: deep learning model.
+    :param params: the model parameters (might be copied for float16 type).
     :param device: cpu or gpu.
     :param train_loader: the training dataset.
     :param optimizer: Adam, Momemntum, etc.
@@ -537,7 +543,23 @@ def train(model, device, train_loader, optimizer, epoch, dtype=torch.float):
         # a single function.
         # loss = F.cross_entropy(output, target)
         loss.backward()
-        optimizer.step()
+        if dtype is torch.float16:
+            """
+            At each optimization step in the training loop, perform the following:
+            Cast gradients to FP32. If a loss was scaled, descale the gradients.
+            Apply updates in FP32 precision and copy the updated parameters to 
+            the model, casting them to FP16.
+            """
+            set_grad(params, list(model.parameters()))
+            if scale_factor != 1:
+                for param in params:
+                    param.grad.data = param.grad.data / args.loss_scale
+            optimizer.step()
+            params = list(model.parameters())
+            for i in range(len(params)):
+                params[i].data.copy_(param_copy[i].data)
+        else:
+            optimizer.step()
 
         print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
             epoch, batch_idx * len(data), len(train_loader.dataset),
@@ -697,7 +719,7 @@ def main(dataset_name):
         raise ValueError(f"Unknown dataset: {dataset_name}")
 
     model = getModelPyTorch(input_size=width, num_classes=num_classes,
-                            in_channels=in_channels)
+                            in_channels=in_channels, dtype=dtype)
     model.to(device)
     if dtype is torch.float16:
         """
@@ -711,11 +733,23 @@ def main(dataset_name):
                                                                nn.BatchNorm1d):
                 layer.float()
 
-    if optimizer_type is OptimizerType.MOMENTUM:
-        optimizer = optim.SGD(model.parameters(), lr=args.lr,
-                              momentum=args.momentum)
+    """
+    Create 32-bit master copy of the parameters. Create the optimizer using the 
+    master copy of the parameters.
+    https://docs.nvidia.com/deeplearning/sdk/mixed-precision-training/index.html
+    """
+    if dtype is torch.float16:
+        params = [param.clone().type(torch.cuda.FloatTensor).detach() for param
+                  in model.parameters()]
+        for param in params:
+            param.requires_grad = True
     else:
-        optimizer = optim.Adam(model.parameters(), lr=args.lr)
+        params = model.parameters()
+
+    if optimizer_type is OptimizerType.MOMENTUM:
+        optimizer = optim.SGD(params, lr=args.lr, momentum=args.momentum)
+    else:
+        optimizer = optim.Adam(params, lr=args.lr)
 
     # https://pytorch.org/docs/stable/optim.html#torch.optim.lr_scheduler.ReduceLROnPlateau
     scheduler = ReduceLROnPlateauPyTorch(optimizer=optimizer, mode='min',

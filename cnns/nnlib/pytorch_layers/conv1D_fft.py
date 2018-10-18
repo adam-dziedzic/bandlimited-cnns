@@ -91,7 +91,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         was computed manually.
         :param conv_index: the index of the convolution.
         :param is_debug: is the debug mode of execution.
-        :param compress_type: NO_FILGER - should the filter be compressed or
+        :param compress_type: NO_FILTER - should the filter be compressed or
         only the input signal? BIG_COEF: should we keep only the largest
         coefficients or delete the coefficients from the end of the signal
         representation in the frequency domain? STANDARD: cut off the same
