@@ -28,12 +28,8 @@ class EnumWithNames(Enum):
 
 class BoolEnumWithNames(EnumWithNames):
     """
-    The Enum classes that inherit from the EnumWithNames will get the get_names
-    method to return an array of strings representing all possible enum values.
+    Bool version of EnumWithNames.
     """
-    TRUE = 1
-    FALSE = 2
-
     @classmethod
     def get_bool(cls, bool_name):
         bool_enum = cls[bool_name]
@@ -87,15 +83,18 @@ class TensorType(EnumWithNames):
 
 
 class NextPower2(BoolEnumWithNames):
-    pass
+    TRUE = 1
+    FALSE = 2
 
 
 class DynamicLossScale(BoolEnumWithNames):
-    pass
+    TRUE = 1
+    FALSE = 2
 
 
 class DebugMode(BoolEnumWithNames):
-    pass
+    TRUE = 1
+    FALSE = 2
 
 
 class NetworkType(EnumWithNames):

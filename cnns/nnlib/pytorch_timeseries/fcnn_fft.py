@@ -157,7 +157,8 @@ parser.add_argument("--next_power2", default="TRUE",
                          "of 2 before taking its fft? " + ",".join(
                         NextPower2.get_names()))
 parser.add_argument('--static_loss_scale', type=float, default=1,
-                    help='Static loss scale, positive power of 2 values can improve fp16 convergence.')
+                    help="""Static loss scale, positive power of 2 values can 
+                    improve fp16 convergence.""")
 parser.add_argument('--dynamic_loss_scale', default="TRUE",
                     help='(bool) Use dynamic loss scaling.  If supplied, this argument supersedes ' +
                          '--static-loss-scale. Options: ' + ",".join(
@@ -199,19 +200,47 @@ class FlatTransformation(object):
         return tensor
 
 
-transform_train = transforms.Compose([
-    transforms.RandomCrop(32, padding=4),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    FlatTransformation(),
-])
+class DtypeTransformation(object):
+    """Transform a tensor to its dtype representation.
 
-transform_test = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    FlatTransformation(),
-])
+    """
+
+    def __init__(self, dtype=torch.float32):
+        self.dtype = dtype
+
+    def __call__(self, tensor, dtype):
+        """
+        Args:
+            tensor (Tensor): Tensor image.
+
+        Returns:
+            Tensor: with dtype.
+        """
+        return tensor.to(dtype=self.dtype)
+
+
+def get_transform_train(dtype=torch.float32):
+    transform_train = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465),
+                             (0.2023, 0.1994, 0.2010)),
+        FlatTransformation(),
+        DtypeTransformation(dtype)
+    ])
+    return transform_train
+
+
+def get_transform_test(dtype=torch.float32):
+    transform_test = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465),
+                             (0.2023, 0.1994, 0.2010)),
+        FlatTransformation(),
+        DtypeTransformation(dtype),
+    ])
+    return transform_test
 
 
 def getModelKeras(input_size, num_classes):
@@ -549,19 +578,19 @@ def train(model, device, train_loader, optimizer, epoch,
     :param dtype: the type of the tensors.
     """
 
-    amp_handle = None
     if dtype is torch.float16:
         """
         amp_handle: tells it where backpropagation occurs so that it can 
         properly scale the loss and clear internal per-iteration state.
         """
-        amp_handle = amp.init()
+        # amp_handle = amp.init()
         # optimizer = amp_handle.wrap_optimizer(optimizer)
         dynamic_loss_scale = DynamicLossScale[args.dynamic_loss_scale]
+        dynamic_loss_scale = True if dynamic_loss_scale is DynamicLossScale.TRUE else False
 
         optimizer = FP16_Optimizer(optimizer,
                                    static_loss_scale=args.static_loss_scale,
-                                   dynamic_loss_scale=args.dynamic_loss_scale)
+                                   dynamic_loss_scale=dynamic_loss_scale)
 
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
@@ -701,11 +730,12 @@ def main(dataset_name):
         in_channels = 3  # number of channels in the input data
         train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True,
                                                      download=True,
-                                                     transform=transform_train)
+                                                     transform=get_transform_train(dtype=dtype))
         if is_debug and sample_count > 0:
             train_dataset.train_data = train_dataset.train_data[:sample_count]
             train_dataset.train_labels = train_dataset.train_labels[
                                          :sample_count]
+
         train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
                                                    batch_size=batch_size,
                                                    shuffle=True,
@@ -713,7 +743,7 @@ def main(dataset_name):
 
         test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False,
                                                     download=True,
-                                                    transform=transform_test)
+                                                    transform=get_transform_test(dtype=dtype))
         if is_debug and sample_count > 0:
             test_dataset.test_data = test_dataset.test_data[:sample_count]
             test_dataset.test_labels = test_dataset.test_labels[:sample_count]
@@ -726,7 +756,7 @@ def main(dataset_name):
         in_channels = 1  # number of channels in the input data
         train_dataset = UCRDataset(dataset_name, train=True,
                                    transformations=transforms.Compose(
-                                       [ToTensor(dtype=torch.float),
+                                       [ToTensor(dtype=dtype),
                                         AddChannel()]))
         if is_debug and sample_count > 0:
             train_dataset.set_length(sample_count)
@@ -740,7 +770,7 @@ def main(dataset_name):
 
         test_dataset = UCRDataset(dataset_name, train=False,
                                   transformations=transforms.Compose(
-                                      [ToTensor(dtype=torch.float),
+                                      [ToTensor(dtype=dtype),
                                        AddChannel()]))
         if is_debug and sample_count > 0:
             test_dataset.set_length(sample_count)
