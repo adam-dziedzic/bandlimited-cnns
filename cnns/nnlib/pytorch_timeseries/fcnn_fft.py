@@ -730,7 +730,7 @@ def main(dataset_name):
         in_channels = 3  # number of channels in the input data
         train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True,
                                                      download=True,
-                                                     transform=get_transform_train(dtype=dtype))
+                                                     transform=get_transform_train(dtype=torch.float))
         if is_debug and sample_count > 0:
             train_dataset.train_data = train_dataset.train_data[:sample_count]
             train_dataset.train_labels = train_dataset.train_labels[
@@ -743,7 +743,7 @@ def main(dataset_name):
 
         test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False,
                                                     download=True,
-                                                    transform=get_transform_test(dtype=dtype))
+                                                    transform=get_transform_test(dtype=torch.float))
         if is_debug and sample_count > 0:
             test_dataset.test_data = test_dataset.test_data[:sample_count]
             test_dataset.test_labels = test_dataset.test_labels[:sample_count]
@@ -756,7 +756,7 @@ def main(dataset_name):
         in_channels = 1  # number of channels in the input data
         train_dataset = UCRDataset(dataset_name, train=True,
                                    transformations=transforms.Compose(
-                                       [ToTensor(dtype=dtype),
+                                       [ToTensor(dtype=torch.float),
                                         AddChannel()]))
         if is_debug and sample_count > 0:
             train_dataset.set_length(sample_count)
@@ -770,7 +770,7 @@ def main(dataset_name):
 
         test_dataset = UCRDataset(dataset_name, train=False,
                                   transformations=transforms.Compose(
-                                      [ToTensor(dtype=dtype),
+                                      [ToTensor(dtype=torch.float),
                                        AddChannel()]))
         if is_debug and sample_count > 0:
             test_dataset.set_length(sample_count)
