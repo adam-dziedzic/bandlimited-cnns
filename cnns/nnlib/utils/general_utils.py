@@ -26,6 +26,21 @@ class EnumWithNames(Enum):
         return [enum_value.name for enum_value in cls]
 
 
+class BoolEnumWithNames(EnumWithNames):
+    """
+    The Enum classes that inherit from the EnumWithNames will get the get_names
+    method to return an array of strings representing all possible enum values.
+    """
+    TRUE = 1
+    FALSE = 2
+
+    @classmethod
+    def get_bool(cls, bool_name):
+        bool_enum = cls[bool_name]
+        bool_value = True if bool_enum is cls.TRUE else False
+        return bool_value
+
+
 class OptimizerType(EnumWithNames):
     MOMENTUM = 1
     ADAM = 2
@@ -71,14 +86,21 @@ class TensorType(EnumWithNames):
     INT = 4
 
 
-class NextPower2(EnumWithNames):
-    TRUE = 1
-    FALSE = 2
+class NextPower2(BoolEnumWithNames):
+    pass
 
 
-class DebugMode(EnumWithNames):
-    TRUE = 1
-    FALSE = 2
+class DynamicLossScale(BoolEnumWithNames):
+    pass
+
+
+class DebugMode(BoolEnumWithNames):
+    pass
+
+
+class NetworkType(EnumWithNames):
+    STANDARD = 1
+    SMALL = 2
 
 
 class CompressType(EnumWithNames):
@@ -99,11 +121,6 @@ class CompressType(EnumWithNames):
     LOW_COEFF = 3
     # Compress the filters for fft based convolution or only the input signals.
     NO_FILTER = 4
-
-
-class NetworkType(EnumWithNames):
-    STANDARD = 1
-    SMALL = 2
 
 
 def energy(x):

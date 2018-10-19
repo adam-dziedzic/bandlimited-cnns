@@ -41,6 +41,7 @@ from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import TensorType
 from cnns.nnlib.utils.general_utils import NextPower2
+from cnns.nnlib.utils.general_utils import DynamicLossScale
 from cnns.nnlib.utils.general_utils import DebugMode
 from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import mem_log_file
@@ -155,11 +156,12 @@ parser.add_argument("--next_power2", default="TRUE",
                     help="should we extend the input to the length of a power "
                          "of 2 before taking its fft? " + ",".join(
                         NextPower2.get_names()))
-parser.add_argument('--static-loss-scale', type=float, default=1,
+parser.add_argument('--static_loss_scale', type=float, default=1,
                     help='Static loss scale, positive power of 2 values can improve fp16 convergence.')
-parser.add_argument('--dynamic-loss-scale', action='store_true',
-                    help='Use dynamic loss scaling.  If supplied, this argument supersedes ' +
-                         '--static-loss-scale.')
+parser.add_argument('--dynamic_loss_scale', default="TRUE",
+                    help='(bool) Use dynamic loss scaling.  If supplied, this argument supersedes ' +
+                         '--static-loss-scale. Options: ' + ",".join(
+                        DynamicLossScale.get_names()))
 
 args = parser.parse_args()
 
@@ -555,6 +557,8 @@ def train(model, device, train_loader, optimizer, epoch,
         """
         amp_handle = amp.init()
         # optimizer = amp_handle.wrap_optimizer(optimizer)
+        dynamic_loss_scale = DynamicLossScale[args.dynamic_loss_scale]
+
         optimizer = FP16_Optimizer(optimizer,
                                    static_loss_scale=args.static_loss_scale,
                                    dynamic_loss_scale=args.dynamic_loss_scale)
