@@ -10,13 +10,13 @@ from torch.optim.optimizer import Optimizer
 # Note that this calls .float().cuda() on the params such that it
 # moves them to gpu 0--if you're using a different GPU or want to
 # do multi-GPU you may need to deal with this.
-class Adam16(Optimizer):
+class AdamFloat16(Optimizer):
 
     def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-4,
                  weight_decay=0):
         defaults = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
         params = list(params)
-        super(Adam16, self).__init__(params, defaults)
+        super(AdamFloat16, self).__init__(params, defaults)
         # for group in self.param_groups:
         # for p in group['params']:
 

@@ -34,6 +34,7 @@ from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftAutograd
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftCompressSignalOnly
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftSimple
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftSimpleForLoop
+from cnns.nnlib.pytorch_layers.AdamFloat16 import AdamFloat16
 from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import OptimizerType
@@ -101,7 +102,7 @@ parser.add_argument('--seed', type=int, default=31, metavar='S',
 parser.add_argument('--log-interval', type=int, default=1, metavar='N',
                     help='how many batches to wait before logging training '
                          'status')
-parser.add_argument("--optimizer_type", default="ADAM",
+parser.add_argument("--optimizer_type", default="ADAM_FLOAT16",
                     help="the type of the optimizer, please choose from: " +
                          ",".join(OptimizerType.get_names()))
 parser.add_argument("--memory_type", default="STANDARD",
@@ -801,8 +802,12 @@ def main(dataset_name):
 
     if optimizer_type is OptimizerType.MOMENTUM:
         optimizer = optim.SGD(params, lr=args.lr, momentum=args.momentum)
+    elif optimizer_type is OptimizerType.ADAM_FLOAT16:
+        optimizer = AdamFloat16(params, lr=args.lr)
     else:
         optimizer = optim.Adam(params, lr=args.lr)
+
+
 
     # https://pytorch.org/docs/stable/optim.html#torch.optim.lr_scheduler.ReduceLROnPlateau
     scheduler = ReduceLROnPlateauPyTorch(optimizer=optimizer, mode='min',
