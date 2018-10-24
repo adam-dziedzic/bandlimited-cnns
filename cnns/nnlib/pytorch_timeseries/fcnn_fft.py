@@ -116,7 +116,7 @@ parser.add_argument("-w", "--workers", default=4, type=int,
                          "loaded in the main process")
 parser.add_argument("-n", "--net", default="fcnn",
                     help="the type of net: alexnet, densenet, resnet, fcnn.")
-parser.add_argument("-d", "--datasets", default="debug",
+parser.add_argument("-d", "--datasets", default="all",
                     help="the type of datasets: all or debug.")
 parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
@@ -149,7 +149,7 @@ parser.add_argument("--network_type", default="STANDARD",
                     # "STANDARD", "SMALL"
                     help="the type of network: " + ",".join(
                         NetworkType.get_names()))
-parser.add_argument("--tensor_type", default="FLOAT16",
+parser.add_argument("--tensor_type", default="FLOAT32",
                     # "FLOAT32", "FLOAT16", "DOUBLE", "INT"
                     help="the tensor data type: " + ",".join(
                         TensorType.get_names()))
@@ -308,11 +308,14 @@ class Conv(object):
                 raise ValueError(f"Unknown dtype: {tensor_type}")
             self.dtype = dtype
 
-    def get_conv(self, index):
+    def get_conv(self, index, index_back=None):
         if index == 0:
             in_channels = self.in_channels
         else:
             in_channels = self.out_channels[index - 1]
+
+        if index_back is None:
+            index_back = self.index_back
 
         if self.conv_type is ConvType.STANDARD:
             return nn.Conv1d(in_channels=in_channels,
@@ -328,7 +331,7 @@ class Conv(object):
                              stride=self.strides[index],
                              kernel_size=self.kernel_sizes[index],
                              padding=(self.conv_pads[index] // 2),
-                             index_back=self.index_back,
+                             index_back=index_back,
                              use_next_power2=next_power2,
                              conv_index=index,
                              preserve_energy=self.preserve_energy,
@@ -948,7 +951,7 @@ if __name__ == '__main__':
 
     flist = sorted(flist, key=lambda s: s.lower())
     print("flist: ", flist)
-    for dataset_name in flist:
+    for dataset_name in reversed(flist):
         print("Dataset: ", dataset_name)
         with open(additional_log_file, "a") as file:
             file.write(dataset_name + "\n")
