@@ -102,7 +102,8 @@ parser.add_argument('--seed', type=int, default=31, metavar='S',
 parser.add_argument('--log-interval', type=int, default=1, metavar='N',
                     help='how many batches to wait before logging training '
                          'status')
-parser.add_argument("--optimizer_type", default="ADAM_FLOAT16",
+parser.add_argument("--optimizer_type", default="ADAM",
+                    # ADAM_FLOAT16, ADAM, MOMENTUM
                     help="the type of the optimizer, please choose from: " +
                          ",".join(OptimizerType.get_names()))
 parser.add_argument("--memory_type", default="STANDARD",
@@ -591,7 +592,8 @@ def train(model, device, train_loader, optimizer, epoch,
 
         optimizer = FP16_Optimizer(optimizer,
                                    static_loss_scale=args.static_loss_scale,
-                                   dynamic_loss_scale=dynamic_loss_scale)
+                                   dynamic_loss_scale=dynamic_loss_scale,
+                                   verbose=True)
 
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
@@ -786,26 +788,27 @@ def main(dataset_name):
                             in_channels=in_channels, dtype=dtype)
     model.to(device)
     if dtype is torch.float16:
+        # model.half()  # convert to half precision
+        model = network_to_half(model)
         """
         You want to make sure that the BatchNormalization layers use float32 for 
         accumulation or you will have convergence issues.
         https://discuss.pytorch.org/t/training-with-half-precision/11815
         """
-        # model.half()  # convert to half precision
-        model = network_to_half(model)
-        for layer in model.modules():
-            if isinstance(layer, nn.BatchNorm1d) or isinstance(layer,
-                                                               nn.BatchNorm2d):
-                layer.float()
+        # for layer in model.modules():
+        #     if isinstance(layer, nn.BatchNorm1d) or isinstance(layer,
+        #                                                        nn.BatchNorm2d):
+        #         layer.float()
 
     params = model.parameters()
+    eps = 1e-8
 
     if optimizer_type is OptimizerType.MOMENTUM:
         optimizer = optim.SGD(params, lr=args.lr, momentum=args.momentum)
     elif optimizer_type is OptimizerType.ADAM_FLOAT16:
-        optimizer = AdamFloat16(params, lr=args.lr)
+        optimizer = AdamFloat16(params, lr=args.lr, eps=eps)
     else:
-        optimizer = optim.Adam(params, lr=args.lr)
+        optimizer = optim.Adam(params, lr=args.lr, eps=eps)
 
 
 

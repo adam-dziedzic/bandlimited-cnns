@@ -40,7 +40,7 @@ conda install -n ${conda_env} --yes -c caffe2 caffe
 
 if [ "${with_cuda}" == "TRUE" ]; then
     # Add LAPACK support for the GPU
-    conda install -n ${conda_env} --yes -c pytorch magma-cuda90 # or magma-cuda90 if CUDA 9, magma-cuda80 if CUDA 8
+    conda install -n ${conda_env} --yes -c pytorch magma-cuda92 # or magma-cuda90 if CUDA 9, magma-cuda80 if CUDA 8
 fi
 
 echo "clone or update the source code and install it"

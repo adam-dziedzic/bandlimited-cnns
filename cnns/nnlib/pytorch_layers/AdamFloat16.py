@@ -12,7 +12,7 @@ from torch.optim.optimizer import Optimizer
 # do multi-GPU you may need to deal with this.
 class AdamFloat16(Optimizer):
 
-    def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-4,
+    def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,
                  weight_decay=0):
         defaults = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
         params = list(params)
