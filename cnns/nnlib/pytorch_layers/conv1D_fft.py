@@ -70,7 +70,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         :param x: the input map to the convolution (e.g. a time-series).
 
         The other parameters are similar to the ones in the
-        PyTorchConv2dAutograd class.
+        Conv2dfftAutograd class.
 
         :param filter: the filter (a.k.a. kernel of the convolution).
         :param bias: the bias term for each filter.
@@ -453,10 +453,12 @@ class Conv1dfftFunction(torch.autograd.Function):
             del tensor_obj
         omit_objs = [id(ctx)]
 
-        total_size = 0
-        for tensor_obj in ctx.saved_tensors:
-            total_size += tensor_obj.numel() * get_elem_size(tensor_obj)
-        print("size of the context: ", total_size)
+        if is_debug:
+            total_size = 0
+            for tensor_obj in ctx.saved_tensors:
+                total_size += tensor_obj.numel() * get_elem_size(tensor_obj)
+            print("size of the context: ", total_size)
+
         del ctx
 
         dtype = xfft.dtype
@@ -466,12 +468,14 @@ class Conv1dfftFunction(torch.autograd.Function):
         W = from_tensor(W)
         WW = from_tensor(WW)
         fft_size = from_tensor(fft_size)
-        signal_ndim = 1
+        # is_manual is already a tensor.
         conv_index = from_tensor(conv_index)  # for the debug/test purposes
         compress_type = CompressType(from_tensor(compress_type))
         is_debug = True if is_debug == 1 else False
         preserve_energy = from_tensor(preserve_energy)
         index_back_fft = from_tensor(index_back_fft)
+
+        signal_ndim = 1
 
         if is_debug:
             print("execute backward pass 1D")

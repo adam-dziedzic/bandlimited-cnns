@@ -40,7 +40,7 @@ class Conv1dfftFunctionCuda(torch.autograd.Function):
         :param input: the input map to the convolution (e.g. a time-series).
 
         The other parameters are similar to the ones in the
-        PyTorchConv2dAutograd class.
+        Conv2dfftAutograd class.
 
         :param filter: the filter (a.k.a. kernel of the convolution).
         :param bias: the bias term for each filter.

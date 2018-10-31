@@ -64,7 +64,7 @@ class PyTorchConv1dFunction(torch.autograd.Function):
         :param ctx: context to save intermediate results
         :param input: the input map to the convolution
         The other parameters are the same as in the
-        PyTorchConv2dAutograd class.
+        Conv2dfftAutograd class.
         :return: the result of convolution
         """
         N, C, W = input.size()
@@ -301,7 +301,7 @@ class PyTorchConv1dAutograd(Module):
         >>> conv_param = {'pad' : 0, 'stride' :1,
         ... 'preserve_energy_rate' :0.9}
         >>> expected_result = [3.5, 7.5]
-        >>> conv = PyTorchConv2dAutograd(filter=torch.from_numpy(y),
+        >>> conv = Conv2dfftAutograd(filter=torch.from_numpy(y),
         ... bias=torch.from_numpy(b),
         ... preserve_energy_rate=conv_param['preserve_energy_rate'])
         >>> result = conv.forward(x=torch.from_numpy(x))
@@ -318,7 +318,7 @@ class PyTorchConv1dAutograd(Module):
         >>> # correlate function
         >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:],
         ... mode="valid")
-        >>> conv = PyTorchConv2dAutograd(filter=torch.from_numpy(y),
+        >>> conv = Conv2dfftAutograd(filter=torch.from_numpy(y),
         ... bias=torch.from_numpy(b))
         >>> result = conv.forward(x=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(result,
