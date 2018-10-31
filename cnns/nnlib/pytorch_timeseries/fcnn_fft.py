@@ -950,8 +950,10 @@ if __name__ == '__main__':
         torch.cuda.empty_cache()
 
     flist = sorted(flist, key=lambda s: s.lower())
+    flist = flist[3:]  # start from Beef
+    # reversed(flist)
     print("flist: ", flist)
-    for dataset_name in reversed(flist):
+    for dataset_name in flist:
         print("Dataset: ", dataset_name)
         with open(additional_log_file, "a") as file:
             file.write(dataset_name + "\n")

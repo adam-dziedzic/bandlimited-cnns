@@ -7,7 +7,7 @@ from torch import tensor
 
 from cnns.nnlib.layers import conv_forward_naive, conv_backward_naive
 from cnns.nnlib.pytorch_layers.conv2D_fft \
-    import PyTorchConv2dAutograd, PyTorchConv2dFunction
+    import PyTorchConv2dAutograd, Conv2dfftFunction
 from cnns.nnlib.pytorch_layers.pytorch_utils import MockContext
 from cnns.nnlib.utils.log_utils import get_logger
 from cnns.nnlib.utils.log_utils import set_up_logging
@@ -45,7 +45,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         # A single filter.
         y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         b = tensor([0.0])
-        conv = PyTorchConv2dFunction()
+        conv = Conv2dfftFunction()
 
         result = conv.forward(ctx=None, input=x, filter=y, bias=b, index_back=0,
                               use_next_power2=False)
@@ -61,7 +61,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         y = tensor([[[[1.0, 2.0], [3.0, 2.0]], [[-1.0, 2.0], [3.0, -2.0]]],
                     [[[-1.0, 1.0], [2.0, 3.0]], [[-2.0, 1.0], [1.0, -3.0]]]])
         b = tensor([0.0, 0.0])
-        conv = PyTorchConv2dFunction()
+        conv = Conv2dfftFunction()
         result = conv.forward(ctx=None, input=x, filter=y, bias=b, index_back=0)
         expect = np.array([[[[23.0, 32.0], [30., 4.]], [[11.0, 12.0],
                                                         [13.0, -11.0]]]])
@@ -75,7 +75,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         # A single filter.
         y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         b = tensor([-1.0])
-        conv = PyTorchConv2dFunction()
+        conv = Conv2dfftFunction()
         result = conv.forward(ctx=None, input=x, filter=y, bias=b, index_back=0)
         expect = np.array([[[[21.0, 21.0], [17., 13.]]]])
         np.testing.assert_array_almost_equal(
@@ -88,7 +88,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         # A single filter.
         y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         b = tensor([0.0])
-        conv = PyTorchConv2dFunction()
+        conv = Conv2dfftFunction()
         result = conv.forward(ctx=None, input=x, filter=y, bias=b, index_back=1,
                               use_next_power2=False)
         expect = np.array([[[[21.5, 22.0], [17.5, 13.]]]])
@@ -147,7 +147,7 @@ class TestPyTorchConv2d(unittest.TestCase):
                  [1.0, 1.0, -1.0]]],
         ])
         b = tensor([1.0, 0.0])
-        conv = PyTorchConv2dFunction()
+        conv = Conv2dfftFunction()
         result = conv.forward(ctx=None, input=x, filter=y, bias=b, index_back=0,
                               padding=0)
         expect = np.array(
@@ -212,7 +212,7 @@ class TestPyTorchConv2d(unittest.TestCase):
                  [1.0, 1.0, -1.0]]],
         ])
         b = tensor([1.0, 0.0])
-        conv = PyTorchConv2dFunction()
+        conv = Conv2dfftFunction()
         result = conv.forward(ctx=None, input=x, filter=y, bias=b, index_back=0,
                               padding=(1, 1), stride=(2, 2))
         expect = np.array([[[
@@ -247,7 +247,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         expected_result, _ = conv_forward_naive(x, y, b, conv_param)
         self.logger.debug("expected result: " + str(expected_result))
 
-        conv = PyTorchConv2dFunction()
+        conv = Conv2dfftFunction()
         result = conv.forward(ctx=None, input=torch.from_numpy(x),
                               filter=torch.from_numpy(y),
                               bias=torch.from_numpy(b))
@@ -276,7 +276,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         expected_result = np.array([[[[10.103396, 12.630585, 11.697527],
                                       [12.558281, 13.923859, 11.561422],
                                       [11.473415, 11.409614, 8.187342]]]])
-        conv = PyTorchConv2dFunction()
+        conv = Conv2dfftFunction()
         result = conv.forward(ctx=None, input=torch.from_numpy(x),
                               filter=torch.from_numpy(y),
                               bias=torch.from_numpy(b), out_size=3)
@@ -303,7 +303,7 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         ctx = MockContext()
         ctx.set_needs_input_grad(3)
-        result_torch = PyTorchConv2dFunction.forward(
+        result_torch = Conv2dfftFunction.forward(
             ctx, input=x_torch, filter=y_torch, bias=b_torch)
         result = result_torch.detach().numpy()
         np.testing.assert_array_almost_equal(result, np.array(expected_result))
@@ -313,7 +313,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         expected_dx, expected_dw, expected_db = \
             conv_backward_naive(dout.numpy(), cache)
 
-        dx, dw, db, _, _, _, _, _ = PyTorchConv2dFunction.backward(ctx, dout)
+        dx, dw, db, _, _, _, _, _ = Conv2dfftFunction.backward(ctx, dout)
 
         self.logger.debug("expected dx: " + str(expected_dx))
         self.logger.debug("computed dx: " + str(dx))
@@ -345,7 +345,7 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         ctx = MockContext()
         ctx.set_needs_input_grad(3)
-        result_torch = PyTorchConv2dFunction.forward(
+        result_torch = Conv2dfftFunction.forward(
             ctx, input=x_torch, filter=y_torch, bias=b_torch)
         result = result_torch.detach().numpy()
         np.testing.assert_array_almost_equal(result, np.array(expected_result))
@@ -355,7 +355,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         expected_dx, expected_dw, expected_db = \
             conv_backward_naive(dout.numpy(), cache)
 
-        dx, dw, db, _, _, _, _, _ = PyTorchConv2dFunction.backward(ctx, dout)
+        dx, dw, db, _, _, _, _, _ = Conv2dfftFunction.backward(ctx, dout)
 
         self.logger.debug("expected dx: " + str(expected_dx))
         self.logger.debug("computed dx: " + str(dx))
@@ -411,7 +411,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         expected_result = np.array([[[[10.103396, 12.630585, 11.697527],
                                       [12.558281, 13.923859, 11.561422],
                                       [11.473415, 11.409614, 8.187342]]]])
-        conv = PyTorchConv2dFunction()
+        conv = Conv2dfftFunction()
 
         x_torch = torch.tensor(data=x, requires_grad=True)
         y_torch = torch.tensor(data=y, requires_grad=True)
@@ -467,7 +467,7 @@ class TestPyTorchConv2d(unittest.TestCase):
             err_msg="Expected x is different from computed y.")
 
         self._check_delta2D(actual_result=x_torch.grad,
-                            accurate_expected_result=expected_dx, delta=1.3)
+                            accurate_expected_result=expected_dx, delta=5.4)
 
         approximate_expected_dw = np.array([0.0])
         np.testing.assert_array_almost_equal(
@@ -698,7 +698,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         x_torch = tensor(x, requires_grad=True, dtype=dtype)
         y_torch = tensor(y, requires_grad=True, dtype=dtype)
         b_torch = tensor(b, requires_grad=True, dtype=dtype)
-        conv = PyTorchConv2dFunction()
+        conv = Conv2dfftFunction()
         result_torch = conv.forward(ctx=None, input=x_torch, filter=y_torch,
                                     bias=b_torch)
         result = result_torch.detach().numpy()

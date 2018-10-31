@@ -30,10 +30,10 @@ logger.addHandler(consoleLog)
 current_file_name = __file__.split("/")[-1].split(".")[0]
 
 
-class PyTorchConv2dFunction(torch.autograd.Function):
+class Conv2dfftFunction(torch.autograd.Function):
     """
     Implement the 2D convolution via FFT with compression in the spectral domain
-    of the input map and the filter.
+    of the input map (activation) and the filter.
     """
 
     @staticmethod
@@ -45,11 +45,8 @@ class PyTorchConv2dFunction(torch.autograd.Function):
         :param ctx: context to save intermediate results, in other words,
         a context object that can be used to stash information for backward
         computation.
-        :param input: the input map to the convolution (e.g. a time-series).
-
-        The other parameters are similar to the ones in the
-        PyTorchConv2dAutograd class.
-
+        :param input: the input map (activation) to the convolution (e.g. an
+        image).
         :param filter: the filter (a.k.a. kernel of the convolution).
         :param bias: the bias term for each filter.
         :param padding: how much to pad each end of the height and width of the
@@ -359,7 +356,51 @@ class PyTorchConv2dFunction(torch.autograd.Function):
         return dx, dw, db, None, None, None, None, None
 
 
-class PyTorchConv2dAutograd(Module):
+class Conv2dfft(Module):
+
+    def __init__(self, filter_value=None, bias=None, padding=None, stride=None,
+                 index_back=None, out_size=None, filter_width=None,
+                 use_next_power2=False):
+        super(Conv2dfft, self).__init__()
+        if filter_value is None:
+            if filter_width is None:
+                logger.error(
+                    "The filter and filter_width cannot be both "
+                    "None, provide one of them!")
+                sys.exit(1)
+            self.filter = Parameter(
+                torch.randn(1, 1, filter_width))
+        else:
+            self.filter = filter_value
+        if bias is None:
+            self.bias = Parameter(torch.randn(1))
+        else:
+            self.bias = bias
+        self.padding = padding
+        self.stride = stride
+        self.index_back = index_back
+        self.out_size = out_size
+        self.filter_width = filter_width
+        self.use_next_power2 = use_next_power2
+
+    def forward(self, input):
+        """
+        This is the fully manual implementation of the forward and backward
+        passes via the torch.autograd.Function.
+
+        :param input: the input map (e.g., an image)
+        :return: the result of 2D convolution
+        """
+        return Conv2dfftFunction.apply(input, self.filter,
+                                       self.bias,
+                                       self.padding,
+                                       self.stride,
+                                       self.index_back,
+                                       self.out_size,
+                                       self.use_next_power2)
+
+
+class PyTorchConv2dAutograd(Conv2dfft):
     def __init__(self, filter_value=None, bias=None, padding=None, stride=None,
                  index_back=None, out_size=None, filter_width=None,
                  use_next_power2=True):
@@ -393,27 +434,10 @@ class PyTorchConv2dAutograd(Module):
         directions, it has to be 1 for the FFT based convolution (at least for
         now, I did not think how to express convolution with strides via FFT).
         """
-        super(PyTorchConv2dAutograd, self).__init__()
-        if filter_value is None:
-            if filter_width is None:
-                logger.error(
-                    "The filter and filter_width cannot be both "
-                    "None, provide one of them!")
-                sys.exit(1)
-            self.filter = Parameter(
-                torch.randn(1, 1, filter_width))
-        else:
-            self.filter = filter_value
-        if bias is None:
-            self.bias = Parameter(torch.randn(1))
-        else:
-            self.bias = bias
-        self.padding = padding
-        self.stride = stride
-        self.index_back = index_back
-        self.out_size = out_size
-        self.filter_width = filter_width
-        self.use_next_power2 = use_next_power2
+        super(PyTorchConv2dAutograd, self).__init__(
+            filter_value=filter_value, bias=bias, padding=padding, stride=stride,
+            index_back=index_back, out_size=out_size, filter_width=filter_width,
+            use_next_power2=use_next_power2)
 
     def forward(self, input):
         """
@@ -632,37 +656,11 @@ class PyTorchConv2dAutograd(Module):
         >>> np.testing.assert_array_almost_equal(x=expect, y=result, decimal=5,
         ... err_msg="The expected array x and computed y are not almost equal.")
         """
-        return PyTorchConv2dFunction.forward(
+        return Conv2dfftFunction.forward(
             ctx=None, input=input, filter=self.filter, bias=self.bias,
             padding=self.padding, stride=self.stride,
             index_back=self.index_back, out_size=self.out_size,
             use_next_power2=self.use_next_power2)
-
-
-class PyTorchConv2d(PyTorchConv2dAutograd):
-    def __init__(self, filter_value=None, bias=None, padding=None, stride=None,
-                 index_back=None, out_size=None, filter_width=None,
-                 use_next_power2=False):
-        super(PyTorchConv2d, self).__init__(
-            filter_value=filter_value, bias=bias, padding=padding, stride=stride,
-            index_back=index_back, out_size=out_size, filter_width=filter_width,
-            use_next_power2=use_next_power2)
-
-    def forward(self, input):
-        """
-        This is the fully manual implementation of the forward and backward
-        passes via the torch.autograd.Function.
-
-        :param input: the input map (e.g., an image)
-        :return: the result of 2D convolution
-        """
-        return PyTorchConv2dFunction.apply(input, self.filter,
-                                           self.bias,
-                                           self.padding,
-                                           self.stride,
-                                           self.index_back,
-                                           self.out_size,
-                                           self.use_next_power2)
 
 
 def test_run():
@@ -670,7 +668,7 @@ def test_run():
     filter = np.array([[[[1.0, 2.0, 3.0], [2.0, 4.0, 1.0], [0.0, 1.0, -1.0]]]],
                       dtype=np.float32)
     filter = torch.from_numpy(filter)
-    module = PyTorchConv2d(filter)
+    module = Conv2dfft(filter)
     print("filter and bias parameters: ", list(module.parameters()))
     input = torch.randn(1, 1, 10, 10, requires_grad=True)
     output = module(input)
