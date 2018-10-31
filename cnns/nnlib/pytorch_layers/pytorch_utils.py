@@ -715,6 +715,120 @@ def preserve_energy_index_back(xfft, preserve_energy=None):
     return input_length - index
 
 
+def preserve_energy2D_index_back(xfft, preserve_energy=None):
+    """
+    Give index_back_H and index_back_W for the given energy rate.
+
+    :param xfft: the input fft-ed signal
+    :param energy_rate: how much energy of xfft should be preserved?
+    :return: the index back for H and W (how many coefficient from both ends of
+    the signal should be discarded)?
+
+    Example of an image:
+    N=1, C=1, H=3, W=3
+    [[
+    [1,2,3],
+    [4,5,6],
+    [7,8,9]
+    ]]
+
+    The input here is in frequency domain with complex numbers.
+    [[
+    [[1, 0], [2, 0], [3, 0]],
+    [[4, 0], [5,0], [6,0]],
+    [[7,0],[8,0],[9,0]]
+    ]]
+
+
+    >>> xfft = torch.tensor(
+    ... [ # 1 image
+    ... [ # 1 channel
+    ... [[1, 0], [2, 0], [3, 0]], # 1st row
+    ... [[4, 0], [5, 0], [6, 0]],
+    ... [[7, 0], [8, 0], [9, 0]]
+    ... ]
+    ... ])
+    >>> index_back_H, index_back_W = preserve_energy_index_back(xfft, 50)
+    >>> np.testing.assert_equal(index_back, 2)
+
+    >>> xfft = torch.tensor([
+    ... [ # first signal
+    ... [[5, 6], [3, 4], [1, 2]], # first channel
+    .... [[0, 1], [1, 0], [2, 2]] # second channel
+    ... ],
+    ... [ # second signal
+    .... [[-1, 3], [1, 0], [0, 2]], # fist channel
+    .... [[1, 1], [1, -2], [3, 2]]  # second channel
+    ... ]
+    ... ])
+    >>> index_back = preserve_energy_index_back(xfft, 50)
+    >>> np.testing.assert_equal(index_back, 2)
+
+    """
+    # The second dimension from the end is the length because this is a complex
+    # signal.
+    input_W = xfft.shape[-2]
+    input_H = xfft.shape[-3]
+    if xfft is None or len(xfft) == 0:
+        return 0
+    squared = torch.add(torch.pow(xfft[..., 0], 2),
+                        torch.pow(xfft[..., 1], 2))
+    # Sum the batch and channel dimensions (we first reduce to many channels -
+    # first 0, and then to only a single channel - next 0 (the dimensions
+    # collapse one by one).
+    squared = squared.sum(dim=0).sum(dim=0)
+    assert squared.shape[0] == input_H
+    assert squared.shape[1] == input_W
+
+    # Sum of squared values of the signal of length input_length.
+    full_energy = torch.sum(squared).item()
+    current_energy = 0.0
+    preserved_energy = full_energy * preserve_energy / 100.0
+    index_H = 0
+    index_W = 0
+    index = 0
+    # Accumulate the energy (and increment the index) until the required
+    # preserved energy is reached.
+    while current_energy < preserved_energy and index_W < input_W and index_H < input_H:
+        current_energy += get_squared_energy(index)
+        index += 1
+    index_W = index
+    index_H = index
+    while current_energy < preserve_energy and index_W < input_W:
+        current_energy += get_squared_energy(index)
+        index += 1
+    return input_length - index
+
+
+def get_squared_energy(squared, index):
+    """
+    Get the energy from the next flipped L slice of the squared matrix.
+
+    :param index: the index into col and row
+    :return: the energy from the next slice of the squared matrix.
+
+    >>> squared = torch.tensor(
+    ... [[1,2,3,4],
+    ... [5,6,7,8],
+    ... [9,10,11,12],
+    ... [13,14,15,16]])
+    >>> index = 2
+    >>> row_energy =  9 + 10
+    >>> col_energy = 3 + 7
+    >>> corner_energy = 11
+    >>> total_energy = row_energy + col_energy + corner_energy
+    >>> assert get_squared_energy(squared, 2) == total_energy
+    >>> assert get_squared_energy(squared, 0) == 1
+    >>> index_1_energy = 2 + 5 + 6
+    >>> assert get_squared_energy(squared, 1) == index_1_energy
+    """
+    row_energy = torch.sum(squared[index, 0:index]).item()
+    col_energy = torch.sum(squared[0:index, index]).item()
+    corner_energy = squared[index, index].item()
+    total_energy = row_energy + col_energy + corner_energy
+    return total_energy
+
+
 def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None,
                       index_back=None, signal_ndim=1):
     """
