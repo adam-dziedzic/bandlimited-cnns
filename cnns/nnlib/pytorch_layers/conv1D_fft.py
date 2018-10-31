@@ -762,9 +762,9 @@ class Conv1dfft(Module):
         out how to run the backward pass for this strided FFT-based convolution.
         """
         super(Conv1dfft, self).__init__()
-        if dilation > 1:
+        if dilation is not None and dilation > 1:
             raise NotImplementedError("dilation > 1 is not supported.")
-        if groups > 1:
+        if groups is not None and groups > 1:
             raise NotImplementedError("groups > 1 is not supported.")
 
         self.is_filter_value = None  # Was the filter value provided?

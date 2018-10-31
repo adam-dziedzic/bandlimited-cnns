@@ -433,13 +433,14 @@ class Conv2dfftFunction(torch.autograd.Function):
 class Conv2dfft(Module):
 
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
-                 stride=None, padding=None, bias=True, index_back=None,
-                 out_size=None, filter_value=None, bias_value=None,
-                 use_next_power2=False, conv_index=None, preserve_energy=None,
+                 stride=1, padding=0, dilation=None, groups=None, bias=True,
+                 index_back=None, preserve_energy=None, out_size=None,
+                 filter_value=None, bias_value=None, use_next_power2=False,
+                 is_manual=tensor([0]), conv_index=None, is_complex_pad=True,
                  is_debug=False, compress_type=CompressType.STANDARD,
-                 is_manual=tensor([0]), dilation=0, groups=0,
-                 is_complex_pad=False, dtype=None):
+                 dtype=None):
         """
+
         2D convolution using FFT implemented fully in PyTorch.
 
         :param in_channels: (int) – Number of channels in the input series.
@@ -491,9 +492,9 @@ class Conv2dfft(Module):
         out how to run the backward pass for this strided FFT-based convolution.
         """
         super(Conv2dfft, self).__init__()
-        if dilation > 1:
+        if dilation is not None and dilation > 1:
             raise NotImplementedError("dilation > 1 is not supported.")
-        if groups > 1:
+        if groups is not None and groups > 1:
             raise NotImplementedError("groups > 1 is not supported.")
 
         self.is_filter_value = None  # Was the filter value provided?
@@ -552,7 +553,7 @@ class Conv2dfft(Module):
         n = self.in_channels
         n *= self.kernel_height * self.kernel_width
         stdv = 1. / math.sqrt(n)
-        if self.is_filter_value is False:
+        if self.is_filter_value is not None and self.is_filter_value is False:
             self.filter.data.uniform_(-stdv, stdv)
         if self.bias is not None and self.is_bias_value is False:
             self.bias.data.uniform_(-stdv, stdv)
@@ -577,23 +578,25 @@ class Conv2dfft(Module):
 
 class Conv2dfftAutograd(Conv2dfft):
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
-                 stride=1, padding=0, dilation=1, groups=1, bias=True,
-                 index_back=None, preserve_energy=100, out_size=None,
+                 stride=1, padding=0, dilation=None, groups=None, bias=True,
+                 index_back=None, preserve_energy=None, out_size=None,
                  filter_value=None, bias_value=None, use_next_power2=False,
                  is_manual=tensor([0]), conv_index=None, is_complex_pad=True,
-                 is_debug=False, compress_type=CompressType.STANDARD):
+                 is_debug=False, compress_type=CompressType.STANDARD,
+                 dtype=None):
         """
         2D convolution using FFT with backward pass executed via PyTorch's
         autograd.
         """
         super(Conv2dfftAutograd, self).__init__(
             in_channels=in_channels, out_channels=out_channels,
-            kernel_size=kernel_size, stride=stride, padding=padding, bias=bias,
+            kernel_size=kernel_size, stride=stride, padding=padding,
+            dilation=dilation, groups=groups, bias=bias,
             index_back=index_back, out_size=out_size, filter_value=filter_value,
             bias_value=bias_value, use_next_power2=use_next_power2,
             conv_index=conv_index, preserve_energy=preserve_energy,
             is_debug=is_debug, compress_type=compress_type, is_manual=is_manual,
-            dilation=dilation, groups=groups, is_complex_pad=is_complex_pad)
+            is_complex_pad=is_complex_pad, dtype=dtype)
 
     def forward(self, input):
         """

@@ -38,6 +38,21 @@ class TestPyTorchConv2d(unittest.TestCase):
             x=expect, y=result,
             err_msg="The expected array x and computed y are not almost equal.")
 
+    def test_ForwardNoCompressionConv2dfft(self):
+        # Don't use next power of 2.
+        # A single input map.
+        x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]])
+        # A single filter.
+        y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
+        b = tensor([0.0])
+        conv = Conv2dfft(filter_value=y, bias=b, index_back=0,
+                         use_next_power2=False)
+        result = conv.forward(input=x)
+        expect = np.array([[[[22.0, 22.0], [18., 14.]]]])
+        np.testing.assert_array_almost_equal(
+            x=expect, y=result,
+            err_msg="The expected array x and computed y are not almost equal.")
+
     def test_FunctionForwardNoCompression(self):
         # Don't use next power of 2.
         # A single input map.
@@ -355,6 +370,12 @@ class TestPyTorchConv2d(unittest.TestCase):
         print("actual result: ", result)
         np.testing.assert_array_almost_equal(result, np.array(expected_result))
 
+        result_torch_2 = Conv2dfft(filter_value=y_torch, bias=b_torch).forward(
+            input=x_torch)
+        result2 = result_torch_2.detach().numpy()
+        print("actual result 2: ", result2)
+        np.testing.assert_array_almost_equal(result2, np.array(expected_result))
+
         dout = tensor([[[[0.1, -0.2], [0.3, -0.1]]]], dtype=dtype)
         # get the expected result from the backward pass
         expected_dx, expected_dw, expected_db = \
@@ -391,7 +412,7 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         print("expected result: ", expected_result)
 
-        conv = Conv2dfft(filter_value=y_torch, bias_value=b_torch)
+        conv = Conv2dfft(filter_value=y_torch, bias_value=b_torch, index_back=0)
 
         result_torch = conv.forward(input=x_torch)
         result = result_torch.detach().numpy()
