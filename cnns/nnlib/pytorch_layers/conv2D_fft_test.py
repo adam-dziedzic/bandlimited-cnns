@@ -7,7 +7,7 @@ from torch import tensor
 
 from cnns.nnlib.layers import conv_forward_naive, conv_backward_naive
 from cnns.nnlib.pytorch_layers.conv2D_fft \
-    import Conv2dfftAutograd, Conv2dfftFunction
+    import Conv2dfftAutograd, Conv2dfftFunction, Conv2dfft
 from cnns.nnlib.pytorch_layers.pytorch_utils import MockContext
 from cnns.nnlib.utils.log_utils import get_logger
 from cnns.nnlib.utils.log_utils import set_up_logging
@@ -339,19 +339,20 @@ class TestPyTorchConv2d(unittest.TestCase):
         dtype = torch.float
         x_torch = tensor(x, requires_grad=True, dtype=dtype)
         y_torch = tensor(y, requires_grad=True, dtype=dtype)
-        b_torch = None
+        b_torch = tensor(b, requires_grad=True, dtype=dtype)
 
         conv_param = {'pad': 0, 'stride': 1}
         expected_result, cache = conv_forward_naive(x=x, w=y, b=b,
                                                     conv_param=conv_param)
 
-        print("expected result: ", expected_result)
+        print("\nexpected result: ", expected_result)
 
         ctx = MockContext()
         ctx.set_needs_input_grad(3)
         result_torch = Conv2dfftFunction.forward(
             ctx, input=x_torch, filter=y_torch, bias=b_torch)
         result = result_torch.detach().numpy()
+        print("actual result: ", result)
         np.testing.assert_array_almost_equal(result, np.array(expected_result))
 
         dout = tensor([[[[0.1, -0.2], [0.3, -0.1]]]], dtype=dtype)
@@ -371,6 +372,49 @@ class TestPyTorchConv2d(unittest.TestCase):
         np.testing.assert_array_almost_equal(dw.detach().numpy(),
                                              expected_dw)
         np.testing.assert_array_almost_equal(db.detach().numpy(),
+                                             expected_db)
+
+    def test_FunctionBackwardNoCompressionConv2dfft(self):
+        x = np.array([[[[1.0, 2.0, 3.0],
+                        [4.0, 5.0, 1.0],
+                        [1.0, -1.0, -2.0]]]])
+        y = np.array([[[[2.0, 1.0], [-1.0, 2.0]]]])
+        b = np.array([1.0])
+        dtype = torch.float
+        x_torch = tensor(x, requires_grad=True, dtype=dtype)
+        y_torch = tensor(y, requires_grad=True, dtype=dtype)
+        b_torch = tensor(b, requires_grad=True, dtype=dtype)
+
+        conv_param = {'pad': 0, 'stride': 1}
+        expected_result, cache = conv_forward_naive(x=x, w=y, b=b,
+                                                    conv_param=conv_param)
+
+        print("expected result: ", expected_result)
+
+        conv = Conv2dfft(filter_value=y_torch, bias_value=b_torch)
+
+        result_torch = conv.forward(input=x_torch)
+        result = result_torch.detach().numpy()
+        print("actual result: ", result)
+        np.testing.assert_array_almost_equal(result, np.array(expected_result))
+
+        dout = tensor([[[[0.1, -0.2], [0.3, -0.1]]]], dtype=dtype)
+        # get the expected result from the backward pass
+        expected_dx, expected_dw, expected_db = \
+            conv_backward_naive(dout.numpy(), cache)
+
+        result_torch.backward(dout)
+        assert conv.is_manual[0] == 1
+
+        self.logger.debug("expected dx: " + str(expected_dx))
+        self.logger.debug("computed dx: " + str(x_torch.grad))
+
+        # are the gradients correct
+        np.testing.assert_array_almost_equal(x_torch.grad.detach().numpy(),
+                                             expected_dx)
+        np.testing.assert_array_almost_equal(y_torch.grad.detach().numpy(),
+                                             expected_dw)
+        np.testing.assert_array_almost_equal(b_torch.grad.detach().numpy(),
                                              expected_db)
 
     def _check_delta2D(self, actual_result, accurate_expected_result, delta):

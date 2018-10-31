@@ -674,7 +674,7 @@ def preserve_energy_index(xfft, energy_rate=None, index_back=None):
     return len(xfft)
 
 
-def preserve_energy_index_back(xfft, preserve_energy=None):
+def preserve_energy_index_back(xfft, preserve_energy_rate=None):
     """
     Give index_back for the given energy rate.
 
@@ -689,6 +689,18 @@ def preserve_energy_index_back(xfft, preserve_energy=None):
     >>> index_back = preserve_energy_index_back(xfft, 50)
     >>> np.testing.assert_equal(index_back, 2)
 
+    >>> xfft = torch.tensor([
+    ... [ # first signal
+    ... [[5, 6], [3, 4], [1, 2]], # first channel
+    ... [[0, 1], [1, 0], [2, 2]] # second channel
+    ... ],
+    ... [ # second signal
+    ... [[-1, 3], [1, 0], [0, 2]], # fist channel
+    ... [[1, 1], [1, -2], [3, 2]]  # second channel
+    ... ]
+    ... ])
+    >>> index_back = preserve_energy_index_back(xfft, 50)
+    >>> np.testing.assert_equal(index_back, 2)
     """
     # The second dimension from the end is the length because this is a complex
     # signal.
@@ -705,31 +717,34 @@ def preserve_energy_index_back(xfft, preserve_energy=None):
     # Sum of squared values of the signal of length input_length.
     full_energy = torch.sum(squared).item()
     current_energy = 0.0
-    preserved_energy = full_energy * preserve_energy / 100.0
+    preserved_energy = full_energy * preserve_energy_rate / 100.0
     index = 0
     # Accumulate the energy (and increment the index) until the required
     # preserved energy is reached.
     while current_energy < preserved_energy and index < input_length:
         current_energy += squared[index]
         index += 1
+    if current_energy < preserved_energy:
+        raise AssertionError("We have to accumulate at least preserve energy! "
+                             "The index is too low.")
     return input_length - index
 
 
-def preserve_energy2D_index_back(xfft, preserve_energy=None):
+def preserve_energy2D_index_back(xfft, preserve_energy_rate=None):
     """
     Give index_back_H and index_back_W for the given energy rate.
 
     :param xfft: the input fft-ed signal
     :param energy_rate: how much energy of xfft should be preserved?
-    :return: the index back for H and W (how many coefficient from both ends of
+    :return: the index back for H and W (how many coefficients from both ends of
     the signal should be discarded)?
 
     Example of an image:
     N=1, C=1, H=3, W=3
     [[
-    [1,2,3],
+    [[1,2,3],
     [4,5,6],
-    [7,8,9]
+    [7,8,9]]
     ]]
 
     The input here is in frequency domain with complex numbers.
@@ -739,34 +754,68 @@ def preserve_energy2D_index_back(xfft, preserve_energy=None):
     [[7,0],[8,0],[9,0]]
     ]]
 
+    >>> xfft = tensor([[[[[5, 6], [3, 4], [1, 2]], [[5, 6], [3, 4], [1, 2]]], [[[0, 1], [1, 0], [2, 2]], [[0, 1], [1, 0], [2, 2]]]]])
+    >>> np.testing.assert_equal(xfft.size(), [1, 2, 2, 3, 2])
+    >>> index_back_H, index_back_W = preserve_energy2D_index_back(xfft, 100)
+    >>> np.testing.assert_equal(index_back_H, 0)
+    >>> np.testing.assert_equal(index_back_W, 0)
+
+    Test index back for width.
+    >>> xfft = torch.tensor([
+    ... [ # first image
+    ... [[[5, 6], [3, 4], [1, 2]]], # first channel
+    ... [[[0, 1], [1, 0], [2, 2]]] # second channel
+    ... ],
+    ... [ # second image
+    ... [[[-1, 3], [1, 0], [0, 2]]], # fist channel
+    ... [[[1, 1], [1, -2], [3, 2]]]  # second channel
+    ... ]
+    ... ])
+    >>> index_back_H, index_back_W = preserve_energy2D_index_back(xfft, 50)
+    >>> np.testing.assert_equal(index_back_W, 2)
+    >>> np.testing.assert_equal(index_back_H, 0)
+
+    Test index back for height.
+    >>> xfft = torch.tensor([
+    ... [ # first image
+    ... [[[5, 6], [3, 4], [1, 2]]], # first channel
+    ... [[[0, 1], [1, 0], [2, 2]]] # second channel
+    ... ],
+    ... [ # second image
+    ... [[[-1, 3], [1, 0], [0, 2]]], # fist channel
+    ... [[[1, 1], [1, -2], [3, 2]]]  # second channel
+    ... ]
+    ... ])
+    >>> xfft = torch.transpose(xfft, 2, 3)
+    >>> index_back_H, index_back_W = preserve_energy2D_index_back(xfft, 50)
+    >>> np.testing.assert_equal(index_back_W, 0)
+    >>> np.testing.assert_equal(index_back_H, 2)
+
 
     >>> xfft = torch.tensor(
     ... [ # 1 image
     ... [ # 1 channel
-    ... [[1, 0], [2, 0], [3, 0]], # 1st row
-    ... [[4, 0], [5, 0], [6, 0]],
-    ... [[7, 0], [8, 0], [9, 0]]
+    ... [[[8, 0], [2, 5], [3, 0]], # 1st row
+    ... [[4, 0], [5, 0], [2, 0]],
+    ... [[-1, 1], [1, 0], [1, 0]]]
     ... ]
     ... ])
-    >>> index_back_H, index_back_W = preserve_energy_index_back(xfft, 50)
-    >>> np.testing.assert_equal(index_back, 2)
+    >>> index_back_H, index_back_W = preserve_energy2D_index_back(xfft, 50)
+    >>> np.testing.assert_equal(index_back_H, 1)
+    >>> np.testing.assert_equal(index_back_W, 1)
 
-    >>> xfft = torch.tensor([
-    ... [ # first signal
-    ... [[5, 6], [3, 4], [1, 2]], # first channel
-    .... [[0, 1], [1, 0], [2, 2]] # second channel
-    ... ],
-    ... [ # second signal
-    .... [[-1, 3], [1, 0], [0, 2]], # fist channel
-    .... [[1, 1], [1, -2], [3, 2]]  # second channel
-    ... ]
-    ... ])
-    >>> index_back = preserve_energy_index_back(xfft, 50)
-    >>> np.testing.assert_equal(index_back, 2)
-
+    >>> xfft = tensor([[[[[5, 6], [3, 4], [1, 2]], [[5, 6], [3, 4], [1, 2]]], [[[0, 1], [1, 0], [0, 1]], [[0, 1], [1, 0], [0, 1]]]]])
+    >>> np.testing.assert_equal(xfft.size(), [1, 2, 2, 3, 2])
+    >>> index_back_H, index_back_W = preserve_energy2D_index_back(xfft, 60)
+    >>> np.testing.assert_equal(index_back_H, 0)
+    >>> np.testing.assert_equal(index_back_W, 1)
     """
+    if len(xfft.shape) != 5:
+        """The dimensions: N, C, H, W, X (complex number)."""
+        raise ValueError(
+            "The expected input is fft-ed 2D map in a batch with channels.")
     # The second dimension from the end is the length because this is a complex
-    # signal.
+    # 2D input.
     input_W = xfft.shape[-2]
     input_H = xfft.shape[-3]
     if xfft is None or len(xfft) == 0:
@@ -783,21 +832,33 @@ def preserve_energy2D_index_back(xfft, preserve_energy=None):
     # Sum of squared values of the signal of length input_length.
     full_energy = torch.sum(squared).item()
     current_energy = 0.0
-    preserved_energy = full_energy * preserve_energy / 100.0
+    preserved_energy = full_energy * preserve_energy_rate / 100.0
     index_H = 0
     index_W = 0
-    index = 0
     # Accumulate the energy (and increment the index) until the required
     # preserved energy is reached.
-    while current_energy < preserved_energy and index_W < input_W and index_H < input_H:
-        current_energy += get_squared_energy(index)
-        index += 1
-    index_W = index
-    index_H = index
-    while current_energy < preserve_energy and index_W < input_W:
-        current_energy += get_squared_energy(index)
-        index += 1
-    return input_length - index
+    while current_energy < preserved_energy and (
+            index_W < input_W and index_H < input_H):
+        """
+        Try to generate a square output first.
+        """
+        current_energy += get_squared_energy(squared, index_W)
+        index_W += 1
+        index_H += 1
+
+    # Then proceed along the columns and then rows.
+    while current_energy < preserved_energy and index_W < input_W:
+        col_energy = torch.sum(squared[:, index_W]).item()
+        current_energy += col_energy
+        index_W += 1
+    while current_energy < preserved_energy and index_H < input_H:
+        row_energy = torch.sum(squared[index_H, :]).item()
+        current_energy += row_energy
+        index_H += 1
+    if current_energy < preserved_energy:
+        raise AssertionError("We have to accumulate at least preserve energy! "
+                             "The index_H and index_W are too low.")
+    return input_H - index_H, input_W - index_W
 
 
 def get_squared_energy(squared, index):
@@ -1959,6 +2020,7 @@ def get_tensors(only_cuda=False, is_debug=False, omit_objs=[]):
     # To avoid counting the same tensor twice, create a dictionary of tensors,
     # each one identified by its id (the in memory address).
     tensors = {}
+
     # omit_obj_ids = [id(obj) for obj in omit_objs]
 
     def add_tensor(obj):

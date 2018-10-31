@@ -19,6 +19,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_fft_signals2D
 from cnns.nnlib.pytorch_layers.pytorch_utils import from_tensor
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_pair
 from cnns.nnlib.pytorch_layers.pytorch_utils import next_power2
+from cnns.nnlib.pytorch_layers.pytorch_utils import preserve_energy2D_index_back
 from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate
 from cnns.nnlib.pytorch_layers.pytorch_utils import to_tensor
 from cnns.nnlib.utils.general_utils import CompressType
@@ -182,12 +183,17 @@ class Conv2dfftFunction(torch.autograd.Function):
         init_half_fft_W = xfft.shape[-2]
         init_half_fft_H = xfft.shape[-3]
 
+        index_back_H_fft, index_back_W_fft = None, None
+        if preserve_energy is not None and preserve_energy < 100:
+            index_back_H_fft, index_back_W_fft = preserve_energy2D_index_back(
+                xfft, preserve_energy)
+
         # Compute how much to compress the fft-ed signal for its width (W).
         half_fft_W = init_half_fft_W
-        index_back_W_fft = None
         if index_back_W is not None and index_back_W > 0:
             # At least one coefficient is removed.
             index_back_W_fft = int(init_half_fft_W * (index_back_W / 100)) + 1
+        if index_back_W_fft is not None:
             half_fft_W = init_half_fft_W - index_back_W_fft
         if out_size_W is not None:
             # We take one-sided fft so the output after the inverse fft should
@@ -204,10 +210,10 @@ class Conv2dfftFunction(torch.autograd.Function):
 
         # Compute how much to compress the fft-ed signal for its height (H).
         half_fft_H = init_half_fft_H
-        index_back_H_fft = None
         if index_back_H is not None and index_back_H > 0:
             # At least one coefficient is removed.
             index_back_H_fft = int(init_half_fft_H * (index_back_H / 100)) + 1
+        if index_back_H_fft is not None:
             half_fft_H = init_half_fft_H - index_back_H_fft
         if out_size_H is not None:
             # We take one-sided fft so the output after the inverse fft should
@@ -588,7 +594,6 @@ class Conv2dfftAutograd(Conv2dfft):
             conv_index=conv_index, preserve_energy=preserve_energy,
             is_debug=is_debug, compress_type=compress_type, is_manual=is_manual,
             dilation=dilation, groups=groups, is_complex_pad=is_complex_pad)
-
 
     def forward(self, input):
         """
