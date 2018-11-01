@@ -53,12 +53,13 @@ class Conv1dfftFunction(torch.autograd.Function):
     Implement the 1D convolution via FFT with compression of the input map and
     the filter.
     """
+    signal_ndim = 1
 
     @staticmethod
     # @profile
     def forward(ctx, x, filter, bias=None, padding=None, stride=None,
                 index_back=None, preserve_energy=None, out_size=None,
-                signal_ndim=1, use_next_power2=False, is_manual=tensor([0]),
+                use_next_power2=False, is_manual=tensor([0]),
                 conv_index=None, is_debug=False,
                 compress_type=CompressType.STANDARD):
         """
@@ -84,7 +85,6 @@ class Conv1dfftFunction(torch.autograd.Function):
         :param out_size: what is the expected output size - one can disard the
         elements in the frequency domain and do the spectral pooling within the
         convolution.
-        :param signal_ndim: this convolution is for 1 dimensional signals.
         :param use_next_power2: should we extend the size of the input for the
         FFT convolution to the next power of 2.
         :param is_manual: to check if the backward computation of convolution
@@ -191,7 +191,8 @@ class Conv1dfftFunction(torch.autograd.Function):
             cuda_mem_show(info="input pad")
 
         # fft of the input signals.
-        xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=True)
+        xfft = torch.rfft(x, signal_ndim=Conv1dfftFunction.signal_ndim,
+                          onesided=True)
         del x
 
         if is_debug:
@@ -266,7 +267,8 @@ class Conv1dfftFunction(torch.autograd.Function):
         if is_debug:
             cuda_mem_show(info="filter pad")
 
-        yfft = torch.rfft(filter, signal_ndim=signal_ndim, onesided=True)
+        yfft = torch.rfft(filter, signal_ndim=Conv1dfftFunction.signal_ndim,
+                          onesided=True)
         del filter
         if is_debug:
             cuda_mem_show(info="filter fft")
@@ -475,8 +477,6 @@ class Conv1dfftFunction(torch.autograd.Function):
         preserve_energy = from_tensor(preserve_energy)
         index_back_fft = from_tensor(index_back_fft)
 
-        signal_ndim = 1
-
         if is_debug:
             print("execute backward pass 1D")
             cuda_mem_show(info="backward start", omit_objs=omit_objs)
@@ -530,7 +530,8 @@ class Conv1dfftFunction(torch.autograd.Function):
         if is_debug:
             cuda_mem_show(info="gradient pad", omit_objs=omit_objs)
 
-        doutfft = torch.rfft(dout, signal_ndim=signal_ndim, onesided=True)
+        doutfft = torch.rfft(dout, signal_ndim=Conv1dfftFunction.signal_ndim,
+                             onesided=True)
         del dout
 
         if is_debug:
@@ -673,7 +674,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                 doutfft_ff = doutfft[:, ff, :].unsqueeze(1)
                 out = correlate_fft_signals(
                     xfft=xfft, yfft=doutfft_ff, fft_size=fft_size,
-                    signal_ndim=signal_ndim)
+                    signal_ndim=Conv1dfftFunction.signal_ndim)
                 out = out[:, :, :WW]
                 # For a given filter, we have to sum up all its contributions
                 # to all the input maps.
@@ -808,7 +809,6 @@ class Conv1dfft(Module):
         self.out_size = out_size
         self.use_next_power2 = use_next_power2
         self.stride = stride
-        self.signal_ndim = 1
         self.is_manual = is_manual
         self.conv_index = conv_index
         self.is_complex_pad = is_complex_pad
@@ -838,7 +838,7 @@ class Conv1dfft(Module):
         return Conv1dfftFunction.apply(
             input, self.filter, self.bias, self.padding, self.stride,
             self.index_back, self.preserve_energy, self.out_size,
-            self.signal_ndim, self.use_next_power2, self.is_manual,
+            self.use_next_power2, self.is_manual,
             self.conv_index, self.is_debug, self.compress_type)
 
 

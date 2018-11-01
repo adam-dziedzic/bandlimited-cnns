@@ -37,11 +37,12 @@ class Conv2dfftFunction(torch.autograd.Function):
     Implement the 2D convolution via FFT with compression in the spectral domain
     of the input map (activation) and the filter.
     """
+    signal_ndim = 2
 
     @staticmethod
     def forward(ctx, input, filter, bias, padding=None, stride=None,
                 index_back=None, preserve_energy=None, out_size=None,
-                signal_ndim=2, use_next_power2=False, is_manual=tensor([0]),
+                use_next_power2=False, is_manual=tensor([0]),
                 conv_index=None, is_debug=False,
                 compress_type=CompressType.STANDARD):
         """
@@ -71,7 +72,6 @@ class Conv2dfftFunction(torch.autograd.Function):
         the elements in the frequency domain and do the spectral pooling within
         the convolution. It can be a single number or a tuple (outH, outW).
         Default: None (the standard size, e.g., outW = W - WW + 1).
-        :param signal_ndim: this convolution is for 2 dimensional inputs.
         :param use_next_power2: should we extend the size of the input for the
         FFT convolution to the next power of 2.
         :param is_manual: to check if the backward computation of convolution
@@ -173,8 +173,10 @@ class Conv2dfftFunction(torch.autograd.Function):
             'constant', 0)
 
         # fft of the input and filters
-        xfft = torch.rfft(padded_x, signal_ndim=signal_ndim, onesided=True)
-        yfft = torch.rfft(padded_filter, signal_ndim=signal_ndim,
+        xfft = torch.rfft(padded_x, signal_ndim=Conv2dfftFunction.signal_ndim,
+                          onesided=True)
+        yfft = torch.rfft(padded_filter,
+                          signal_ndim=Conv2dfftFunction.signal_ndim,
                           onesided=True)
 
         # The last dimension (-1) has size 2 as it represents the complex
@@ -325,8 +327,6 @@ class Conv2dfftFunction(torch.autograd.Function):
         index_back_H_fft = from_tensor(index_back_H_fft)
         index_back_W_fft = from_tensor(index_back_W_fft)
 
-        signal_ndim = 2
-
         # The last dimension for xfft and yfft is the 2 element complex number.
         N, C, half_fft_compressed_H, half_fft_compressed_W, _ = xfft.shape
         F, C, half_fft_compressed_H, half_fft_compressed_W, _ = yfft.shape
@@ -345,7 +345,8 @@ class Conv2dfftFunction(torch.autograd.Function):
             dout, (0, fft_padding_dout_W, 0, fft_padding_dout_H),
             'constant', 0)
 
-        doutfft = torch.rfft(padded_dout, signal_ndim=signal_ndim,
+        doutfft = torch.rfft(padded_dout,
+                             signal_ndim=Conv2dfftFunction.signal_ndim,
                              onesided=True)
 
         # the last dimension is for real and imaginary parts of the complex
@@ -427,7 +428,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                 db[ff] += torch.sum(dout[:, ff, :])
 
         return dx, dw, db, None, None, None, None, None, None, None, None, \
-               None, None, None
+               None, None
 
 
 class Conv2dfft(Module):
@@ -540,7 +541,6 @@ class Conv2dfft(Module):
         self.out_size = out_size
         self.use_next_power2 = use_next_power2
         self.stride = stride
-        self.signal_ndim = 1
         self.is_manual = is_manual
         self.conv_index = conv_index
         self.is_complex_pad = is_complex_pad
@@ -570,7 +570,7 @@ class Conv2dfft(Module):
                                        self.padding, self.stride,
                                        self.index_back, self.preserve_energy,
                                        self.out_size,
-                                       self.signal_ndim, self.use_next_power2,
+                                       self.use_next_power2,
                                        self.is_manual,
                                        self.conv_index, self.is_debug,
                                        self.compress_type)

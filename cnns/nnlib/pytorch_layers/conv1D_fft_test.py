@@ -1160,8 +1160,8 @@ class TestPyTorchConv1d(unittest.TestCase):
         out_size = approximate_expected_result.shape[-1]
 
         result_torch = Conv1dfftFunction.apply(
-            x_torch, y_torch, b_torch, None, None, None, None, out_size, 1,
-            True)
+            x_torch, y_torch, b_torch, 0, 1, 0, 100, out_size, True,
+            torch.tensor([0]), 0, True, CompressType.STANDARD)
         result = result_torch.detach().numpy()
         print("Computed result: ", result)
         np.testing.assert_array_almost_equal(
