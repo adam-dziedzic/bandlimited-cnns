@@ -592,11 +592,12 @@ class Conv2dfftAutograd(Conv2dfft):
             in_channels=in_channels, out_channels=out_channels,
             kernel_size=kernel_size, stride=stride, padding=padding,
             dilation=dilation, groups=groups, bias=bias,
-            index_back=index_back, out_size=out_size, filter_value=filter_value,
+            index_back=index_back, preserve_energy=preserve_energy,
+            out_size=out_size, filter_value=filter_value,
             bias_value=bias_value, use_next_power2=use_next_power2,
-            conv_index=conv_index, preserve_energy=preserve_energy,
+            conv_index=conv_index, is_complex_pad=is_complex_pad,
             is_debug=is_debug, compress_type=compress_type, is_manual=is_manual,
-            is_complex_pad=is_complex_pad, dtype=dtype)
+            dtype=dtype)
 
     def forward(self, input):
         """
@@ -819,7 +820,9 @@ class Conv2dfftAutograd(Conv2dfft):
             ctx=None, input=input, filter=self.filter, bias=self.bias,
             padding=self.padding, stride=self.stride,
             index_back=self.index_back, out_size=self.out_size,
-            use_next_power2=self.use_next_power2)
+            use_next_power2=self.use_next_power2, is_manual=self.is_manual,
+            conv_index=self.conv_index, is_debug=self.is_debug,
+            compress_type=self.compress_type)
 
 
 def test_run():

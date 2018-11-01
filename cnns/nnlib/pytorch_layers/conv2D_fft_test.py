@@ -30,24 +30,39 @@ class TestPyTorchConv2d(unittest.TestCase):
         # A single filter.
         y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         b = tensor([0.0])
-        conv = Conv2dfftAutograd(filter_value=y, bias=b, index_back=0,
-                                 use_next_power2=False)
-        result = conv.forward(input=x)
-        expect = np.array([[[[22.0, 22.0], [18., 14.]]]])
-        np.testing.assert_array_almost_equal(
-            x=expect, y=result,
-            err_msg="The expected array x and computed y are not almost equal.")
 
-    def test_ForwardNoCompressionConv2dfft(self):
+        convManual = Conv2dfft(filter_value=y, bias=b, index_back=0,
+                               use_next_power2=False)
+        resultManual = convManual.forward(input=x)
+        print("result of manual convolution: ", resultManual)
+
+        convAuto = Conv2dfftAutograd(filter_value=y, bias=b, index_back=0,
+                                     use_next_power2=False)
+        resultAuto = convAuto.forward(input=x)
+
+        expect = np.array([[[[22.0, 22.0], [18., 14.]]]])
+
+        np.testing.assert_array_almost_equal(
+            x=expect, y=resultManual,
+            err_msg="The expected array x and computed manually y are not "
+                    "almost equal.")
+
+        np.testing.assert_array_almost_equal(
+            x=expect, y=resultAuto,
+            err_msg="The expected array x and computed auto y are not almost "
+                    "equal.")
+
+    def test_ForwardNoCompressionForConv2dfft(self):
         # Don't use next power of 2.
         # A single input map.
         x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]])
         # A single filter.
         y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         b = tensor([0.0])
-        conv = Conv2dfft(filter_value=y, bias=b, index_back=0,
-                         use_next_power2=False)
-        result = conv.forward(input=x)
+        convManual = Conv2dfft(filter_value=y, bias=b, index_back=0,
+                               use_next_power2=True)
+        result = convManual.forward(input=x)
+        print("result of manual convolution: ", result)
         expect = np.array([[[[22.0, 22.0], [18., 14.]]]])
         np.testing.assert_array_almost_equal(
             x=expect, y=result,
@@ -64,6 +79,7 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         result = conv.forward(ctx=None, input=x, filter=y, bias=b,
                               index_back=None, use_next_power2=False)
+        print("Result of conv function: ", result)
 
         expect = np.array([[[[22.0, 22.0], [18., 14.]]]])
         np.testing.assert_array_almost_equal(
@@ -266,6 +282,33 @@ class TestPyTorchConv2d(unittest.TestCase):
         result = conv.forward(ctx=None, input=torch.from_numpy(x),
                               filter=torch.from_numpy(y),
                               bias=torch.from_numpy(b))
+        self.logger.debug("obtained result: " + str(result))
+        np.testing.assert_array_almost_equal(
+            result, np.array(expected_result))
+
+    def test_FunctionForwardRandom(self):
+        num_channels = 3
+        num_data_points = 11
+        input_H = 21
+        input_W = 21
+        filter_H = 5
+        filter_W = 5
+        num_filters = 3
+        # Input signal: 5 data points, 3 channels, 10 values.
+        x = np.random.rand(num_data_points, num_channels, input_H,
+                           input_W)
+        # Filters: 3 filters, 3 channels, 4 values.
+        y = np.random.rand(num_filters, num_channels, filter_H, filter_W)
+        # Bias: one for each filter
+        b = np.random.rand(num_filters)
+        # get the expected result
+        conv_param = {'pad': 0, 'stride': 1}
+        expected_result, _ = conv_forward_naive(x, y, b, conv_param)
+        self.logger.debug("expected result: " + str(expected_result))
+
+        conv = Conv2dfftAutograd(filter_value=torch.from_numpy(y),
+                         bias_value=torch.from_numpy(b))
+        result = conv.forward(input=torch.from_numpy(x))
         self.logger.debug("obtained result: " + str(result))
         np.testing.assert_array_almost_equal(
             result, np.array(expected_result))
