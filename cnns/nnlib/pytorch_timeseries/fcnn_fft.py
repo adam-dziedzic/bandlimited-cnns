@@ -74,7 +74,7 @@ data_folder = "TimeSeriesDatasets"
 ucr_path = os.path.join(os.pardir, data_folder)
 results_folder = "results"
 
-num_epochs = 300  # 300
+num_epochs = 1  # 300
 
 plt.switch_backend('agg')
 
@@ -124,7 +124,8 @@ parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
-parser.add_argument("-p", "--preserve_energy", default=99, type=float,
+parser.add_argument("-p", "--preserve_energy", default=[100, 99, 98, 90],
+                    type=int, nargs="+",
                     help="How much energy should be preserved in the "
                          "frequency representation of the signal? This "
                          "is the compression in the FFT domain.")
@@ -276,7 +277,8 @@ def getModelKeras(input_size, num_classes):
 class Conv(object):
 
     def __init__(self, kernel_sizes, in_channels, out_channels, strides,
-                 padding, is_debug=True, dtype=None, paddings=None):
+                 padding, is_debug=True, dtype=None, paddings=None,
+                 preserve_energy=100):
         """
         Create the convolution object from which we fetch the convolution
         operations.
@@ -295,7 +297,7 @@ class Conv(object):
         self.padding = padding
         self.conv_type = ConvType[args.conv_type]
         self.index_back = args.index_back
-        self.preserve_energy = args.preserve_energy
+        self.preserve_energy = preserve_energy
         self.is_debug = is_debug
         self.compress_type = CompressType[args.compress_type]
 
@@ -519,7 +521,8 @@ class LeNet(nn.Module):
 
     def __init__(self, input_size, num_classes=10, in_channels=1,
                  dtype=torch.float32, kernel_sizes=[5, 5],
-                 out_channels=[10, 20], strides=[1, 1], batch_size=None):
+                 out_channels=[10, 20], strides=[1, 1], batch_size=None,
+                 preserve_energy=100):
         super(LeNet, self).__init__()
         if batch_size is None:
             self.batch_size = args.min_batch_size
@@ -534,7 +537,8 @@ class LeNet(nn.Module):
 
         conv = Conv(kernel_sizes=kernel_sizes, in_channels=in_channels,
                     out_channels=out_channels, strides=strides,
-                    padding=conv_pads, is_debug=self.is_debug, dtype=dtype)
+                    padding=conv_pads, is_debug=self.is_debug, dtype=dtype,
+                    preserve_energy=preserve_energy)
 
         # self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
         self.conv1 = conv.get_conv(index=0)
@@ -555,7 +559,8 @@ class LeNet(nn.Module):
 
 
 def getModelPyTorch(input_size, num_classes, in_channels, out_channels=None,
-                    dtype=torch.float32, batch_size=args.min_batch_size):
+                    dtype=torch.float32, batch_size=args.min_batch_size,
+                    preserve_energy=100):
     """
     Get the PyTorch version of the FCNN model.
 
@@ -571,7 +576,8 @@ def getModelPyTorch(input_size, num_classes, in_channels, out_channels=None,
     if network_type == NetworkType.LE_NET:
         return LeNet(input_size=input_size, num_classes=num_classes,
                      in_channels=in_channels, out_channels=out_channels,
-                     dtype=dtype, batch_size=batch_size)
+                     dtype=dtype, batch_size=batch_size,
+                     preserve_energy=preserve_energy)
     elif network_type == NetworkType.FCNN_SMALL or (
             network_type == NetworkType.FCNN_STANDARD):
         if network_type == NetworkType.FCNN_SMALL:
@@ -580,7 +586,7 @@ def getModelPyTorch(input_size, num_classes, in_channels, out_channels=None,
             out_channels = [128, 256, 128]
         return FCNNPytorch(input_size=input_size, num_classes=num_classes,
                            in_channels=in_channels, out_channels=out_channels,
-                           dtype=dtype)
+                           dtype=dtype, preserve_energy=preserve_energy)
     else:
         raise Exception("Unknown network_type: ", network_type)
 
@@ -752,13 +758,13 @@ def test(model, device, test_loader, dataset_type="test", dtype=torch.float):
 
 
 # @profile
-def main(dataset_name):
+def main(dataset_name, preserve_energy):
     """
     The main training.
 
     :param dataset_name: the name of the dataset from UCR.
     """
-    is_debug = True if DebugMode[args.is_debug] is True else False
+    is_debug = True if DebugMode[args.is_debug] is DebugMode.TRUE else False
     dataset_log_file = os.path.join(
         results_folder, get_log_time() + "-" + dataset_name + "-fcnn.log")
     DATASET_HEADER = HEADER + ",dataset," + str(dataset_name) + "\n"
@@ -923,7 +929,8 @@ def main(dataset_name):
 
     model = getModelPyTorch(input_size=width, num_classes=num_classes,
                             in_channels=in_channels, out_channels=out_channels,
-                            dtype=dtype, batch_size=batch_size)
+                            dtype=dtype, batch_size=batch_size,
+                            preserve_energy=preserve_energy)
     model.to(device)
     if dtype is torch.float16:
         # model.half()  # convert to half precision
@@ -1090,10 +1097,14 @@ if __name__ == '__main__':
     # flist = flist[3:]  # start from Beef
     # reversed(flist)
     print("flist: ", flist)
+    preserve_energies = args.preserve_energy
     for dataset_name in flist:
-        print("Dataset: ", dataset_name)
-        with open(additional_log_file, "a") as file:
-            file.write(dataset_name + "\n")
-        main(dataset_name=dataset_name)
+        for preserve_energy in preserve_energies:
+            print("Dataset: ", dataset_name)
+            print("preserve energy:, ", preserve_energy)
+            with open(additional_log_file, "a") as file:
+                file.write("dataset name: " + dataset_name + "\n" +
+                           "preserve energy: " + str(preserve_energy) + "\n")
+            main(dataset_name=dataset_name, preserve_energy=preserve_energy)
 
-    print("total elapsed time (sec): ", time.time() - start_time)
+            print("total elapsed time (sec): ", time.time() - start_time)

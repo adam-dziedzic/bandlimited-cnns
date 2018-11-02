@@ -87,7 +87,8 @@ class Conv2dfftFunction(torch.autograd.Function):
 
         :return: the result of convolution.
         """
-        print("execute forward pass")
+        if is_debug:
+            print("execute forward pass")
 
         INPUT_ERROR = "Specify only one of: index_back, out_size, or " \
                       "preserve_energy"
@@ -412,7 +413,8 @@ class Conv2dfftFunction(torch.autograd.Function):
             gradient L / gradient w = [x1, x2, x3, x4] * [dx1, dx2, dx3]
             """
             for ff in range(F):
-                doutfft_ff = doutfft[ff].unsqueeze(0)
+                # doutfft_ff has as many channels as number of input filters.
+                doutfft_ff = doutfft[:, ff, ...].unsqueeze(1)
                 out = correlate_fft_signals2D(
                     xfft=xfft, yfft=doutfft_ff,
                     input_height=init_fft_H, input_width=init_fft_W,
