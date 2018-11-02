@@ -74,6 +74,9 @@ class ConvType(EnumWithNames):
     SIMPLE_FFT = 7
     SIMPLE_FFT_FOR_LOOP = 8
     COMPRESS_INPUT_ONLY = 9
+    FFT2D = 10
+    STANDARD2D = 11
+    AUTOGRAD2D = 12
 
 
 class TensorType(EnumWithNames):
@@ -99,8 +102,9 @@ class DebugMode(BoolEnumWithNames):
 
 
 class NetworkType(EnumWithNames):
-    STANDARD = 1
-    SMALL = 2
+    FCNN_STANDARD = 1
+    FCNN_SMALL = 2
+    LE_NET = 3
 
 
 class CompressType(EnumWithNames):

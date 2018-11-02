@@ -611,173 +611,6 @@ class TestPyTorchConv2d(unittest.TestCase):
         np.testing.assert_array_almost_equal(b_torch.grad,
                                              expected_db)
 
-    #     x = np.array([[[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, -2.0]]])
-    #     y = np.array([[[2.0, 1.0, 3.0, 1.0, -3.0]]])
-    #     b = np.array([0.0])
-    #     dtype = torch.float
-    #     x_torch = tensor(x, requires_grad=True, dtype=dtype)
-    #     y_torch = tensor(y, requires_grad=True, dtype=dtype)
-    #     b_torch = tensor(b, requires_grad=True, dtype=dtype)
-    #
-    #     conv_param = {'pad': 0, 'stride': 1}
-    #     accurate_expected_result, cache = conv_forward_naive_1D(x, y, b,
-    #                                                             conv_param)
-    #     print("Accurate expected result: ", accurate_expected_result)
-    #
-    #     approximate_expected_result = np.array(
-    #         [[[-2.105834, 0.457627, 8.501472, 20.74531]]])
-    #     print("Approximate expected result: ", approximate_expected_result)
-    #
-    #     out_size = approximate_expected_result.shape[-1]
-    #
-    #     result_torch = Conv1dfftFunction.apply(x_torch, y_torch, b_torch,
-    #                                                None, None, out_size)
-    #     result = result_torch.detach().numpy()
-    #     np.testing.assert_array_almost_equal(
-    #         x=np.array(approximate_expected_result), y=result,
-    #         err_msg="Expected x is different from computed y.")
-    #
-    #     self._check_delta(actual_result=result,
-    #                       accurate_expected_result=accurate_expected_result,
-    #                       delta=6.8)
-    #
-    #     dout = tensor([[[0.1, -0.2, 0.3, -0.1]]], dtype=dtype)
-    #     # get the expected result from the backward pass
-    #     expected_dx, expected_dw, expected_db = \
-    #         conv_backward_naive_1D(dout.numpy(), cache)
-    #
-    #     result_torch.backward(dout)
-    #
-    #     approximate_expected_dx = np.array(
-    #         [[[0.052956, 0.120672, 0.161284, 0.150332, 0.089258,
-    #            0.005318, -0.063087, -0.087266, -0.063311, -0.012829]]])
-    #
-    #     # are the gradients correct
-    #     np.testing.assert_array_almost_equal(
-    #         x=approximate_expected_dx, y=x_torch.grad,
-    #         err_msg="Expected x is different from computed y.")
-    #
-    #     self._check_delta(actual_result=x_torch.grad,
-    #                       accurate_expected_result=expected_dx, delta=0.95)
-    #
-    #     approximate_expected_dw = np.array(
-    #         [[[0.129913, 0.249468, 0.429712, 0.620098, 0.748242]]])
-    #     np.testing.assert_array_almost_equal(
-    #         x=approximate_expected_dw, y=y_torch.grad,
-    #         err_msg="Expected x is different from computed y.")
-    #
-    #     self._check_delta(actual_result=y_torch.grad,
-    #                       accurate_expected_result=expected_dw, delta=0.2)
-    #
-    #     np.testing.assert_array_almost_equal(b_torch.grad,
-    #                                          expected_db)
-    #
-    #
-    # def test_FunctionBackwardCompressionBias(self):
-    #     x = np.array([[[1.0, 2.0, 3.0, 4.0, 5.0, -1.0, 10.0]]])
-    #     y = np.array([[[2.0, 1.0, -3.0]]])
-    #     b = np.array([1.0])
-    #     dtype = torch.float
-    #     x_torch = tensor(x, requires_grad=True, dtype=dtype)
-    #     y_torch = tensor(y, requires_grad=True, dtype=dtype)
-    #     b_torch = tensor(b, requires_grad=True, dtype=dtype)
-    #
-    #     conv_param = {'pad': 0, 'stride': 1}
-    #     expected_result, cache = conv_forward_naive_1D(x, y, b, conv_param)
-    #     print("expected result: ", expected_result)
-    #
-    #     # 1 index back
-    #     result_torch = Conv1dfftFunction.apply(x_torch, y_torch, b_torch,
-    #                                                None, 1)
-    #     result = result_torch.detach().numpy()
-    #     compressed_expected_result = np.array(
-    #         [[[-2.25, -5.749999, -2.25, 15.249998, -18.25]]])
-    #     np.testing.assert_array_almost_equal(
-    #         x=compressed_expected_result, y=result,
-    #         err_msg="Expected x is different from computed y.")
-    #
-    #     dout = tensor([[[0.1, -0.2, -0.3, 0.3, 0.1]]], dtype=dtype)
-    #     # get the expected result from the backward pass
-    #     expected_dx, expected_dw, expected_db = \
-    #         conv_backward_naive_1D(dout.numpy(), cache)
-    #
-    #     result_torch.backward(dout)
-    #
-    #     # are the gradients correct
-    #     print("accurate expected_dx: ", expected_dx)
-    #     approximate_dx = np.array(
-    #         [[[0.175, -0.275, -1.125, 0.925, 1.375, -0.775, -0.325]]])
-    #     np.testing.assert_array_almost_equal(
-    #         x=approximate_dx, y=x_torch.grad,
-    #         err_msg="Expected approximate x is different from computed y. The "
-    #                 "exact x (that represents dx) is: {}".format(expected_dx))
-    #     print("accurate expected_dw: ", expected_dw)
-    #     approximate_dw = np.array([[[0.675, -0.375, -1.125]]])
-    #     np.testing.assert_array_almost_equal(
-    #         x=approximate_dw, y=y_torch.grad,
-    #         err_msg="Expected approximate x is different from computed y. The "
-    #                 "exact x (that represents dw) is: {}".format(expected_dw))
-    #     np.testing.assert_array_almost_equal(
-    #         x=expected_db, y=b_torch.grad,
-    #         err_msg="Expected approximate x is different from computed y.")
-    #
-    # def test_FunctionBackwardNoCompression2Channels(self):
-    #     x = np.array([[[1.0, 2.0, 3.0], [-1.0, -3.0, 2.0]]])
-    #     y = np.array([[[2.0, 1.0], [-2.0, 3.0]]])
-    #     # still it is only a single filter but with 2 channels
-    #     b = np.array([0.0])
-    #     dtype = torch.float
-    #     x_torch = tensor(x, requires_grad=True, dtype=dtype)
-    #     y_torch = tensor(y, requires_grad=True, dtype=dtype)
-    #     b_torch = tensor(b, requires_grad=True, dtype=dtype)
-    #
-    #     conv_param = {'pad': 0, 'stride': 1}
-    #     expected_result, cache = conv_forward_naive_1D(x, y, b, conv_param)
-    #
-    #     result_torch = Conv1dfftFunction.apply(x_torch, y_torch, b_torch)
-    #     result = result_torch.detach().numpy()
-    #     np.testing.assert_array_almost_equal(
-    #         result, np.array(expected_result))
-    #
-    #     dout = tensor([[[0.1, -0.2]]], dtype=dtype)
-    #     # get the expected result from the backward pass
-    #     expected_dx, expected_dw, expected_db = \
-    #         conv_backward_naive_1D(dout.numpy(), cache)
-    #
-    #     result_torch.backward(dout)
-    #
-    #     print()
-    #     print("expected dx: " + str(expected_dx))
-    #     print("computed dx: {}".format(x_torch.grad))
-    #
-    #     print("expected dw: {}".format(expected_dw))
-    #     print("computed dw: {}".format(y_torch.grad))
-    #     #
-    #     # self.logger.debug("expected db: ", expected_db)
-    #     # self.logger.debug("computed db: ", b_torch.grad)
-    #
-    #     # are the gradients correct
-    #     np.testing.assert_array_almost_equal(
-    #         x=expected_dx, y=x_torch.grad,
-    #         err_msg="Expected x is different from computed y.")
-    #     np.testing.assert_array_almost_equal(y_torch.grad,
-    #                                          expected_dw)
-    #     np.testing.assert_array_almost_equal(b_torch.grad,
-    #                                          expected_db)
-    #
-    # def test_FunctionForwardWithCompression(self):
-    #     # test with compression
-    #     x = np.array([[[1., 2., 3.]]])
-    #     y = np.array([[[2., 1.]]])
-    #     b = np.array([0.0])
-    #     expected_result = [3.5, 7.5]
-    #     conv = Conv1dfftFunction()
-    #     result = conv.forward(
-    #         ctx=None, input=torch.from_numpy(x), filter=torch.from_numpy(y),
-    #         bias=torch.from_numpy(b), index_back=1)
-    #     np.testing.assert_array_almost_equal(
-    #         result, np.array([[expected_result]]))
-
     def test_AutogradForwardNoCompression(self):
         # A single input map.
         x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]])
@@ -868,6 +701,25 @@ class TestPyTorchConv2d(unittest.TestCase):
         np.testing.assert_array_almost_equal(
             x=expected_db, y=b_torch.grad, decimal=4,
             err_msg="Expected x is different from computed y.")
+
+    def test_ForwardNoCompressionForConv2dfftPreserveEenrgy(self):
+        # Don't use next power of 2.
+        # A single input map.
+        x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]])
+        # A single filter.
+        y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
+        b = tensor([0.0])
+        convManual = Conv2dfft(filter_value=y, bias=b, index_back=0,
+                               use_next_power2=True, preserve_energy=80)
+        result = convManual.forward(input=x)
+        print("result of manual convolution: ", result)
+        expect_full_correct = np.array([[[[22.0, 22.0], [18., 14.]]]])
+        print("expect_full_correct: ", expect_full_correct)
+
+        expect_approximate = np.array([[[[20.75, 22.25], [18.25, 12.75]]]])
+        np.testing.assert_array_almost_equal(
+            x=expect_approximate, y=result,
+            err_msg="The expected array x and computed y are not almost equal.")
 
 
 if __name__ == '__main__':

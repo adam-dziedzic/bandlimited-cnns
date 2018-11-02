@@ -30,7 +30,9 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfft
+from cnns.nnlib.pytorch_layers.conv2D_fft import Conv2dfft
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftAutograd
+from cnns.nnlib.pytorch_layers.conv2D_fft import Conv2dfftAutograd
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftCompressSignalOnly
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftSimple
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftSimpleForLoop
@@ -78,7 +80,7 @@ plt.switch_backend('agg')
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch TimeSeries')
-min_batch_size = 16
+min_batch_size = 64
 parser.add_argument('--min_batch_size', type=int, default=min_batch_size,
                     metavar='N',
                     help='input batch size for training (default: {})'.format(
@@ -89,12 +91,12 @@ parser.add_argument('--test_batch_size', type=int, default=min_batch_size,
 parser.add_argument('--epochs', type=int, default=num_epochs, metavar='N',
                     help='number of epochs to train (default: {})'.format(
                         num_epochs))
-learning_rate = 0.001
+learning_rate = 0.01
 parser.add_argument('--lr', type=float, default=learning_rate, metavar='LR',
                     help='learning rate (default: {})'.format(
                         learning_rate))
-parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
-                    help='SGD momentum (default: 0.9)')
+parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
+                    help='SGD momentum (default: 0.5)')
 parser.add_argument('--no_cuda', action='store_true', default=False,
                     help='disables CUDA training')
 parser.add_argument('--seed', type=int, default=31, metavar='S',
@@ -102,7 +104,7 @@ parser.add_argument('--seed', type=int, default=31, metavar='S',
 parser.add_argument('--log-interval', type=int, default=1, metavar='N',
                     help='how many batches to wait before logging training '
                          'status')
-parser.add_argument("--optimizer_type", default="ADAM",
+parser.add_argument("--optimizer_type", default="MOMENTUM",
                     # ADAM_FLOAT16, ADAM, MOMENTUM
                     help="the type of the optimizer, please choose from: " +
                          ",".join(OptimizerType.get_names()))
@@ -116,8 +118,8 @@ parser.add_argument("-w", "--workers", default=4, type=int,
                          "loaded in the main process")
 parser.add_argument("-n", "--net", default="fcnn",
                     help="the type of net: alexnet, densenet, resnet, fcnn.")
-parser.add_argument("-d", "--datasets", default="all",
-                    help="the type of datasets: all or debug.")
+parser.add_argument("-d", "--datasets", default="mnist",
+                    help="the type of datasets: all, debug, cifar10, mnist.")
 parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
@@ -130,13 +132,13 @@ parser.add_argument("-b", "--mem_test", default=False, type=bool,
                     help="is it the memory test")
 parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
                     help="should the data augmentation be applied")
-parser.add_argument("-g", "--is_debug", default="FALSE",  # TRUE or FALSE
+parser.add_argument("-g", "--is_debug", default="TRUE",  # TRUE or FALSE
                     help="is it the debug mode execution: " + ",".join(
                         DebugMode.get_names()))
-parser.add_argument("--sample_count_limit", default=0, type=int,
+parser.add_argument("--sample_count_limit", default=100, type=int,
                     help="number of samples taken from the dataset (0 - inactive)")
-parser.add_argument("-c", "--conv_type", default="FFT1D",
-                    # "FFT1D", "STANDARD". "AUTOGRAD", "SIMPLE_FFT"
+parser.add_argument("-c", "--conv_type", default="FFT2D",
+                    # "FFT1D", "FFT2D", "STANDARD", "STANDARD2D", "AUTOGRAD", "SIMPLE_FFT"
                     help="the type of convolution, SPECTRAL_PARAM is with the "
                          "convolutional weights initialized in the spectral "
                          "domain, please choose from: " + ",".join(
@@ -145,8 +147,8 @@ parser.add_argument("--compress_type", default="STANDARD",
                     # "STANDARD", "BIG_COEFF", "LOW_COEFF"
                     help="the type of compression to be applied: " + ",".join(
                         CompressType.get_names()))
-parser.add_argument("--network_type", default="STANDARD",
-                    # "STANDARD", "SMALL"
+parser.add_argument("--network_type", default="LE_NET",
+                    # "FCNN_STANDARD", "FCNN_SMALL", "LE_NET"
                     help="the type of network: " + ",".join(
                         NetworkType.get_names()))
 parser.add_argument("--tensor_type", default="FLOAT32",
@@ -272,7 +274,7 @@ def getModelKeras(input_size, num_classes):
 class Conv(object):
 
     def __init__(self, kernel_sizes, in_channels, out_channels, strides,
-                 conv_pads, is_debug=True, dtype=None):
+                 conv_pads, is_debug=True, dtype=None, paddings=None):
         """
         Create the convolution object from which we fetch the convolution
         operations.
@@ -294,6 +296,10 @@ class Conv(object):
         self.preserve_energy = args.preserve_energy
         self.is_debug = is_debug
         self.compress_type = CompressType[args.compress_type]
+        if paddings is None:
+            self.paddings = [0 for _ in kernel_sizes]
+        else:
+            self.paddings = paddings
 
         self.dtype = dtype
         if self.dtype is None:
@@ -323,6 +329,12 @@ class Conv(object):
                              stride=self.strides[index],
                              kernel_size=self.kernel_sizes[index],
                              padding=(self.conv_pads[index] // 2))
+        elif self.conv_type is ConvType.STANDARD2D:
+            return nn.Conv2d(in_channels=in_channels,
+                             out_channels=self.out_channels[index],
+                             stride=self.strides[index],
+                             kernel_size=self.kernel_sizes[index],
+                             padding=self.paddings[index])
         elif self.conv_type is ConvType.FFT1D:
             next_power2 = NextPower2[args.next_power2]
             next_power2 = True if next_power2 is NextPower2.TRUE else False
@@ -330,7 +342,22 @@ class Conv(object):
                              out_channels=self.out_channels[index],
                              stride=self.strides[index],
                              kernel_size=self.kernel_sizes[index],
-                             padding=(self.conv_pads[index] // 2),
+                             padding=paddings[index],
+                             index_back=index_back,
+                             use_next_power2=next_power2,
+                             conv_index=index,
+                             preserve_energy=self.preserve_energy,
+                             is_debug=self.is_debug,
+                             compress_type=self.compress_type,
+                             dtype=self.dtype)
+        elif self.conv_type is ConvType.FFT2D:
+            next_power2 = NextPower2[args.next_power2]
+            next_power2 = True if next_power2 is NextPower2.TRUE else False
+            return Conv2dfft(in_channels=in_channels,
+                             out_channels=self.out_channels[index],
+                             stride=self.strides[index],
+                             kernel_size=self.kernel_sizes[index],
+                             padding=self.paddings[index],
                              index_back=index_back,
                              use_next_power2=next_power2,
                              conv_index=index,
@@ -340,6 +367,13 @@ class Conv(object):
                              dtype=self.dtype)
         elif self.conv_type is ConvType.AUTOGRAD:
             return Conv1dfftAutograd(in_channels=in_channels,
+                                     out_channels=self.out_channels[index],
+                                     stride=self.strides[index],
+                                     kernel_size=self.kernel_sizes[index],
+                                     padding=(self.conv_pads[index] // 2),
+                                     index_back=self.index_back)
+        elif self.conv_type is ConvType.AUTOGRAD2D:
+            return Conv2dfftAutograd(in_channels=in_channels,
                                      out_channels=self.out_channels[index],
                                      stride=self.strides[index],
                                      kernel_size=self.kernel_sizes[index],
@@ -479,26 +513,78 @@ class FCNNPytorch(nn.Module):
         return out
 
 
-def getModelPyTorch(input_size, num_classes, in_channels, dtype=torch.float32):
+class LeNet(nn.Module):
+    """
+    Based on:
+    https://github.com/pytorch/examples/blob/master/mnist/main.py
+    """
+
+    def __init__(self, input_size, num_classes=10, in_channels=1,
+                 dtype=torch.float32, kernel_sizes=[5, 5],
+                 out_channels=[10, 20], strides=[1, 1], batch_size=None):
+        super(LeNet, self).__init__()
+        if batch_size is None:
+            self.batch_size = args.min_batch_size
+        else:
+            self.batch_size = batch_size
+        is_debug = True if DebugMode[args.is_debug] is DebugMode.TRUE else False
+        self.is_debug = is_debug
+
+        self.relu = nn.ReLU(inplace=True)
+        # For the "same" mode for the convolution, pad the input.
+        conv_pads = [kernel_size - 1 for kernel_size in kernel_sizes]
+
+        conv = Conv(kernel_sizes=kernel_sizes, in_channels=in_channels,
+                    out_channels=out_channels, strides=strides,
+                    conv_pads=conv_pads, is_debug=self.is_debug, dtype=dtype)
+
+        # self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
+        self.conv1 = conv.get_conv(index=0)
+        # self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
+        self.conv2 = conv.get_conv(index=1)
+        self.conv2_drop = nn.Dropout2d()
+        self.fc1 = nn.Linear(320, 50)
+        self.fc2 = nn.Linear(50, num_classes)
+
+    def forward(self, x):
+        x = F.relu(F.max_pool2d(self.conv1(x), 2))
+        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
+        x = x.view(self.batch_size, 320)
+        x = F.relu(self.fc1(x))
+        x = F.dropout(x, training=self.training)
+        x = self.fc2(x)
+        return F.log_softmax(x, dim=1)
+
+
+def getModelPyTorch(input_size, num_classes, in_channels, out_channels=None,
+                    dtype=torch.float32, batch_size=args.min_batch_size):
     """
     Get the PyTorch version of the FCNN model.
 
     :param input_size: the length (width) of the time series.
     :param num_classes: number of output classes.
-    :param in_channels: number of channels in the input data.
+    :param in_channels: number of channels in the input data for a convolution.
+    :param out_channels: number of channels in the output of a convolution.
     :param dtype: global - the type of torch data/weights.
 
     :return: the model.
     """
-    out_channels = None
     network_type = NetworkType[args.network_type]
-    if network_type == NetworkType.SMALL:
-        out_channels = [1, 1, 1]
-    elif network_type == NetworkType.STANDARD:
-        out_channels = [128, 256, 128]
-    return FCNNPytorch(input_size=input_size, num_classes=num_classes,
-                       in_channels=in_channels, out_channels=out_channels,
-                       dtype=dtype)
+    if network_type == NetworkType.LE_NET:
+        return LeNet(input_size=input_size, num_classes=num_classes,
+                     in_channels=in_channels, out_channels=out_channels,
+                     dtype=dtype, batch_size=batch_size)
+    elif network_type == NetworkType.FCNN_SMALL or (
+            network_type == NetworkType.FCNN_STANDARD):
+        if network_type == NetworkType.FCNN_SMALL:
+            out_channels = [1, 1, 1]
+        elif network_type == NetworkType.FCNN_STANDARD:
+            out_channels = [128, 256, 128]
+        return FCNNPytorch(input_size=input_size, num_classes=num_classes,
+                           in_channels=in_channels, out_channels=out_channels,
+                           dtype=dtype)
+    else:
+        raise Exception("Unknown network_type: ", network_type)
 
 
 def readucr(filename, data_type):
@@ -728,6 +814,8 @@ def main(dataset_name):
 
     in_channels = None  # number of channels in the input data
     sample_count = args.sample_count_limit
+    out_channels = None
+
     if dataset_name is "cifar10":
         num_classes = 10
         width = 32 * 32
@@ -736,7 +824,8 @@ def main(dataset_name):
         in_channels = 3  # number of channels in the input data
         train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True,
                                                      download=True,
-                                                     transform=get_transform_train(dtype=torch.float))
+                                                     transform=get_transform_train(
+                                                         dtype=torch.float))
         if is_debug and sample_count > 0:
             train_dataset.train_data = train_dataset.train_data[:sample_count]
             train_dataset.train_labels = train_dataset.train_labels[
@@ -749,7 +838,54 @@ def main(dataset_name):
 
         test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False,
                                                     download=True,
-                                                    transform=get_transform_test(dtype=torch.float))
+                                                    transform=get_transform_test(
+                                                        dtype=torch.float))
+        if is_debug and sample_count > 0:
+            test_dataset.test_data = test_dataset.test_data[:sample_count]
+            test_dataset.test_labels = test_dataset.test_labels[:sample_count]
+        test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
+                                                  batch_size=batch_size,
+                                                  shuffle=False,
+                                                  **kwargs)
+    elif dataset_name is "mnist":
+        num_classes = 10
+        width = 28 * 28
+        # standard batch size is 32
+        batch_size = args.min_batch_size
+        in_channels = 1  # number of channels in the input data
+        out_channels = [10, 20]
+        train_dataset = torchvision.datasets.MNIST(
+            root='./data', train=True,
+            download=True,
+            transform=transforms.Compose(
+                [
+                    transforms.ToTensor(),
+                    transforms.Normalize(
+                        (0.1307,),
+                        (0.3081,))
+                ])
+        )
+        if is_debug and sample_count > 0:
+            train_dataset.train_data = train_dataset.train_data[:sample_count]
+            train_dataset.train_labels = train_dataset.train_labels[
+                                         :sample_count]
+
+        train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
+                                                   batch_size=batch_size,
+                                                   shuffle=True,
+                                                   **kwargs)
+
+        test_dataset = torchvision.datasets.MNIST(
+            root='./data', train=False,
+            download=True,
+            transform=transforms.Compose(
+                [
+                    transforms.ToTensor(),
+                    transforms.Normalize(
+                        (0.1307,),
+                        (0.3081,))
+                ])
+        )
         if is_debug and sample_count > 0:
             test_dataset.test_data = test_dataset.test_data[:sample_count]
             test_dataset.test_labels = test_dataset.test_labels[:sample_count]
@@ -788,7 +924,8 @@ def main(dataset_name):
         raise ValueError(f"Unknown dataset: {dataset_name}")
 
     model = getModelPyTorch(input_size=width, num_classes=num_classes,
-                            in_channels=in_channels, dtype=dtype)
+                            in_channels=in_channels, out_channels=out_channels,
+                            dtype=dtype, batch_size=batch_size)
     model.to(device)
     if dtype is torch.float16:
         # model.half()  # convert to half precision
@@ -812,8 +949,6 @@ def main(dataset_name):
         optimizer = AdamFloat16(params, lr=args.lr, eps=eps)
     else:
         optimizer = optim.Adam(params, lr=args.lr, eps=eps)
-
-
 
     # https://pytorch.org/docs/stable/optim.html#torch.optim.lr_scheduler.ReduceLROnPlateau
     scheduler = ReduceLROnPlateauPyTorch(optimizer=optimizer, mode='min',
@@ -883,6 +1018,10 @@ if __name__ == '__main__':
 
     if args.datasets == "all":
         flist = os.listdir(ucr_path)
+    elif args.datasets == "cifar10":
+        flist = ["cifar10"]
+    elif args.datasets == "mnist":
+        flist = ["mnist"]
     elif args.datasets == "debug":
         # flist = ["50words"]
         # flist = ["cifar10"]
@@ -950,7 +1089,7 @@ if __name__ == '__main__':
         torch.cuda.empty_cache()
 
     flist = sorted(flist, key=lambda s: s.lower())
-    flist = flist[3:]  # start from Beef
+    # flist = flist[3:]  # start from Beef
     # reversed(flist)
     print("flist: ", flist)
     for dataset_name in flist:
