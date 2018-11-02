@@ -481,6 +481,111 @@ class TestPyTorchConv2d(unittest.TestCase):
         np.testing.assert_array_almost_equal(b_torch.grad.detach().numpy(),
                                              expected_db)
 
+    def test_FunctionBackwardNoCompressionConv2dfft2channels(self):
+        x = np.array([[[[1.0, 2.0, 3.0],
+                        [4.0, 5.0, 1.0],
+                        [1.0, -1.0, -2.0]],
+                       [[2.0, 3.0, 3.0],
+                        [4.0, 1.0, 1.0],
+                        [-1.0, -1.0, -3.0]]
+                       ]])
+        y = np.array([[[[2.0, 1.0], [-1.0, 2.0]], [[1.0, 0.0], [2.0, 1.0]]]])
+        b = np.array([1.0])
+        dtype = torch.float
+        x_torch = tensor(x, requires_grad=True, dtype=dtype)
+        y_torch = tensor(y, requires_grad=True, dtype=dtype)
+        b_torch = tensor(b, requires_grad=True, dtype=dtype)
+
+        conv_param = {'pad': 0, 'stride': 1}
+        expected_result, cache = conv_forward_naive(x=x, w=y, b=b,
+                                                    conv_param=conv_param)
+
+        print("expected result: ", expected_result)
+
+        conv = Conv2dfft(filter_value=y_torch, bias_value=b_torch, index_back=0)
+
+        result_torch = conv.forward(input=x_torch)
+        result = result_torch.detach().numpy()
+        print("actual result: ", result)
+        np.testing.assert_array_almost_equal(result, np.array(expected_result))
+
+        dout = tensor([[[[0.1, -0.2], [0.3, -0.1]]]], dtype=dtype)
+        # get the expected result from the backward pass
+        expected_dx, expected_dw, expected_db = \
+            conv_backward_naive(dout.numpy(), cache)
+
+        result_torch.backward(dout)
+        assert conv.is_manual[0] == 1
+
+        self.logger.debug("expected dx: " + str(expected_dx))
+        self.logger.debug("computed dx: " + str(x_torch.grad))
+
+        # are the gradients correct
+        np.testing.assert_array_almost_equal(x_torch.grad.detach().numpy(),
+                                             expected_dx)
+        np.testing.assert_array_almost_equal(y_torch.grad.detach().numpy(),
+                                             expected_dw)
+        np.testing.assert_array_almost_equal(b_torch.grad.detach().numpy(),
+                                             expected_db)
+
+    def test_FunctionBackwardNoCompressionConv2dfft2Images(self):
+        x = np.array([[[[1.0, 2.0, 3.0],
+                        [4.0, 5.0, 1.0],
+                        [1.0, -1.0, -2.0]]],
+                      [[[2.0, 1.0, 3.0],
+                        [4.0, 2.0, 1.0],
+                        [-1.0, -2.0, -3.0]]]
+                      ])
+        y = np.array([[[[2.0, 1.0], [-1.0, 2.0]]]])
+        b = np.array([1.0])
+        dtype = torch.float
+        x_torch = tensor(x, requires_grad=True, dtype=dtype)
+        y_torch = tensor(y, requires_grad=True, dtype=dtype)
+        b_torch = tensor(b, requires_grad=True, dtype=dtype)
+
+        conv_param = {'pad': 0, 'stride': 1}
+        expected_result, cache = conv_forward_naive(x=x, w=y, b=b,
+                                                    conv_param=conv_param)
+
+        print("expected result: ", expected_result)
+
+        conv = Conv2dfft(filter_value=y_torch, bias_value=b_torch, index_back=0)
+
+        result_torch = conv.forward(input=x_torch)
+        result = result_torch.detach().numpy()
+        print("actual result: ", result)
+        np.testing.assert_array_almost_equal(result, np.array(expected_result))
+
+        dout = tensor(
+            [[[[0.1, -0.2], [0.01, 0.2]]], [[[0.3, -0.1], [0.03, 0.1]]]],
+            dtype=dtype)
+        # get the expected result from the backward pass
+        expected_dx, expected_dw, expected_db = \
+            conv_backward_naive(dout.numpy(), cache)
+
+        print("expected dx: ", expected_dx)
+        print("expected dw: ", expected_dw)
+        print("expected db: ", expected_db)
+
+        result_torch.backward(dout)
+        assert conv.is_manual[0] == 1
+
+        # Are the gradients correct?
+
+        self.logger.debug("expected dx: " + str(expected_dx))
+        self.logger.debug("computed dx: " + str(x_torch.grad))
+
+        np.testing.assert_array_almost_equal(x_torch.grad.detach().numpy(),
+                                             expected_dx)
+
+        self.logger.debug("expected dw: " + str(expected_dw))
+        self.logger.debug("computed dw: " + str(y_torch.grad))
+
+        np.testing.assert_array_almost_equal(y_torch.grad.detach().numpy(),
+                                             expected_dw)
+        np.testing.assert_array_almost_equal(b_torch.grad.detach().numpy(),
+                                             expected_db)
+
     def _check_delta2D(self, actual_result, accurate_expected_result, delta):
         """
         Compare if the difference between the two objects is more than the

@@ -2082,9 +2082,6 @@ def conv_backward_naive(dout, cache):
     - db: Gradient with respect to b
     """
     dx, dw, db = None, None, None
-    ###########################################################################
-    # TODO: Implement the convolutional backward pass.                        #
-    ###########################################################################
 
     # Grab conv parameters and pad x if needed.
     x, w, b, conv_param = cache
