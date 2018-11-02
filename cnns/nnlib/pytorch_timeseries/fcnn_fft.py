@@ -100,7 +100,7 @@ parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
 parser.add_argument('--no_cuda', action='store_true', default=False,
                     help='disables CUDA training')
 parser.add_argument('--seed', type=int, default=31, metavar='S',
-                    help='random seed (default: 1)')
+                    help='random seed (default: 31)')
 parser.add_argument('--log-interval', type=int, default=1, metavar='N',
                     help='how many batches to wait before logging training '
                          'status')
@@ -124,8 +124,8 @@ parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
-parser.add_argument("-p", "--preserve_energy", default=[100, 99, 98, 90],
-                    type=int, nargs="+",
+parser.add_argument('--preserve_energy', nargs="+", type=int,
+                    default=[100, 99, 98, 90],
                     help="How much energy should be preserved in the "
                          "frequency representation of the signal? This "
                          "is the compression in the FFT domain.")
@@ -769,7 +769,9 @@ def main(dataset_name, preserve_energy):
     """
     is_debug = True if DebugMode[args.is_debug] is DebugMode.TRUE else False
     dataset_log_file = os.path.join(
-        results_folder, get_log_time() + "-" + dataset_name + "-fcnn.log")
+        results_folder, get_log_time() + "-dataset-" + dataset_name +
+                        "-preserve-energy-" + str(preserve_energy) +
+                        "-fcnn.log")
     DATASET_HEADER = HEADER + ",dataset," + str(dataset_name) + "\n"
     with open(dataset_log_file, "a") as file:
         # Write the metadata.
@@ -1105,7 +1107,7 @@ if __name__ == '__main__':
         for preserve_energy in preserve_energies:
             print("Dataset: ", dataset_name)
             print("preserve energy:, ", preserve_energy)
-            with open(additional_log_file, "a") as file:
+            with open(global_log_file, "a") as file:
                 file.write("dataset name: " + dataset_name + "\n" +
                            "preserve energy: " + str(preserve_energy) + "\n")
             main(dataset_name=dataset_name, preserve_energy=preserve_energy)
