@@ -641,8 +641,8 @@ class TestPyTorchConv2d(unittest.TestCase):
     def test_FunctionForwardBackwardRandom(self):
         num_channels = 3
         num_data_points = 11
-        input_H = 21
-        input_W = 21
+        input_H = 28
+        input_W = 28
         filter_H = 5
         filter_W = 5
         num_filters = 3

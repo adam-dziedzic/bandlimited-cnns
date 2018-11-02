@@ -135,10 +135,12 @@ parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
 parser.add_argument("-g", "--is_debug", default="TRUE",  # TRUE or FALSE
                     help="is it the debug mode execution: " + ",".join(
                         DebugMode.get_names()))
-parser.add_argument("--sample_count_limit", default=100, type=int,
-                    help="number of samples taken from the dataset (0 - inactive)")
+parser.add_argument("--sample_count_limit", default=64, type=int,
+                    help="number of samples taken from the dataset "
+                         "(0 - inactive)")
 parser.add_argument("-c", "--conv_type", default="FFT2D",
-                    # "FFT1D", "FFT2D", "STANDARD", "STANDARD2D", "AUTOGRAD", "SIMPLE_FFT"
+                    # "FFT1D", "FFT2D", "STANDARD", "STANDARD2D", "AUTOGRAD",
+                    # "SIMPLE_FFT"
                     help="the type of convolution, SPECTRAL_PARAM is with the "
                          "convolutional weights initialized in the spectral "
                          "domain, please choose from: " + ",".join(
@@ -274,7 +276,7 @@ def getModelKeras(input_size, num_classes):
 class Conv(object):
 
     def __init__(self, kernel_sizes, in_channels, out_channels, strides,
-                 conv_pads, is_debug=True, dtype=None, paddings=None):
+                 padding, is_debug=True, dtype=None, paddings=None):
         """
         Create the convolution object from which we fetch the convolution
         operations.
@@ -283,23 +285,19 @@ class Conv(object):
         :param in_channels: number of channels in the input data.
         :param out_channels: the number of filters for each conv layer.
         :param strides: the strides for the convolutions.
-        :param conv_pads: padding for each convolutional layer.
+        :param padding: padding for each convolutional layer.
         :param is_debug: is the debug mode execution?
         """
         self.kernel_sizes = kernel_sizes
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.strides = strides
-        self.conv_pads = conv_pads
+        self.padding = padding
         self.conv_type = ConvType[args.conv_type]
         self.index_back = args.index_back
         self.preserve_energy = args.preserve_energy
         self.is_debug = is_debug
         self.compress_type = CompressType[args.compress_type]
-        if paddings is None:
-            self.paddings = [0 for _ in kernel_sizes]
-        else:
-            self.paddings = paddings
 
         self.dtype = dtype
         if self.dtype is None:
@@ -328,13 +326,13 @@ class Conv(object):
                              out_channels=self.out_channels[index],
                              stride=self.strides[index],
                              kernel_size=self.kernel_sizes[index],
-                             padding=(self.conv_pads[index] // 2))
+                             padding=self.padding[index])
         elif self.conv_type is ConvType.STANDARD2D:
             return nn.Conv2d(in_channels=in_channels,
                              out_channels=self.out_channels[index],
                              stride=self.strides[index],
                              kernel_size=self.kernel_sizes[index],
-                             padding=self.paddings[index])
+                             padding=self.padding[index])
         elif self.conv_type is ConvType.FFT1D:
             next_power2 = NextPower2[args.next_power2]
             next_power2 = True if next_power2 is NextPower2.TRUE else False
@@ -342,7 +340,7 @@ class Conv(object):
                              out_channels=self.out_channels[index],
                              stride=self.strides[index],
                              kernel_size=self.kernel_sizes[index],
-                             padding=paddings[index],
+                             padding=self.padding[index],
                              index_back=index_back,
                              use_next_power2=next_power2,
                              conv_index=index,
@@ -357,7 +355,7 @@ class Conv(object):
                              out_channels=self.out_channels[index],
                              stride=self.strides[index],
                              kernel_size=self.kernel_sizes[index],
-                             padding=self.paddings[index],
+                             padding=self.padding[index],
                              index_back=index_back,
                              use_next_power2=next_power2,
                              conv_index=index,
@@ -370,35 +368,35 @@ class Conv(object):
                                      out_channels=self.out_channels[index],
                                      stride=self.strides[index],
                                      kernel_size=self.kernel_sizes[index],
-                                     padding=(self.conv_pads[index] // 2),
+                                     padding=self.padding[index],
                                      index_back=self.index_back)
         elif self.conv_type is ConvType.AUTOGRAD2D:
             return Conv2dfftAutograd(in_channels=in_channels,
                                      out_channels=self.out_channels[index],
                                      stride=self.strides[index],
                                      kernel_size=self.kernel_sizes[index],
-                                     padding=(self.conv_pads[index] // 2),
+                                     padding=self.padding[index],
                                      index_back=self.index_back)
         elif self.conv_type is ConvType.SIMPLE_FFT:
             return Conv1dfftSimple(in_channels=in_channels,
                                    out_channels=self.out_channels[index],
                                    stride=self.strides[index],
                                    kernel_size=self.kernel_sizes[index],
-                                   padding=(self.conv_pads[index] // 2),
+                                   padding=self.padding[index],
                                    index_back=self.index_back)
         elif self.conv_type is ConvType.SIMPLE_FFT_FOR_LOOP:
             return Conv1dfftSimpleForLoop(in_channels=in_channels,
                                           out_channels=self.out_channels[index],
                                           stride=self.strides[index],
                                           kernel_size=self.kernel_sizes[index],
-                                          padding=(self.conv_pads[index] // 2),
+                                          padding=self.padding[index],
                                           index_back=self.index_back)
         elif self.conv_type is ConvType.COMPRESS_INPUT_ONLY:
             return Conv1dfftCompressSignalOnly(
                 in_channels=in_channels, out_channels=self.out_channels[index],
                 stride=self.strides[index],
                 kernel_size=self.kernel_sizes[index],
-                padding=(self.conv_pads[index] // 2),
+                padding=self.padding[index],
                 index_back=self.index_back,
                 preserve_energy=self.preserve_energy)
         else:
@@ -440,7 +438,7 @@ class FCNNPytorch(nn.Module):
 
         conv = Conv(kernel_sizes=kernel_sizes, in_channels=in_channels,
                     out_channels=out_channels, strides=strides,
-                    conv_pads=conv_pads, is_debug=self.is_debug)
+                    padding=conv_pads, is_debug=self.is_debug)
 
         index = 0
         self.conv0 = conv.get_conv(index=index)
@@ -532,11 +530,11 @@ class LeNet(nn.Module):
 
         self.relu = nn.ReLU(inplace=True)
         # For the "same" mode for the convolution, pad the input.
-        conv_pads = [kernel_size - 1 for kernel_size in kernel_sizes]
+        conv_pads = [0 for _ in kernel_sizes]
 
         conv = Conv(kernel_sizes=kernel_sizes, in_channels=in_channels,
                     out_channels=out_channels, strides=strides,
-                    conv_pads=conv_pads, is_debug=self.is_debug, dtype=dtype)
+                    padding=conv_pads, is_debug=self.is_debug, dtype=dtype)
 
         # self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
         self.conv1 = conv.get_conv(index=0)

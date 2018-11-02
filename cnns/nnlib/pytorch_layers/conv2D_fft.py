@@ -368,14 +368,18 @@ class Conv2dfftFunction(torch.autograd.Function):
             for nn in range(N):
                 # Take one time series and unsqueeze it for broadcast with
                 # many gradients dout.
-                doutfft_nn = doutfft[nn].unsqueeze(0)
-                dx[nn] = correlate_fft_signals2D(
+                doutfft_nn = doutfft[nn].unsqueeze(1)
+                out = correlate_fft_signals2D(
                     xfft=doutfft_nn, yfft=conjugate_yfft,
                     input_height=init_fft_H, input_width=init_fft_W,
                     half_fft_height=init_half_fft_H,
                     half_fft_width=init_half_fft_W,
                     out_height=H, out_width=W,
                     is_forward=False)
+                # Sum over all the Filters (F).
+                out = torch.sum(out, dim=0)
+                out = torch.unsqueeze(input=out, dim=0)
+                dx[nn] = out
 
         if need_filter_grad:
             dw = torch.zeros([F, C, HH, WW], dtype=yfft.dtype)
@@ -409,13 +413,22 @@ class Conv2dfftFunction(torch.autograd.Function):
             """
             for ff in range(F):
                 doutfft_ff = doutfft[ff].unsqueeze(0)
-                dw[ff] = correlate_fft_signals2D(
+                out = correlate_fft_signals2D(
                     xfft=xfft, yfft=doutfft_ff,
                     input_height=init_fft_H, input_width=init_fft_W,
                     half_fft_height=init_half_fft_H,
                     half_fft_width=init_half_fft_W,
                     out_height=HH, out_width=WW,
                     is_forward=False)
+                # For a given filter, we have to sum up all its contributions
+                # to all the input maps.
+                out = torch.sum(input=out, dim=0)
+                # `unsqueeze` the dimension 0 for the input data points (N).
+                out = torch.unsqueeze(input=out, dim=0)
+                # print("conv name: {}, out shape: {}, dw shape: {}, N: {}, C: {}, F: {}".format(
+                #     "conv"+str(conv_index), out.size(), dw.size(), str(N),
+                #     str(C), str(F)))
+                dw[ff] = out
 
         if need_bias_grad:
             # The number of bias elements is equal to the number of filters.
