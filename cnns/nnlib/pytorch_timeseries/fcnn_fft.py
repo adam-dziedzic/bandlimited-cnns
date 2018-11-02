@@ -118,7 +118,7 @@ parser.add_argument("-w", "--workers", default=4, type=int,
                          "loaded in the main process")
 parser.add_argument("-n", "--net", default="fcnn",
                     help="the type of net: alexnet, densenet, resnet, fcnn.")
-parser.add_argument("-d", "--datasets", default="mnist",
+parser.add_argument("-d", "--datasets", default="cifar10",
                     help="the type of datasets: all, debug, cifar10, mnist.")
 parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
@@ -215,7 +215,7 @@ class DtypeTransformation(object):
     def __init__(self, dtype=torch.float32):
         self.dtype = dtype
 
-    def __call__(self, tensor, dtype):
+    def __call__(self, tensor):
         """
         Args:
             tensor (Tensor): Tensor image.
@@ -226,27 +226,31 @@ class DtypeTransformation(object):
         return tensor.to(dtype=self.dtype)
 
 
-def get_transform_train(dtype=torch.float32):
-    transform_train = transforms.Compose([
+def get_transform_train(dtype=torch.float32, signal_dimension=2):
+    transformations = [
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.4465),
-                             (0.2023, 0.1994, 0.2010)),
-        FlatTransformation(),
-        DtypeTransformation(dtype)
-    ])
+                             (0.2023, 0.1994, 0.2010))
+    ]
+    if signal_dimension == 1:
+        transformations.append(FlatTransformation())
+    transformations.append(DtypeTransformation(dtype=dtype))
+    transform_train = transforms.Compose(transformations)
     return transform_train
 
 
-def get_transform_test(dtype=torch.float32):
-    transform_test = transforms.Compose([
+def get_transform_test(dtype=torch.float32, signal_dimension=2):
+    transformations = [
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.4465),
-                             (0.2023, 0.1994, 0.2010)),
-        FlatTransformation(),
-        DtypeTransformation(dtype),
-    ])
+                             (0.2023, 0.1994, 0.2010))
+    ]
+    if signal_dimension == 1:
+        transformations.append(FlatTransformation())
+    transformations.append(DtypeTransformation(dtype))
+    transform_test = transforms.Compose(transformations)
     return transform_test
 
 
@@ -522,12 +526,35 @@ class LeNet(nn.Module):
     def __init__(self, input_size, num_classes=10, in_channels=1,
                  dtype=torch.float32, kernel_sizes=[5, 5],
                  out_channels=[10, 20], strides=[1, 1], batch_size=None,
-                 preserve_energy=100):
+                 preserve_energy=100, flat_size=320):
+        """
+
+        :param input_size:
+        :param num_classes:
+        :param in_channels:
+        :param dtype:
+        :param kernel_sizes:
+        :param out_channels:
+        :param strides:
+        :param batch_size:
+        :param preserve_energy: how much energy to preserve in the input map
+        and the filter in the frequency domain.
+        :param flat_size: the size of the flat vector after the conv layers.
+        """
         super(LeNet, self).__init__()
         if batch_size is None:
             self.batch_size = args.min_batch_size
         else:
             self.batch_size = batch_size
+        if out_channels is None:
+            self.out_channels = [10, 20]
+        else:
+            self.out_channels = out_channels
+        if flat_size is None:
+            self.flat_size = 320  # for MNIST dataset
+        else:
+            self.flat_size = flat_size
+
         is_debug = True if DebugMode[args.is_debug] is DebugMode.TRUE else False
         self.is_debug = is_debug
 
@@ -545,7 +572,7 @@ class LeNet(nn.Module):
         # self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
         self.conv2 = conv.get_conv(index=1)
         self.conv2_drop = nn.Dropout2d()
-        self.fc1 = nn.Linear(320, 50)
+        self.fc1 = nn.Linear(flat_size, 50)
         self.fc2 = nn.Linear(50, num_classes)
 
     def forward(self, x):
@@ -553,8 +580,9 @@ class LeNet(nn.Module):
         x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
         # it can't be self.batch_size, 320, because:
         # the last batch can be smaller then 64:
-        # RuntimeError: shape '[64, 320]' is invalid for input of size 10240
-        x = x.view(-1, 320)
+        # RuntimeError: shape '[64, 320]' is invalid for input of size 10240,
+        # which gives us shape [32, 320].
+        x = x.view(-1, self.flat_size)
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
@@ -563,7 +591,7 @@ class LeNet(nn.Module):
 
 def getModelPyTorch(input_size, num_classes, in_channels, out_channels=None,
                     dtype=torch.float32, batch_size=args.min_batch_size,
-                    preserve_energy=100):
+                    preserve_energy=100, flat_size=320):
     """
     Get the PyTorch version of the FCNN model.
 
@@ -572,7 +600,7 @@ def getModelPyTorch(input_size, num_classes, in_channels, out_channels=None,
     :param in_channels: number of channels in the input data for a convolution.
     :param out_channels: number of channels in the output of a convolution.
     :param dtype: global - the type of torch data/weights.
-
+    :param flat_size: the size of the flat vector after the conv layers.
     :return: the model.
     """
     network_type = NetworkType[args.network_type]
@@ -580,7 +608,7 @@ def getModelPyTorch(input_size, num_classes, in_channels, out_channels=None,
         return LeNet(input_size=input_size, num_classes=num_classes,
                      in_channels=in_channels, out_channels=out_channels,
                      dtype=dtype, batch_size=batch_size,
-                     preserve_energy=preserve_energy)
+                     preserve_energy=preserve_energy, flat_size=flat_size)
     elif network_type == NetworkType.FCNN_SMALL or (
             network_type == NetworkType.FCNN_STANDARD):
         if network_type == NetworkType.FCNN_SMALL:
@@ -663,8 +691,7 @@ def run_keras():
 
 
 # @profile
-def train(model, device, train_loader, optimizer, epoch,
-          dtype=torch.float):
+def train(model, device, train_loader, optimizer, epoch, dtype=torch.float):
     """
     Train the model.
 
@@ -769,10 +796,11 @@ def main(dataset_name, preserve_energy):
     """
     is_debug = True if DebugMode[args.is_debug] is DebugMode.TRUE else False
     dataset_log_file = os.path.join(
-        results_folder, get_log_time() + "-dataset-" + dataset_name +
-                        "-preserve-energy-" + str(preserve_energy) +
-                        "-fcnn.log")
-    DATASET_HEADER = HEADER + ",dataset," + str(dataset_name) + "\n"
+        results_folder, get_log_time() + "-dataset-" + str(dataset_name) + \
+                        "-preserve-energy-" + str(preserve_energy) + \
+                        ".log")
+    DATASET_HEADER = HEADER + ",dataset," + str(dataset_name) + \
+                     "-current-preserve-energy-" + str(preserve_energy) + "\n"
     with open(dataset_log_file, "a") as file:
         # Write the metadata.
         file.write(DATASET_HEADER)
@@ -824,17 +852,24 @@ def main(dataset_name, preserve_energy):
     in_channels = None  # number of channels in the input data
     sample_count = args.sample_count_limit
     out_channels = None
+    flat_size = None  # the size of the flat vector after the conv layers
 
     if dataset_name is "cifar10":
         num_classes = 10
         width = 32 * 32
+        flat_size = 500
         # standard batch size is 32
         batch_size = args.min_batch_size
         in_channels = 3  # number of channels in the input data
+        signal_dimension = 1
+        if NetworkType[args.network_type] is NetworkType.LE_NET:
+            out_channels = [10, 20]
+            signal_dimension = 2
         train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True,
                                                      download=True,
                                                      transform=get_transform_train(
-                                                         dtype=torch.float))
+                                                         dtype=torch.float,
+                                                         signal_dimension=signal_dimension))
         if is_debug and sample_count > 0:
             train_dataset.train_data = train_dataset.train_data[:sample_count]
             train_dataset.train_labels = train_dataset.train_labels[
@@ -848,7 +883,8 @@ def main(dataset_name, preserve_energy):
         test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False,
                                                     download=True,
                                                     transform=get_transform_test(
-                                                        dtype=torch.float))
+                                                        dtype=torch.float,
+                                                        signal_dimension=signal_dimension))
         if is_debug and sample_count > 0:
             test_dataset.test_data = test_dataset.test_data[:sample_count]
             test_dataset.test_labels = test_dataset.test_labels[:sample_count]
@@ -858,6 +894,7 @@ def main(dataset_name, preserve_energy):
                                                   **kwargs)
     elif dataset_name is "mnist":
         num_classes = 10
+        flat_size = 320  # the size of the flat vector after the conv layers
         width = 28 * 28
         # standard batch size is 32
         batch_size = args.min_batch_size
@@ -935,7 +972,8 @@ def main(dataset_name, preserve_energy):
     model = getModelPyTorch(input_size=width, num_classes=num_classes,
                             in_channels=in_channels, out_channels=out_channels,
                             dtype=dtype, batch_size=batch_size,
-                            preserve_energy=preserve_energy)
+                            preserve_energy=preserve_energy,
+                            flat_size=flat_size)
     model.to(device)
     if dtype is torch.float16:
         # model.half()  # convert to half precision
