@@ -176,9 +176,20 @@ class Conv2dfftFunction(torch.autograd.Function):
         # fft of the input and filters
         xfft = torch.rfft(padded_x, signal_ndim=Conv2dfftFunction.signal_ndim,
                           onesided=True)
+
+        # PyTorch does not cut off half of the image height so we do it
+        # manually.
+        half_xfft_H = xfft.shape[2] // 2 + 1
+        xfft = tensor.narrow(dim=2, start=0, length=half_xfft_H)
+
         yfft = torch.rfft(padded_filter,
                           signal_ndim=Conv2dfftFunction.signal_ndim,
                           onesided=True)
+
+        # PyTorch does not cut off half of the image height so we do it
+        # manually.
+        half_yfft_H = yfft.shape[2] // 2 + 1
+        yfft = tensor.narrow(dim=2, start=0, length=half_yfft_H)
 
         # The last dimension (-1) has size 2 as it represents the complex
         # numbers with real and imaginary parts. The last but one dimension (-2)

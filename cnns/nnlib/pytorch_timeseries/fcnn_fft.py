@@ -125,7 +125,7 @@ parser.add_argument("-i", "--index_back", default=0, type=int,
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
 parser.add_argument('--preserve_energy', nargs="+", type=int,
-                    default=[100, 99, 98, 90],
+                    default=[50],
                     help="How much energy should be preserved in the "
                          "frequency representation of the signal? This "
                          "is the compression in the FFT domain.")
