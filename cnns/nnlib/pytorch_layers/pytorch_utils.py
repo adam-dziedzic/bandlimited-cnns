@@ -1225,7 +1225,7 @@ def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
     >>> result = correlate_fft_signals2D(xfft=xfft, yfft=yfft,
     ... input_height=fft_height, input_width=fft_width,
     ... half_fft_height=xfft.shape[-3], half_fft_width=xfft.shape[-2],
-    ... out_height=(x.shape[-2]-y.shape[-2]+1),
+    ... out_height=(x.shape[-2]-y.shape[-2] + 1),
     ... out_width=(x.shape[-1]-y.shape[-1] + 1))
     >>> # print("result: ", result)
     >>> np.testing.assert_array_almost_equal(

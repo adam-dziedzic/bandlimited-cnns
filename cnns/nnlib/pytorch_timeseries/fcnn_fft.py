@@ -74,7 +74,7 @@ data_folder = "TimeSeriesDatasets"
 ucr_path = os.path.join(os.pardir, data_folder)
 results_folder = "results"
 
-num_epochs = 300  # 300
+num_epochs = 1  # 300
 
 plt.switch_backend('agg')
 
@@ -100,7 +100,7 @@ parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
 parser.add_argument('--no_cuda', action='store_true', default=False,
                     help='disables CUDA training')
 parser.add_argument('--seed', type=int, default=31, metavar='S',
-                    help='random seed (default: 1)')
+                    help='random seed (default: 31)')
 parser.add_argument('--log-interval', type=int, default=1, metavar='N',
                     help='how many batches to wait before logging training '
                          'status')
@@ -118,13 +118,14 @@ parser.add_argument("-w", "--workers", default=4, type=int,
                          "loaded in the main process")
 parser.add_argument("-n", "--net", default="fcnn",
                     help="the type of net: alexnet, densenet, resnet, fcnn.")
-parser.add_argument("-d", "--datasets", default="mnist",
+parser.add_argument("-d", "--datasets", default="cifar10",
                     help="the type of datasets: all, debug, cifar10, mnist.")
 parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
-parser.add_argument("-p", "--preserve_energy", default=99, type=float,
+parser.add_argument('--preserve_energy', nargs="+", type=int,
+                    default=[50],
                     help="How much energy should be preserved in the "
                          "frequency representation of the signal? This "
                          "is the compression in the FFT domain.")
@@ -214,7 +215,7 @@ class DtypeTransformation(object):
     def __init__(self, dtype=torch.float32):
         self.dtype = dtype
 
-    def __call__(self, tensor, dtype):
+    def __call__(self, tensor):
         """
         Args:
             tensor (Tensor): Tensor image.
@@ -225,27 +226,31 @@ class DtypeTransformation(object):
         return tensor.to(dtype=self.dtype)
 
 
-def get_transform_train(dtype=torch.float32):
-    transform_train = transforms.Compose([
+def get_transform_train(dtype=torch.float32, signal_dimension=2):
+    transformations = [
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.4465),
-                             (0.2023, 0.1994, 0.2010)),
-        FlatTransformation(),
-        DtypeTransformation(dtype)
-    ])
+                             (0.2023, 0.1994, 0.2010))
+    ]
+    if signal_dimension == 1:
+        transformations.append(FlatTransformation())
+    transformations.append(DtypeTransformation(dtype=dtype))
+    transform_train = transforms.Compose(transformations)
     return transform_train
 
 
-def get_transform_test(dtype=torch.float32):
-    transform_test = transforms.Compose([
+def get_transform_test(dtype=torch.float32, signal_dimension=2):
+    transformations = [
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.4465),
-                             (0.2023, 0.1994, 0.2010)),
-        FlatTransformation(),
-        DtypeTransformation(dtype),
-    ])
+                             (0.2023, 0.1994, 0.2010))
+    ]
+    if signal_dimension == 1:
+        transformations.append(FlatTransformation())
+    transformations.append(DtypeTransformation(dtype))
+    transform_test = transforms.Compose(transformations)
     return transform_test
 
 
@@ -276,7 +281,8 @@ def getModelKeras(input_size, num_classes):
 class Conv(object):
 
     def __init__(self, kernel_sizes, in_channels, out_channels, strides,
-                 padding, is_debug=True, dtype=None, paddings=None):
+                 padding, is_debug=True, dtype=None, paddings=None,
+                 preserve_energy=100):
         """
         Create the convolution object from which we fetch the convolution
         operations.
@@ -295,7 +301,7 @@ class Conv(object):
         self.padding = padding
         self.conv_type = ConvType[args.conv_type]
         self.index_back = args.index_back
-        self.preserve_energy = args.preserve_energy
+        self.preserve_energy = preserve_energy
         self.is_debug = is_debug
         self.compress_type = CompressType[args.compress_type]
 
@@ -519,12 +525,36 @@ class LeNet(nn.Module):
 
     def __init__(self, input_size, num_classes=10, in_channels=1,
                  dtype=torch.float32, kernel_sizes=[5, 5],
-                 out_channels=[10, 20], strides=[1, 1], batch_size=None):
+                 out_channels=[10, 20], strides=[1, 1], batch_size=None,
+                 preserve_energy=100, flat_size=320):
+        """
+
+        :param input_size:
+        :param num_classes:
+        :param in_channels:
+        :param dtype:
+        :param kernel_sizes:
+        :param out_channels:
+        :param strides:
+        :param batch_size:
+        :param preserve_energy: how much energy to preserve in the input map
+        and the filter in the frequency domain.
+        :param flat_size: the size of the flat vector after the conv layers.
+        """
         super(LeNet, self).__init__()
         if batch_size is None:
             self.batch_size = args.min_batch_size
         else:
             self.batch_size = batch_size
+        if out_channels is None:
+            self.out_channels = [10, 20]
+        else:
+            self.out_channels = out_channels
+        if flat_size is None:
+            self.flat_size = 320  # for MNIST dataset
+        else:
+            self.flat_size = flat_size
+
         is_debug = True if DebugMode[args.is_debug] is DebugMode.TRUE else False
         self.is_debug = is_debug
 
@@ -534,20 +564,25 @@ class LeNet(nn.Module):
 
         conv = Conv(kernel_sizes=kernel_sizes, in_channels=in_channels,
                     out_channels=out_channels, strides=strides,
-                    padding=conv_pads, is_debug=self.is_debug, dtype=dtype)
+                    padding=conv_pads, is_debug=self.is_debug, dtype=dtype,
+                    preserve_energy=preserve_energy)
 
         # self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
         self.conv1 = conv.get_conv(index=0)
         # self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
         self.conv2 = conv.get_conv(index=1)
         self.conv2_drop = nn.Dropout2d()
-        self.fc1 = nn.Linear(320, 50)
+        self.fc1 = nn.Linear(flat_size, 50)
         self.fc2 = nn.Linear(50, num_classes)
 
     def forward(self, x):
         x = F.relu(F.max_pool2d(self.conv1(x), 2))
         x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
-        x = x.view(self.batch_size, 320)
+        # it can't be self.batch_size, 320, because:
+        # the last batch can be smaller then 64:
+        # RuntimeError: shape '[64, 320]' is invalid for input of size 10240,
+        # which gives us shape [32, 320].
+        x = x.view(-1, self.flat_size)
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
@@ -555,7 +590,8 @@ class LeNet(nn.Module):
 
 
 def getModelPyTorch(input_size, num_classes, in_channels, out_channels=None,
-                    dtype=torch.float32, batch_size=args.min_batch_size):
+                    dtype=torch.float32, batch_size=args.min_batch_size,
+                    preserve_energy=100, flat_size=320):
     """
     Get the PyTorch version of the FCNN model.
 
@@ -564,14 +600,15 @@ def getModelPyTorch(input_size, num_classes, in_channels, out_channels=None,
     :param in_channels: number of channels in the input data for a convolution.
     :param out_channels: number of channels in the output of a convolution.
     :param dtype: global - the type of torch data/weights.
-
+    :param flat_size: the size of the flat vector after the conv layers.
     :return: the model.
     """
     network_type = NetworkType[args.network_type]
     if network_type == NetworkType.LE_NET:
         return LeNet(input_size=input_size, num_classes=num_classes,
                      in_channels=in_channels, out_channels=out_channels,
-                     dtype=dtype, batch_size=batch_size)
+                     dtype=dtype, batch_size=batch_size,
+                     preserve_energy=preserve_energy, flat_size=flat_size)
     elif network_type == NetworkType.FCNN_SMALL or (
             network_type == NetworkType.FCNN_STANDARD):
         if network_type == NetworkType.FCNN_SMALL:
@@ -580,7 +617,7 @@ def getModelPyTorch(input_size, num_classes, in_channels, out_channels=None,
             out_channels = [128, 256, 128]
         return FCNNPytorch(input_size=input_size, num_classes=num_classes,
                            in_channels=in_channels, out_channels=out_channels,
-                           dtype=dtype)
+                           dtype=dtype, preserve_energy=preserve_energy)
     else:
         raise Exception("Unknown network_type: ", network_type)
 
@@ -654,8 +691,7 @@ def run_keras():
 
 
 # @profile
-def train(model, device, train_loader, optimizer, epoch,
-          dtype=torch.float):
+def train(model, device, train_loader, optimizer, epoch, dtype=torch.float):
     """
     Train the model.
 
@@ -752,16 +788,19 @@ def test(model, device, test_loader, dataset_type="test", dtype=torch.float):
 
 
 # @profile
-def main(dataset_name):
+def main(dataset_name, preserve_energy):
     """
     The main training.
 
     :param dataset_name: the name of the dataset from UCR.
     """
-    is_debug = True if DebugMode[args.is_debug] is True else False
+    is_debug = True if DebugMode[args.is_debug] is DebugMode.TRUE else False
     dataset_log_file = os.path.join(
-        results_folder, get_log_time() + "-" + dataset_name + "-fcnn.log")
-    DATASET_HEADER = HEADER + ",dataset," + str(dataset_name) + "\n"
+        results_folder, get_log_time() + "-dataset-" + str(dataset_name) + \
+                        "-preserve-energy-" + str(preserve_energy) + \
+                        ".log")
+    DATASET_HEADER = HEADER + ",dataset," + str(dataset_name) + \
+                     "-current-preserve-energy-" + str(preserve_energy) + "\n"
     with open(dataset_log_file, "a") as file:
         # Write the metadata.
         file.write(DATASET_HEADER)
@@ -813,17 +852,24 @@ def main(dataset_name):
     in_channels = None  # number of channels in the input data
     sample_count = args.sample_count_limit
     out_channels = None
+    flat_size = None  # the size of the flat vector after the conv layers
 
     if dataset_name is "cifar10":
         num_classes = 10
         width = 32 * 32
+        flat_size = 500
         # standard batch size is 32
         batch_size = args.min_batch_size
         in_channels = 3  # number of channels in the input data
+        signal_dimension = 1
+        if NetworkType[args.network_type] is NetworkType.LE_NET:
+            out_channels = [10, 20]
+            signal_dimension = 2
         train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True,
                                                      download=True,
                                                      transform=get_transform_train(
-                                                         dtype=torch.float))
+                                                         dtype=torch.float,
+                                                         signal_dimension=signal_dimension))
         if is_debug and sample_count > 0:
             train_dataset.train_data = train_dataset.train_data[:sample_count]
             train_dataset.train_labels = train_dataset.train_labels[
@@ -837,7 +883,8 @@ def main(dataset_name):
         test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False,
                                                     download=True,
                                                     transform=get_transform_test(
-                                                        dtype=torch.float))
+                                                        dtype=torch.float,
+                                                        signal_dimension=signal_dimension))
         if is_debug and sample_count > 0:
             test_dataset.test_data = test_dataset.test_data[:sample_count]
             test_dataset.test_labels = test_dataset.test_labels[:sample_count]
@@ -847,6 +894,7 @@ def main(dataset_name):
                                                   **kwargs)
     elif dataset_name is "mnist":
         num_classes = 10
+        flat_size = 320  # the size of the flat vector after the conv layers
         width = 28 * 28
         # standard batch size is 32
         batch_size = args.min_batch_size
@@ -923,7 +971,9 @@ def main(dataset_name):
 
     model = getModelPyTorch(input_size=width, num_classes=num_classes,
                             in_channels=in_channels, out_channels=out_channels,
-                            dtype=dtype, batch_size=batch_size)
+                            dtype=dtype, batch_size=batch_size,
+                            preserve_energy=preserve_energy,
+                            flat_size=flat_size)
     model.to(device)
     if dtype is torch.float16:
         # model.half()  # convert to half precision
@@ -1090,10 +1140,14 @@ if __name__ == '__main__':
     # flist = flist[3:]  # start from Beef
     # reversed(flist)
     print("flist: ", flist)
+    preserve_energies = args.preserve_energy
     for dataset_name in flist:
-        print("Dataset: ", dataset_name)
-        with open(additional_log_file, "a") as file:
-            file.write(dataset_name + "\n")
-        main(dataset_name=dataset_name)
+        for preserve_energy in preserve_energies:
+            print("Dataset: ", dataset_name)
+            print("preserve energy:, ", preserve_energy)
+            with open(global_log_file, "a") as file:
+                file.write("dataset name: " + dataset_name + "\n" +
+                           "preserve energy: " + str(preserve_energy) + "\n")
+            main(dataset_name=dataset_name, preserve_energy=preserve_energy)
 
-    print("total elapsed time (sec): ", time.time() - start_time)
+            print("total elapsed time (sec): ", time.time() - start_time)

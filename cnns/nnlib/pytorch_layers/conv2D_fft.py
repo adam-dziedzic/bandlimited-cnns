@@ -87,7 +87,8 @@ class Conv2dfftFunction(torch.autograd.Function):
 
         :return: the result of convolution.
         """
-        print("execute forward pass")
+        if is_debug:
+            print("execute forward pass")
 
         INPUT_ERROR = "Specify only one of: index_back, out_size, or " \
                       "preserve_energy"
@@ -175,9 +176,20 @@ class Conv2dfftFunction(torch.autograd.Function):
         # fft of the input and filters
         xfft = torch.rfft(padded_x, signal_ndim=Conv2dfftFunction.signal_ndim,
                           onesided=True)
+
+        # PyTorch does not cut off half of the image height so we do it
+        # manually.
+        half_xfft_H = xfft.shape[2] // 2 + 1
+        xfft = tensor.narrow(dim=2, start=0, length=half_xfft_H)
+
         yfft = torch.rfft(padded_filter,
                           signal_ndim=Conv2dfftFunction.signal_ndim,
                           onesided=True)
+
+        # PyTorch does not cut off half of the image height so we do it
+        # manually.
+        half_yfft_H = yfft.shape[2] // 2 + 1
+        yfft = tensor.narrow(dim=2, start=0, length=half_yfft_H)
 
         # The last dimension (-1) has size 2 as it represents the complex
         # numbers with real and imaginary parts. The last but one dimension (-2)
@@ -412,7 +424,8 @@ class Conv2dfftFunction(torch.autograd.Function):
             gradient L / gradient w = [x1, x2, x3, x4] * [dx1, dx2, dx3]
             """
             for ff in range(F):
-                doutfft_ff = doutfft[ff].unsqueeze(0)
+                # doutfft_ff has as many channels as number of input filters.
+                doutfft_ff = doutfft[:, ff, ...].unsqueeze(1)
                 out = correlate_fft_signals2D(
                     xfft=xfft, yfft=doutfft_ff,
                     input_height=init_fft_H, input_width=init_fft_W,

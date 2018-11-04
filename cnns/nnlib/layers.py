@@ -2031,7 +2031,6 @@ def conv_forward_naive(x, w, b, conv_param):
       W' = 1 + (W + 2 * pad - WW) / stride
     - cache: (x, w, b, conv_param)
     """
-    out = None
 
     # Grab conv parameters
     pad = conv_param.get('pad')
@@ -2046,7 +2045,7 @@ def conv_forward_naive(x, w, b, conv_param):
     # Calculate the output spatial dimensions.
     out_H, out_W = get_conv_shape((H, W), (HH, WW), conv_param)
 
-    # Initialise the output.
+    # Initialize the output.
     out = np.zeros([N, F, out_H, out_W])
 
     # Naive convolution loop.
