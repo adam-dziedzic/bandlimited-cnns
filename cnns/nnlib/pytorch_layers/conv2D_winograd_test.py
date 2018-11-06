@@ -27,10 +27,20 @@ class TestPyTorchConv1d(unittest.TestCase):
                       [3.0, 2.0, 1.0],
                       [4.0, 1.0, -2.0]]]])
         expect = torch.nn.functional.conv2d(x, y)
-        result = Winograd().winograd_F_2_3(x, y)
+        result = Winograd.winograd_F_2_3(x, y)
         np.testing.assert_array_almost_equal(
             x=expect, y=result,
             err_msg="The expected array x and computed y are not almost equal.")
+
+    def testWinograd(self):
+        x = torch.randint(-3, 3, (2,3,6,6), dtype=torch.float)
+        y = torch.randint(-3, 3, (3,3,3,3), dtype=torch.float)
+        expect = torch.nn.functional.conv2d(x, y)
+        result = Winograd.main(x, y)
+        np.testing.assert_array_almost_equal(
+            x=expect, y=result,
+            err_msg="The expected array x and computed y are not almost equal.")
+
 
 
 if __name__ == '__main__':
