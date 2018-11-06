@@ -7,6 +7,8 @@ Created on Fri Sep 07 17:20:19 2018
 
 import os
 import sys
+import pathlib
+import logging
 
 import argparse
 import keras
@@ -55,6 +57,13 @@ from cnns.nnlib.datasets.ucr.dataset import AddChannel
 
 # from memory_profiler import profile
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+consoleLog = logging.StreamHandler()
+logger.addHandler(consoleLog)
+
+current_file_name = __file__.split("/")[-1].split(".")[0]
+
 try:
     import apex
 except ImportError:
@@ -72,15 +81,26 @@ print("current working directory: ", dir_path)
 data_folder = "TimeSeriesDatasets"
 # ucr_path = os.path.join(dir_path, os.pardir, data_folder)
 ucr_path = os.path.join(os.pardir, data_folder)
-results_folder = "results"
 
-num_epochs = 1  # 300
+results_folder_name = "results"
+results_dir = os.path.join(os.curdir, results_folder_name)
+pathlib.Path(results_dir).mkdir(parents=True, exist_ok=True)
+# if not os.path.exists(results_dir):
+#     os.makedirs(results_dir)
+
+models_folder_name = "models"
+models_dir = os.path.join(os.curdir, models_folder_name)
+pathlib.Path(models_dir).mkdir(parents=True, exist_ok=True)
+# if not os.path.exists(models_dir):
+#     os.makedirs(models_dir)
+
+num_epochs = 10  # 300
 
 plt.switch_backend('agg')
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch TimeSeries')
-min_batch_size = 64
+min_batch_size = 16
 parser.add_argument('--min_batch_size', type=int, default=min_batch_size,
                     metavar='N',
                     help='input batch size for training (default: {})'.format(
@@ -91,7 +111,7 @@ parser.add_argument('--test_batch_size', type=int, default=min_batch_size,
 parser.add_argument('--epochs', type=int, default=num_epochs, metavar='N',
                     help='number of epochs to train (default: {})'.format(
                         num_epochs))
-learning_rate = 0.01
+learning_rate = 0.001
 parser.add_argument('--lr', type=float, default=learning_rate, metavar='LR',
                     help='learning rate (default: {})'.format(
                         learning_rate))
@@ -104,7 +124,7 @@ parser.add_argument('--seed', type=int, default=31, metavar='S',
 parser.add_argument('--log-interval', type=int, default=1, metavar='N',
                     help='how many batches to wait before logging training '
                          'status')
-parser.add_argument("--optimizer_type", default="MOMENTUM",
+parser.add_argument("--optimizer_type", default="ADAM",
                     # ADAM_FLOAT16, ADAM, MOMENTUM
                     help="the type of the optimizer, please choose from: " +
                          ",".join(OptimizerType.get_names()))
@@ -118,14 +138,21 @@ parser.add_argument("-w", "--workers", default=4, type=int,
                          "loaded in the main process")
 parser.add_argument("-n", "--net", default="fcnn",
                     help="the type of net: alexnet, densenet, resnet, fcnn.")
-parser.add_argument("-d", "--datasets", default="cifar10",
+parser.add_argument("--model_path",
+                    # default="no_model",
+                    # default="2018-11-06-21-05-48-dataset-50words-preserve-energy-90-test-accuracy-12.5.model",
+                    default="2018-11-06-21-19-51-dataset-50words-preserve-energy-90-test-accuracy-12.5.model",
+                    # no_model
+                    # 2018-11-06-21-05-48-dataset-50words-preserve-energy-90-test-accuracy-12.5.model
+                    help="The path to a saved model.")
+parser.add_argument("-d", "--datasets", default="debug",
                     help="the type of datasets: all, debug, cifar10, mnist.")
 parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
 parser.add_argument('--preserve_energy', nargs="+", type=int,
-                    default=[50],
+                    default=[90],
                     help="How much energy should be preserved in the "
                          "frequency representation of the signal? This "
                          "is the compression in the FFT domain.")
@@ -136,10 +163,10 @@ parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
 parser.add_argument("-g", "--is_debug", default="TRUE",  # TRUE or FALSE
                     help="is it the debug mode execution: " + ",".join(
                         DebugMode.get_names()))
-parser.add_argument("--sample_count_limit", default=64, type=int,
+parser.add_argument("--sample_count_limit", default=16, type=int,
                     help="number of samples taken from the dataset "
                          "(0 - inactive)")
-parser.add_argument("-c", "--conv_type", default="FFT2D",
+parser.add_argument("-c", "--conv_type", default="FFT1D",
                     # "FFT1D", "FFT2D", "STANDARD", "STANDARD2D", "AUTOGRAD",
                     # "SIMPLE_FFT"
                     help="the type of convolution, SPECTRAL_PARAM is with the "
@@ -150,7 +177,7 @@ parser.add_argument("--compress_type", default="STANDARD",
                     # "STANDARD", "BIG_COEFF", "LOW_COEFF"
                     help="the type of compression to be applied: " + ",".join(
                         CompressType.get_names()))
-parser.add_argument("--network_type", default="LE_NET",
+parser.add_argument("--network_type", default="FCNN_STANDARD",
                     # "FCNN_STANDARD", "FCNN_SMALL", "LE_NET"
                     help="the type of network: " + ",".join(
                         NetworkType.get_names()))
@@ -414,7 +441,8 @@ class FCNNPytorch(nn.Module):
     # @profile
     def __init__(self, input_size, num_classes, in_channels,
                  dtype=torch.float32, kernel_sizes=[8, 5, 3],
-                 out_channels=[128, 256, 128], strides=[1, 1, 1]):
+                 out_channels=[128, 256, 128], strides=[1, 1, 1],
+                 preserve_energy=100):
         """
         Create the FCNN model in PyTorch.
 
@@ -437,6 +465,7 @@ class FCNNPytorch(nn.Module):
         self.conv_type = ConvType[args.conv_type]
         is_debug = True if DebugMode[args.is_debug] is DebugMode.TRUE else False
         self.is_debug = is_debug
+        self.preserve_energy = preserve_energy
 
         self.relu = nn.ReLU(inplace=True)
         # For the "same" mode for the convolution, pad the input.
@@ -444,7 +473,8 @@ class FCNNPytorch(nn.Module):
 
         conv = Conv(kernel_sizes=kernel_sizes, in_channels=in_channels,
                     out_channels=out_channels, strides=strides,
-                    padding=conv_pads, is_debug=self.is_debug)
+                    padding=conv_pads, is_debug=self.is_debug,
+                    preserve_energy=preserve_energy)
 
         index = 0
         self.conv0 = conv.get_conv(index=index)
@@ -796,9 +826,9 @@ def main(dataset_name, preserve_energy):
     """
     is_debug = True if DebugMode[args.is_debug] is DebugMode.TRUE else False
     dataset_log_file = os.path.join(
-        results_folder, get_log_time() + "-dataset-" + str(dataset_name) + \
-                        "-preserve-energy-" + str(preserve_energy) + \
-                        ".log")
+        results_folder_name, get_log_time() + "-dataset-" + str(dataset_name) + \
+                             "-preserve-energy-" + str(preserve_energy) + \
+                             ".log")
     DATASET_HEADER = HEADER + ",dataset," + str(dataset_name) + \
                      "-current-preserve-energy-" + str(preserve_energy) + "\n"
     with open(dataset_log_file, "a") as file:
@@ -974,19 +1004,28 @@ def main(dataset_name, preserve_energy):
                             dtype=dtype, batch_size=batch_size,
                             preserve_energy=preserve_energy,
                             flat_size=flat_size)
+
+    # https://pytorch.org/docs/master/notes/serialization.html
+    if args.model_path != "no_model":
+        model.load_state_dict(
+            torch.load(os.path.join(models_dir, args.model_path)))
+        msg = "loaded model: " + args.model_path
+        logger.info(msg)
+        print(msg)
+
     model.to(device)
     if dtype is torch.float16:
         # model.half()  # convert to half precision
         model = network_to_half(model)
-        """
-        You want to make sure that the BatchNormalization layers use float32 for 
-        accumulation or you will have convergence issues.
-        https://discuss.pytorch.org/t/training-with-half-precision/11815
-        """
-        # for layer in model.modules():
-        #     if isinstance(layer, nn.BatchNorm1d) or isinstance(layer,
-        #                                                        nn.BatchNorm2d):
-        #         layer.float()
+    """
+    You want to make sure that the BatchNormalization layers use float32 for 
+    accumulation or you will have convergence issues.
+    https://discuss.pytorch.org/t/training-with-half-precision/11815
+    """
+    # for layer in model.modules():
+    #     if isinstance(layer, nn.BatchNorm1d) or isinstance(layer,
+    #                                                        nn.BatchNorm2d):
+    #         layer.float()
 
     params = model.parameters()
     eps = 1e-8
@@ -1030,12 +1069,21 @@ def main(dataset_name, preserve_energy):
                 test_accuracy) + "," + str(
                 time.time() - epoch_start_time) + "\n")
 
-        # Metric: select the best model based on the best train loss (minimal).
-        if train_loss < min_train_loss:
-            min_train_loss = train_loss
-            max_train_accuracy = train_accuracy
-            min_test_loss = test_loss
-            max_test_accuracy = test_accuracy
+    # Metric: select the best model based on the best train loss (minimal).
+    if train_loss < min_train_loss:
+        min_train_loss = train_loss
+        max_train_accuracy = train_accuracy
+        min_test_loss = test_loss
+        max_test_accuracy = test_accuracy
+
+        model_path = os.path.join(models_dir,
+                                  get_log_time() + "-dataset-" + str(
+                                      dataset_name) + \
+                                  "-preserve-energy-" + str(
+                                      preserve_energy) + \
+                                  "-test-accuracy-" + str(
+                                      test_accuracy) + ".model")
+        torch.save(model.state_dict(), model_path)
 
     with open(global_log_file, "a") as file:
         file.write(dataset_name + "," + str(min_train_loss) + "," + str(
@@ -1047,7 +1095,7 @@ def main(dataset_name, preserve_energy):
 if __name__ == '__main__':
     start_time = time.time()
     hostname = socket.gethostname()
-    global_log_file = os.path.join(results_folder,
+    global_log_file = os.path.join(results_folder_name,
                                    get_log_time() + "-ucr-fcnn.log")
     args_dict = vars(args)
     args_str = ",".join(
@@ -1071,14 +1119,14 @@ if __name__ == '__main__':
     elif args.datasets == "mnist":
         flist = ["mnist"]
     elif args.datasets == "debug":
-        # flist = ["50words"]
+        flist = ["50words"]
         # flist = ["cifar10"]
         # flist = ["zTest"]
         # flist = ["zTest50words"]
         # flist = ["InlineSkate"]
         # flist = ["Adiac"]
         # flist = ["HandOutlines"]
-        flist = ["ztest"]
+        # flist = ["ztest"]
         # flist = ["Cricket_X"]
         # flist = ['50words', 'Adiac', 'ArrowHead', 'Beef', 'BeetleFly',
         #         'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
@@ -1144,7 +1192,7 @@ if __name__ == '__main__':
     for dataset_name in flist:
         for preserve_energy in preserve_energies:
             print("Dataset: ", dataset_name)
-            print("preserve energy:, ", preserve_energy)
+            print("preserve energy: ", preserve_energy)
             with open(global_log_file, "a") as file:
                 file.write("dataset name: " + dataset_name + "\n" +
                            "preserve energy: " + str(preserve_energy) + "\n")
