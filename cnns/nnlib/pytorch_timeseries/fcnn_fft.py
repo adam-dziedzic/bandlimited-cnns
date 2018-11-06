@@ -139,9 +139,9 @@ parser.add_argument("-w", "--workers", default=4, type=int,
 parser.add_argument("-n", "--net", default="fcnn",
                     help="the type of net: alexnet, densenet, resnet, fcnn.")
 parser.add_argument("--model_path",
-                    # default="no_model",
+                    default="no_model",
                     # default="2018-11-06-21-05-48-dataset-50words-preserve-energy-90-test-accuracy-12.5.model",
-                    default="2018-11-06-21-19-51-dataset-50words-preserve-energy-90-test-accuracy-12.5.model",
+                    # default="2018-11-06-21-19-51-dataset-50words-preserve-energy-90-test-accuracy-12.5.model",
                     # no_model
                     # 2018-11-06-21-05-48-dataset-50words-preserve-energy-90-test-accuracy-12.5.model
                     help="The path to a saved model.")
