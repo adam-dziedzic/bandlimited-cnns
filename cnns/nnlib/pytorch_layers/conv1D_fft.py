@@ -36,9 +36,11 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import get_elem_size
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_tensors
 from cnns.nnlib.pytorch_layers.pytorch_utils import cuda_mem_empty
 from cnns.nnlib.pytorch_layers.pytorch_utils import cuda_mem_show
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
 # from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul
 from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import CompressType
+from cnns.nnlib.utils.general_utils import plot_signal_freq
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -196,6 +198,16 @@ class Conv1dfftFunction(torch.autograd.Function):
         del x
 
         if is_debug:
+            data_point = 0
+            data_channel = 0
+            xfft_signal = xfft[data_point, data_channel]
+            spectrum = get_spectrum(xfft_signal)
+            spectrum_np = spectrum.numpy()
+            plot_signal_freq(spectrum_np,
+                             title=f"data_point {data_point}, "
+                                   f"data_channel {data_channel},"
+                                   f" conv {conv_index}",
+                             xlabel="Frequency")
             cuda_mem_show(info="input fft")
 
         # The last dimension (-1) has size 2 as it represents the complex
@@ -271,6 +283,16 @@ class Conv1dfftFunction(torch.autograd.Function):
                           onesided=True)
         del filter
         if is_debug:
+            filter_bank = 0
+            filter_channel = 0
+            yfft_signal = yfft[filter_bank, filter_channel]
+            spectrum = get_spectrum(yfft_signal)
+            spectrum_np = spectrum.numpy()
+            plot_signal_freq(spectrum_np,
+                             title=f"filter bank {filter_bank}, "
+                                   f"filter channel {filter_channel},"
+                                   f" conv {conv_index}",
+                             xlabel="Frequency")
             cuda_mem_show(info="filter fft")
 
         if is_debug:
@@ -303,34 +325,34 @@ class Conv1dfftFunction(torch.autograd.Function):
                 xfft = retain_low_coef(xfft, index_back=index_back_fft)
                 yfft = retain_low_coef(yfft, index_back=index_back_fft)
 
-        # if is_debug is True:
-        #     if half_fft_compressed_size is None:
-        #         percent_retained_signal = 100
-        #     else:
-        #         percent_retained_signal = 100 * (
-        #                 half_fft_compressed_size / init_half_fft_size)
-        #     preserved_energy, squared = get_full_energy_simple(xfft)
-        #     del squared
-        #     # The xfft can be only with zeros thus the full energy is zero.
-        #     percent_preserved_energy = 0.0
-        #     if full_energy > 0.0:
-        #         percent_preserved_energy = preserved_energy / full_energy * 100
-        #     msg = "conv_name," + "conv" + str(
-        #         conv_index) + ",index_back_fft," + str(
-        #         index_back_fft) + ",raw signal length," + str(
-        #         W) + ",fft_size," + str(
-        #         fft_size) + ",init_half_fft_size," + str(
-        #         init_half_fft_size) + ",half_fft_compressed_size," + str(
-        #         half_fft_compressed_size) + (
-        #               ",percent of preserved energy,") + str(
-        #         percent_preserved_energy) + (
-        #               ",percent of retained signal,") + str(
-        #         percent_retained_signal) + ",fft_size_filter," + str(
-        #         fft_size_filter) + ",half_filter_fft_size," + str(
-        #         yfft.shape[-2]) + ",new-line"
-        #     print(msg)
-        #     with open(additional_log_file, "a") as file:
-        #         file.write(msg + "\n")
+        if is_debug is True:
+            if half_fft_compressed_size is None:
+                percent_retained_signal = 100
+            else:
+                percent_retained_signal = 100 * (
+                        half_fft_compressed_size / init_half_fft_size)
+            preserved_energy, squared = get_full_energy_simple(xfft)
+            del squared
+            # The xfft can be only with zeros thus the full energy is zero.
+            percent_preserved_energy = 0.0
+            if full_energy > 0.0:
+                percent_preserved_energy = preserved_energy / full_energy * 100
+            msg = "conv_name," + "conv" + str(
+                conv_index) + ",index_back_fft," + str(
+                index_back_fft) + ",raw signal length," + str(
+                W) + ",fft_size," + str(
+                fft_size) + ",init_half_fft_size," + str(
+                init_half_fft_size) + ",half_fft_compressed_size," + str(
+                half_fft_compressed_size) + (
+                      ",percent of preserved energy,") + str(
+                percent_preserved_energy) + (
+                      ",percent of retained signal,") + str(
+                percent_retained_signal) + ",fft_size_filter," + str(
+                fft_size_filter) + ",half_filter_fft_size," + str(
+                yfft.shape[-2]) + ",new-line"
+            print(msg)
+            with open(additional_log_file, "a") as file:
+                file.write(msg + "\n")
 
         # # 2 is for the complex numbers
         # output = torch.zeros([N, F, xfft.size()[-2], 2], dtype=xfft.dtype,

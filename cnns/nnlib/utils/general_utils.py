@@ -1,14 +1,19 @@
 import time
-
+import os
+import pathlib
+import matplotlib
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 from enum import Enum
 
+plots_folder_name = "plots"
+plots_dir = os.path.join(os.curdir, plots_folder_name)
+pathlib.Path(plots_dir).mkdir(parents=True, exist_ok=True)
 
 def get_log_time():
-    return time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
+    return time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
 
 
 additional_log_file = "additional-info-" + get_log_time() + ".log"
@@ -87,6 +92,10 @@ class TensorType(EnumWithNames):
 
 
 class NextPower2(BoolEnumWithNames):
+    TRUE = 1
+    FALSE = 2
+
+class Visualize(BoolEnumWithNames):
     TRUE = 1
     FALSE = 2
 
@@ -176,7 +185,24 @@ def plot_signal(signal, title="signal", xlabel="Time"):
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel('Amplitude')
+    # %matplotlib inline
+    # https://www.pyimagesearch.com/2015/08/24/resolved-matplotlib-figures-not-showing-up-or-displaying/
+    # Change the backend to display the graphs.
+    """
+    Resolving this matplotlib  issue involves manually installing dependencies 
+    via apt-get  and adjusting the matplotlib backend to use TkAgg , followed by 
+    compiling and installing matplotlib  from source. Afterwards, the issue 
+    seems to be resolved.
+    pip uninstall matplotlib
+    sudo apt-get install python-matplotlib
+    sudo apt-get install tcl-dev tk-dev python-tk python3-tk
+    git clone https://github.com/matplotlib/matplotlib.git
+    cd matplotlib
+    python setup.py install
+    """
+    matplotlib.use("TkAgg")
     plt.show()
+    plt.savefig(os.path.join(plots_dir, get_log_time() + "-" + title + ".png"))
 
 
 def plot_signal_freq(signal, title="signal", xlabel="Frequency"):

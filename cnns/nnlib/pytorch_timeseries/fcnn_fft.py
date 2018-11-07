@@ -12,7 +12,6 @@ import logging
 
 import argparse
 import keras
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import socket
@@ -46,6 +45,7 @@ from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import TensorType
 from cnns.nnlib.utils.general_utils import NextPower2
+from cnns.nnlib.utils.general_utils import Visualize
 from cnns.nnlib.utils.general_utils import DynamicLossScale
 from cnns.nnlib.utils.general_utils import DebugMode
 from cnns.nnlib.utils.general_utils import additional_log_file
@@ -96,7 +96,7 @@ pathlib.Path(models_dir).mkdir(parents=True, exist_ok=True)
 
 num_epochs = 10  # 300
 
-plt.switch_backend('agg')
+# plt.switch_backend('agg')
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch TimeSeries')
@@ -140,6 +140,7 @@ parser.add_argument("-n", "--net", default="fcnn",
                     help="the type of net: alexnet, densenet, resnet, fcnn.")
 parser.add_argument("--model_path",
                     default="no_model",
+                    # default = "2018-11-07-00-00-27-dataset-50words-preserve-energy-90-test-accuracy-58.46153846153846.model",
                     # default="2018-11-06-21-05-48-dataset-50words-preserve-energy-90-test-accuracy-12.5.model",
                     # default="2018-11-06-21-19-51-dataset-50words-preserve-energy-90-test-accuracy-12.5.model",
                     # no_model
@@ -163,7 +164,7 @@ parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
 parser.add_argument("-g", "--is_debug", default="TRUE",  # TRUE or FALSE
                     help="is it the debug mode execution: " + ",".join(
                         DebugMode.get_names()))
-parser.add_argument("--sample_count_limit", default=16, type=int,
+parser.add_argument("--sample_count_limit", default=0, type=int,
                     help="number of samples taken from the dataset "
                          "(0 - inactive)")
 parser.add_argument("-c", "--conv_type", default="FFT1D",
@@ -190,6 +191,11 @@ parser.add_argument("--next_power2", default="TRUE",
                     help="should we extend the input to the length of a power "
                          "of 2 before taking its fft? " + ",".join(
                         NextPower2.get_names()))
+parser.add_argument("--visualize", default="TRUE",
+                    # "TRUE", "FALSE"
+                    help="should we visualize the activations map after each "
+                         "of the convolutional layers? " + ",".join(
+                        Visualize.get_names()))
 parser.add_argument('--static_loss_scale', type=float, default=1,
                     help="""Static loss scale, positive power of 2 values can 
                     improve fp16 convergence.""")
@@ -1008,7 +1014,8 @@ def main(dataset_name, preserve_energy):
     # https://pytorch.org/docs/master/notes/serialization.html
     if args.model_path != "no_model":
         model.load_state_dict(
-            torch.load(os.path.join(models_dir, args.model_path)))
+            torch.load(os.path.join(models_dir, args.model_path),
+                       map_location=device))
         msg = "loaded model: " + args.model_path
         logger.info(msg)
         print(msg)
@@ -1045,6 +1052,16 @@ def main(dataset_name, preserve_energy):
     # max = choose the best model.
     min_train_loss = min_test_loss = sys.float_info.max
     max_train_accuracy = max_test_accuracy = 0.0
+
+    if Visualize[args.visualize] is True:
+        test_loss, test_accuracy = test(model, test_loader=test_loader,
+                                        data_type="test", dtype=dtype)
+        with open(global_log_file, "a") as file:
+            file.write(
+                "visualize," + dataset_name + "," + str(test_loss) + "," + str(
+                    test_accuracy) + "," + str(get_log_time()) + "\n")
+        return
+
     dataset_start_time = time.time()
     for epoch in range(1, args.epochs + 1):
         epoch_start_time = time.time()
@@ -1069,21 +1086,21 @@ def main(dataset_name, preserve_energy):
                 test_accuracy) + "," + str(
                 time.time() - epoch_start_time) + "\n")
 
-    # Metric: select the best model based on the best train loss (minimal).
-    if train_loss < min_train_loss:
-        min_train_loss = train_loss
-        max_train_accuracy = train_accuracy
-        min_test_loss = test_loss
-        max_test_accuracy = test_accuracy
+        # Metric: select the best model based on the best train loss (minimal).
+        if train_loss < min_train_loss:
+            min_train_loss = train_loss
+            max_train_accuracy = train_accuracy
+            min_test_loss = test_loss
+            max_test_accuracy = test_accuracy
 
-        model_path = os.path.join(models_dir,
-                                  get_log_time() + "-dataset-" + str(
-                                      dataset_name) + \
-                                  "-preserve-energy-" + str(
-                                      preserve_energy) + \
-                                  "-test-accuracy-" + str(
-                                      test_accuracy) + ".model")
-        torch.save(model.state_dict(), model_path)
+            model_path = os.path.join(models_dir,
+                                      get_log_time() + "-dataset-" + str(
+                                          dataset_name) + \
+                                      "-preserve-energy-" + str(
+                                          preserve_energy) + \
+                                      "-test-accuracy-" + str(
+                                          test_accuracy) + ".model")
+            torch.save(model.state_dict(), model_path)
 
     with open(global_log_file, "a") as file:
         file.write(dataset_name + "," + str(min_train_loss) + "," + str(

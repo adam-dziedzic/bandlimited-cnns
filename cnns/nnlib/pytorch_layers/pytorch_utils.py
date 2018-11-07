@@ -18,6 +18,7 @@ from functools import reduce
 from cnns.nnlib.utils.log_utils import get_logger
 from cnns.nnlib.utils.log_utils import set_up_logging
 import logging
+import math
 
 logger = get_logger(name=__name__)
 logger.setLevel(logging.DEBUG)
@@ -473,6 +474,26 @@ def get_full_energy(x):
     # sum of squared values of the signal
     full_energy = torch.sum(squared).item()
     return full_energy, squared
+
+
+def get_spectrum(xfft):
+    """
+
+    :param xfft: input signal in the frequency domain with complex numbers
+    represented as an additional dimension with 2 values (real and complex
+    parts)
+    :return: the squeezed spectrum (sqrt(pow(real_part, 2) +
+    pow(complex_part, 2)
+
+    >>> xfft = tensor([[1.0, 3.0], [4.0, 0.0], [-1.0, 2.0]])
+    >>> spectrum = get_spectrum(xfft)
+    >>> expected = tensor([math.sqrt(10.0), 4.0, math.sqrt(5.0)])
+    >>> np.testing.assert_array_almost_equal(x=spectrum, y=expected, err_msg=f"The obtained value {spectrum} is different than the expected value {expected}.")
+    """
+    squared = torch.add(torch.pow(xfft.narrow(-1, 0, 1), 2),
+                        torch.pow(xfft.narrow(-1, 1, 1), 2))
+    spectrum = torch.sqrt(squared).squeeze()
+    return spectrum
 
 
 def get_full_energy_simple(x):
