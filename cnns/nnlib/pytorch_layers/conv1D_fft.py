@@ -41,6 +41,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
 from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import plot_signal_freq
+from cnns.nnlib.utils.general_utils import plot_signal
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -105,8 +106,30 @@ class Conv1dfftFunction(torch.autograd.Function):
         # if is_debug:
         #     gpu_profile(frame=sys._getframe(), event='line', arg=None)
 
+        # reverse which side of a signal is cut off: head or tail
+        is_lead_reversed = False
         if is_debug:
             print(f"execute forward pass 1D for layer index {conv_index}")
+            data_point = 0
+            data_channel = 0
+            x_signal = x[data_point, data_channel]
+            np_signal = x_signal.detach().numpy()
+            print("np_signal: ", np_signal)
+            plot_signal(np_signal,
+                        title=f"data_point {data_point}, "
+                              f"data_channel {data_channel},"
+                              f" conv {conv_index} time domain",
+                        xlabel="Time")
+            filter_bank = 0
+            filter_channel = 0
+            filter_signal = filter[filter_bank, filter_channel]
+            np_filter = filter_signal.detach().numpy()
+            print("np_filter: ", np_filter)
+            plot_signal(np_filter,
+                             title=f"filter bank {filter_bank}, "
+                                   f"filter channel {filter_channel},"
+                                   f" conv {conv_index} time domain",
+                             xlabel="Time")
             cuda_mem_show(info="forward start")
 
         device = x.device
@@ -202,11 +225,12 @@ class Conv1dfftFunction(torch.autograd.Function):
             data_channel = 0
             xfft_signal = xfft[data_point, data_channel]
             spectrum = get_spectrum(xfft_signal)
-            spectrum_np = spectrum.numpy()
-            plot_signal_freq(spectrum_np,
+            data_spectrum_np = spectrum.numpy()
+            print("data spectrum np: ", data_spectrum_np)
+            plot_signal_freq(data_spectrum_np,
                              title=f"data_point {data_point}, "
                                    f"data_channel {data_channel},"
-                                   f" conv {conv_index}",
+                                   f" conv {conv_index} spectral",
                              xlabel="Frequency")
             cuda_mem_show(info="input fft")
 
@@ -254,8 +278,13 @@ class Conv1dfftFunction(torch.autograd.Function):
             # We request at least one coefficient to remain.
             half_fft_compressed_size = max(1, half_fft_compressed_size)
             # xfft = xfft[:, :, :half_fft_compressed_size, :]
-            xfft_compressed = xfft.narrow(dim=2, start=0,
-                                          length=half_fft_compressed_size)
+            if is_lead_reversed:
+                # The last dimension if for the real and imaginary part of a
+                # complex number.
+                xfft_compressed = xfft[..., -half_fft_compressed_size:, :]
+            else:
+                xfft_compressed = xfft.narrow(dim=2, start=0,
+                                              length=half_fft_compressed_size)
             del xfft
             xfft = xfft_compressed
 
@@ -287,11 +316,12 @@ class Conv1dfftFunction(torch.autograd.Function):
             filter_channel = 0
             yfft_signal = yfft[filter_bank, filter_channel]
             spectrum = get_spectrum(yfft_signal)
-            spectrum_np = spectrum.numpy()
-            plot_signal_freq(spectrum_np,
+            filter_spectrum_np = spectrum.numpy()
+            print("filter_spectrum_np: ", filter_spectrum_np)
+            plot_signal_freq(filter_spectrum_np,
                              title=f"filter bank {filter_bank}, "
                                    f"filter channel {filter_channel},"
-                                   f" conv {conv_index}",
+                                   f" conv {conv_index} spectral",
                              xlabel="Frequency")
             cuda_mem_show(info="filter fft")
 
@@ -300,8 +330,11 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         if half_fft_compressed_size is not None:
             # yfft = yfft[:, :, :half_fft_compressed_size, :]
-            yfft_compressed = yfft.narrow(dim=-2, start=0,
-                                          length=half_fft_compressed_size)
+            if is_lead_reversed:
+                yfft_compressed = yfft[..., -half_fft_compressed_size:, :]
+            else:
+                yfft_compressed = yfft.narrow(dim=-2, start=0,
+                                              length=half_fft_compressed_size)
             del yfft
             yfft = yfft_compressed
 
@@ -472,12 +505,23 @@ class Conv1dfftFunction(torch.autograd.Function):
         need_input_grad = ctx.needs_input_grad[0]
         need_filter_grad = ctx.needs_input_grad[1]
         need_bias_grad = ctx.needs_input_grad[2]
-
         for tensor_obj in ctx.saved_tensors:
             del tensor_obj
         omit_objs = [id(ctx)]
+        conv_index = from_tensor(conv_index)  # for the debug/test purposes
 
         if is_debug:
+            print("Conv layer index: ", conv_index)
+            dout_point = 0
+            dout_channel = 0
+            dout_signal = dout[dout_point, dout_channel]
+            np_dout = dout_signal.detach().numpy()
+            print("np_dout: ", np_dout)
+            plot_signal(np_dout,
+                        title=f"dout_point {dout_point}, "
+                              f"dout_channel {dout_channel},"
+                              f" conv {conv_index} time domain",
+                        xlabel="Time")
             total_size = 0
             for tensor_obj in ctx.saved_tensors:
                 total_size += tensor_obj.numel() * get_elem_size(tensor_obj)
@@ -493,7 +537,6 @@ class Conv1dfftFunction(torch.autograd.Function):
         WW = from_tensor(WW)
         fft_size = from_tensor(fft_size)
         # is_manual is already a tensor.
-        conv_index = from_tensor(conv_index)  # for the debug/test purposes
         compress_type = CompressType(from_tensor(compress_type))
         is_debug = True if is_debug == 1 else False
         preserve_energy = from_tensor(preserve_energy)
@@ -502,7 +545,6 @@ class Conv1dfftFunction(torch.autograd.Function):
         if is_debug:
             print("execute backward pass 1D")
             cuda_mem_show(info="backward start", omit_objs=omit_objs)
-            print("Conv layer index: ", conv_index)
 
         # if is_debug:
         #     gpu_profile(frame=sys._getframe(), event='line', arg=None)
@@ -557,6 +599,17 @@ class Conv1dfftFunction(torch.autograd.Function):
         del dout
 
         if is_debug:
+            dout_point = 0
+            dout_channel = 0
+            dout_signal = doutfft[dout_point, dout_channel]
+            dout_spectrum = get_spectrum(dout_signal)
+            dout_spectrum_np = dout_spectrum.numpy()
+            print("dout spectrum np: ", dout_spectrum_np)
+            plot_signal_freq(dout_spectrum_np,
+                             title=f"dout_point {dout_point}, "
+                                   f"dout_channel {dout_channel},"
+                                   f" conv {conv_index} spectral",
+                             xlabel="Frequency")
             cuda_mem_show(info="gradient fft", omit_objs=omit_objs)
 
         # If the compression was done in the forward pass, then we have to

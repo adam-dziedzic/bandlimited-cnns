@@ -139,8 +139,8 @@ parser.add_argument("-w", "--workers", default=4, type=int,
 parser.add_argument("-n", "--net", default="fcnn",
                     help="the type of net: alexnet, densenet, resnet, fcnn.")
 parser.add_argument("--model_path",
-                    default="no_model",
-                    # default = "2018-11-07-00-00-27-dataset-50words-preserve-energy-90-test-accuracy-58.46153846153846.model",
+                    # default="no_model",
+                    default = "2018-11-07-00-00-27-dataset-50words-preserve-energy-90-test-accuracy-58.46153846153846.model",
                     # default="2018-11-06-21-05-48-dataset-50words-preserve-energy-90-test-accuracy-12.5.model",
                     # default="2018-11-06-21-19-51-dataset-50words-preserve-energy-90-test-accuracy-12.5.model",
                     # no_model
@@ -1053,7 +1053,7 @@ def main(dataset_name, preserve_energy):
     min_train_loss = min_test_loss = sys.float_info.max
     max_train_accuracy = max_test_accuracy = 0.0
 
-    if Visualize[args.visualize] is True:
+    if Visualize[args.visualize] is True and is_debug is True:
         test_loss, test_accuracy = test(model, test_loader=test_loader,
                                         data_type="test", dtype=dtype)
         with open(global_log_file, "a") as file:

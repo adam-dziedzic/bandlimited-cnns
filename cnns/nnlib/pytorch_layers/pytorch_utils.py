@@ -695,7 +695,8 @@ def preserve_energy_index(xfft, energy_rate=None, index_back=None):
     return len(xfft)
 
 
-def preserve_energy_index_back(xfft, preserve_energy_rate=None):
+def preserve_energy_index_back(xfft, preserve_energy_rate=None,
+                               is_reversed=False):
     """
     Give index_back for the given energy rate.
 
@@ -740,11 +741,16 @@ def preserve_energy_index_back(xfft, preserve_energy_rate=None):
     current_energy = 0.0
     preserved_energy = full_energy * preserve_energy_rate / 100.0
     index = 0
+    increment = 1
+    if is_reversed:
+        index = input_length - 1
+        increment = -1
     # Accumulate the energy (and increment the index) until the required
     # preserved energy is reached.
-    while current_energy < preserved_energy and index < input_length:
+    while current_energy < preserved_energy and (
+            index < input_length and index >= 0):
         current_energy += squared[index]
-        index += 1
+        index += increment
     if current_energy < preserved_energy:
         raise AssertionError("We have to accumulate at least preserve energy! "
                              "The index is too low.")
