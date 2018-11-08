@@ -186,8 +186,7 @@ def save_object(obj, filename):
     with open(filename, "wb") as output:
         pickle.dump(obj, output)
 
-
-def plot_signal(signal, title="signal", xlabel="Time"):
+def plot_signal_raw(signal, title="signal", xlabel=""):
     # matplotlib.use("TkAgg")
     # matplotlib.use("agg")
     matplotlib.use("Qt5Agg")
@@ -218,10 +217,13 @@ def plot_signal(signal, title="signal", xlabel="Time"):
                                  counter) + ".png"))
     plt.close()
 
+def plot_signal_time(signal, title="signal", xlabel="Time"):
+    pass
+    # plot_signal_raw(signal, title, xlabel)
 
 def plot_signal_freq(signal, title="signal", xlabel="Frequency"):
     pass
-    # plot_signal(signal, title, xlabel)
+    # plot_signal_raw(signal, title, xlabel)
 
 
 def plot_signals(x, y, title="", xlabel="Time", ylabel="Amplitude",
@@ -327,8 +329,8 @@ if __name__ == "__main__":
     dout_point = 0
     dout_channel = 0
     conv_index = 0
-    plot_signal(np_dout,
-                title=f"dout_point {dout_point}, "
+    plot_signal_time(np_dout,
+                     title=f"dout_point {dout_point}, "
                       f"dout_channel {dout_channel},"
                       f" conv {conv_index}",
-                xlabel="Time")
+                     xlabel="Time")

@@ -41,7 +41,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
 from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import plot_signal_freq
-from cnns.nnlib.utils.general_utils import plot_signal
+from cnns.nnlib.utils.general_utils import plot_signal_time
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -115,17 +115,17 @@ class Conv1dfftFunction(torch.autograd.Function):
             x_signal = x[data_point, data_channel]
             np_signal = x_signal.cpu().detach().numpy()
             print("np_signal: ", np_signal)
-            plot_signal(np_signal,
-                        title=f"data_point {data_point}, "
-                              f"data_channel {data_channel},"
-                              f" conv {conv_index} time domain",
-                        xlabel="Time")
+            plot_signal_time(np_signal,
+                             title=f"data_point {data_point}, "
+                                   f"data_channel {data_channel},"
+                                   f" conv {conv_index} time domain",
+                             xlabel="Time")
             filter_bank = 0
             filter_channel = 0
             filter_signal = filter[filter_bank, filter_channel]
             np_filter = filter_signal.cpu().detach().numpy()
             print("np_filter: ", np_filter)
-            plot_signal(np_filter,
+            plot_signal_time(np_filter,
                              title=f"filter bank {filter_bank}, "
                                    f"filter channel {filter_channel},"
                                    f" conv {conv_index} time domain",
@@ -517,11 +517,11 @@ class Conv1dfftFunction(torch.autograd.Function):
             dout_signal = dout[dout_point, dout_channel]
             np_dout = dout_signal.cpu().detach().numpy()
             print("np_dout: ", np_dout)
-            plot_signal(np_dout,
-                        title=f"dout_point {dout_point}, "
-                              f"dout_channel {dout_channel},"
-                              f" conv {conv_index} time domain",
-                        xlabel="Time")
+            plot_signal_time(np_dout,
+                             title=f"dout_point {dout_point}, "
+                                   f"dout_channel {dout_channel},"
+                                   f" conv {conv_index} time domain",
+                             xlabel="Time")
             total_size = 0
             for tensor_obj in ctx.saved_tensors:
                 total_size += tensor_obj.numel() * get_elem_size(tensor_obj)

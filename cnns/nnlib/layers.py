@@ -977,8 +977,8 @@ def convolve1D_fft_new(x, w, fftsize, out_size, preserve_energy_rate=1.0):
     """
     xfft = fft(x, fftsize)
     filterfft = np.fft.fft(w, fftsize)
-    plot_signal(np.abs(xfft), "full signal")
-    plot_signal(np.abs(filterfft), "full filter")
+    plot_signal_time(np.abs(xfft), "full signal")
+    plot_signal_time(np.abs(filterfft), "full filter")
     if preserve_energy_rate is not None:
         initial_energy = np.sum(np.abs(xfft) ** 2)
         half_fftsize = fftsize // 2
@@ -1005,8 +1005,8 @@ def convolve1D_fft_new(x, w, fftsize, out_size, preserve_energy_rate=1.0):
         print("coefficients preserved: ", index)
         xfft = xfft[:index]
         filterfft = filterfft[:index]
-        plot_signal(np.abs(xfft), "compressed signal")
-        plot_signal(np.abs(filterfft), "compressed filter")
+        plot_signal_time(np.abs(xfft), "compressed signal")
+        plot_signal_time(np.abs(filterfft), "compressed filter")
     # xfft = xfft / norm(xfft)
     # filterfft = filterfft / norm(filterfft)
     out = xfft * np.conj(filterfft)
@@ -1453,7 +1453,7 @@ def compress_fft_1D_fast(x, y_len):
     # in the input and output of the fft
     xfft = fft(x, fft_len) / np.sqrt(fft_len)
     # print("energy of uncompressed xfft: ", energy(np.abs(xfft)))
-    plot_signal(np.abs(xfft), title="xfft before compression")
+    plot_signal_time(np.abs(xfft), title="xfft before compression")
     discard_count = (x_len - y_len) // 2 + (fft_len - x_len) // 2
     # print("discard count: ", discard_count)
     half_fft_len = fft_len // 2
@@ -1461,16 +1461,16 @@ def compress_fft_1D_fast(x, y_len):
     xfft[half_fft_len - discard_count:half_fft_len] = zeros
     xfft[half_fft_len:half_fft_len + discard_count] = zeros
     # print("energy of compressed xfft: ", energy(np.abs(xfft)))
-    plot_signal(np.abs(xfft), title="xfft after compression")
+    plot_signal_time(np.abs(xfft), title="xfft after compression")
     # print("xfft len after compression: ", len(xfft))
     # print("expected y_len: ", y_len)
     y = ifft(xfft) * np.sqrt(fft_len)
     # print("size of the output: ", len(y))
     y = np.real(y)
     # print("energy of y before truncation: ", energy(y))
-    plot_signal(y, "y after ifft and real")
+    plot_signal_time(y, "y after ifft and real")
     y = y[:y_len]
-    plot_signal(y, "y after truncation to y_len")
+    plot_signal_time(y, "y after truncation to y_len")
     # y = y * energy(x) / energy(y) # scale the signal
     # print("energy ratio: ", energy(y) / energy(x))
     # print("len ratio: ", x_len / y_len)
