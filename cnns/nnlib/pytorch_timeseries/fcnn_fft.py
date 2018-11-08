@@ -153,7 +153,7 @@ parser.add_argument("-i", "--index_back", default=0, type=int,
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
 parser.add_argument('--preserve_energy', nargs="+", type=int,
-                    default=[100],
+                    default=[10, 50, 90, 98, 99, 100],
                     help="How much energy should be preserved in the "
                          "frequency representation of the signal? This "
                          "is the compression in the FFT domain.")
@@ -167,7 +167,7 @@ parser.add_argument("-g", "--is_debug", default="TRUE",  # TRUE or FALSE
 parser.add_argument("--sample_count_limit", default=16, type=int,
                     help="number of samples taken from the dataset "
                          "(0 - inactive)")
-parser.add_argument("-c", "--conv_type", default="STANDARD",
+parser.add_argument("-c", "--conv_type", default="FFT1D",
                     # "FFT1D", "FFT2D", "STANDARD", "STANDARD2D", "AUTOGRAD",
                     # "SIMPLE_FFT"
                     help="the type of convolution, SPECTRAL_PARAM is with the "
@@ -191,7 +191,7 @@ parser.add_argument("--next_power2", default="TRUE",
                     help="should we extend the input to the length of a power "
                          "of 2 before taking its fft? " + ",".join(
                         NextPower2.get_names()))
-parser.add_argument("--visualize", default="TRUE",
+parser.add_argument("--visualize", default="FALSE",
                     # "TRUE", "FALSE"
                     help="should we visualize the activations map after each "
                          "of the convolutional layers? " + ",".join(

@@ -209,7 +209,7 @@ def plot_signal(signal, title="signal", xlabel="Time"):
     cd matplotlib
     python setup.py install
     """
-    plt.show()
+    # plt.show()
     global counter
     counter += 1
     plt.savefig(os.path.join(plots_dir,
