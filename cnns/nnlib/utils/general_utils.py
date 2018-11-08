@@ -219,7 +219,8 @@ def plot_signal(signal, title="signal", xlabel="Time"):
 
 
 def plot_signal_freq(signal, title="signal", xlabel="Frequency"):
-    plot_signal(signal, title, xlabel)
+    pass
+    # plot_signal(signal, title, xlabel)
 
 
 def plot_signals(x, y, title="", xlabel="Time", ylabel="Amplitude",
