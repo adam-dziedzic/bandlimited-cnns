@@ -189,7 +189,8 @@ def save_object(obj, filename):
 
 def plot_signal(signal, title="signal", xlabel="Time"):
     # matplotlib.use("TkAgg")
-    matplotlib.use("agg")
+    # matplotlib.use("agg")
+    # matplotlib.use("Qt5Agg")
     plt.plot(range(0, len(signal)), signal)
     plt.title(title)
     plt.xlabel(xlabel)
