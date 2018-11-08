@@ -94,7 +94,7 @@ pathlib.Path(models_dir).mkdir(parents=True, exist_ok=True)
 # if not os.path.exists(models_dir):
 #     os.makedirs(models_dir)
 
-num_epochs = 10  # 300
+num_epochs = 1  # 300
 
 # plt.switch_backend('agg')
 
@@ -139,8 +139,8 @@ parser.add_argument("-w", "--workers", default=4, type=int,
 parser.add_argument("-n", "--net", default="fcnn",
                     help="the type of net: alexnet, densenet, resnet, fcnn.")
 parser.add_argument("--model_path",
-                    # default="no_model",
-                    default = "2018-11-07-00-00-27-dataset-50words-preserve-energy-90-test-accuracy-58.46153846153846.model",
+                    default="no_model",
+                    # default = "2018-11-07-00-00-27-dataset-50words-preserve-energy-90-test-accuracy-58.46153846153846.model",
                     # default="2018-11-06-21-05-48-dataset-50words-preserve-energy-90-test-accuracy-12.5.model",
                     # default="2018-11-06-21-19-51-dataset-50words-preserve-energy-90-test-accuracy-12.5.model",
                     # no_model
@@ -153,7 +153,7 @@ parser.add_argument("-i", "--index_back", default=0, type=int,
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
 parser.add_argument('--preserve_energy', nargs="+", type=int,
-                    default=[90],
+                    default=[100],
                     help="How much energy should be preserved in the "
                          "frequency representation of the signal? This "
                          "is the compression in the FFT domain.")
@@ -164,10 +164,10 @@ parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
 parser.add_argument("-g", "--is_debug", default="TRUE",  # TRUE or FALSE
                     help="is it the debug mode execution: " + ",".join(
                         DebugMode.get_names()))
-parser.add_argument("--sample_count_limit", default=0, type=int,
+parser.add_argument("--sample_count_limit", default=16, type=int,
                     help="number of samples taken from the dataset "
                          "(0 - inactive)")
-parser.add_argument("-c", "--conv_type", default="FFT1D",
+parser.add_argument("-c", "--conv_type", default="STANDARD",
                     # "FFT1D", "FFT2D", "STANDARD", "STANDARD2D", "AUTOGRAD",
                     # "SIMPLE_FFT"
                     help="the type of convolution, SPECTRAL_PARAM is with the "

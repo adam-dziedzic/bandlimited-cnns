@@ -113,7 +113,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             data_point = 0
             data_channel = 0
             x_signal = x[data_point, data_channel]
-            np_signal = x_signal.detach().numpy()
+            np_signal = x_signal.cpu().detach().numpy()
             print("np_signal: ", np_signal)
             plot_signal(np_signal,
                         title=f"data_point {data_point}, "
@@ -123,7 +123,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             filter_bank = 0
             filter_channel = 0
             filter_signal = filter[filter_bank, filter_channel]
-            np_filter = filter_signal.detach().numpy()
+            np_filter = filter_signal.cpu().detach().numpy()
             print("np_filter: ", np_filter)
             plot_signal(np_filter,
                              title=f"filter bank {filter_bank}, "
@@ -225,7 +225,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             data_channel = 0
             xfft_signal = xfft[data_point, data_channel]
             spectrum = get_spectrum(xfft_signal)
-            data_spectrum_np = spectrum.numpy()
+            data_spectrum_np = spectrum.cpu().numpy()
             print("data spectrum np: ", data_spectrum_np)
             plot_signal_freq(data_spectrum_np,
                              title=f"data_point {data_point}, "
@@ -316,7 +316,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             filter_channel = 0
             yfft_signal = yfft[filter_bank, filter_channel]
             spectrum = get_spectrum(yfft_signal)
-            filter_spectrum_np = spectrum.numpy()
+            filter_spectrum_np = spectrum.cpu().numpy()
             print("filter_spectrum_np: ", filter_spectrum_np)
             plot_signal_freq(filter_spectrum_np,
                              title=f"filter bank {filter_bank}, "
@@ -515,7 +515,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             dout_point = 0
             dout_channel = 0
             dout_signal = dout[dout_point, dout_channel]
-            np_dout = dout_signal.detach().numpy()
+            np_dout = dout_signal.cpu().detach().numpy()
             print("np_dout: ", np_dout)
             plot_signal(np_dout,
                         title=f"dout_point {dout_point}, "
@@ -603,7 +603,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             dout_channel = 0
             dout_signal = doutfft[dout_point, dout_channel]
             dout_spectrum = get_spectrum(dout_signal)
-            dout_spectrum_np = dout_spectrum.numpy()
+            dout_spectrum_np = dout_spectrum.cpu().numpy()
             print("dout spectrum np: ", dout_spectrum_np)
             plot_signal_freq(dout_spectrum_np,
                              title=f"dout_point {dout_point}, "
