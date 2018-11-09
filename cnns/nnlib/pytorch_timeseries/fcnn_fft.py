@@ -136,8 +136,6 @@ parser.add_argument("-w", "--workers", default=4, type=int,
                     help="number of workers to fetch data for pytorch data "
                          "loader, 0 means that the data will be "
                          "loaded in the main process")
-parser.add_argument("-n", "--net", default="fcnn",
-                    help="the type of net: alexnet, densenet, resnet, fcnn.")
 parser.add_argument("--model_path",
                     default="no_model",
                     # default = "2018-11-07-00-00-27-dataset-50words-preserve-energy-90-test-accuracy-58.46153846153846.model",
