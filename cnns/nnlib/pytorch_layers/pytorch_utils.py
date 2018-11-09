@@ -757,6 +757,149 @@ def preserve_energy_index_back(xfft, preserve_energy_rate=None,
     return input_length - index
 
 
+def preserve_energy2D(xfft, yfft, preserve_energy_rate=None):
+    """
+    If we zero-out the tail elements from the xfft signal, then the
+    corresponding elements from yfft can also be removed since they contribute
+    nothing for the element-wise multiplications.
+
+    Given data xfft and filter yfft (in the frequency domain) after adding
+    elements one by one to xfft until the
+    given preserve_energy_rate is achieved. We add the coefficient becuase
+    usually only a few of them are retained from the beginning of the signal,
+    and most of them from the tail of the signal are discarded. We also zero-out
+    corresponing elements from the filter yfft.
+
+    :param xfft: the input fft-ed signal
+    :param yfft: the input fft-ed filter
+    :param energy_rate: how much energy of xfft should be preserved?
+    :return: xfft and yfft after retaining only the lead coefficients in xfft
+    that preserve the given energy rate.
+
+    Example of an image:
+    N=1, C=1, H=3, W=3
+    [[
+    [[1,2,3],
+    [4,5,6],
+    [7,8,9]]
+    ]]
+
+    The input here is in frequency domain with complex numbers.
+    [[
+    [[1, 0], [2, 0], [3, 0]],
+    [[4, 0], [5,0], [6,0]],
+    [[7,0],[8,0],[9,0]]
+    ]]
+
+    >>> xfft = tensor([[[[[5, 6], [3, 4], [1, 2]], [[5, 6], [3, 4], [1, 2]]], [[[0, 1], [1, 0], [2, 2]], [[0, 1], [1, 0], [2, 2]]]]])
+    >>> yfft = tensor([[[[[5, 6], [3, 4], [1, 2]], [[5, 6], [3, 4], [1, 2]]], [[[0, 1], [1, 0], [2, 2]], [[0, 1], [1, 0], [2, 2]]]]])
+    >>> np.testing.assert_equal(xfft.size(), [1, 2, 2, 3, 2])
+    >>> xfft2, yfft2 = preserve_energy2D_index_back(xfft, yfft, 100)
+    >>> np.testing.assert_equal(xfft2, xfft)
+    >>> np.testing.assert_equal(yfft2, yfft)
+
+    Test index back for width.
+    >>> xfft = torch.tensor([
+    ... [ # first image
+    ... [[[2, 2], [1, 1], [0, 1]]], # first channel
+    ... [[[2, 2], [1, 0], [1, 1]]] # second channel
+    ... ],
+    ... [ # second image
+    ... [[[2, 2], [1, 0], [0, 1]]], # fist channel
+    ... [[[2, 2], [1, 0], [0, 2]]]  # second channel
+    ... ]
+    ... ], dtype=torch.float)
+    >>> yfft = xfft
+    >>> xfft2, yfft2 = preserve_energy2D_index_back(xfft, yfft, 50)
+    >>> np.testing.assert_equal(xfft2, )
+    >>> np.testing.assert_equal(index_back_H, 0)
+
+    Test index back for height.
+    >>> xfft = torch.tensor([
+    ... [ # first image
+    ... [[[5, 6], [3, 4], [1, 2]]], # first channel
+    ... [[[0, 1], [1, 0], [2, 2]]] # second channel
+    ... ],
+    ... [ # second image
+    ... [[[-1, 3], [1, 0], [0, 2]]], # fist channel
+    ... [[[1, 1], [1, -2], [3, 2]]]  # second channel
+    ... ]
+    ... ])
+    >>> xfft = torch.transpose(xfft, 2, 3)
+    >>> index_back_H, index_back_W = preserve_energy2D_index_back(xfft, 50)
+    >>> np.testing.assert_equal(index_back_W, 0)
+    >>> np.testing.assert_equal(index_back_H, 2)
+
+
+    >>> xfft = torch.tensor(
+    ... [ # 1 image
+    ... [ # 1 channel
+    ... [[[8, 0], [2, 5], [3, 0]], # 1st row
+    ... [[4, 0], [5, 0], [2, 0]],
+    ... [[-1, 1], [1, 0], [1, 0]]]
+    ... ]
+    ... ])
+    >>> index_back_H, index_back_W = preserve_energy2D_index_back(xfft, 50)
+    >>> np.testing.assert_equal(index_back_H, 1)
+    >>> np.testing.assert_equal(index_back_W, 1)
+
+    >>> xfft = tensor([[[[[5, 6], [3, 4], [1, 2]], [[5, 6], [3, 4], [1, 2]]], [[[0, 1], [1, 0], [0, 1]], [[0, 1], [1, 0], [0, 1]]]]])
+    >>> np.testing.assert_equal(xfft.size(), [1, 2, 2, 3, 2])
+    >>> index_back_H, index_back_W = preserve_energy2D_index_back(xfft, 60)
+    >>> np.testing.assert_equal(index_back_H, 0)
+    >>> np.testing.assert_equal(index_back_W, 1)
+    """
+    if len(xfft.shape) != 5:
+        """The dimensions: N, C, H, W, X (complex number)."""
+        raise ValueError(
+            "The expected input is fft-ed 2D map in a batch with channels.")
+    # The third dimension from the end is the length because this is a complex
+    # 2D input, the second dimension from the end is the width.
+    input_H = xfft.shape[-3]
+    input_W = xfft.shape[-2]
+    if xfft is None or len(xfft) == 0:
+        return 0
+    squared = torch.add(torch.pow(xfft[..., 0], 2),
+                        torch.pow(xfft[..., 1], 2))
+    # Sum the batch and channel dimensions (we first reduce to many channels -
+    # first 0, and then to only a single channel - next 0 (the dimensions
+    # collapse one by one).
+    squared = squared.sum(dim=0).sum(dim=0)
+    assert squared.shape[0] == input_H
+    assert squared.shape[1] == input_W
+
+    # Sum of squared values of the signal of length input_length.
+    full_energy = torch.sum(squared).item()
+    current_energy = 0.0
+    preserved_energy = full_energy * preserve_energy_rate / 100.0
+    index_H = 0
+    index_W = 0
+    # Accumulate the energy (and increment the index) until the required
+    # preserved energy is reached.
+    while current_energy < preserved_energy and (
+            index_W < input_W and index_H < input_H):
+        """
+        Try to generate a square output first.
+        """
+        current_energy += get_squared_energy(squared, index_W)
+        index_W += 1
+        index_H += 1
+
+    # Then proceed along the columns and then rows.
+    while current_energy < preserved_energy and index_W < input_W:
+        col_energy = torch.sum(squared[:, index_W]).item()
+        current_energy += col_energy
+        index_W += 1
+    while current_energy < preserved_energy and index_H < input_H:
+        row_energy = torch.sum(squared[index_H, :]).item()
+        current_energy += row_energy
+        index_H += 1
+    if current_energy < preserved_energy:
+        raise AssertionError("We have to accumulate at least preserve energy! "
+                             "The index_H and index_W are too low.")
+    return input_H - index_H, input_W - index_W
+
+
 def preserve_energy2D_index_back(xfft, preserve_energy_rate=None):
     """
     Give index_back_H and index_back_W for the given energy rate.
@@ -860,18 +1003,31 @@ def preserve_energy2D_index_back(xfft, preserve_energy_rate=None):
     full_energy = torch.sum(squared).item()
     current_energy = 0.0
     preserved_energy = full_energy * preserve_energy_rate / 100.0
+    # iterate vertically
     index_H = 0
+    index_H_W = 0
+    # iterate horizontally
     index_W = 0
+    index_W_H = 0
+    # alternate the increment
+    is_increment_H = True
     # Accumulate the energy (and increment the index) until the required
     # preserved energy is reached.
     while current_energy < preserved_energy and (
             index_W < input_W and index_H < input_H):
-        """
-        Try to generate a square output first.
-        """
-        current_energy += get_squared_energy(squared, index_W)
-        index_W += 1
-        index_H += 1
+        if is_increment_H:
+            current_energy += squared[index_H][index_H_W]
+            # This energy was counted so zero it out.
+            squared[index_H][index_H_W] = 0
+            index_H += 1
+            if index_H >= index_W_H:
+                index_W_H += 1
+            is_increment_H = False
+        else:
+
+            increment_H = 1
+            increment_W = 0
+        if index_H
 
     # Then proceed along the columns and then rows.
     while current_energy < preserved_energy and index_W < input_W:
