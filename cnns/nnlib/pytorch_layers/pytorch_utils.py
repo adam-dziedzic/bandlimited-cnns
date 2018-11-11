@@ -757,24 +757,14 @@ def preserve_energy_index_back(xfft, preserve_energy_rate=None,
     return input_length - index
 
 
-def preserve_energy2D(xfft, yfft, preserve_energy_rate=None):
+def preserve_energy2D_index_back(xfft, preserve_energy_rate=None):
     """
-    If we zero-out the tail elements from the xfft signal, then the
-    corresponding elements from yfft can also be removed since they contribute
-    nothing for the element-wise multiplications.
-
-    Given data xfft and filter yfft (in the frequency domain) after adding
-    elements one by one to xfft until the
-    given preserve_energy_rate is achieved. We add the coefficient becuase
-    usually only a few of them are retained from the beginning of the signal,
-    and most of them from the tail of the signal are discarded. We also zero-out
-    corresponing elements from the filter yfft.
+    Give index_back_H and index_back_W for the given energy rate.
 
     :param xfft: the input fft-ed signal
-    :param yfft: the input fft-ed filter
     :param energy_rate: how much energy of xfft should be preserved?
-    :return: xfft and yfft after retaining only the lead coefficients in xfft
-    that preserve the given energy rate.
+    :return: the index back for H and W (how many coefficients from both ends of
+    the signal should be discarded)?
 
     Example of an image:
     N=1, C=1, H=3, W=3
@@ -792,26 +782,24 @@ def preserve_energy2D(xfft, yfft, preserve_energy_rate=None):
     ]]
 
     >>> xfft = tensor([[[[[5, 6], [3, 4], [1, 2]], [[5, 6], [3, 4], [1, 2]]], [[[0, 1], [1, 0], [2, 2]], [[0, 1], [1, 0], [2, 2]]]]])
-    >>> yfft = tensor([[[[[5, 6], [3, 4], [1, 2]], [[5, 6], [3, 4], [1, 2]]], [[[0, 1], [1, 0], [2, 2]], [[0, 1], [1, 0], [2, 2]]]]])
     >>> np.testing.assert_equal(xfft.size(), [1, 2, 2, 3, 2])
-    >>> xfft2, yfft2 = preserve_energy2D_index_back(xfft, yfft, 100)
-    >>> np.testing.assert_equal(xfft2, xfft)
-    >>> np.testing.assert_equal(yfft2, yfft)
+    >>> index_back_H, index_back_W = preserve_energy2D_index_back(xfft, 100)
+    >>> np.testing.assert_equal(index_back_H, 0)
+    >>> np.testing.assert_equal(index_back_W, 0)
 
     Test index back for width.
     >>> xfft = torch.tensor([
     ... [ # first image
-    ... [[[2, 2], [1, 1], [0, 1]]], # first channel
-    ... [[[2, 2], [1, 0], [1, 1]]] # second channel
+    ... [[[5, 6], [3, 4], [1, 2]]], # first channel
+    ... [[[0, 1], [1, 0], [2, 2]]] # second channel
     ... ],
     ... [ # second image
-    ... [[[2, 2], [1, 0], [0, 1]]], # fist channel
-    ... [[[2, 2], [1, 0], [0, 2]]]  # second channel
+    ... [[[-1, 3], [1, 0], [0, 2]]], # fist channel
+    ... [[[1, 1], [1, -2], [3, 2]]]  # second channel
     ... ]
-    ... ], dtype=torch.float)
-    >>> yfft = xfft
-    >>> xfft2, yfft2 = preserve_energy2D_index_back(xfft, yfft, 50)
-    >>> np.testing.assert_equal(xfft2, )
+    ... ])
+    >>> index_back_H, index_back_W = preserve_energy2D_index_back(xfft, 50)
+    >>> np.testing.assert_equal(index_back_W, 2)
     >>> np.testing.assert_equal(index_back_H, 0)
 
     Test index back for height.
@@ -900,67 +888,17 @@ def preserve_energy2D(xfft, yfft, preserve_energy_rate=None):
     return input_H - index_H, input_W - index_W
 
 
-def preserve_energy2D_index_back(xfft, preserve_energy_rate=None):
+def zero_out_row_span(xfft, row, start_col, end_col=None):
     """
-    Give index_back_H and index_back_W for the given energy rate.
+    Zero out values for all data points, channels, in the given row and column
+    span.
 
-    :param xfft: the input fft-ed signal
-    :param energy_rate: how much energy of xfft should be preserved?
-    :return: the index back for H and W (how many coefficients from both ends of
-    the signal should be discarded)?
-
-    Example of an image:
-    N=1, C=1, H=3, W=3
-    [[
-    [[1,2,3],
-    [4,5,6],
-    [7,8,9]]
-    ]]
-
-    The input here is in frequency domain with complex numbers.
-    [[
-    [[1, 0], [2, 0], [3, 0]],
-    [[4, 0], [5,0], [6,0]],
-    [[7,0],[8,0],[9,0]]
-    ]]
-
-    >>> xfft = tensor([[[[[5, 6], [3, 4], [1, 2]], [[5, 6], [3, 4], [1, 2]]], [[[0, 1], [1, 0], [2, 2]], [[0, 1], [1, 0], [2, 2]]]]])
-    >>> np.testing.assert_equal(xfft.size(), [1, 2, 2, 3, 2])
-    >>> index_back_H, index_back_W = preserve_energy2D_index_back(xfft, 100)
-    >>> np.testing.assert_equal(index_back_H, 0)
-    >>> np.testing.assert_equal(index_back_W, 0)
-
-    Test index back for width.
-    >>> xfft = torch.tensor([
-    ... [ # first image
-    ... [[[5, 6], [3, 4], [1, 2]]], # first channel
-    ... [[[0, 1], [1, 0], [2, 2]]] # second channel
-    ... ],
-    ... [ # second image
-    ... [[[-1, 3], [1, 0], [0, 2]]], # fist channel
-    ... [[[1, 1], [1, -2], [3, 2]]]  # second channel
-    ... ]
-    ... ])
-    >>> index_back_H, index_back_W = preserve_energy2D_index_back(xfft, 50)
-    >>> np.testing.assert_equal(index_back_W, 2)
-    >>> np.testing.assert_equal(index_back_H, 0)
-
-    Test index back for height.
-    >>> xfft = torch.tensor([
-    ... [ # first image
-    ... [[[5, 6], [3, 4], [1, 2]]], # first channel
-    ... [[[0, 1], [1, 0], [2, 2]]] # second channel
-    ... ],
-    ... [ # second image
-    ... [[[-1, 3], [1, 0], [0, 2]]], # fist channel
-    ... [[[1, 1], [1, -2], [3, 2]]]  # second channel
-    ... ]
-    ... ])
-    >>> xfft = torch.transpose(xfft, 2, 3)
-    >>> index_back_H, index_back_W = preserve_energy2D_index_back(xfft, 50)
-    >>> np.testing.assert_equal(index_back_W, 0)
-    >>> np.testing.assert_equal(index_back_H, 2)
-
+    :param xfft: input complex tensor
+    :param row: the row number to zero out value
+    :param start_col: the start col (inclusive, its value is zeroed out)
+    :param end_col: the end col which is not zeroed out (exclusive not zeroed
+    out), by default, zero out all the values to the end of the row
+    :return: the zero out row for the given col range
 
     >>> xfft = torch.tensor(
     ... [ # 1 image
@@ -970,15 +908,237 @@ def preserve_energy2D_index_back(xfft, preserve_energy_rate=None):
     ... [[-1, 1], [1, 0], [1, 0]]]
     ... ]
     ... ])
-    >>> index_back_H, index_back_W = preserve_energy2D_index_back(xfft, 50)
-    >>> np.testing.assert_equal(index_back_H, 1)
-    >>> np.testing.assert_equal(index_back_W, 1)
+    >>> result = zero_out_row_span(xfft, 1, 1, 3)
+    >>> expect = torch.tensor(
+    ... [ # 1 image
+    ... [ # 1 channel
+    ... [[[8, 0], [2, 5], [3, 0]], # 1st row
+    ... [[4, 0], [0.0, 0.0 ], [0, 0]],
+    ... [[-1, 1], [1, 0], [1, 0]]]
+    ... ]
+    ... ])
+    >>> # print("result: ", result)
+    >>> np.testing.assert_array_almost_equal(result, expect)
+    >>> result2 = zero_out_row_span(xfft, 2, 0, 1)
+    >>> expect2 = torch.tensor(
+    ... [ # 1 image
+    ... [ # 1 channel
+    ... [[[8, 0], [2, 5], [3, 0]], # 1st row
+    ... [[4, 0], [0.0, 0.0], [0, 0]],
+    ... [[0, 0], [1, 0], [1, 0]]]
+    ... ]
+    ... ])
+    >>> np.testing.assert_array_almost_equal(result2, expect2)
+    """
+    if end_col is None:
+        # zero out to the end of the row
+        end_col = xfft.shape[3]
+    if end_col > start_col:
+        xfft[:, :, row, start_col:end_col, :] = torch.zeros(xfft.shape[0],
+                                                            xfft.shape[1],
+                                                            end_col - start_col,
+                                                            xfft.shape[4])
+    return xfft
 
-    >>> xfft = tensor([[[[[5, 6], [3, 4], [1, 2]], [[5, 6], [3, 4], [1, 2]]], [[[0, 1], [1, 0], [0, 1]], [[0, 1], [1, 0], [0, 1]]]]])
-    >>> np.testing.assert_equal(xfft.size(), [1, 2, 2, 3, 2])
-    >>> index_back_H, index_back_W = preserve_energy2D_index_back(xfft, 60)
-    >>> np.testing.assert_equal(index_back_H, 0)
-    >>> np.testing.assert_equal(index_back_W, 1)
+
+def zero_out_col_span(xfft, col, start_row, end_row=None):
+    """
+    Zero out values for all data points, channels, in the given column and row
+    span.
+
+    :param xfft: input complex tensor
+    :param col: the col number to zero out value
+    :param start_row: the start row (inclusive, it is zeroed out)
+    :param end_row: the end row (exclusive, it is not zeroed out) - by default,
+    zero out all the values to the end of the column
+    :return: the zero out col for the given row range
+
+    >>> xfft = torch.tensor(
+    ... [ # 1 image
+    ... [ # 1 channel
+    ... [[[8, 0], [2, 5], [3, 0]], # 1st row
+    ... [[4, 0], [5, 0], [2, 0]],
+    ... [[-1, 1], [1, 0], [1, 0]]]
+    ... ]
+    ... ])
+    >>> result = zero_out_col_span(xfft, 1, 0, 3)
+    >>> expect = torch.tensor(
+    ... [ # 1 image
+    ... [ # 1 channel
+    ... [[[8, 0], [0, 0], [3, 0]], # 1st row
+    ... [[4, 0], [0.0, 0.0 ], [2, 0]],
+    ... [[-1, 1], [0, 0], [1, 0]]]
+    ... ]
+    ... ])
+    >>> # print("result: ", result)
+    >>> np.testing.assert_array_almost_equal(result, expect)
+    >>> result2 = zero_out_col_span(xfft, 2, 0, 1)
+    >>> expect2 = torch.tensor(
+    ... [ # 1 image
+    ... [ # 1 channel
+    ... [[[8, 0], [0, 0], [0, 0]], # 1st row
+    ... [[4, 0], [0.0, 0.0], [2, 0]],
+    ... [[-1, 1], [0, 0], [1, 0]]]
+    ... ]
+    ... ])
+    >>> np.testing.assert_array_almost_equal(result2, expect2)
+    >>> result3 = zero_out_col_span(xfft, 0, 1, 3)
+    >>> expect3 = torch.tensor(
+    ... [ # 1 image
+    ... [ # 1 channel
+    ... [[[8, 0], [0, 0], [0, 0]], # 1st row
+    ... [[0, 0], [0.0, 0.0], [2, 0]],
+    ... [[0, 0], [0, 0], [1, 0]]]
+    ... ]
+    ... ])
+    >>> np.testing.assert_array_almost_equal(result3, expect3)
+    """
+    if end_row is None:
+        # zero out to the end of the column
+        end_row = xfft.shape[2]
+    if end_row > start_row:
+        xfft[:, :, start_row:end_row, col, :] = torch.zeros(xfft.shape[0],
+                                                            xfft.shape[1],
+                                                            end_row - start_row,
+                                                            xfft.shape[4])
+    return xfft
+
+
+def preserve_energy2D(xfft, yfft, preserve_energy_rate=None):
+    """
+        If we zero-out the tail elements from the xfft signal, then the
+        corresponding elements from yfft can also be removed since they contribute
+        nothing for the element-wise multiplications.
+
+        Given data xfft and filter yfft (in the frequency domain) after adding
+        elements one by one to xfft until the
+        given preserve_energy_rate is achieved. We add the coefficient becuase
+        usually only a few of them are retained from the beginning of the signal,
+        and most of them from the tail of the signal are discarded. We also zero-out
+        corresponing elements from the filter yfft.
+
+        :param xfft: the input fft-ed signal
+        :param yfft: the input fft-ed filter
+        :param energy_rate: how much energy of xfft should be preserved?
+        :return: xfft and yfft after retaining only the lead coefficients in xfft
+        that preserve the given energy rate.
+
+        Example of an image:
+        N=1, C=1, H=3, W=3
+        [[
+        [[1,2,3],
+        [4,5,6],
+        [7,8,9]]
+        ]]
+
+        The input here is in frequency domain with complex numbers.
+        [[
+        [[1, 0], [2, 0], [3, 0]],
+        [[4, 0], [5,0], [6,0]],
+        [[7,0],[8,0],[9,0]]
+        ]]
+
+        >>> xfft = tensor([[[[[5, 6], [3, 4], [1, 2]], [[5, 6], [3, 4], [1, 2]]], [[[0, 1], [1, 0], [2, 2]], [[0, 1], [1, 0], [2, 2]]]]])
+        >>> yfft = tensor([[[[[5, 6], [3, 4], [1, 2]], [[5, 6], [3, 4], [1, 2]]], [[[0, 1], [1, 0], [2, 2]], [[0, 1], [1, 0], [2, 2]]]]])
+        >>> np.testing.assert_equal(xfft.size(), [1, 2, 2, 3, 2])
+        >>> xfft2, yfft2, index_back_H, index_back_W = preserve_energy2D(xfft.clone(), yfft.clone(), 100)
+        >>> np.testing.assert_equal(xfft2.numpy(), xfft.numpy())
+        >>> np.testing.assert_equal(yfft2.numpy(), yfft.numpy())
+        >>> np.testing.assert_equal(index_back_H, 0)
+        >>> np.testing.assert_equal(index_back_W, 0)
+
+        Test index back for width.
+        >>> xfft = torch.tensor([
+        ... [ # first image
+        ... [[[2, 2], [2, 3], [2, 2]]], # first channel
+        ... [[[2, 2], [2, 2], [2, 2]]] # second channel
+        ... ],
+        ... [ # second image
+        ... [[[1, 1], [1, 2], [1, 1]]], # fist channel
+        ... [[[1, 1], [1, 1], [1, 1]]]  # second channel
+        ... ]
+        ... ], dtype=torch.float)
+        >>> yfft = xfft
+        >>> xfft2, yfft2, index_back_H, index_back_W = preserve_energy2D(xfft, yfft, 50)
+        >>> expect = torch.tensor([
+        ... [ # first image
+        ... [[[2, 2], [2, 3], [2, 2]]], # first channel
+        ... [[[2, 2], [2, 2], [2, 2]]] # second channel
+        ... ],
+        ... [ # second image
+        ... [[[1, 1], [1, 2], [1, 1]]], # fist channel
+        ... [[[1, 1], [1, 1], [1, 1]]]  # second channel
+        ... ]
+        ... ], dtype=torch.float)
+        >>> # print("obtained xfft2: ", xfft2)
+        >>> np.testing.assert_equal(xfft2.numpy(), expect.numpy())
+        >>> np.testing.assert_equal(yfft2.numpy(), expect.numpy())
+        >>> np.testing.assert_equal(index_back_H, 0)
+        >>> np.testing.assert_equal(index_back_W, 1)
+
+        Test index back for height.
+        >>> xfft = torch.tensor([
+        ... [ # first image
+        ... [[[2, 2], [2, 3], [2, 2]]], # first channel
+        ... [[[2, 2], [2, 2], [2, 2]]] # second channel
+        ... ],
+        ... [ # second image
+        ... [[[1, 1], [1, 2], [1, 1]]], # fist channel
+        ... [[[1, 1], [1, 1], [1, 1]]]  # second channel
+        ... ]
+        ... ])
+        >>> xfft = torch.transpose(xfft, 2, 3)
+        >>> yfft = xfft
+        >>> xfft2, yfft2, index_back_H, index_back_W = preserve_energy2D(xfft.clone(), yfft.clone(), 50)
+        >>> np.testing.assert_equal(xfft2.numpy(), xfft.numpy())
+        >>> np.testing.assert_equal(yfft2.numpy(), xfft.numpy())
+        >>> np.testing.assert_equal(index_back_H, 1)
+        >>> np.testing.assert_equal(index_back_W, 0)
+
+
+        >>> xfft = torch.tensor(
+        ... [ # 1 image
+        ... [ # 1 channel
+        ... [[[2, 2], [2, 2], [2, 2]], # 1st row
+        ... [[2, 2], [2, 2], [-2, -2]],  # 2nd row
+        ... [[-2, 2], [-2, 2], [2, 2]]]  # 3rd row
+        ... ]
+        ... ])
+        >>> yfft = torch.tensor(
+        ... [ # 1 image
+        ... [ # 1 channel
+        ... [[[1, 1], [1, 1], [1, 1]], # 1st row
+        ... [[1, 1], [1, 1], [-1, -1]],  # 2nd row
+        ... [[-1, 1], [-1, 1], [1, 1]]]  # 3rd row
+        ... ]
+        ... ])
+        >>> xfft2, yfft2, index_back_H, index_back_W = preserve_energy2D(xfft, yfft, preserve_energy_rate=50)
+        >>> expect_xfft2 = torch.tensor(
+        ... [ # 1 image
+        ... [ # 1 channel
+        ... [[[2, 2], [2, 2], [2, 2]], # 1st row
+        ... [[2, 2], [2, 2], [0, 0]],  # 2nd row
+        ... [[-2, 2], [-2, 2], [2, 2]]]  # 3rd row
+        ... ]
+        ... ])
+        >>> expect_yfft2 = torch.tensor(
+        ... [ # 1 image
+        ... [ # 1 channel
+        ... [[[1, 1], [1, 1], [1, 1]], # 1st row
+        ... [[1, 1], [1, 1], [0, 0]],  # 2nd row
+        ... [[-1, 1], [-1, 1], [1, 1]]]  # 3rd row
+        ... ]
+        ... ])
+        >>> np.testing.assert_equal(expect_xfft2, xfft)
+        >>> np.testing.assert_equal(expect_yfft2, yfft)y
+        >>> np.testing.assert_equal(index_back_H, 1)
+        >>> np.testing.assert_equal(index_back_W, 0)
+
+        >>> xfft = tensor([[[[[5, 6], [3, 4], [1, 2]], [[5, 6], [3, 4], [1, 2]]], [[[0, 1], [1, 0], [0, 1]], [[0, 1], [1, 0], [0, 1]]]]])
+        >>> np.testing.assert_equal(xfft.size(), [1, 2, 2, 3, 2])
+        >>> index_back_H, index_back_W = preserve_energy2D_index_back(xfft, 60)
+        >>> np.testing.assert_equal(index_back_H, 0)
+        >>> np.testing.assert_equal(index_back_W, 1)
     """
     if len(xfft.shape) != 5:
         """The dimensions: N, C, H, W, X (complex number)."""
@@ -1004,44 +1164,71 @@ def preserve_energy2D_index_back(xfft, preserve_energy_rate=None):
     current_energy = 0.0
     preserved_energy = full_energy * preserve_energy_rate / 100.0
     # iterate vertically
-    index_H = 0
-    index_H_W = 0
+    col = 0  # iteration column
+    col_count = input_W  # for code readability
+    row_index = 0  # current vertical iteration index
+    # first count cell in column then in row - this is needed to prevent
+    # counting a given squared (energy) cell twice
+    old_col_index = row_index
     # iterate horizontally
-    index_W = 0
-    index_W_H = 0
-    # alternate the increment
-    is_increment_H = True
-    # Accumulate the energy (and increment the index) until the required
+    row = 0  # try not to overlap the row and col cells
+    row_count = input_H  # for code readability
+    col_index = 0  # current horizontal iteration index
+    # Accumulate the energy (and increment the indexes) until the required
     # preserved energy is reached.
-    while current_energy < preserved_energy and (
-            index_W < input_W and index_H < input_H):
-        if is_increment_H:
-            current_energy += squared[index_H][index_H_W]
-            # This energy was counted so zero it out.
-            squared[index_H][index_H_W] = 0
-            index_H += 1
-            if index_H >= index_W_H:
-                index_W_H += 1
-            is_increment_H = False
-        else:
+    while current_energy < preserved_energy:
+        if row_index == col_index:
+            # Add the corner value (and we need at least one coefficient).
+            current_energy += squared[row_index][col_index]
+            if col < col_count:
+                col += 1
+                if col < col_count:
+                    row_index = 0
+                # otherwise, keep the row_index as a sentinel for the row traversal
+            if row < row_count:
+                row += 1
+                if row < row_count:
+                    col_index = 0
+                # otherwise: keep the col_index as a sentinel for the col traversal
+        if col < col_count:
+            current_energy += squared[row_index][col]
+            row_index += 1
+        if row < row_count and current_energy < preserved_energy:
+            current_energy += squared[row][col_index]
+            col_index += 1
 
-            increment_H = 1
-            increment_W = 0
-        if index_H
-
-    # Then proceed along the columns and then rows.
-    while current_energy < preserved_energy and index_W < input_W:
-        col_energy = torch.sum(squared[:, index_W]).item()
-        current_energy += col_energy
-        index_W += 1
-    while current_energy < preserved_energy and index_H < input_H:
-        row_energy = torch.sum(squared[index_H, :]).item()
-        current_energy += row_energy
-        index_H += 1
     if current_energy < preserved_energy:
-        raise AssertionError("We have to accumulate at least preserve energy! "
-                             "The index_H and index_W are too low.")
-    return input_H - index_H, input_W - index_W
+        raise AssertionError(f"We have to accumulate at least preserve energy: "
+                             f"{preserved_energy}. Accumulated energy is: "
+                             f"{current_energy}.")
+
+    index_back_W = 0
+    if col < col_count:
+        if row_index == 0:
+            # the whole column should be discarded
+            index_back_W = col_count - col
+        else:
+            index_back_W = (col_count -1) - col
+            # zero out part of the column
+            xfft = zero_out_col_span(xfft, col=col, start_row=row_index,
+                                     end_row=row)
+            yfft = zero_out_col_span(yfft, col=col, start_row=row_index,
+                                     end_row=row)
+
+    index_back_H = 0
+    if row < row_count:
+        if col_index == 0:
+            # the whole row should be discarded
+            index_back_H = row_count - row
+        else:
+            index_back_H = (row_count - 1) - row
+            # zero out part of the row
+            xfft = zero_out_row_span(xfft, row=row, start_col=col_index,
+                                     end_col=col)
+            yfft = zero_out_row_span(yfft, row=row, start_col=col_index,
+                                     end_col=col)
+
+    return xfft, yfft, index_back_H, index_back_W
 
 
 def get_squared_energy(squared, index):
