@@ -1038,6 +1038,87 @@ def preserve_energy2D(xfft, yfft, preserve_energy_rate=None):
         [[7,0],[8,0],[9,0]]
         ]]
 
+        >>> xfft = torch.tensor(
+        ... [ # 1 image
+        ... [ # 1 channel
+        ... [[[2, 2], [2, 2], [2, 2]], # 1st row
+        ... [[2, 2], [2, 2], [-2, -2]],  # 2nd row
+        ... [[-2, 2], [-2, 2], [2, 2]]]  # 3rd row
+        ... ]
+        ... ])
+        >>> yfft = torch.tensor(
+        ... [ # 1 image
+        ... [ # 1 channel
+        ... [[[1, 1], [1, 1], [1, 1]], # 1st row
+        ... [[1, 1], [1, 1], [-1, -1]],  # 2nd row
+        ... [[-1, 1], [-1, 1], [1, 1]]]  # 3rd row
+        ... ]
+        ... ])
+        >>> xfft2, yfft2, index_back_H, index_back_W = preserve_energy2D(xfft, yfft, preserve_energy_rate=50)
+        >>> expect_xfft2 = torch.tensor(
+        ... [ # 1 image
+        ... [ # 1 channel
+        ... [[[2, 2], [2, 2], [2, 2]], # 1st row
+        ... [[2, 2], [2, 2], [0, 0]],  # 2nd row
+        ... [[-2, 2], [-2, 2], [0, 0]]]  # 3rd row
+        ... ]
+        ... ])
+        >>> expect_yfft2 = torch.tensor(
+        ... [ # 1 image
+        ... [ # 1 channel
+        ... [[[1, 1], [1, 1], [1, 1]], # 1st row
+        ... [[1, 1], [1, 1], [0, 0]],  # 2nd row
+        ... [[-1, 1], [-1, 1], [0, 0]]]  # 3rd row
+        ... ]
+        ... ])
+        >>> np.testing.assert_equal(expect_xfft2.numpy(), xfft.numpy())
+        >>> np.testing.assert_equal(expect_yfft2.numpy(), yfft.numpy())
+        >>> np.testing.assert_equal(index_back_H, 1)
+        >>> np.testing.assert_equal(index_back_W, 0)
+
+        >>> xfft = torch.tensor(
+        ... [ # 1 image
+        ... [ # 1 channel
+        ... [[[2, 2], [2, 2], [2, 2], [2, 2]], # 1st row
+        ... [[2, 2], [2, 2], [-2, -2], [-2, -2]],  # 2nd row
+        ... [[-2, 2], [-2, 2], [2, 2], [-2, -2]],  # 3rd row
+        ... [[2, 2], [2, 2], [-2, -2], [-2, -2]]]  # 4th row
+        ... ]
+        ... ])
+        >>> yfft = torch.tensor(
+        ... [ # 1 image
+        ... [ # 1 channel
+        ... [[[1, 1], [1, 1], [1, 1], [1, 1]], # 1st row
+        ... [[1, 1], [1, 1], [-1, -1], [1, 1]],  # 2nd row
+        ... [[-1, 1], [-1, 1], [1, 1], [1, 1]],  # 3rd row
+        ... [[-1, 1], [-1, 1], [1, 1], [1, 1]]]  # 4th row
+        ... ]
+        ... ])
+        >>> xfft2, yfft2, index_back_H, index_back_W = preserve_energy2D(xfft, yfft, preserve_energy_rate=40)
+        >>> # print("result xfft2: ", xfft2)
+        >>> expect_xfft2 = torch.tensor(
+        ... [ # 1 image
+        ... [ # 1 channel
+        ... [[[2, 2], [2, 2], [2, 2], [2, 2]], # 1st row
+        ... [[2, 2], [2, 2], [-2, -2], [-2, -2]],  # 2nd row
+        ... [[-2, 2], [0, 0], [0, 0], [-2, -2]],  # 3rd row
+        ... [[2, 2], [2, 2], [-2, -2], [-2, -2]]]  # 4th row
+        ... ]
+        ... ])
+        >>> expect_yfft2 = torch.tensor(
+        ... [ # 1 image
+        ... [ # 1 channel
+        ... [[[1, 1], [1, 1], [1, 1], [1, 1]], # 1st row
+        ... [[1, 1], [1, 1], [-1, -1], [1, 1]],  # 2nd row
+        ... [[-1, 1], [0, 0], [0, 0], [1, 1]],  # 3rd row
+        ... [[-1, 1], [-1, 1], [1, 1], [1, 1]]]  # 4th row
+        ... ]
+        ... ])
+        >>> np.testing.assert_equal(expect_xfft2.numpy(), xfft.numpy())
+        >>> np.testing.assert_equal(expect_yfft2.numpy(), yfft.numpy())
+        >>> np.testing.assert_equal(index_back_H, 1)
+        >>> np.testing.assert_equal(index_back_W, 1)
+
         >>> xfft = tensor([[[[[5, 6], [3, 4], [1, 2]], [[5, 6], [3, 4], [1, 2]]], [[[0, 1], [1, 0], [2, 2]], [[0, 1], [1, 0], [2, 2]]]]])
         >>> yfft = tensor([[[[[5, 6], [3, 4], [1, 2]], [[5, 6], [3, 4], [1, 2]]], [[[0, 1], [1, 0], [2, 2]], [[0, 1], [1, 0], [2, 2]]]]])
         >>> np.testing.assert_equal(xfft.size(), [1, 2, 2, 3, 2])
@@ -1095,48 +1176,28 @@ def preserve_energy2D(xfft, yfft, preserve_energy_rate=None):
         >>> np.testing.assert_equal(index_back_H, 1)
         >>> np.testing.assert_equal(index_back_W, 0)
 
-
-        >>> xfft = torch.tensor(
-        ... [ # 1 image
-        ... [ # 1 channel
-        ... [[[2, 2], [2, 2], [2, 2]], # 1st row
-        ... [[2, 2], [2, 2], [-2, -2]],  # 2nd row
-        ... [[-2, 2], [-2, 2], [2, 2]]]  # 3rd row
-        ... ]
-        ... ])
-        >>> yfft = torch.tensor(
-        ... [ # 1 image
-        ... [ # 1 channel
-        ... [[[1, 1], [1, 1], [1, 1]], # 1st row
-        ... [[1, 1], [1, 1], [-1, -1]],  # 2nd row
-        ... [[-1, 1], [-1, 1], [1, 1]]]  # 3rd row
-        ... ]
-        ... ])
-        >>> xfft2, yfft2, index_back_H, index_back_W = preserve_energy2D(xfft, yfft, preserve_energy_rate=50)
-        >>> expect_xfft2 = torch.tensor(
-        ... [ # 1 image
-        ... [ # 1 channel
-        ... [[[2, 2], [2, 2], [2, 2]], # 1st row
-        ... [[2, 2], [2, 2], [0, 0]],  # 2nd row
-        ... [[-2, 2], [-2, 2], [2, 2]]]  # 3rd row
-        ... ]
-        ... ])
-        >>> expect_yfft2 = torch.tensor(
-        ... [ # 1 image
-        ... [ # 1 channel
-        ... [[[1, 1], [1, 1], [1, 1]], # 1st row
-        ... [[1, 1], [1, 1], [0, 0]],  # 2nd row
-        ... [[-1, 1], [-1, 1], [1, 1]]]  # 3rd row
-        ... ]
-        ... ])
-        >>> np.testing.assert_equal(expect_xfft2, xfft)
-        >>> np.testing.assert_equal(expect_yfft2, yfft)y
-        >>> np.testing.assert_equal(index_back_H, 1)
-        >>> np.testing.assert_equal(index_back_W, 0)
-
-        >>> xfft = tensor([[[[[5, 6], [3, 4], [1, 2]], [[5, 6], [3, 4], [1, 2]]], [[[0, 1], [1, 0], [0, 1]], [[0, 1], [1, 0], [0, 1]]]]])
+        >>> xfft = tensor([[[  # 2 channels, 2 x 3 images
+        ... [[5, 6], [3, 4], [1, 2]],
+        ... [[5, 6], [3, 4], [1, 2]]],
+        ... [[[0, 1], [1, 0], [0, 1]],
+        ... [[0, 1], [1, 0], [0, 1]]]]])
+        >>> squared = torch.add(torch.pow(xfft[..., 0], 2), torch.pow(xfft[..., 1], 2))
+        >>> squared = squared.sum(dim=0).sum(dim=0)
+        >>> expect_squared = tensor([  # 2 x 3 map
+        ... [62, 26, 6],
+        ... [62, 26, 6]])
+        >>> np.testing.assert_equal(expect_squared.numpy(), squared.numpy())
         >>> np.testing.assert_equal(xfft.size(), [1, 2, 2, 3, 2])
-        >>> index_back_H, index_back_W = preserve_energy2D_index_back(xfft, 60)
+        >>> yfft = xfft
+        >>> xfft2, yfft2, index_back_H, index_back_W = preserve_energy2D(xfft.clone(), yfft.clone(), 60)
+        >>> expect_xfft = tensor([[[  # 2 channels, 2 x 3 images
+        ... [[5, 6], [3, 4], [1, 2]],
+        ... [[5, 6], [0, 0], [1, 2]]],
+        ... [[[0, 1], [1, 0], [0, 1]],
+        ... [[0, 1], [0, 0], [0, 1]]]]])
+        >>> expect_yfft = expect_xfft
+        >>> np.testing.assert_equal(xfft2.numpy(), expect_xfft.numpy())
+        >>> np.testing.assert_equal(yfft2.numpy(), expect_yfft.numpy())
         >>> np.testing.assert_equal(index_back_H, 0)
         >>> np.testing.assert_equal(index_back_W, 1)
     """
@@ -1177,7 +1238,7 @@ def preserve_energy2D(xfft, yfft, preserve_energy_rate=None):
     # Accumulate the energy (and increment the indexes) until the required
     # preserved energy is reached.
     while current_energy < preserved_energy:
-        if row_index == col_index:
+        if (row_index == col) and (col_index == row):
             # Add the corner value (and we need at least one coefficient).
             current_energy += squared[row_index][col_index]
             if col < col_count:
@@ -1190,7 +1251,7 @@ def preserve_energy2D(xfft, yfft, preserve_energy_rate=None):
                 if row < row_count:
                     col_index = 0
                 # otherwise: keep the col_index as a sentinel for the col traversal
-        if col < col_count:
+        if col < col_count and current_energy < preserved_energy:
             current_energy += squared[row_index][col]
             row_index += 1
         if row < row_count and current_energy < preserved_energy:
@@ -1210,10 +1271,11 @@ def preserve_energy2D(xfft, yfft, preserve_energy_rate=None):
         else:
             index_back_W = (col_count -1) - col
             # zero out part of the column
+            end_row = min(row + 1, row_count)
             xfft = zero_out_col_span(xfft, col=col, start_row=row_index,
-                                     end_row=row)
+                                     end_row=end_row)
             yfft = zero_out_col_span(yfft, col=col, start_row=row_index,
-                                     end_row=row)
+                                     end_row=end_row)
 
     index_back_H = 0
     if row < row_count:
@@ -1223,10 +1285,11 @@ def preserve_energy2D(xfft, yfft, preserve_energy_rate=None):
         else:
             index_back_H = (row_count - 1) - row
             # zero out part of the row
+            end_col = min(col + 1, col_count)
             xfft = zero_out_row_span(xfft, row=row, start_col=col_index,
-                                     end_col=col)
+                                     end_col=end_col)
             yfft = zero_out_row_span(yfft, row=row, start_col=col_index,
-                                     end_col=col)
+                                     end_col=end_col)
 
     return xfft, yfft, index_back_H, index_back_W
 

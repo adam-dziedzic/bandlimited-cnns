@@ -20,6 +20,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import from_tensor
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_pair
 from cnns.nnlib.pytorch_layers.pytorch_utils import next_power2
 from cnns.nnlib.pytorch_layers.pytorch_utils import preserve_energy2D_index_back
+from cnns.nnlib.pytorch_layers.pytorch_utils import preserve_energy2D
 from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate
 from cnns.nnlib.pytorch_layers.pytorch_utils import to_tensor
 from cnns.nnlib.utils.general_utils import CompressType
@@ -189,8 +190,10 @@ class Conv2dfftFunction(torch.autograd.Function):
 
         index_back_H_fft, index_back_W_fft = None, None
         if preserve_energy is not None and preserve_energy < 100:
-            index_back_H_fft, index_back_W_fft = preserve_energy2D_index_back(
-                xfft, preserve_energy)
+            # index_back_H_fft, index_back_W_fft = preserve_energy2D_index_back(
+            #     xfft, preserve_energy)
+            xfft, yfft, index_back_H_fft, index_back_W_fft = preserve_energy2D(
+                xfft, yfft, preserve_energy)
 
         # Compute how much to compress the fft-ed signal for its width (W).
         half_fft_W = init_half_fft_W
