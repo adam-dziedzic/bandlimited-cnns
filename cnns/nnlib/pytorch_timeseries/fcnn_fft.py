@@ -100,7 +100,7 @@ num_epochs = 3  # 300
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch TimeSeries')
-min_batch_size = 16
+min_batch_size = 64
 parser.add_argument('--min_batch_size', type=int, default=min_batch_size,
                     metavar='N',
                     help='input batch size for training (default: {})'.format(
@@ -162,7 +162,7 @@ parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
 parser.add_argument("-g", "--is_debug", default="TRUE",  # TRUE or FALSE
                     help="is it the debug mode execution: " + ",".join(
                         DebugMode.get_names()))
-parser.add_argument("--sample_count_limit", default=16, type=int,
+parser.add_argument("--sample_count_limit", default=64, type=int,
                     help="number of samples taken from the dataset "
                          "(0 - inactive)")
 parser.add_argument("-c", "--conv_type", default="FFT2D",
