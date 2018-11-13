@@ -535,10 +535,10 @@ class TestPyTorchConv2d(unittest.TestCase):
 
     def test_FunctionBackwardNoCompressionConv2dfft1Image(self):
         x = np.array([[
-                      [[2.0, 1.0, 3.0],
-                        [4.0, 2.0, 1.0],
-                        [-1.0, -2.0, -3.0]]
-                      ]])
+            [[2.0, 1.0, 3.0],
+             [4.0, 2.0, 1.0],
+             [-1.0, -2.0, -3.0]]
+        ]])
         y = np.array([[[[2.0, 1.0], [-1.0, 2.0]]]])
         b = np.array([1.0])
         dtype = torch.float
@@ -884,6 +884,113 @@ class TestPyTorchConv2d(unittest.TestCase):
         np.testing.assert_array_almost_equal(
             x=expect_approximate, y=result,
             err_msg="The expected array x and computed y are not almost equal.")
+
+    def test_rfft_symmetry(self):
+        x = tensor([[1.0, 2.0, 3.0],
+                    [3.0, 4.0, 1.0],
+                    [1.0, 2.0, 1.0]])
+        xfft = torch.rfft(x, signal_ndim=2, onesided=False)
+        print("xfft: ", xfft)
+        self.check_DC_component(x, xfft)
+
+    def check_DC_component(self, x, xfft):
+        sum_x = x.sum()
+        if xfft[0][0][0] != sum_x:
+            raise Exception(
+                "DC component is not at the position of (0,0) in the xfft!")
+        if xfft[0][0][1] != 0.0:
+            raise Exception(
+                "The DC compoenent should be a real value without any imaginary part.")
+
+    def test_rfft_DC_component_even(self):
+        x = tensor([[1.0, 2.0, 3.0, 5.0],
+                    [3.0, 4.0, 1.0, -1.0],
+                    [1.0, 2.0, 1.0, 1.0],
+                    [5.0, 3.0, 0.0, -1.0]])
+        H, W = x.size()
+        assert H == W
+        xfft = torch.rfft(x, signal_ndim=2, onesided=False)
+        print("xfft: ", xfft)
+        Hfft, Wfft, ComplexDim = xfft.size()
+        assert ComplexDim == 2
+        assert Hfft == Wfft
+        assert H == Hfft
+
+        # check that the (0,0) coordinate of the xfft is the DC component
+        # https://homepages.inf.ed.ac.uk/rbf/HIPR2/fourier.htm
+        # F(0,0) represents the DC-component of the image which corresponds to
+        # the average brightness
+        self.check_DC_component(x, xfft)
+        # F(N-1,N-1) represents the highest frequency
+
+    def test_symmetries_even(self):
+        x = tensor([[1.0, 2.0, 3.0, 5.0, -1.0, 2.0],
+                    [3.0, 4.0, 1.0, -1.0, 3.0, 5.0],
+                    [1.0, 2.0, 1.0, 1.0, 0.0, -2.0],
+                    [5.0, 3.0, 0.0, -1.0, -1.0, 0.0],
+                    [3.0, 0.0, 1.0, -1.0, 0.0, -2.0],
+                    [-1.0, -2.0, 1.0, 1.0, 3.0, 1.0], ])
+        xfft = torch.rfft(x, signal_ndim=2, onesided=False)
+        print("xfft: ", xfft)
+        print("expected xfft: ", tensor(
+            [[[40.0000, 0.0000],
+              [9.0000, -6.9282],
+              [4.0000, -1.7321],
+              [6.0000, 0.0000],
+              [4.0000, 1.7321],
+              [9.0000, 6.9282]],
+
+             [[13.0000, -12.1244],
+              [-14.0000, -0.0000],
+              [-8.0000, 10.3923],
+              [-11.0000, 8.6603],
+              [-2.0000, -3.4641],
+              [-8.0000, -13.8564]],
+
+             [[7.0000, -8.6603],
+              [3.0000, -19.0526],
+              [7.0000, 5.1962],
+              [-9.0000, -1.7321],
+              [7.0000, -1.7321],
+              [3.0000, -5.1962]],
+
+             [[-8.0000, 0.0000],
+              [-11.0000, -13.8564],
+              [10.0000, 1.7321],
+              [-2.0000, 0.0000],
+              [10.0000, -1.7321],
+              [-11.0000, 13.8564]],
+
+             [[7.0000, 8.6603],
+              [3.0000, 5.1962],
+              [7.0000, 1.7321],
+              [-9.0000, 1.7321],
+              [7.0000, -5.1962],
+              [3.0000, 19.0526]],
+
+             [[13.0000, 12.1244],
+              [-8.0000, 13.8564],
+              [-2.0000, 3.4641],
+              [-11.0000, -8.6603],
+              [-8.0000, -10.3923],
+              [-14.0000, 0.0000]]]))
+        self.check_DC_component(x, xfft)
+        H, W, _ = xfft.size()
+
+        # Check the symmetries.
+        KeepDim = H // 2
+        middle_col = xfft[:, KeepDim]
+
+        expect_middle_col = torch.mean(torch.cat(xfft[:, KeepDim], xfft[:, -KeepDim]))
+
+    def test_symmetries_odd(self):
+        x = tensor([[1.0, 2.0, 3.0, 5.0, -1.0],
+                    [3.0, 4.0, 1.0, -1.0, 3.0],
+                    [1.0, 2.0, 1.0, 1.0, 0.0],
+                    [5.0, 3.0, 0.0, -1.0, -1.0],
+                    [3.0, 0.0, 1.0, -1.0, 0.0]])
+        xfft = torch.rfft(x, signal_ndim=2, onesided=False)
+        print("xfft: ", xfft)
 
 
 if __name__ == '__main__':
