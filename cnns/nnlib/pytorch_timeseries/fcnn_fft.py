@@ -94,7 +94,7 @@ pathlib.Path(models_dir).mkdir(parents=True, exist_ok=True)
 # if not os.path.exists(models_dir):
 #     os.makedirs(models_dir)
 
-num_epochs = 1  # 300
+num_epochs = 3  # 300
 
 # plt.switch_backend('agg')
 
@@ -151,7 +151,7 @@ parser.add_argument("-i", "--index_back", default=0, type=int,
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
 parser.add_argument('--preserve_energy', nargs="+", type=int,
-                    default=[10, 50, 90, 98, 99, 100],
+                    default=[90],
                     help="How much energy should be preserved in the "
                          "frequency representation of the signal? This "
                          "is the compression in the FFT domain.")
@@ -165,7 +165,7 @@ parser.add_argument("-g", "--is_debug", default="TRUE",  # TRUE or FALSE
 parser.add_argument("--sample_count_limit", default=16, type=int,
                     help="number of samples taken from the dataset "
                          "(0 - inactive)")
-parser.add_argument("-c", "--conv_type", default="FFT1D",
+parser.add_argument("-c", "--conv_type", default="FFT2D",
                     # "FFT1D", "FFT2D", "STANDARD", "STANDARD2D", "AUTOGRAD",
                     # "SIMPLE_FFT"
                     help="the type of convolution, SPECTRAL_PARAM is with the "
@@ -176,7 +176,7 @@ parser.add_argument("--compress_type", default="STANDARD",
                     # "STANDARD", "BIG_COEFF", "LOW_COEFF"
                     help="the type of compression to be applied: " + ",".join(
                         CompressType.get_names()))
-parser.add_argument("--network_type", default="FCNN_STANDARD",
+parser.add_argument("--network_type", default="LE_NET",
                     # "FCNN_STANDARD", "FCNN_SMALL", "LE_NET"
                     help="the type of network: " + ",".join(
                         NetworkType.get_names()))
@@ -1134,8 +1134,8 @@ if __name__ == '__main__':
     elif args.datasets == "mnist":
         flist = ["mnist"]
     elif args.datasets == "debug":
-        flist = ["50words"]
-        # flist = ["cifar10"]
+        # flist = ["50words"]
+        flist = ["cifar10"]
         # flist = ["zTest"]
         # flist = ["zTest50words"]
         # flist = ["InlineSkate"]
