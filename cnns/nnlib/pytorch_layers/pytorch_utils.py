@@ -1207,8 +1207,8 @@ def preserve_energy2D(xfft, yfft, preserve_energy_rate=None):
             "The expected input is fft-ed 2D map in a batch with channels.")
     # The second dimension from the end is the length because this is a complex
     # 2D input.
-    input_W = xfft.shape[-2]
-    input_H = xfft.shape[-3]
+    input_H = xfft.shape[2]
+    input_W = xfft.shape[3]
     if xfft is None or len(xfft) == 0:
         return 0
     squared = torch.add(torch.pow(xfft[..., 0], 2),
@@ -1237,6 +1237,8 @@ def preserve_energy2D(xfft, yfft, preserve_energy_rate=None):
     col_index = 0  # current horizontal iteration index
     # Accumulate the energy (and increment the indexes) until the required
     # preserved energy is reached.
+    # print("col count: ", col_count)
+    # print("row_count: ", row_count)
     while current_energy < preserved_energy:
         if (row_index == col) and (col_index == row):
             # Add the corner value (and we need at least one coefficient).
@@ -1251,10 +1253,27 @@ def preserve_energy2D(xfft, yfft, preserve_energy_rate=None):
                 if row < row_count:
                     col_index = 0
                 # otherwise: keep the col_index as a sentinel for the col traversal
-        if col < col_count and current_energy < preserved_energy:
+        # we have more rows than columns in the energy matrix squared
+        elif col_index == col and row < row_count and row_count > col_count :
+            # move to the next row
+            row += 1
+            col_index = 0
+        # we have more columns than rows in the energy matrix squared
+        elif row_index == row and col < col_count and col_count > row_count:
+            # move to the next column
+            col += 1
+            row_index = 0
+        # iterate through the current column
+        if col < col_count and current_energy < preserved_energy and (
+                row_index < row):
+            # print("col: ", col)
+            # print("row_index: ", row_index)
             current_energy += squared[row_index][col]
             row_index += 1
-        if row < row_count and current_energy < preserved_energy:
+        if row < row_count and current_energy < preserved_energy and (
+                col_index < col):
+            # print("row: ", row)
+            # print("col_index: ", col_index)
             current_energy += squared[row][col_index]
             col_index += 1
 
@@ -1269,7 +1288,7 @@ def preserve_energy2D(xfft, yfft, preserve_energy_rate=None):
             # the whole column should be discarded
             index_back_W = col_count - col
         else:
-            index_back_W = (col_count -1) - col
+            index_back_W = (col_count - 1) - col
             # zero out part of the column
             end_row = min(row + 1, row_count)
             xfft = zero_out_col_span(xfft, col=col, start_row=row_index,
