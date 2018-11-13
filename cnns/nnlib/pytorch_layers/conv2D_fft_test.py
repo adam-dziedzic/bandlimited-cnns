@@ -9,6 +9,7 @@ from cnns.nnlib.layers import conv_forward_naive, conv_backward_naive
 from cnns.nnlib.pytorch_layers.conv2D_fft \
     import Conv2dfftAutograd, Conv2dfftFunction, Conv2dfft
 from cnns.nnlib.pytorch_layers.pytorch_utils import MockContext
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
 from cnns.nnlib.utils.log_utils import get_logger
 from cnns.nnlib.utils.log_utils import set_up_logging
 
@@ -974,6 +975,10 @@ class TestPyTorchConv2d(unittest.TestCase):
               [-11.0000, -8.6603],
               [-8.0000, -10.3923],
               [-14.0000, 0.0000]]]))
+        print("xfft real part: ", xfft[:, :, 0])
+        print("xfft imaginary part: ", xfft[:, :, 1])
+        spectrum = get_spectrum(xfft)
+        print("spectrum: ", spectrum)
         self.check_DC_component(x, xfft)
         H, W, _ = xfft.size()
 
@@ -981,7 +986,8 @@ class TestPyTorchConv2d(unittest.TestCase):
         KeepDim = H // 2
         middle_col = xfft[:, KeepDim]
 
-        expect_middle_col = torch.mean(torch.cat(xfft[:, KeepDim], xfft[:, -KeepDim]))
+        expect_middle_col = torch.mean(
+            torch.cat(xfft[:, KeepDim], xfft[:, -KeepDim]))
 
     def test_symmetries_odd(self):
         x = tensor([[1.0, 2.0, 3.0, 5.0, -1.0],
@@ -991,6 +997,8 @@ class TestPyTorchConv2d(unittest.TestCase):
                     [3.0, 0.0, 1.0, -1.0, 0.0]])
         xfft = torch.rfft(x, signal_ndim=2, onesided=False)
         print("xfft: ", xfft)
+        print("xfft real part: ", xfft[:,:,0])
+        print("xfft imaginary part: ", xfft[:, :, 1])
 
 
 if __name__ == '__main__':
