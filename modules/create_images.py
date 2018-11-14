@@ -2,7 +2,7 @@
 from PIL import Image
 import os
 import numpy as np
-__DEFAULT_PATH = '../Images'
+__DEFAULT_PATH = './Images'
 
 
 def open_image(filename, path=__DEFAULT_PATH):
