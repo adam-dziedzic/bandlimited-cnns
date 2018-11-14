@@ -930,7 +930,7 @@ class TestPyTorchConv2d(unittest.TestCase):
                     [1.0, 2.0, 1.0, 1.0, 0.0, -2.0],
                     [5.0, 3.0, 0.0, -1.0, -1.0, 0.0],
                     [3.0, 0.0, 1.0, -1.0, 0.0, -2.0],
-                    [-1.0, -2.0, 1.0, 1.0, 3.0, 1.0], ])
+                    [-1.0, -2.0, 1.0, 1.0, 3.0, 1.0]])
         xfft = torch.rfft(x, signal_ndim=2, onesided=False)
         print("xfft: ", xfft)
         print("expected xfft: ", tensor(
@@ -977,8 +977,7 @@ class TestPyTorchConv2d(unittest.TestCase):
               [-14.0000, 0.0000]]]))
         print("xfft real part: ", xfft[:, :, 0])
         print("xfft imaginary part: ", xfft[:, :, 1])
-        spectrum = get_spectrum(xfft)
-        print("spectrum: ", spectrum)
+        print("spectrum: ", get_spectrum(xfft))
         self.check_DC_component(x, xfft)
         H, W, _ = xfft.size()
 
@@ -989,16 +988,29 @@ class TestPyTorchConv2d(unittest.TestCase):
         expect_middle_col = torch.mean(
             torch.cat(xfft[:, KeepDim], xfft[:, -KeepDim]))
 
-    def test_symmetries_odd(self):
-        x = tensor([[1.0, 2.0, 3.0, 5.0, -1.0],
+    def test_symmetries_odd_even(self):
+        x = tensor([[[[1.0, 2.0, 3.0, 5.0, -1.0],
                     [3.0, 4.0, 1.0, -1.0, 3.0],
                     [1.0, 2.0, 1.0, 1.0, 0.0],
                     [5.0, 3.0, 0.0, -1.0, -1.0],
-                    [3.0, 0.0, 1.0, -1.0, 0.0]])
+                    [3.0, 0.0, 1.0, -1.0, 0.0]]]])
+        N = 5
+        M = 2
+        KeepDim = M // 2
         xfft = torch.rfft(x, signal_ndim=2, onesided=False)
         print("xfft: ", xfft)
-        print("xfft real part: ", xfft[:,:,0])
-        print("xfft imaginary part: ", xfft[:, :, 1])
+        print("xfft real part: ", xfft[...,0])
+        print("xfft imaginary part: ", xfft[..., 1])
+        print("xfft spectrum: ", get_spectrum(xfft))
+
+        xfft_one = torch.rfft(x, signal_ndim=2, onesided=True)
+        print("xfft_one: ", xfft_one)
+        print("xfft_one real part: ", xfft_one[...,0])
+        print("xfft_one imaginary part: ", xfft_one[..., 1])
+        print("xfft_one spectrum: ", get_spectrum(xfft_one))
+
+        print("xfft spectrum: ", get_spectrum(xfft))
+        print("xfft_one spectrum: ", get_spectrum(xfft_one))
 
 
 if __name__ == '__main__':
