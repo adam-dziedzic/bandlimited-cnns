@@ -8,8 +8,10 @@ from PIL import Image
 from modules.spectral_pool_test import max_pool
 from modules.spectral_pool import spectral_pool
 from modules.frequency_dropout import test_frequency_dropout
-from modules.create_images import open_image, downscale_image
+from modules.create_images import downscale_image
 from cnns.nnlib.pytorch_layers.pytorch_utils import compress_2D_half_test
+from cnns.nnlib.pytorch_layers.pytorch_utils import show2D_spectra_test
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_full_energy
 
 import os
 
@@ -74,7 +76,10 @@ grayscale_images = np.expand_dims(
 )
 print("grayscale_image shape:", grayscale_image.shape)
 
-fig, axes = plt.subplots(4, len(pool_size), figsize=(18, 9),
+subplot_rows = 5
+multiplier = 2
+fig, axes = plt.subplots(subplot_rows, len(pool_size),
+                         figsize=(len(pool_size) * multiplier, subplot_rows * multiplier),
                          sharex=True, sharey=True)
 
 fname = image_path
@@ -126,6 +131,18 @@ for i in range(len(pool_size)):
     index_forward = half_W // pool_size[i]
     index_back = half_W - index_forward
     pytroch_imgs = torch.from_numpy(grayscale_images)
+    img_compress = compress_2D_half_test(x=pytroch_imgs, index_back=index_back)
+    ax.imshow(img_compress[0][0].numpy(), cmap='gray')
+    if not i:
+        ax.set_ylabel('PyTorch\n compress', fontsize=16,
+                      multialignment='center')
+
+for i in range(len(pool_size)):
+    ax = axes[3, i]
+    half_W = W // 2
+    index_forward = half_W // pool_size[i]
+    index_back = half_W - index_forward
+    pytroch_imgs = torch.from_numpy(grayscale_images)
     img_compress = compress_2D_half_test(x=pytroch_imgs,
                                          index_back=index_back)
     ax.imshow(img_compress[0][0].numpy(), cmap='gray')
@@ -133,11 +150,27 @@ for i in range(len(pool_size)):
         ax.set_ylabel('PyTorch\n compress', fontsize=16,
                       multialignment='center')
 
+for i in range(len(pool_size)):
+    ax = axes[4, i]
+    half_W = W // 2
+    index_forward = half_W // pool_size[i]
+    index_back = half_W - index_forward
+    pytroch_imgs = torch.from_numpy(grayscale_images)
+    img_compress = show2D_spectra_test(x=pytroch_imgs,
+                                       index_back=index_back)
+    img_fft = img_compress[0][0]
+    _, img_spectrum = get_full_energy(img_fft)
+    img_spectrum_log = torch.log(img_spectrum)
+    img = img_spectrum_log.numpy()
+    ax.imshow(img, cmap='gray')
+    if not i:
+        ax.set_ylabel('PyTorch\n log spectrum\n (not centered)', fontsize=16,
+                      multialignment='center')
     label = str(pool_size[i] ** 2)
     if i == len(pool_size) // 2:
         label = label + "\nCompression ratio"
     ax.set_xlabel(label, fontsize=16)
 
 fig.savefig(
-    image_dir + 'Figure2_Grayscale_Grid_Pooling-ryerson-pytorch-4.png')
+    image_dir + 'Figure2_Grayscale_Grid_Pooling-ryerson-pytorch-spectrum-final.png')
 fig.show()

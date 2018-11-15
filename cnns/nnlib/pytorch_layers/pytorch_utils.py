@@ -1399,9 +1399,9 @@ def compress_2D_odd_full(xfft, index_forward):
     n = index_forward - 1
     top_left = xfft[:, :, :n + 1, :n + 1, :]
     if n > 0:
-        bottom_left = xfft[:, :, -n:, :n + 1, :]
-        top_right = xfft[:, :, :n + 1, -n:, :]
-        bottom_right = xfft[:, :, -n:, -n:, :]
+        bottom_left = xfft[:, :, -(n - 1):, :n + 1, :]
+        top_right = xfft[:, :, :n + 1, -(n - 1):, :]
+        bottom_right = xfft[:, :, -(n - 1):, -(n - 1):, :]
 
         # Combine along the H - height (vertical dimension).
         left = torch.cat((top_left, bottom_left), dim=2)
@@ -1428,6 +1428,14 @@ def get_index_forward(W, index_back):
 
 def get_index_back(W, index_forward):
     return W - index_forward
+
+
+def get_index_forward_full(W, index_back):
+    return (W // 2 + 1) - index_back
+
+
+def get_index_back_full(W, index_forward):
+    return (W // 2 + 1) - index_forward
 
 
 def compress_2D(xfft, index_back=0):
@@ -1480,11 +1488,11 @@ def restore_size_2D(xfft, initH, initW, index_forward):
     N, C, H, W, _ = xfft.size()
     top_left = xfft[:, :, :n + 1, :n + 1, :]
     if n > 0:
-        bottom_left = xfft[:, :, -(n + 1):, :n + 1, :]
-        if n == W - 1:  # We need to return the full size.
+        bottom_left = xfft[:, :, -(n - 1):, :n + 1, :]
+        if n == initW - 1:  # We need to return the full size.
             result = torch.cat((top_left, bottom_left), dim=2)
         else:
-            middle = torch.zeros(N, C, initH - (2 * n + 1), n + 1, 2)
+            middle = torch.zeros(N, C, initH - 2 * n, n + 1, 2)
             left = torch.cat((top_left, middle, bottom_left), dim=2)
             right = torch.zeros(N, C, initH, initW - (n + 1), 2)
             result = torch.cat((left, right), dim=3)
@@ -1493,6 +1501,11 @@ def restore_size_2D(xfft, initH, initW, index_forward):
         # Return just a single coefficient.
         row = torch.cat((top_left, torch.zeros(N, C, 1, W - 1, 2)), dim=3)
         return torch.cat(row, torch.zerso(N, C, initH - 1, initW, 2), dim=2)
+
+
+def restore_size_2D_full_index_back(xfft, initH, initW, index_back):
+    return restore_size_2D_full(xfft, initH, initW,
+                                get_index_back_full(initW, index_back))
 
 
 def restore_size_2D_full(xfft, initH, initW, index_forward):
@@ -1529,26 +1542,27 @@ def restore_size_2D_full(xfft, initH, initW, index_forward):
     N, C, H, W, _ = xfft.size()
     top_left = xfft[:, :, :n + 1, :n + 1, :]
     if n > 0:
-        bottom_left = xfft[:, :, -n:, :n + 1, :]
-        if n == W - 1:  # We need to return the full size.
+        bottom_left = xfft[:, :, -(n - 1):, :n + 1, :]
+        half_initW = initW // 2 + 1
+        if n == half_initW - 1:  # We need to return the full size.
             left = torch.cat((top_left, bottom_left), dim=2)
         else:
-            middle_left = torch.zeros(N, C, initH - (2 * n + 1), n + 1, 2)
+            middle_left = torch.zeros(N, C, initH - 2 * n, n + 1, 2)
             left = torch.cat((top_left, middle_left, bottom_left), dim=2)
 
-        top_right = xfft[:, :, :n + 1, -n:, :]
-        bottom_right = xfft[:, :, -n:, -n:, :]
+        top_right = xfft[:, :, :n + 1, -(n - 1):, :]
+        bottom_right = xfft[:, :, -(n - 1):, -(n - 1):, :]
 
-        if n == W - 1:  # We need to return the full size.
+        if n == half_initW - 1:  # We need to return the full size.
             right = torch.cat((top_right, bottom_right), dim=2)
         else:
-            middle_right = torch.zeros(N, C, initH - (2 * n + 1), n, 2)
+            middle_right = torch.zeros(N, C, initH - 2 * n, n - 1, 2)
             right = torch.cat((top_right, middle_right, bottom_right), dim=2)
 
-        if n == W-1:
+        if n == half_initW - 1:
             result = torch.cat((left, right), dim=3)
         else:
-            middle = torch.zeros(N, C, initH, initW - (2 * n + 1), 2)
+            middle = torch.zeros(N, C, initH, initW - 2 * n, 2)
             result = torch.cat((left, middle, right), dim=3)
 
         return result
@@ -1558,11 +1572,11 @@ def restore_size_2D_full(xfft, initH, initW, index_forward):
 
 
 def compress_2D_full(xfft, index_back=0):
-    N, C, H, W = xfft.size()
+    _, _, H, W, _ = xfft.size()
     # We assume xfft is onesided.
     assert W == H
     assert index_back < W
-    index_forward = W - index_back
+    index_forward = get_index_forward_full(W, index_back=index_back)
     if index_forward % 2 == 0:
         return compress_2D_even_full(xfft, index_forward)
     else:
@@ -1588,6 +1602,24 @@ def compress_2D_half_test(x, index_back=0):
     cx = torch.irfft(cxfft_zeros, signal_ndim=2, signal_sizes=(H, W),
                      onesided=True)
     return cx
+
+
+def show2D_spectra_test(x, index_back=0):
+    """
+    Return a spectral representation of x.
+
+    :param x: the input 2D image.
+    :param index_back: how many indexes are cut-off from the half-ed signal in
+    the frequency domain?
+    :return: the 2D spectrum of x.
+    """
+    xfft = torch.rfft(x, signal_ndim=2, onesided=False)
+    N, C, Hfft, Wfft, _ = xfft.size()
+    cxfft = compress_2D_full(xfft, index_back)
+    cxfft_zeros = restore_size_2D_full_index_back(cxfft, initH=Hfft,
+                                                  initW=Wfft,
+                                                  index_back=index_back)
+    return cxfft_zeros
 
 
 def get_squared_energy(squared, index):

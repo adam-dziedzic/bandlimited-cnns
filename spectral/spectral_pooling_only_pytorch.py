@@ -8,8 +8,10 @@ from PIL import Image
 from modules.spectral_pool_test import max_pool
 from modules.spectral_pool import spectral_pool
 from modules.frequency_dropout import test_frequency_dropout
-from modules.create_images import open_image, downscale_image
+from modules.create_images import downscale_image
 from cnns.nnlib.pytorch_layers.pytorch_utils import compress_2D_half_test
+from cnns.nnlib.pytorch_layers.pytorch_utils import show2D_spectra_test
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_full_energy
 
 import os
 
@@ -74,7 +76,10 @@ grayscale_images = np.expand_dims(
 )
 print("grayscale_image shape:", grayscale_image.shape)
 
-fig, axes = plt.subplots(4, len(pool_size), figsize=(18, 9),
+subplot_rows = 2
+multiplier = 3.6
+fig, axes = plt.subplots(subplot_rows, len(pool_size),
+                         figsize=(len(pool_size) * 3.7, subplot_rows * 3.5),
                          sharex=True, sharey=True)
 
 fname = image_path
@@ -91,37 +96,10 @@ grayscale_images = np.expand_dims(
 )
 print("grayscale_image shape:", grayscale_image.shape)
 
-for i in range(len(pool_size)):
-    ax = axes[0, i]
-    im_pool = max_pool(grayscale_image,
-                       pool_size=pool_size[i])
-    im_pool = np.squeeze(im_pool)
-    ax.imshow(im_pool, cmap='gray')
-    if not i:
-        ax.set_ylabel('Max\n Pooling', fontsize=16, multialignment='center')
+row=0
 
 for i in range(len(pool_size)):
-    ax = axes[1, i]
-    ax2 = axes[2, i]
-    cutoff_freq = int(256 / (pool_size[i] * 2))
-    tf_cutoff_freq = tf.cast(tf.constant(cutoff_freq), tf.float32)
-    im_pool = test_frequency_dropout(grayscale_images, tf_cutoff_freq)[0]
-    im_pool = np.clip(np.squeeze(im_pool), 0, 1)
-    im_fft, _ = spectral_pool(
-        grayscale_images,
-        filter_size=(1 + 2 * cutoff_freq),
-        return_transformed=True
-    )
-    ax.imshow(im_pool, cmap='gray')
-    ax2.imshow(get_fft_plot(im_fft[0]), cmap='gray')
-    if not i:
-        ax.set_ylabel('Spectral\n Pooling\n TensorFlow', fontsize=16,
-                      multialignment='center')
-        ax2.set_ylabel('Fourier\n Transform\n TensorFlow', fontsize=16,
-                       multialignment='center')
-
-for i in range(len(pool_size)):
-    ax = axes[3, i]
+    ax = axes[row, i]
     half_W = W // 2
     index_forward = half_W // pool_size[i]
     index_back = half_W - index_forward
@@ -133,11 +111,28 @@ for i in range(len(pool_size)):
         ax.set_ylabel('PyTorch\n compress', fontsize=16,
                       multialignment='center')
 
+row += 1
+for i in range(len(pool_size)):
+    ax = axes[row, i]
+    half_W = W // 2
+    index_forward = half_W // pool_size[i]
+    index_back = half_W - index_forward
+    pytroch_imgs = torch.from_numpy(grayscale_images)
+    img_compress = show2D_spectra_test(x=pytroch_imgs,
+                                       index_back=index_back)
+    img_fft = img_compress[0][0]
+    _, img_spectrum = get_full_energy(img_fft)
+    img_spectrum_log = torch.log(img_spectrum)
+    img = img_spectrum_log.numpy()
+    ax.imshow(img, cmap='gray')
+    if not i:
+        ax.set_ylabel('PyTorch\n log spectrum\n (not centered)', fontsize=16,
+                      multialignment='center')
     label = str(pool_size[i] ** 2)
     if i == len(pool_size) // 2:
         label = label + "\nCompression ratio"
     ax.set_xlabel(label, fontsize=16)
 
 fig.savefig(
-    image_dir + 'Figure2_Grayscale_Grid_Pooling-ryerson-pytorch-4.png')
+    image_dir + 'Grayscale_Grid_Pooling-ryerson-only-pytorch.png')
 fig.show()
