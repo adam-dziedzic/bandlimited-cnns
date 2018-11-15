@@ -1210,7 +1210,7 @@ def preserve_energy2D(xfft, yfft, preserve_energy_rate=None):
     input_H = xfft.shape[2]
     input_W = xfft.shape[3]
     if xfft is None or len(xfft) == 0:
-        return 0
+        return xfft, yfft, 0, 0
     squared = torch.add(torch.pow(xfft[..., 0], 2),
                         torch.pow(xfft[..., 1], 2))
     # Sum the batch and channel dimensions (we first reduce to many channels -
@@ -1254,7 +1254,7 @@ def preserve_energy2D(xfft, yfft, preserve_energy_rate=None):
                     col_index = 0
                 # otherwise: keep the col_index as a sentinel for the col traversal
         # we have more rows than columns in the energy matrix squared
-        elif col_index == col and row < row_count and row_count > col_count :
+        elif col_index == col and row < row_count and row_count > col_count:
             # move to the next row
             row += 1
             col_index = 0
@@ -1311,6 +1311,230 @@ def preserve_energy2D(xfft, yfft, preserve_energy_rate=None):
                                      end_col=end_col)
 
     return xfft, yfft, index_back_H, index_back_W
+
+
+def preserve_energy2D_symmetry(xfft, preserve_energy_rate=None):
+    if len(xfft.shape) != 5:
+        """The dimensions: N, C, H, W, X (complex number)."""
+        raise ValueError(
+            "The expected input is fft-ed 2D map in a batch with channels.")
+    # The second dimension from the end is the length because this is a complex
+    # 2D input.
+    input_H = xfft.shape[2]
+    input_W = xfft.shape[3]
+    if xfft is None or len(xfft) == 0:
+        return 0, 0
+    squared = torch.add(torch.pow(xfft[..., 0], 2),
+                        torch.pow(xfft[..., 1], 2))
+    # Sum the batch and channel dimensions (we first reduce to many channels -
+    # first 0, and then to only a single channel - next 0 (the dimensions
+    # collapse one by one).
+    squared = squared.sum(dim=0).sum(dim=0)
+    assert squared.shape[0] == input_H
+    assert squared.shape[1] == input_W
+
+    # Sum of squared values of the signal of length input_length.
+    full_energy = torch.sum(squared).item()
+    current_energy = 0.0
+    preserved_energy = full_energy * preserve_energy_rate / 100.0
+
+
+def compress_2D_odd(xfft, index_forward):
+    """
+    Compress xfft to index_forward coefficients with odd index_forward param.
+
+    :param xfft: input xfft-ed image/filter
+    :param index_forward: how many indexes are preserved (this serves as size
+    of the side of the squares preserved in top left and bottom left part of
+    xfft).
+    :return: the compressed signal
+
+    >>> x = tensor([[[[1.0, 2.0, 3.0, 5.0, -1.0, 5.0],
+    ... [3.0, 4.0, 1.0, -1.0, 3.0  , 5.0],
+    ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0],
+    ... [5.0, 3.0, 0.0, -1.0, 0.0, 4.0],
+    ... [3.0, 0.0, 1.0, -1.0, 0.0  , 5.0],
+    ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0]]]])
+    >>> xfft = torch.rfft(x, signal_ndim=2, onesided=True)
+    >>> xfft_compressed = compress_2D_odd(xfft, index_forward = 3)
+    >>> _, _, H, W, _ = xfft_compressed.size()
+    >>> # print(xfft_compressed.size())
+    >>> assert H == 5
+    >>> assert W == 3
+
+    """
+    n = index_forward - 1
+    top_left = xfft[:, :, :n + 1, :n + 1, :]
+    if n > 0:
+        bottom_left = xfft[:, :, -n:, :n + 1, :]
+        return torch.cat((top_left, bottom_left), dim=2)
+    else:
+        return top_left
+
+
+def compress_2D_odd_full(xfft, index_forward):
+    """
+    Compress xfft to index_forward coefficients with odd index_forward param.
+
+    :param xfft: input xfft-ed image/filter
+    :param index_forward: how many indexes are preserved (this serves as size
+    of the side of the squares preserved in top left and bottom left part of
+    xfft).
+    :return: the compressed signal
+
+    >>> x = tensor([[[[1.0, 2.0, 3.0, 5.0, -1.0, 5.0],
+    ... [3.0, 4.0, 1.0, -1.0, 3.0  , 5.0],
+    ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0],
+    ... [5.0, 3.0, 0.0, -1.0, 0.0, 4.0],
+    ... [3.0, 0.0, 1.0, -1.0, 0.0  , 5.0],
+    ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0]]]])
+    >>> xfft = torch.rfft(x, signal_ndim=2, onesided=False)
+    >>> xfft_compressed = compress_2D_odd_full(xfft, index_forward = 3)
+    >>> _, _, H, W, _ = xfft_compressed.size()
+    >>> # print(xfft_compressed.size())
+    >>> assert H == 5
+    >>> assert W == 5
+
+    """
+    n = index_forward - 1
+    top_left = xfft[:, :, :n + 1, :n + 1, :]
+    if n > 0:
+        bottom_left = xfft[:, :, -n:, :n + 1, :]
+        top_right = xfft[:, :, :n + 1, -n:, :]
+        bottom_right = xfft[:, :, -n:, -n:, :]
+
+        # Combine along the H - height (vertical dimension).
+        left = torch.cat((top_left, bottom_left), dim=2)
+        right = torch.cat((top_right, bottom_right), dim=2)
+        # Combine along the W - width (horizontal dimension).
+        result = torch.cat((left, right), dim=3)
+        return result
+    else:
+        # Return just a single coefficient.
+        return top_left
+
+def compress_2D_even_full(xfft, index_forward):
+    return compress_2D_odd_full(xfft, index_forward)
+
+def compress_2D_even(xfft, index_forward):
+    return compress_2D_odd(xfft, index_forward)
+
+
+def compress_2D(xfft, index_back=0):
+    N, C, H, W = xfft.size()
+    # We assume xfft is onesided.
+    assert W == (H // 2 + 1)
+    assert index_back < W
+    index_forward = W - index_back
+    if index_forward % 2 == 0:
+        return compress_2D_even(xfft, index_forward)
+    else:
+        return compress_2D_odd(xfft, index_forward)
+
+
+def restore_size_2D(xfft, initH, initW, index_forward):
+    """
+    Fill in with zeros to the size initH x initW.
+
+    :param xfft: compressed signal.
+    :param initH: initial height.
+    :param initW: initial width.
+    :param index_forward: xfft was compressed to the index_forward.
+    :return: xfft filled in with zeros to the size initH x initW.
+
+    >>> x = tensor([[[[1.0, 2.0, 3.0, 5.0, -1.0, 5.0],
+    ... [3.0, 4.0, 1.0, -1.0, 3.0  , 5.0],
+    ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0],
+    ... [5.0, 3.0, 0.0, -1.0, 0.0, 4.0],
+    ... [3.0, 0.0, 1.0, -1.0, 0.0  , 5.0],
+    ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0]]]])
+    >>> xfft = torch.rfft(x, signal_ndim=2, onesided=True)
+    >>> N, C, initH, initW, _ = xfft.size()
+    >>> index_forward = 3
+    >>> xfft_compressed = compress_2D_odd(xfft, index_forward)
+    >>> _, _, H, W, _ = xfft_compressed.size()
+    >>> # print(xfft_compressed.size())
+    >>> assert H == 5
+    >>> assert W == 3
+    >>> xfft_restored = restore_size_2D(xfft, initH, initW, index_forward)
+    >>> NN, CC, initHH, initWW, _ = xfft_restored.size()
+    >>> assert initHH == initH
+    >>> assert initWW == initW
+    """
+    n = index_forward - 1
+    N, C, H, W, _ = xfft.size()
+    top_left = xfft[:, :, :n + 1, :n + 1, :]
+    if n > 0:
+        bottom_left = xfft[:, :, -n:, :n + 1, :]
+        middle = torch.zeros(N, C, initH - (2*n+1), n+1, 2)
+        left = torch.cat((top_left, middle, bottom_left), dim=2)
+        right = torch.zeros(N, C, initH, initW - (n+1), 2)
+        result = torch.cat((left, right), dim=3)
+        return result
+    else:
+        # Return just a single coefficient.
+        row = torch.cat((top_left, torch.zeros(N, C, 1, W-1, 2)), dim=3)
+        return torch.cat(row, torch.zerso(N, C, initH-1, initW, 2), dim=2)
+
+
+def restore_size_2D_full(xfft, initH, initW, index_forward):
+    """
+    Fill in with zeros to the size initH x initW.
+
+    :param xfft: compressed signal.
+    :param initH: initial height.
+    :param initW: initial width.
+    :param index_forward: xfft was compressed to the index_forward.
+    :return: xfft filled in with zeros to the size initH x initW.
+
+    >>> x = tensor([[[[1.0, 2.0, 3.0, 5.0, -1.0, 5.0],
+    ... [3.0, 4.0, 1.0, -1.0, 3.0  , 5.0],
+    ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0],
+    ... [5.0, 3.0, 0.0, -1.0, 0.0, 4.0],
+    ... [3.0, 0.0, 1.0, -1.0, 0.0  , 5.0],
+    ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0]]]])
+    >>> xfft = torch.rfft(x, signal_ndim=2, onesided=True)
+    >>> N, C, initH, initW, _ = xfft.size()
+    >>> index_forward = 3
+    >>> xfft_compressed = compress_2D_odd(xfft, index_forward)
+    >>> _, _, H, W, _ = xfft_compressed.size()
+    >>> # print(xfft_compressed.size())
+    >>> assert H == 5
+    >>> assert W == 3
+    >>> xfft_restored = restore_size_2D(xfft, initH, initW, index_forward)
+    >>> NN, CC, initHH, initWW, _ = xfft_restored.size()
+    >>> assert initHH == initH
+    >>> assert initWW == initW
+    """
+    n = index_forward - 1
+    N, C, H, W, _ = xfft.size()
+    top_left = xfft[:, :, :n + 1, :n + 1, :]
+    if n > 0:
+        bottom_left = xfft[:, :, -n:, :n + 1, :]
+        middle = torch.zeros(N, C, initH - (2*n+1), n+1, 2)
+        left = torch.cat((top_left, middle, bottom_left), dim=2)
+
+        
+
+        right = torch.zeros(N, C, initH, initW - (n+1), 2)
+        result = torch.cat((left, right), dim=3)
+        return result
+    else:
+        # Return just a single coefficient.
+        row = torch.cat((top_left, torch.zeros(N, C, 1, W-1, 2)), dim=3)
+        return torch.cat(row, torch.zerso(N, C, initH-1, initW, 2), dim=2)
+
+
+def compress_2D_full(xfft, index_back=0):
+    N, C, H, W = xfft.size()
+    # We assume xfft is onesided.
+    assert W == H
+    assert index_back < W
+    index_forward = W - index_back
+    if index_forward % 2 == 0:
+        return compress_2D_even_full(xfft, index_forward)
+    else:
+        return compress_2D_odd_full(xfft, index_forward)
 
 
 def get_squared_energy(squared, index):

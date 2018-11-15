@@ -28,6 +28,7 @@ image = np.asarray(downscale_image(image, 256, 256).convert('F'))
 grayscale_image = image / 255.
 print("show the grayscale image:")
 plt.imshow(grayscale_image, cmap='gray')
+plt.savefig("../Images/grayscale_image.png")
 
 
 def get_fft_plot(fft, shift_channel=True, eps=1e-12, pad_to_width=256):
@@ -67,9 +68,28 @@ grayscale_images = np.expand_dims(
 )
 print("grayscale_image shape:", grayscale_image.shape)
 
+fig, axes = plt.subplots(3, 6, figsize=(18, 9),
+                         sharex=True, sharey=True)
+pool_size = [64, 32, 16, 8, 4, 1]
+
+fname = '../Images/adam_spectral_pooling.jpg'
+image = Image.open(fname).convert("L")
+image_scaled = downscale_image(image, 256, 256)
+image_max_pool = np.asarray(image_scaled)
+image = np.asarray(image_scaled.convert('F'))
+grayscale_image = image / 255.
+print("show the grayscale image:")
+plt.imshow(grayscale_image, cmap='gray')
+
+grayscale_images = np.expand_dims(
+    np.expand_dims(grayscale_image, 0), 0
+)
+print("grayscale_image shape:", grayscale_image.shape)
+
 for i in range(6):
     ax = axes[0, i]
-    im_pool = max_pool(image, pool_size=pool_size[i])
+    im_pool = max_pool(grayscale_image,
+                       pool_size=pool_size[i])
     im_pool = np.squeeze(im_pool)
     ax.imshow(im_pool, cmap='gray')
     if not i:
@@ -79,10 +99,8 @@ for i in range(6):
     ax = axes[1, i]
     ax2 = axes[2, i]
     cutoff_freq = int(256 / (pool_size[i] * 2))
-    tf_cutoff_freq = tf.cast(tf.constant(cutoff_freq),
-                             tf.float32)
-    im_pool = test_frequency_dropout(grayscale_images,
-                                     tf_cutoff_freq)[0]
+    tf_cutoff_freq = tf.cast(tf.constant(cutoff_freq), tf.float32)
+    im_pool = test_frequency_dropout(grayscale_images, tf_cutoff_freq)[0]
     im_pool = np.clip(np.squeeze(im_pool), 0, 1)
     im_fft, _ = spectral_pool(
         grayscale_images,
