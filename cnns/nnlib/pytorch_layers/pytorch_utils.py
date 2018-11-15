@@ -1493,15 +1493,16 @@ def restore_size_2D_full(xfft, initH, initW, index_forward):
     ... [5.0, 3.0, 0.0, -1.0, 0.0, 4.0],
     ... [3.0, 0.0, 1.0, -1.0, 0.0  , 5.0],
     ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0]]]])
-    >>> xfft = torch.rfft(x, signal_ndim=2, onesided=True)
+    >>> xfft = torch.rfft(x, signal_ndim=2, onesided=False)
     >>> N, C, initH, initW, _ = xfft.size()
+    >>> assert initH == initW
     >>> index_forward = 3
-    >>> xfft_compressed = compress_2D_odd(xfft, index_forward)
+    >>> xfft_compressed = compress_2D_odd_full(xfft, index_forward)
     >>> _, _, H, W, _ = xfft_compressed.size()
     >>> # print(xfft_compressed.size())
     >>> assert H == 5
-    >>> assert W == 3
-    >>> xfft_restored = restore_size_2D(xfft, initH, initW, index_forward)
+    >>> assert W == 5
+    >>> xfft_restored = restore_size_2D_full(xfft, initH, initW, index_forward)
     >>> NN, CC, initHH, initWW, _ = xfft_restored.size()
     >>> assert initHH == initH
     >>> assert initWW == initW
@@ -1511,16 +1512,18 @@ def restore_size_2D_full(xfft, initH, initW, index_forward):
     top_left = xfft[:, :, :n + 1, :n + 1, :]
     if n > 0:
         bottom_left = xfft[:, :, -n:, :n + 1, :]
-        middle = torch.zeros(N, C, initH - (2*n+1), n+1, 2)
-        left = torch.cat((top_left, middle, bottom_left), dim=2)
+        middle_left = torch.zeros(N, C, initH - (2*n+1), n+1, 2)
+        left = torch.cat((top_left, middle_left, bottom_left), dim=2)
 
-        
+        top_right = xfft[:, :, :n + 1, -n:, :]
+        bottom_right = xfft[:, :, -n:, -n:, :]
+        middle_right = torch.zeros(N, C, initH - (2 * n + 1), n, 2)
+        right = torch.cat((top_right, middle_right, bottom_right), dim=2)
 
-        right = torch.zeros(N, C, initH, initW - (n+1), 2)
-        result = torch.cat((left, right), dim=3)
+        middle = torch.zeros(N, C, initH, initW - (2*n+1), 2)
+        result = torch.cat((left, middle, right), dim=3)
         return result
     else:
-        # Return just a single coefficient.
         row = torch.cat((top_left, torch.zeros(N, C, 1, W-1, 2)), dim=3)
         return torch.cat(row, torch.zerso(N, C, initH-1, initW, 2), dim=2)
 
