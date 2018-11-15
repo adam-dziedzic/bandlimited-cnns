@@ -1,34 +1,41 @@
 import numpy as np
 import tensorflow as tf
 import matplotlib.pylab as plt
-
+import torch
 import numpy as np
 from PIL import Image
+
+from modules.spectral_pool_test import max_pool
+from modules.spectral_pool import spectral_pool
+from modules.frequency_dropout import test_frequency_dropout
+from modules.create_images import open_image, downscale_image
+from cnns.nnlib.pytorch_layers.pytorch_utils import compress_2D_half_test
+
+import os
 
 # % matplotlib inline
 # % load_ext autoreload
 # % autoreload 2
 print("loaded")
 
-import os
-
 dirpath = os.getcwd()
 print("current directory is: ", dirpath)
 
-from modules.spectral_pool_test import max_pool
-from modules.spectral_pool import spectral_pool
-from modules.frequency_dropout import test_frequency_dropout
-from modules.create_images import open_image, downscale_image
+image_dir = "../Images/"
+image_name = "lena-256x256.jpg"
+image_path = image_dir + image_name
 
 # image = open_image('aj.jpg')
 # image = open_image('adam_spectral_pooling.jpg')
-fname = '../Images/adam_spectral_pooling.jpg'
+fname = image_path
 image = Image.open(fname).convert("L")
-image = np.asarray(downscale_image(image, 256, 256).convert('F'))
+H = W = 256
+image = np.asarray(
+    downscale_image(image, max_height=H, max_width=W).convert('F'))
 grayscale_image = image / 255.
 print("show the grayscale image:")
 plt.imshow(grayscale_image, cmap='gray')
-plt.savefig("../Images/grayscale_image.png")
+plt.savefig(image_dir + "grayscale_image.png")
 
 
 def get_fft_plot(fft, shift_channel=True, eps=1e-12, pad_to_width=256):
@@ -59,20 +66,18 @@ def get_fft_plot(fft, shift_channel=True, eps=1e-12, pad_to_width=256):
     )
 
 
-fig, axes = plt.subplots(3, 6, figsize=(20, 9),
-                         sharex=True, sharey=True)
-pool_size = [64, 32, 16, 8, 4, 1]
+# pool_size = [64, 32, 16, 8, 4, 2, 1]
+pool_size = [1, 2]
 
 grayscale_images = np.expand_dims(
     np.expand_dims(grayscale_image, 0), 0
 )
 print("grayscale_image shape:", grayscale_image.shape)
 
-fig, axes = plt.subplots(3, 6, figsize=(18, 9),
+fig, axes = plt.subplots(4, len(pool_size), figsize=(18, 9),
                          sharex=True, sharey=True)
-pool_size = [64, 32, 16, 8, 4, 1]
 
-fname = '../Images/adam_spectral_pooling.jpg'
+fname = image_path
 image = Image.open(fname).convert("L")
 image_scaled = downscale_image(image, 256, 256)
 image_max_pool = np.asarray(image_scaled)
@@ -86,16 +91,16 @@ grayscale_images = np.expand_dims(
 )
 print("grayscale_image shape:", grayscale_image.shape)
 
-for i in range(6):
+for i in range(len(pool_size)):
     ax = axes[0, i]
     im_pool = max_pool(grayscale_image,
                        pool_size=pool_size[i])
     im_pool = np.squeeze(im_pool)
     ax.imshow(im_pool, cmap='gray')
     if not i:
-        ax.set_ylabel('Max Pooling', fontsize=16)
+        ax.set_ylabel('Max\n Pooling', fontsize=16, multialignment='center')
 
-for i in range(6):
+for i in range(len(pool_size)):
     ax = axes[1, i]
     ax2 = axes[2, i]
     cutoff_freq = int(256 / (pool_size[i] * 2))
@@ -109,10 +114,26 @@ for i in range(6):
     )
     ax.imshow(im_pool, cmap='gray')
     ax2.imshow(get_fft_plot(im_fft[0]), cmap='gray')
-    ax2.set_xlabel(pool_size[i] ** 2, fontsize=16)
     if not i:
-        ax.set_ylabel('Spectral Pooling', fontsize=16)
-        ax2.set_ylabel('Fourier Transform', fontsize=16)
-    fig.show()
-    fig.savefig(
-        '../Images/Figure2_Grayscale_Grid_Pooling-ryerson2.png')
+        ax.set_ylabel('Spectral\n Pooling\n TensorFlow', fontsize=16,
+                      multialignment='center')
+        ax2.set_ylabel('Fourier\n Transform\n TensorFlow', fontsize=16,
+                       multialignment='center')
+
+for i in range(len(pool_size)):
+    ax = axes[3, i]
+    half_W = W // 2
+    index_forward = half_W // pool_size[i]
+    index_back = half_W - index_forward
+    pytroch_imgs = torch.from_numpy(grayscale_images)
+    img_compress = compress_2D_half_test(x=pytroch_imgs, index_back=index_back)
+    ax.imshow(img_compress[0][0].numpy(), cmap='gray')
+    if not i:
+        ax.set_ylabel('PyTorch\n compress', fontsize=16,
+                      multialignment='center')
+
+    ax.set_xlabel(pool_size[i] ** 2, fontsize=16)
+
+fig.show()
+fig.savefig(
+    '../Images/Figure2_Grayscale_Grid_Pooling-ryerson-pytorch2.png')
