@@ -19,11 +19,11 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_fft_signals2D
 from cnns.nnlib.pytorch_layers.pytorch_utils import from_tensor
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_pair
 from cnns.nnlib.pytorch_layers.pytorch_utils import next_power2
-from cnns.nnlib.pytorch_layers.pytorch_utils import preserve_energy2D_index_back
 from cnns.nnlib.pytorch_layers.pytorch_utils import preserve_energy2D_symmetry
-from cnns.nnlib.pytorch_layers.pytorch_utils import preserve_energy2D
 from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate
 from cnns.nnlib.pytorch_layers.pytorch_utils import to_tensor
+from cnns.nnlib.pytorch_layers.pytorch_utils import compress_2D_odd
+from cnns.nnlib.pytorch_layers.pytorch_utils import compress_2D_odd_index_back
 from cnns.nnlib.utils.general_utils import CompressType
 
 logger = logging.getLogger(__name__)
@@ -197,53 +197,23 @@ class Conv2dfftFunction(torch.autograd.Function):
         init_fft_H = xfft.shape[-3]
 
         index_back_H_fft, index_back_W_fft = None, None
-        if preserve_energy is not None and preserve_energy < 100:
+        if preserve_energy is not None and preserve_energy < 100.0:
             # index_back_H_fft, index_back_W_fft = preserve_energy2D_index_back(
             #     xfft, preserve_energy)
             # xfft, yfft, index_back_H_fft, index_back_W_fft = preserve_energy2D(
             #     xfft, yfft, preserve_energy)
             xfft, yfft = preserve_energy2D_symmetry(
                 xfft, yfft, preserve_energy_rate=preserve_energy)
-
-        # Compute how much to compress the fft-ed signal.
-        half_fft_W = init_half_fft_W
-        if index_back_W is not None and index_back_W > 0:
+        elif index_back_W is not None and index_back_W > 0:
             # At least one coefficient is removed.
             index_back_W_fft = int(init_half_fft_W * (index_back_W / 100)) + 1
-        if index_back_W_fft is not None:
-            half_fft_W = init_half_fft_W - index_back_W_fft
-        if out_size_W is not None:
+            xfft = compress_2D_odd_index_back(xfft, index_back_W_fft)
+        elif out_size_W is not None:
             # We take one-sided fft so the output after the inverse fft should
             # be out size, thus the representation in the spectral domain is
-            # twice smaller than the one in the time domain.
+            # twice smaller than the one in the spatial domain.
             half_fft_W = out_size_W // 2 + 1
-
-        # Complex numbers are represented as the pair of numbers in the last
-        # dimension so we have to narrow the length of the last but one
-        # dimension.
-        if half_fft_W < init_half_fft_W:
-            xfft = xfft.narrow(dim=-2, start=0, length=half_fft_W)
-            yfft = yfft.narrow(dim=-2, start=0, length=half_fft_W)
-
-        # Compute how much to compress the fft-ed signal for its height (H).
-        half_fft_H = init_fft_H
-        if index_back_H is not None and index_back_H > 0:
-            # At least one coefficient is removed.
-            index_back_H_fft = int(init_fft_H * (index_back_H / 100)) + 1
-        if index_back_H_fft is not None:
-            half_fft_H = init_fft_H - index_back_H_fft
-        if out_size_H is not None:
-            # We take one-sided fft so the output after the inverse fft should
-            # be out size, thus the representation in the spectral domain is
-            # twice smaller than the one in time domain.
-            half_fft_H = out_size_H // 2 + 1
-
-        # Complex numbers are represented as the pair of numbers in the last
-        # dimension so we have to narrow the length of the last but one
-        # dimension.
-        if half_fft_H < init_fft_H:
-            xfft = xfft.narrow(dim=-3, start=0, length=half_fft_H)
-            yfft = yfft.narrow(dim=-3, start=0, length=half_fft_H)
+            xfft = compress_2D_odd(xfft, half_fft_W)
 
         out = torch.zeros([N, F, out_H, out_W], dtype=input.dtype,
                           device=input.device)
@@ -255,9 +225,8 @@ class Conv2dfftFunction(torch.autograd.Function):
             out[nn] = correlate_fft_signals2D(
                 xfft=xfft_nn, yfft=yfft,
                 input_height=init_fft_H, input_width=init_fft_W,
-                half_fft_height=init_fft_H, half_fft_width=init_half_fft_W,
-                out_height=out_H, out_width=out_W,
-                is_forward=True)
+                init_fft_height=init_fft_H, init_half_fft_width=init_half_fft_W,
+                out_height=out_H, out_width=out_W, is_forward=True)
             if bias is not None:
                 # Add the bias term for each filtekr (it has to be unsqueezed to
                 # the dimension of the out to properly sum up the values).
@@ -346,6 +315,8 @@ class Conv2dfftFunction(torch.autograd.Function):
         N, C, half_fft_compressed_H, half_fft_compressed_W, _ = xfft.shape
         F, C, half_fft_compressed_H, half_fft_compressed_W, _ = yfft.shape
         N, F, H_out, W_out = dout.shape
+        if H_out != W_out:
+            raise Exception("We only support square outputs.")
 
         dx = dw = db = None
 
@@ -368,12 +339,8 @@ class Conv2dfftFunction(torch.autograd.Function):
         # numbers
         N, F, init_half_fft_H, init_half_fft_W, _ = doutfft.shape
 
-        if half_fft_compressed_H < init_half_fft_H:
-            doutfft = doutfft.narrow(dim=-3, start=0,
-                                     length=half_fft_compressed_H)
         if half_fft_compressed_W < init_half_fft_W:
-            doutfft = doutfft.narrow(dim=-2, start=0,
-                                     length=half_fft_compressed_W)
+            doutfft = compress_2D_odd(doutfft, half_fft_compressed_W)
 
         if need_input_grad:
             # Initialize gradient output tensors.
@@ -387,8 +354,8 @@ class Conv2dfftFunction(torch.autograd.Function):
                 out = correlate_fft_signals2D(
                     xfft=doutfft_nn, yfft=conjugate_yfft,
                     input_height=init_fft_H, input_width=init_fft_W,
-                    half_fft_height=init_half_fft_H,
-                    half_fft_width=init_half_fft_W,
+                    init_fft_height=init_half_fft_H,
+                    init_half_fft_width=init_half_fft_W,
                     out_height=H, out_width=W,
                     is_forward=False)
                 # Sum over all the Filters (F).
@@ -432,8 +399,8 @@ class Conv2dfftFunction(torch.autograd.Function):
                 out = correlate_fft_signals2D(
                     xfft=xfft, yfft=doutfft_ff,
                     input_height=init_fft_H, input_width=init_fft_W,
-                    half_fft_height=init_half_fft_H,
-                    half_fft_width=init_half_fft_W,
+                    init_fft_height=init_half_fft_H,
+                    init_half_fft_width=init_half_fft_W,
                     out_height=HH, out_width=WW,
                     is_forward=False)
                 # For a given filter, we have to sum up all its contributions

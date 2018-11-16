@@ -881,7 +881,9 @@ class TestPyTorchConv2d(unittest.TestCase):
         expect_full_correct = np.array([[[[22.0, 22.0], [18., 14.]]]])
         print("expect_full_correct: ", expect_full_correct)
 
-        expect_approximate = np.array([[[[20.75, 22.25], [18.25, 12.75]]]])
+        # expect_approximate = np.array([[[[20.75, 22.25], [18.25, 12.75]]]])
+        expect_approximate = np.array([[[[21.7500, 21.7500],
+                                         [18.7500, 13.7500]]]])
         np.testing.assert_array_almost_equal(
             x=expect_approximate, y=result,
             err_msg="The expected array x and computed y are not almost equal.")

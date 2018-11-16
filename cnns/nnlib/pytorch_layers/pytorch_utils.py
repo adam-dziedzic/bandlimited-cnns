@@ -475,6 +475,7 @@ def get_full_energy(x):
     full_energy = torch.sum(squared).item()
     return full_energy, squared
 
+
 def get_full_energy_only(x):
     """
     Return the full energy of the signal. The energy E(xfft) of a
@@ -507,7 +508,7 @@ def get_full_energy_only(x):
     >>> np.testing.assert_almost_equal(full_energy, expected_full_energy, decimal=4)
     """
     return torch.sum(torch.add(torch.pow(x.narrow(-1, 0, 1), 2),
-                        torch.pow(x.narrow(-1, 1, 1), 2))).item()
+                               torch.pow(x.narrow(-1, 1, 1), 2))).item()
 
 
 def get_spectrum(xfft):
@@ -1348,18 +1349,89 @@ def preserve_energy2D(xfft, yfft, preserve_energy_rate=None):
 
 
 def preserve_energy2D_symmetry(xfft, yfft, preserve_energy_rate=None):
+    """
+    Compress xfft and yfft taking into account Hermitian symmetry of the fft-ed
+    2D maps.
+
+    :param xfft: input activation map in frequency domain.
+    :param yfft: filter in frequency domain.
+    :param preserve_energy_rate: how much energy to preserve in the input
+    activation map.
+    :return: the compressed xfft and yfft.
+
+    >>> # xfft: tensor 6 x 4 (4 = 6 // 2 + 1)
+    >>> xfft = torch.tensor(
+    ... [ # 1 image
+    ... [ # 1 channel
+    ... [[[2, 2], [2, 2], [2, 2], [2, 2]], # 1st row
+    ... [[2, 2], [2, 2], [-2, -2], [-2, -2]],  # 2nd row
+    ... [[-2, 2], [-2, 2], [2, 2], [-2, -2]],  # 3rd row
+    ... [[2, 2], [2, 2], [-2, -2], [-2, -2]],
+    ... [[2, 2], [2, 2], [-2, -2], [-2, -2]],
+    ... [[2, 2], [2, 2], [-2, -2], [-2, -2]]]  # 6th row
+    ... ]
+    ... ])
+    >>> yfft = torch.tensor(
+    ... [ # 1 image
+    ... [ # 1 channel
+    ... [[[1, 1], [1, 1], [1, 1], [1, 1]],  # 1st row
+    ... [[1, 1], [1, 1], [-1, -1], [1, 1]], # 2nd row
+    ... [[-1, 1], [-1, 1], [1, 1], [1, 1]],
+    ... [[-1, 1], [-1, 1], [1, 1], [1, 1]],
+    ... [[-1, 1], [-1, 1], [1, 1], [1, 1]],
+    ... [[-1, 1], [-1, 1], [1, 1], [1, 1]]]
+    ... ]
+    ... ])
+    >>> xfft2, yfft2 = preserve_energy2D_symmetry(xfft, yfft, preserve_energy_rate=40)
+    >>> # print("result xfft2: ", xfft2)
+    >>> expect_xfft2 = torch.tensor(
+    ... [ # 1 image
+    ... [ # 1 channel
+    ... [[[2, 2], [2, 2], [2, 2]], # 1st row
+    ... [[2, 2], [2, 2], [-2, -2]],  # 2nd row
+    ... [[-2, 2], [-2, 2], [2, 2]],  # 3rd row
+    ... [[2, 2], [2, 2], [-2, -2]],
+    ... [[2, 2], [2, 2], [-2, -2]]]  # 6th row
+    ... ]
+    ... ])
+    >>> expect_yfft2 = torch.tensor(
+    ... [ # 1 image
+    ... [ # 1 channel
+    ... [[[1, 1], [1, 1], [1, 1]],  # 1st row
+    ... [[1, 1], [1, 1], [-1, -1]], # 2nd row
+    ... [[-1, 1], [-1, 1], [1, 1]],
+    ... [[-1, 1], [-1, 1], [1, 1]],
+    ... [[-1, 1], [-1, 1], [1, 1]]]
+    ... ]
+    ... ])
+    >>> np.testing.assert_equal(xfft2.numpy(), expect_xfft2.numpy())
+    >>> np.testing.assert_equal(yfft2.numpy(), expect_yfft2.numpy())
+    """
     if xfft is None or len(xfft) == 0:
-        return 0, 0
+        return xfft, yfft
+    if preserve_energy_rate == 100.0:
+        return xfft, yfft
+    if preserve_energy_rate >= 100.0:
+        raise Exception("preserve_energy_rate should in % from 0.0 to 100.0.")
     if len(xfft.shape) != 5:
-        """The dimensions: N, C, H, W, X (complex number)."""
         raise ValueError(
-            "The expected input is fft-ed 2D map in a batch with channels.")
+            "The expected input is fft-ed 2D map in a batch with channels. "
+            "The expected dimensions: N, C, H, W, X (complex number)")
     input_W = xfft.shape[3]
     preserved_energy = get_full_energy_only(xfft) * preserve_energy_rate / 100.0
 
-    for index_forward in range(1, input_W):
-        if compress_2D_energy(xfft, index_forward=index_forward) >= preserved_energy:
-            return , compress_2D(yfft, index_back)
+    # binary search
+    low = 0  # lower bound inclusive
+    high = input_W  # upper bound inclusive
+    index = low + (high - low) // 2
+    while low < high:
+        if compress_2D_energy(xfft, index_forward=index) >= preserved_energy:
+            high = index
+            index = low + (high - low) // 2
+        else:
+            low = index + 1
+            index = low + (high - low) // 2
+    return compress_2D_odd(xfft, index), compress_2D_odd(yfft, index)
 
 
 def compress_2D_energy(xfft, index_forward):
@@ -1398,6 +1470,13 @@ def compress_2D_energy(xfft, index_forward):
         return energy_top_left + energy_bottom_left
     else:
         return energy_top_left
+
+
+def compress_2D_odd_index_back(xfft, index_back):
+    half_W_fft = xfft.shape[-2]
+    index_forward = get_index_forward(half_W_fft, index_back)
+    return compress_2D_odd(xfft, index_forward)
+
 
 def compress_2D_odd(xfft, index_forward):
     """
@@ -1559,18 +1638,13 @@ def compress_2D(xfft, index_back=0):
         return compress_2D_odd(xfft, index_forward)
 
 
-def restore_size_2D_index_back(xfft, initH, initW, index_back):
-    return restore_size_2D(xfft, initH, initW,
-                           get_index_back(initW, index_back))
-
-
-def restore_size_2D(xfft, initH, initW, index_forward):
+def restore_size_2D(xfft, init_H_fft, init_half_W_fft):
     """
     Fill in with zeros to the size initH x initW.
 
     :param xfft: compressed signal.
-    :param initH: initial height.
-    :param initW: initial width.
+    :param init_H_fft: initial height.
+    :param init_half_W_fft: initial width.
     :param index_forward: xfft was compressed to the index_forward.
     :return: xfft filled in with zeros to the size initH x initW.
 
@@ -1581,51 +1655,47 @@ def restore_size_2D(xfft, initH, initW, index_forward):
     ... [3.0, 0.0, 1.0, -1.0, 0.0  , 5.0],
     ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0]]]])
     >>> xfft = torch.rfft(x, signal_ndim=2, onesided=True)
-    >>> N, C, initH, initW, _ = xfft.size()
+    >>> N, C, init_H_fft, init_half_W_fft, _ = xfft.size()
     >>> index_forward = 3
     >>> xfft_compressed = compress_2D_odd(xfft, index_forward)
     >>> _, _, H, W, _ = xfft_compressed.size()
     >>> # print(xfft_compressed.size())
     >>> assert H == 5
     >>> assert W == 3
-    >>> xfft_restored = restore_size_2D(xfft, initH, initW, index_forward)
+    >>> xfft_restored = restore_size_2D(xfft, init_H_fft = init_H_fft, init_half_W_fft=init_half_W_fft)
     >>> NN, CC, initHH, initWW, _ = xfft_restored.size()
-    >>> assert initHH == initH
-    >>> assert initWW == initW
+    >>> assert initHH == init_H_fft
+    >>> assert initWW == init_half_W_fft
     """
-    if index_forward == xfft.shape[-2]:
+    index_forward = xfft.shape[-2]
+    if index_forward == init_half_W_fft:
         return xfft
     n = index_forward - 1
     N, C, H, W, _ = xfft.size()
     top_left = xfft[:, :, :n + 1, :n + 1, :]
     if n > 0:
         bottom_left = xfft[:, :, -n:, :n + 1, :]
-        if n == initW - 1:  # We need to return the full size.
-            result = torch.cat((top_left, bottom_left), dim=2)
-        else:
-            middle = torch.zeros(N, C, initH - (2 * n + 1), n + 1, 2)
-            left = torch.cat((top_left, middle, bottom_left), dim=2)
-            right = torch.zeros(N, C, initH, initW - (n+1), 2)
-            result = torch.cat((left, right), dim=3)
+        middle = torch.zeros(N, C, init_H_fft - (2 * n + 1), n + 1, 2)
+        left = torch.cat((top_left, middle, bottom_left), dim=2)
+        right = torch.zeros(N, C, init_H_fft, init_half_W_fft - (n + 1), 2)
+        result = torch.cat((left, right), dim=3)
         return result
     else:
         # Return just a single coefficient.
         row = torch.cat((top_left, torch.zeros(N, C, 1, W - 1, 2)), dim=3)
-        return torch.cat(row, torch.zerso(N, C, initH - 1, initW, 2), dim=2)
+        result = torch.cat(row,
+                           torch.zerso(N, C, init_H_fft - 1, init_half_W_fft,
+                                       2), dim=2)
+        return result
 
 
-def restore_size_2D_full_index_back(xfft, initH, initW, index_back):
-    return restore_size_2D_full(xfft, initH, initW,
-                                get_index_back_full(initW, index_back))
-
-
-def restore_size_2D_full(xfft, initH, initW, index_forward):
+def restore_size_2D_full(xfft, init_H_fft, init_W_fft):
     """
     Fill in with zeros to the size initH x initW.
 
     :param xfft: compressed signal.
-    :param initH: initial height.
-    :param initW: initial width.
+    :param init_H_fft: initial height.
+    :param init_W_fft: initial width.
     :param index_forward: xfft was compressed to the index_forward.
     :return: xfft filled in with zeros to the size initH x initW.
 
@@ -1644,44 +1714,57 @@ def restore_size_2D_full(xfft, initH, initW, index_forward):
     >>> # print(xfft_compressed.size())
     >>> assert H == 5
     >>> assert W == 5
-    >>> xfft_restored = restore_size_2D_full(xfft, initH, initW, index_forward)
+    >>> xfft_restored = restore_size_2D_full(xfft, initH, initW)
+    >>> NN, CC, initHH, initWW, _ = xfft_restored.size()
+    >>> assert initHH == initH
+    >>> assert initWW == initW
+
+    >>> x = tensor([[[[1.0, 2.0, 3.0, 5.0, -1.0, 5.0],
+    ... [3.0, 4.0, 1.0, -1.0, 3.0  , 5.0],
+    ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0],
+    ... [5.0, 3.0, 0.0, -1.0, 0.0, 4.0],
+    ... [3.0, 0.0, 1.0, -1.0, 0.0  , 5.0],
+    ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0]]]])
+    >>> xfft = torch.rfft(x, signal_ndim=2, onesided=False)
+    >>> N, C, initH, initW, _ = xfft.size()
+    >>> assert initH == initW
+    >>> index_forward = 2
+    >>> xfft_compressed = compress_2D_odd_full(xfft, index_forward)
+    >>> _, _, H, W, _ = xfft_compressed.size()
+    >>> # print(xfft_compressed.size())
+    >>> assert H == 3
+    >>> assert W == 3
+    >>> xfft_restored = restore_size_2D_full(xfft, initH, initW)
     >>> NN, CC, initHH, initWW, _ = xfft_restored.size()
     >>> assert initHH == initH
     >>> assert initWW == initW
     """
-    if index_forward == xfft.shape[-2] // 2 + 1:
+    if xfft.shape[-2] == init_W_fft:
         return xfft
+    index_forward = xfft.shape[-2] // 2 + 1
     n = index_forward - 1
     N, C, H, W, _ = xfft.size()
     top_left = xfft[:, :, :n + 1, :n + 1, :]
     if n > 0:
         bottom_left = xfft[:, :, -n:, :n + 1, :]
-        half_initW = initW // 2 + 1
-        if n == half_initW - 1:  # We need to return the full size.
-            left = torch.cat((top_left, bottom_left), dim=2)
-        else:
-            middle_left = torch.zeros(N, C, initH - (2 * n + 1), n + 1, 2)
-            left = torch.cat((top_left, middle_left, bottom_left), dim=2)
+        middle_left = torch.zeros(N, C, init_H_fft - (2 * n + 1), n + 1, 2)
+        left = torch.cat((top_left, middle_left, bottom_left), dim=2)
 
         top_right = xfft[:, :, :n + 1, -n:, :]
         bottom_right = xfft[:, :, -n:, -n:, :]
+        middle_right = torch.zeros(N, C, init_H_fft - (2 * n + 1), n, 2)
+        right = torch.cat((top_right, middle_right, bottom_right), dim=2)
 
-        if n == half_initW - 1:  # We need to return the full size.
-            right = torch.cat((top_right, bottom_right), dim=2)
-        else:
-            middle_right = torch.zeros(N, C, initH - (2 * n + 1), n, 2)
-            right = torch.cat((top_right, middle_right, bottom_right), dim=2)
+        middle = torch.zeros(N, C, init_H_fft, init_W_fft - (2 * n + 1), 2)
 
-        if n == half_initW - 1:
-            result = torch.cat((left, right), dim=3)
-        else:
-            middle = torch.zeros(N, C, initH, initW - (2 * n + 1), 2)
-            result = torch.cat((left, middle, right), dim=3)
-
+        result = torch.cat((left, middle, right), dim=3)
         return result
     else:
         row = torch.cat((top_left, torch.zeros(N, C, 1, W - 1, 2)), dim=3)
-        return torch.cat(row, torch.zerso(N, C, initH - 1, initW, 2), dim=2)
+        result = torch.cat(row,
+                           torch.zerso(N, C, init_H_fft - 1, init_W_fft, 2),
+                           dim=2)
+        return result
 
 
 def compress_2D_full(xfft, index_back=0):
@@ -1708,10 +1791,10 @@ def compress_2D_half_test(x, index_back=0):
     """
     N, C, H, W = x.size()
     xfft = torch.rfft(x, signal_ndim=2, onesided=True)
-    N, C, Hfft, Wfft, _ = xfft.size()
+    N, C, init_H_fft, init_half_W_fft, _ = xfft.size()
     cxfft = compress_2D(xfft, index_back)
-    cxfft_zeros = restore_size_2D_index_back(cxfft, initH=Hfft, initW=Wfft,
-                                             index_back=index_back)
+    cxfft_zeros = restore_size_2D(cxfft, init_H_fft=init_H_fft,
+                                  init_half_W_fft=init_half_W_fft)
     cx = torch.irfft(cxfft_zeros, signal_ndim=2, signal_sizes=(H, W),
                      onesided=True)
     return cx
@@ -1727,11 +1810,10 @@ def show2D_spectra_test(x, index_back=0):
     :return: the 2D spectrum of x.
     """
     xfft = torch.rfft(x, signal_ndim=2, onesided=False)
-    N, C, Hfft, Wfft, _ = xfft.size()
+    N, C, init_H_fft, init_W_fft, _ = xfft.size()
     cxfft = compress_2D_full(xfft, index_back)
-    cxfft_zeros = restore_size_2D_full_index_back(cxfft, initH=Hfft,
-                                                  initW=Wfft,
-                                                  index_back=index_back)
+    cxfft_zeros = restore_size_2D_full(cxfft, init_H_fft=init_H_fft,
+                                       init_W_fft=init_W_fft)
     return cxfft_zeros
 
 
@@ -2073,7 +2155,7 @@ def correlate_fft_signals(xfft, yfft, fft_size: int,
 
 
 def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
-                            half_fft_height, half_fft_width,
+                            init_fft_height, init_half_fft_width,
                             out_height, out_width, is_forward=True):
     """
     >>> # Test 2 channels and 2 filters.
@@ -2098,7 +2180,7 @@ def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
     >>> result = correlate_fft_signals2D(xfft=xfft, yfft=yfft,
     ... input_height=fft_height, input_width=fft_width,
-    ... half_fft_height=xfft.shape[-3], half_fft_width=xfft.shape[-2],
+    ... init_fft_height=xfft.shape[-3], init_half_fft_width=xfft.shape[-2],
     ... out_height=(x.shape[-2]-y.shape[-2] + 1),
     ... out_width=(x.shape[-1]-y.shape[-1] + 1))
     >>> # print("result: ", result)
@@ -2125,7 +2207,7 @@ def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
     >>> result = correlate_fft_signals2D(xfft=xfft, yfft=yfft,
     ... input_height=fft_height, input_width=fft_width,
-    ... half_fft_height=xfft.shape[-2], half_fft_width=xfft.shape[-1],
+    ... init_fft_height=xfft.shape[-2], init_half_fft_width=xfft.shape[-1],
     ... out_height=(x.shape[-2]-y.shape[-2]+1),
     ... out_width=(x.shape[-1]-y.shape[-1] + 1))
     >>> # print("result: ", result)
@@ -2151,7 +2233,7 @@ def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
     >>> result = correlate_fft_signals2D(xfft=xfft, yfft=yfft,
     ... input_height=fft_height, input_width=fft_width,
-    ... half_fft_height=xfft.shape[-3], half_fft_width=xfft.shape[-2],
+    ... init_fft_height=xfft.shape[-3], init_half_fft_width=xfft.shape[-2],
     ... out_height=(x.shape[-2]-y.shape[-2]+1),
     ... out_width=(x.shape[-1]-y.shape[-1] + 1))
     >>> # print("result: ", result)
@@ -2180,7 +2262,7 @@ def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
     >>> result = correlate_fft_signals2D(xfft=xfft, yfft=yfft,
     ... input_height=fft_height, input_width=fft_width,
-    ... half_fft_height=xfft.shape[-3], half_fft_width=xfft.shape[-2],
+    ... init_fft_height=xfft.shape[-3], init_half_fft_width=xfft.shape[-2],
     ... out_height=(x.shape[-2]-y.shape[-2]+1),
     ... out_width=(x.shape[-1]-y.shape[-1] + 1))
     >>> # print("result: ", result)
@@ -2204,12 +2286,15 @@ def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
     """
     signal_ndim = 2
 
-    xfft = complex_pad2D(fft_input=xfft, half_fft_height=half_fft_height,
-                         half_fft_width=half_fft_width)
-    yfft = complex_pad2D(fft_input=yfft, half_fft_height=half_fft_height,
-                         half_fft_width=half_fft_width)
+    # xfft = complex_pad2D(fft_input=xfft, half_fft_height=half_fft_height,
+    #                      half_fft_width=half_fft_width)
+    # yfft = complex_pad2D(fft_input=yfft, half_fft_height=half_fft_height,
+    #                      half_fft_width=half_fft_width)
 
     freq_mul = complex_mul(xfft, pytorch_conjugate(yfft))
+    freq_mul = restore_size_2D(xfft=freq_mul, init_H_fft=init_fft_height,
+                               init_half_W_fft=init_half_fft_width)
+
     out = torch.irfft(input=freq_mul, signal_ndim=signal_ndim,
                       signal_sizes=(input_height, input_width), onesided=True)
 

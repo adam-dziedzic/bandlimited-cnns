@@ -104,8 +104,7 @@ for i in range(len(pool_size)):
     index_forward = half_W // pool_size[i]
     index_back = half_W - index_forward
     pytroch_imgs = torch.from_numpy(grayscale_images)
-    img_compress = compress_2D_half_test(x=pytroch_imgs,
-                                         index_back=index_back)
+    img_compress = compress_2D_half_test(x=pytroch_imgs, index_back=index_back)
     ax.imshow(img_compress[0][0].numpy(), cmap='gray')
     if not i:
         ax.set_ylabel('PyTorch\n compress', fontsize=16,
@@ -118,8 +117,7 @@ for i in range(len(pool_size)):
     index_forward = half_W // pool_size[i]
     index_back = half_W - index_forward
     pytroch_imgs = torch.from_numpy(grayscale_images)
-    img_compress = show2D_spectra_test(x=pytroch_imgs,
-                                       index_back=index_back)
+    img_compress = show2D_spectra_test(x=pytroch_imgs, index_back=index_back)
     img_fft = img_compress[0][0]
     _, img_spectrum = get_full_energy(img_fft)
     img_spectrum_log = torch.log(img_spectrum)
@@ -134,5 +132,5 @@ for i in range(len(pool_size)):
     ax.set_xlabel(label, fontsize=16)
 
 fig.savefig(
-    image_dir + 'Grayscale_Grid_Pooling-ryerson-only-pytorch.png')
+    image_dir + 'Grayscale_Grid_Pooling-ryerson-only-pytorch-4.png')
 fig.show()
