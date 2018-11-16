@@ -279,9 +279,13 @@ class Conv2dfftFunction(torch.autograd.Function):
         :param dout: output gradient
         :return: gradients for input map x, filter w and bias b
         """
-        # logger.debug("execute backward")
-        print("execute backward pass")
+        logger.debug("execute backward")
+
         xfft, yfft, H, HH, W, WW, init_fft_H, init_fft_W, is_manual, conv_index, compress_type, is_debug, preserve_energy, index_back_H_fft, index_back_W_fft = ctx.saved_tensors
+
+        is_debug = True if is_debug == 1 else False
+        if is_debug:
+            print("execute backward pass")
 
         need_input_grad = ctx.needs_input_grad[0]
         need_filter_grad = ctx.needs_input_grad[1]
@@ -307,7 +311,6 @@ class Conv2dfftFunction(torch.autograd.Function):
         # is_manual is already a tensor.
         conv_index = from_tensor(conv_index)  # for the debug/test purposes
         compress_type = CompressType(from_tensor(compress_type))
-        is_debug = True if is_debug == 1 else False
         preserve_energy = from_tensor(preserve_energy)
         index_back_H_fft = from_tensor(index_back_H_fft)
         index_back_W_fft = from_tensor(index_back_W_fft)
