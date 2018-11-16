@@ -20,6 +20,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import from_tensor
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_pair
 from cnns.nnlib.pytorch_layers.pytorch_utils import next_power2
 from cnns.nnlib.pytorch_layers.pytorch_utils import preserve_energy2D_index_back
+from cnns.nnlib.pytorch_layers.pytorch_utils import preserve_energy2D_symmetry
 from cnns.nnlib.pytorch_layers.pytorch_utils import preserve_energy2D
 from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate
 from cnns.nnlib.pytorch_layers.pytorch_utils import to_tensor
@@ -117,6 +118,9 @@ class Conv2dfftFunction(torch.autograd.Function):
         index_back_H, index_back_W = get_pair(value=index_back,
                                               val_1_default=None,
                                               val2_default=None)
+        if index_back_H != index_back_W:
+            raise Exception(
+                "We only support a symmetric compression in the frequency domain.")
 
         pad_H, pad_W = get_pair(value=padding, val_1_default=0, val2_default=0,
                                 name="padding")
@@ -138,6 +142,10 @@ class Conv2dfftFunction(torch.autograd.Function):
         else:
             out_W = W - WW + 1  # the width of the output (without padding)
             out_W += 2 * pad_W
+
+        if out_H != out_W:
+            raise Exception(
+                "We only support a symmetric compression in the frequency domain.")
 
         # We have to pad input with (WW - 1) to execute fft correctly (no
         # overlapping signals) and optimize it by extending the signal to the
@@ -186,16 +194,18 @@ class Conv2dfftFunction(torch.autograd.Function):
         # numbers with real and imaginary parts. The last but one dimension (-2)
         # represents the length of the signal in the frequency domain.
         init_half_fft_W = xfft.shape[-2]
-        init_half_fft_H = xfft.shape[-3]
+        init_fft_H = xfft.shape[-3]
 
         index_back_H_fft, index_back_W_fft = None, None
         if preserve_energy is not None and preserve_energy < 100:
             # index_back_H_fft, index_back_W_fft = preserve_energy2D_index_back(
             #     xfft, preserve_energy)
-            xfft, yfft, index_back_H_fft, index_back_W_fft = preserve_energy2D(
-                xfft, yfft, preserve_energy)
+            # xfft, yfft, index_back_H_fft, index_back_W_fft = preserve_energy2D(
+            #     xfft, yfft, preserve_energy)
+            xfft, yfft = preserve_energy2D_symmetry(
+                xfft, yfft, preserve_energy_rate=preserve_energy)
 
-        # Compute how much to compress the fft-ed signal for its width (W).
+        # Compute how much to compress the fft-ed signal.
         half_fft_W = init_half_fft_W
         if index_back_W is not None and index_back_W > 0:
             # At least one coefficient is removed.
@@ -216,12 +226,12 @@ class Conv2dfftFunction(torch.autograd.Function):
             yfft = yfft.narrow(dim=-2, start=0, length=half_fft_W)
 
         # Compute how much to compress the fft-ed signal for its height (H).
-        half_fft_H = init_half_fft_H
+        half_fft_H = init_fft_H
         if index_back_H is not None and index_back_H > 0:
             # At least one coefficient is removed.
-            index_back_H_fft = int(init_half_fft_H * (index_back_H / 100)) + 1
+            index_back_H_fft = int(init_fft_H * (index_back_H / 100)) + 1
         if index_back_H_fft is not None:
-            half_fft_H = init_half_fft_H - index_back_H_fft
+            half_fft_H = init_fft_H - index_back_H_fft
         if out_size_H is not None:
             # We take one-sided fft so the output after the inverse fft should
             # be out size, thus the representation in the spectral domain is
@@ -231,7 +241,7 @@ class Conv2dfftFunction(torch.autograd.Function):
         # Complex numbers are represented as the pair of numbers in the last
         # dimension so we have to narrow the length of the last but one
         # dimension.
-        if half_fft_H < init_half_fft_H:
+        if half_fft_H < init_fft_H:
             xfft = xfft.narrow(dim=-3, start=0, length=half_fft_H)
             yfft = yfft.narrow(dim=-3, start=0, length=half_fft_H)
 
@@ -245,7 +255,7 @@ class Conv2dfftFunction(torch.autograd.Function):
             out[nn] = correlate_fft_signals2D(
                 xfft=xfft_nn, yfft=yfft,
                 input_height=init_fft_H, input_width=init_fft_W,
-                half_fft_height=init_half_fft_H, half_fft_width=init_half_fft_W,
+                half_fft_height=init_fft_H, half_fft_width=init_half_fft_W,
                 out_height=out_H, out_width=out_W,
                 is_forward=True)
             if bias is not None:

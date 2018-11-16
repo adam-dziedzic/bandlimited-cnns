@@ -442,7 +442,7 @@ def get_full_energy(x):
     sigmod94.pdf (equation 7)
 
     :param x: an array of complex numbers
-    :return: the full energy of signal x
+    :return: the full energy of signal x and its absolute values (squared)
 
     >>> x = torch.tensor([1.2, 1.0])
     >>> full_energy, squared = get_full_energy(x)
@@ -474,6 +474,40 @@ def get_full_energy(x):
     # sum of squared values of the signal
     full_energy = torch.sum(squared).item()
     return full_energy, squared
+
+def get_full_energy_only(x):
+    """
+    Return the full energy of the signal. The energy E(xfft) of a
+    sequence xfft is defined as the sum of energies
+    (squares of the amplitude |x|) at every point of the sequence.
+
+    see: http://www.cs.cmu.edu/~christos/PUBLICATIONS.OLDER/
+    sigmod94.pdf (equation 7)
+
+    :param x: an array of complex numbers
+    :return: the full energy of signal x
+
+    >>> x = torch.tensor([1.2, 1.0])
+    >>> full_energy = get_full_energy_only(x)
+    >>> np.testing.assert_almost_equal(full_energy, 2.4400, decimal=4)
+
+    >>> x_torch = torch.tensor([[1.2, 1.0], [0.5, 1.4]])
+    >>> # change the x_torch to a typical numpy array with complex numbers; compare the results from numpy and pytorch
+    >>> x_numpy = x_torch[...,0].numpy() + 1.0j * x_torch[...,1].numpy()
+    >>> # print("x_numpy: ", x_numpy)
+    >>> full_energy = get_full_energy_only(x_torch)
+    >>> expected_full_energy = np.sum(np.power(np.absolute(x_numpy), 2))
+    >>> np.testing.assert_almost_equal(full_energy, expected_full_energy, decimal=4)
+
+    >>> x_torch = torch.tensor([[-10.0, 1.5], [2.5, 1.8], [1.0, -9.0]])
+    >>> # change the x_torch to a typical numpy array with complex numbers; compare the results from numpy and pytorch
+    >>> x_numpy = x_torch[...,0].numpy() + 1.0j * x_torch[...,1].numpy()
+    >>> full_energy = get_full_energy_only(x_torch)
+    >>> expected_full_energy = np.sum(np.power(np.absolute(x_numpy), 2))
+    >>> np.testing.assert_almost_equal(full_energy, expected_full_energy, decimal=4)
+    """
+    return torch.sum(torch.add(torch.pow(x.narrow(-1, 0, 1), 2),
+                        torch.pow(x.narrow(-1, 1, 1), 2))).item()
 
 
 def get_spectrum(xfft):
@@ -1313,31 +1347,57 @@ def preserve_energy2D(xfft, yfft, preserve_energy_rate=None):
     return xfft, yfft, index_back_H, index_back_W
 
 
-def preserve_energy2D_symmetry(xfft, preserve_energy_rate=None):
+def preserve_energy2D_symmetry(xfft, yfft, preserve_energy_rate=None):
+    if xfft is None or len(xfft) == 0:
+        return 0, 0
     if len(xfft.shape) != 5:
         """The dimensions: N, C, H, W, X (complex number)."""
         raise ValueError(
             "The expected input is fft-ed 2D map in a batch with channels.")
-    # The second dimension from the end is the length because this is a complex
-    # 2D input.
-    input_H = xfft.shape[2]
     input_W = xfft.shape[3]
-    if xfft is None or len(xfft) == 0:
-        return 0, 0
-    squared = torch.add(torch.pow(xfft[..., 0], 2),
-                        torch.pow(xfft[..., 1], 2))
-    # Sum the batch and channel dimensions (we first reduce to many channels -
-    # first 0, and then to only a single channel - next 0 (the dimensions
-    # collapse one by one).
-    squared = squared.sum(dim=0).sum(dim=0)
-    assert squared.shape[0] == input_H
-    assert squared.shape[1] == input_W
+    preserved_energy = get_full_energy_only(xfft) * preserve_energy_rate / 100.0
 
-    # Sum of squared values of the signal of length input_length.
-    full_energy = torch.sum(squared).item()
-    current_energy = 0.0
-    preserved_energy = full_energy * preserve_energy_rate / 100.0
+    for index_forward in range(1, input_W):
+        if compress_2D_energy(xfft, index_forward=index_forward) >= preserved_energy:
+            return , compress_2D(yfft, index_back)
 
+
+def compress_2D_energy(xfft, index_forward):
+    """
+    Return energy for compress xfft to index_forward coefficients.
+
+    :param xfft: input xfft-ed image/filter
+    :param index_forward: how many indexes are preserved (this serves as size
+    of the side of the squares preserved in top left and bottom left part of
+    xfft).
+    :return: the energy preserved
+
+    >>> x = tensor([[[[1.0, 2.0, 3.0, 5.0, -1.0, 5.0],
+    ... [3.0, 4.0, 1.0, -1.0, 3.0  , 5.0],
+    ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0],
+    ... [5.0, 3.0, 0.0, -1.0, 0.0, 4.0],
+    ... [3.0, 0.0, 1.0, -1.0, 0.0  , 5.0],
+    ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0]]]])
+    >>> xfft = torch.rfft(x, signal_ndim=2, onesided=True)
+    >>> index_forward = 3
+    >>> xfft_compressed = compress_2D_odd(xfft, index_forward = index_forward)
+    >>> _, _, H, W, _ = xfft_compressed.size()
+    >>> # print("xfft: ", xfft)
+    >>> # print(xfft_compressed.size())
+    >>> assert H == 5
+    >>> assert W == 3
+    >>> energy_expected = get_full_energy_only(xfft_compressed)
+    >>> energy_computed = compress_2D_energy(xfft, index_forward = index_forward)
+    >>> np.testing.assert_approx_equal(actual=energy_computed, desired=energy_expected)
+
+    """
+    n = index_forward - 1
+    energy_top_left = get_full_energy_only(xfft[:, :, :n + 1, :n + 1, :])
+    if n > 0:
+        energy_bottom_left = get_full_energy_only(xfft[:, :, -n:, :n + 1, :])
+        return energy_top_left + energy_bottom_left
+    else:
+        return energy_top_left
 
 def compress_2D_odd(xfft, index_forward):
     """
@@ -1356,17 +1416,36 @@ def compress_2D_odd(xfft, index_forward):
     ... [3.0, 0.0, 1.0, -1.0, 0.0  , 5.0],
     ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0]]]])
     >>> xfft = torch.rfft(x, signal_ndim=2, onesided=True)
+    >>> # print("xfft: ", xfft)
     >>> xfft_compressed = compress_2D_odd(xfft, index_forward = 3)
+    >>> # print("xfft compressed: ", xfft_compressed)
     >>> _, _, H, W, _ = xfft_compressed.size()
     >>> # print(xfft_compressed.size())
     >>> assert H == 5
     >>> assert W == 3
 
+    >>> x = tensor([[[[1.0, 2.0, 3.0, 5.0, -1.0, 5.0],
+    ... [3.0, 4.0, 1.0, -1.0, 3.0  , 5.0],
+    ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0],
+    ... [5.0, 3.0, 0.0, -1.0, 0.0, 4.0],
+    ... [3.0, 0.0, 1.0, -1.0, 0.0  , 5.0],
+    ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0]]]])
+    >>> xfft = torch.rfft(x, signal_ndim=2, onesided=True)
+    >>> # print("xfft: ", xfft)
+    >>> xfft_compressed = compress_2D_odd(xfft, index_forward = 4)
+    >>> # print("xfft compressed: ", xfft_compressed)
+    >>> _, _, H, W, _ = xfft_compressed.size()
+    >>> # print(xfft_compressed.size())
+    >>> assert H == 6
+    >>> assert W == 4
+
     """
+    if index_forward == xfft.shape[-2]:
+        return xfft
     n = index_forward - 1
     top_left = xfft[:, :, :n + 1, :n + 1, :]
     if n > 0:
-        bottom_left = xfft[:, :, -(n - 1):, :n + 1, :]
+        bottom_left = xfft[:, :, -n:, :n + 1, :]
         return torch.cat((top_left, bottom_left), dim=2)
     else:
         return top_left
@@ -1389,19 +1468,48 @@ def compress_2D_odd_full(xfft, index_forward):
     ... [3.0, 0.0, 1.0, -1.0, 0.0  , 5.0],
     ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0]]]])
     >>> xfft = torch.rfft(x, signal_ndim=2, onesided=False)
+    >>> xfft_compressed = compress_2D_odd_full(xfft, index_forward = 2)
+    >>> _, _, H, W, _ = xfft_compressed.size()
+    >>> # print(xfft_compressed.size())
+    >>> assert H == 3
+    >>> assert W == 3
+
+    >>> x = tensor([[[[1.0, 2.0, 3.0, 5.0, -1.0, 5.0],
+    ... [3.0, 4.0, 1.0, -1.0, 3.0  , 5.0],
+    ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0],
+    ... [5.0, 3.0, 0.0, -1.0, 0.0, 4.0],
+    ... [3.0, 0.0, 1.0, -1.0, 0.0  , 5.0],
+    ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0]]]])
+    >>> xfft = torch.rfft(x, signal_ndim=2, onesided=False)
     >>> xfft_compressed = compress_2D_odd_full(xfft, index_forward = 3)
     >>> _, _, H, W, _ = xfft_compressed.size()
     >>> # print(xfft_compressed.size())
     >>> assert H == 5
     >>> assert W == 5
 
+    >>> x = tensor([[[[1.0, 2.0, 3.0, 5.0, -1.0, 5.0],
+    ... [3.0, 4.0, 1.0, -1.0, 3.0  , 5.0],
+    ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0],
+    ... [5.0, 3.0, 0.0, -1.0, 0.0, 4.0],
+    ... [3.0, 0.0, 1.0, -1.0, 0.0  , 5.0],
+    ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0]]]])
+    >>> xfft = torch.rfft(x, signal_ndim=2, onesided=False)
+    >>> xfft_compressed = compress_2D_odd_full(xfft, index_forward = 4)
+    >>> _, _, H, W, _ = xfft_compressed.size()
+    >>> # print(xfft_compressed.size())
+    >>> assert H == 6
+    >>> assert W == 6
+
     """
+    if index_forward == xfft.shape[-2] // 2 + 1:
+        return xfft
+
     n = index_forward - 1
     top_left = xfft[:, :, :n + 1, :n + 1, :]
     if n > 0:
-        bottom_left = xfft[:, :, -(n - 1):, :n + 1, :]
-        top_right = xfft[:, :, :n + 1, -(n - 1):, :]
-        bottom_right = xfft[:, :, -(n - 1):, -(n - 1):, :]
+        bottom_left = xfft[:, :, -n:, :n + 1, :]
+        top_right = xfft[:, :, :n + 1, -n:, :]
+        bottom_right = xfft[:, :, -n:, -n:, :]
 
         # Combine along the H - height (vertical dimension).
         left = torch.cat((top_left, bottom_left), dim=2)
@@ -1443,6 +1551,7 @@ def compress_2D(xfft, index_back=0):
     # We assume xfft is onesided.
     assert W == (H // 2 + 1)
     assert index_back < W
+    assert index_back >= 0
     index_forward = get_index_back(W, index_back)
     if index_forward % 2 == 0:
         return compress_2D_even(xfft, index_forward)
@@ -1484,17 +1593,19 @@ def restore_size_2D(xfft, initH, initW, index_forward):
     >>> assert initHH == initH
     >>> assert initWW == initW
     """
+    if index_forward == xfft.shape[-2]:
+        return xfft
     n = index_forward - 1
     N, C, H, W, _ = xfft.size()
     top_left = xfft[:, :, :n + 1, :n + 1, :]
     if n > 0:
-        bottom_left = xfft[:, :, -(n - 1):, :n + 1, :]
+        bottom_left = xfft[:, :, -n:, :n + 1, :]
         if n == initW - 1:  # We need to return the full size.
             result = torch.cat((top_left, bottom_left), dim=2)
         else:
-            middle = torch.zeros(N, C, initH - 2 * n, n + 1, 2)
+            middle = torch.zeros(N, C, initH - (2 * n + 1), n + 1, 2)
             left = torch.cat((top_left, middle, bottom_left), dim=2)
-            right = torch.zeros(N, C, initH, initW - (n + 1), 2)
+            right = torch.zeros(N, C, initH, initW - (n+1), 2)
             result = torch.cat((left, right), dim=3)
         return result
     else:
@@ -1538,31 +1649,33 @@ def restore_size_2D_full(xfft, initH, initW, index_forward):
     >>> assert initHH == initH
     >>> assert initWW == initW
     """
+    if index_forward == xfft.shape[-2] // 2 + 1:
+        return xfft
     n = index_forward - 1
     N, C, H, W, _ = xfft.size()
     top_left = xfft[:, :, :n + 1, :n + 1, :]
     if n > 0:
-        bottom_left = xfft[:, :, -(n - 1):, :n + 1, :]
+        bottom_left = xfft[:, :, -n:, :n + 1, :]
         half_initW = initW // 2 + 1
         if n == half_initW - 1:  # We need to return the full size.
             left = torch.cat((top_left, bottom_left), dim=2)
         else:
-            middle_left = torch.zeros(N, C, initH - 2 * n, n + 1, 2)
+            middle_left = torch.zeros(N, C, initH - (2 * n + 1), n + 1, 2)
             left = torch.cat((top_left, middle_left, bottom_left), dim=2)
 
-        top_right = xfft[:, :, :n + 1, -(n - 1):, :]
-        bottom_right = xfft[:, :, -(n - 1):, -(n - 1):, :]
+        top_right = xfft[:, :, :n + 1, -n:, :]
+        bottom_right = xfft[:, :, -n:, -n:, :]
 
         if n == half_initW - 1:  # We need to return the full size.
             right = torch.cat((top_right, bottom_right), dim=2)
         else:
-            middle_right = torch.zeros(N, C, initH - 2 * n, n - 1, 2)
+            middle_right = torch.zeros(N, C, initH - (2 * n + 1), n, 2)
             right = torch.cat((top_right, middle_right, bottom_right), dim=2)
 
         if n == half_initW - 1:
             result = torch.cat((left, right), dim=3)
         else:
-            middle = torch.zeros(N, C, initH, initW - 2 * n, 2)
+            middle = torch.zeros(N, C, initH, initW - (2 * n + 1), 2)
             result = torch.cat((left, middle, right), dim=3)
 
         return result
@@ -2751,7 +2864,7 @@ def del_object(obj):
     del obj
 
 
-def get_tensors(only_cuda=False, omit_objs=[]):
+def get_tensors(only_cuda=False, omit_ob7js=[]):
     """
     https://discuss.pytorch.org/t/how-to-debug-causes-of-gpu-memory-leaks/6741/3?u=adam_dziedzic
     https://discuss.pytorch.org/t/how-to-debug-causes-of-gpu-memory-leaks/6741/19?u=adam_dziedzic
