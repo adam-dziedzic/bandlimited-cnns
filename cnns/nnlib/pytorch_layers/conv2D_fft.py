@@ -208,13 +208,14 @@ class Conv2dfftFunction(torch.autograd.Function):
             # At least one coefficient is removed.
             index_back_W_fft = int(init_half_fft_W * (index_back_W / 100)) + 1
             xfft = compress_2D_odd_index_back(xfft, index_back_W_fft)
+            yfft = compress_2D_odd_index_back(yfft, index_back_W_fft)
         elif out_size_W is not None:
             # We take one-sided fft so the output after the inverse fft should
             # be out size, thus the representation in the spectral domain is
             # twice smaller than the one in the spatial domain.
             half_fft_W = out_size_W // 2 + 1
             xfft = compress_2D_odd(xfft, half_fft_W)
-
+            yfft = compress_2D_odd(yfft, half_fft_W)
         out = torch.zeros([N, F, out_H, out_W], dtype=input.dtype,
                           device=input.device)
 

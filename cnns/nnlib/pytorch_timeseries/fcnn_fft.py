@@ -1135,8 +1135,8 @@ if __name__ == '__main__':
         flist = ["mnist"]
     elif args.datasets == "debug":
         # flist = ["50words"]
-        flist = ["cifar10"]
-        # flist = ["mnist"]
+        # flist = ["cifar10"]
+        flist = ["mnist"]
         # flist = ["zTest"]
         # flist = ["zTest50words"]
         # flist = ["InlineSkate"]

@@ -1675,9 +1675,11 @@ def restore_size_2D(xfft, init_H_fft, init_half_W_fft):
     top_left = xfft[:, :, :n + 1, :n + 1, :]
     if n > 0:
         bottom_left = xfft[:, :, -n:, :n + 1, :]
-        middle = torch.zeros(N, C, init_H_fft - (2 * n + 1), n + 1, 2)
+        middle = torch.zeros(N, C, init_H_fft - (2 * n + 1), n + 1, 2,
+                             dtype=xfft.dtype)
         left = torch.cat((top_left, middle, bottom_left), dim=2)
-        right = torch.zeros(N, C, init_H_fft, init_half_W_fft - (n + 1), 2)
+        right = torch.zeros(N, C, init_H_fft, init_half_W_fft - (n + 1), 2,
+                            dtype=xfft.dtype)
         result = torch.cat((left, right), dim=3)
         return result
     else:

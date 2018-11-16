@@ -123,7 +123,8 @@ class TestPyTorchConv2d(unittest.TestCase):
         conv = Conv2dfftFunction()
         result = conv.forward(ctx=None, input=x, filter=y, bias=b, index_back=1,
                               use_next_power2=False)
-        expect = np.array([[[[21.5, 22.0], [17.5, 13.]]]])
+        # expect = np.array([[[[21.5, 22.0], [17.5, 13.]]]])
+        expect = np.array([[[[21.75, 21.75], [18.75, 13.75]]]])
         np.testing.assert_array_almost_equal(
             x=expect, y=result,
             err_msg="The expected array x and computed y are not almost equal.")
@@ -335,9 +336,12 @@ class TestPyTorchConv2d(unittest.TestCase):
         # expected_result = np.array([[[[10.103396, 12.630585, 11.697527],
         #                               [12.558281, 13.923859, 11.561422],
         #                               [11.473415, 11.409614, 8.187342]]]])
-        expected_result = np.array([[[[11.2787, 14.2694, 12.6907],
-                                      [14.0552, 15.6585, 12.3298],
-                                      [12.0275, 11.8809, 7.7573]]]])
+        # expected_result = np.array([[[[11.2787, 14.2694, 12.6907],
+        #                               [14.0552, 15.6585, 12.3298],
+        #                               [12.0275, 11.8809, 7.7573]]]])
+        expected_result = np.array([[[[12.2992, 13.6678, 10.92],
+                                      [15.9293, 16.679, 11.7282],
+                                      [13.3441, 13.755, 8.7778]]]])
         conv = Conv2dfftFunction()
         result = conv.forward(ctx=None, input=torch.from_numpy(x),
                               filter=torch.from_numpy(y),
@@ -689,9 +693,12 @@ class TestPyTorchConv2d(unittest.TestCase):
         # expected_result = np.array([[[[10.103396, 12.630585, 11.697527],
         #                               [12.558281, 13.923859, 11.561422],
         #                               [11.473415, 11.409614, 8.187342]]]])
-        expected_result = np.array([[[[11.2787, 14.2694, 12.6907],
-                                      [14.0552, 15.6585, 12.3298],
-                                      [12.0275, 11.8809, 7.7573]]]])
+        # expected_result = np.array([[[[11.2787, 14.2694, 12.6907],
+        #                               [14.0552, 15.6585, 12.3298],
+        #                               [12.0275, 11.8809, 7.7573]]]])
+        expected_result = np.array([[[[12.2992, 13.6678, 10.92],
+                                      [15.9293, 16.679, 11.7282],
+                                      [13.3441, 13.755, 8.7778]]]])
         conv = Conv2dfftFunction()
 
         x_torch = torch.tensor(data=x, requires_grad=True)
@@ -740,12 +747,19 @@ class TestPyTorchConv2d(unittest.TestCase):
         #        [0.1164, 0.0923, 0.0066, -0.0904, -0.1420],
         #        [0.0799, 0.0287, -0.0482, -0.1058, -0.1104]]]])
 
-        approximate_expected_dx = np.array(
-            [[[[0.0004, 0.1056, 0.1608, 0.1246, 0.0241],
-               [0.0604, 0.1825, 0.1858, 0.0676, -0.0829],
-               [0.1250, 0.1951, 0.1164, -0.0518, -0.1829],
-               [0.1456, 0.1338, 0.0051, -0.1437, -0.2005],
-               [0.1066, 0.0448, -0.0645, -0.1389, -0.1225]]]])
+        # approximate_expected_dx = np.array(
+        #     [[[[0.0004, 0.1056, 0.1608, 0.1246, 0.0241],
+        #        [0.0604, 0.1825, 0.1858, 0.0676, -0.0829],
+        #        [0.1250, 0.1951, 0.1164, -0.0518, -0.1829],
+        #        [0.1456, 0.1338, 0.0051, -0.1437, -0.2005],
+        #        [0.1066, 0.0448, -0.0645, -0.1389, -0.1225]]]])
+
+        approximate_expected_dx = np.array([[[
+            [-0.0148, 0.0503, 0.1306, 0.1655, 0.1288],
+            [0.1054, 0.1526, 0.1158, 0.0227, -0.0567],
+            [0.1963, 0.2130, 0.0595, -0.1488, -0.2549],
+            [0.1895, 0.1861, 0.0040, -0.2197, -0.3165],
+            [0.0901, 0.0920, -0.0089, -0.1367, -0.1952]]]])
 
         print("manual torch grad: ", x_torch.grad)
 
@@ -762,9 +776,10 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         # approximate_expected_dw = np.array([[[[0.844089, 1.41447],
         #                                       [1.221608, 1.32085]]]])
-
-        approximate_expected_dw = np.array([[[[1.1816, 1.8317],
-                                              [1.5589, 1.4568]]]])
+        # approximate_expected_dw = np.array([[[[1.1816, 1.8317],
+        #                                       [1.5589, 1.4568]]]])
+        approximate_expected_dw = np.array([[[[1.2042, 2.0410],
+                                              [1.6021, 1.6371]]]])
 
         np.testing.assert_array_almost_equal(
             x=approximate_expected_dw, y=y_torch.grad, decimal=4,
@@ -798,7 +813,8 @@ class TestPyTorchConv2d(unittest.TestCase):
         conv = Conv2dfftAutograd(filter_value=y, bias=b, index_back=1,
                                  use_next_power2=False)
         result = conv.forward(input=x)
-        expect = np.array([[[[21.5, 22.0], [17.5, 13.]]]])
+        # expect = np.array([[[[21.5, 22.0], [17.5, 13.]]]])
+        expect = np.array([[[[21.75, 21.75], [18.75, 13.75]]]])
         np.testing.assert_array_almost_equal(
             x=expect, y=result,
             err_msg="The expected array x and computed y are not almost equal")
@@ -984,30 +1000,30 @@ class TestPyTorchConv2d(unittest.TestCase):
         H, W, _ = xfft.size()
 
         # Check the symmetries.
-        KeepDim = H // 2
+        KeepDim = W // 2
         middle_col = xfft[:, KeepDim]
 
-        expect_middle_col = torch.mean(
-            torch.cat(xfft[:, KeepDim], xfft[:, -KeepDim]))
+        catted = torch.cat((xfft[:, KeepDim, 0], xfft[:, -KeepDim, 0]), dim=0)
+        expect_middle_col_real = torch.mean(catted, dim=0)
 
     def test_symmetries_odd_even(self):
         x = tensor([[[[1.0, 2.0, 3.0, 5.0, -1.0],
-                    [3.0, 4.0, 1.0, -1.0, 3.0],
-                    [1.0, 2.0, 1.0, 1.0, 0.0],
-                    [5.0, 3.0, 0.0, -1.0, -1.0],
-                    [3.0, 0.0, 1.0, -1.0, 0.0]]]])
+                      [3.0, 4.0, 1.0, -1.0, 3.0],
+                      [1.0, 2.0, 1.0, 1.0, 0.0],
+                      [5.0, 3.0, 0.0, -1.0, -1.0],
+                      [3.0, 0.0, 1.0, -1.0, 0.0]]]])
         N = 5
         M = 2
         KeepDim = M // 2
         xfft = torch.rfft(x, signal_ndim=2, onesided=False)
         print("xfft: ", xfft)
-        print("xfft real part: ", xfft[...,0])
+        print("xfft real part: ", xfft[..., 0])
         print("xfft imaginary part: ", xfft[..., 1])
         print("xfft spectrum: ", get_spectrum(xfft))
 
         xfft_one = torch.rfft(x, signal_ndim=2, onesided=True)
         print("xfft_one: ", xfft_one)
-        print("xfft_one real part: ", xfft_one[...,0])
+        print("xfft_one real part: ", xfft_one[..., 0])
         print("xfft_one imaginary part: ", xfft_one[..., 1])
         print("xfft_one spectrum: ", get_spectrum(xfft_one))
 
