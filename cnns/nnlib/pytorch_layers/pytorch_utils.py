@@ -2751,9 +2751,10 @@ def del_object(obj):
     del obj
 
 
-def get_tensors(only_cuda=False, is_debug=False, omit_objs=[]):
+def get_tensors(only_cuda=False, omit_objs=[]):
     """
     https://discuss.pytorch.org/t/how-to-debug-causes-of-gpu-memory-leaks/6741/3?u=adam_dziedzic
+    https://discuss.pytorch.org/t/how-to-debug-causes-of-gpu-memory-leaks/6741/19?u=adam_dziedzic
 
     :return: list of active PyTorch tensors
     >>> import torch
@@ -2785,7 +2786,6 @@ def get_tensors(only_cuda=False, is_debug=False, omit_objs=[]):
     # omit_obj_ids = [id(obj) for obj in omit_objs]
 
     def add_tensor(obj):
-        tensor = None
         if torch.is_tensor(obj):
             tensor = obj
         elif hasattr(obj, 'data') and torch.is_tensor(obj.data):
