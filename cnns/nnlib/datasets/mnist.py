@@ -26,7 +26,7 @@ def get_mnist(args):
     else:
         kwargs = {'num_workers': num_workers}
     num_classes = 10
-    flat_size = 320  # the size of the flat vector after the conv layers
+    flat_size = 320  # the size of the flat vector after the conv layers in LeNet
     width = 28 * 28
     in_channels = 1  # number of channels in the input data
     out_channels = [10, 20]

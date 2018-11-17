@@ -19,14 +19,11 @@ import time
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-import torchvision
 from keras.callbacks import ReduceLROnPlateau as ReduceLROnPlateauKeras
 from keras.models import Model
 from keras.utils import np_utils
 from torch.optim.lr_scheduler import \
     ReduceLROnPlateau as ReduceLROnPlateauPyTorch
-from torch.utils.data import Dataset
-from torchvision import transforms
 
 from cnns.nnlib.pytorch_layers.AdamFloat16 import AdamFloat16
 from cnns.nnlib.pytorch_architecture.le_net import LeNet
@@ -44,11 +41,8 @@ from cnns.nnlib.utils.general_utils import DebugMode
 from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import mem_log_file
 from cnns.nnlib.utils.general_utils import get_log_time
-from cnns.nnlib.datasets.ucr.dataset import UCRDataset
-from cnns.nnlib.datasets.ucr.dataset import ToTensor
-from cnns.nnlib.datasets.ucr.dataset import AddChannel
 from cnns.nnlib.datasets.mnist import get_mnist
-
+from cnns.nnlib.datasets.cifar10 import get_cifar10
 # from memory_profiler import profile
 
 logger = logging.getLogger(__name__)
@@ -503,72 +497,13 @@ def main(dataset_name, preserve_energy):
     batch_size = args.min_batch_size
 
     if dataset_name is "cifar10":
-        num_classes = 10
-        width = 32 * 32
-        flat_size = 500
-        # standard batch size is 32
-        batch_size = args.min_batch_size
-        in_channels = 3  # number of channels in the input data
-        signal_dimension = 1
-        if NetworkType[args.network_type] is NetworkType.LE_NET:
-            out_channels = [10, 20]
-            signal_dimension = 2
-        train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True,
-                                                     download=True,
-                                                     transform=get_transform_train(
-                                                         dtype=torch.float,
-                                                         signal_dimension=signal_dimension))
-        if is_debug and sample_count > 0:
-            train_dataset.train_data = train_dataset.train_data[:sample_count]
-            train_dataset.train_labels = train_dataset.train_labels[
-                                         :sample_count]
-
-        train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                                   batch_size=batch_size,
-                                                   shuffle=True,
-                                                   **kwargs)
-
-        test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False,
-                                                    download=True,
-                                                    transform=get_transform_test(
-                                                        dtype=torch.float,
-                                                        signal_dimension=signal_dimension))
-        if is_debug and sample_count > 0:
-            test_dataset.test_data = test_dataset.test_data[:sample_count]
-            test_dataset.test_labels = test_dataset.test_labels[:sample_count]
-        test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-                                                  batch_size=batch_size,
-                                                  shuffle=False,
-                                                  **kwargs)
+        train_loader, test_loader, num_classes, flat_size, width, in_channels, out_channels = get_cifar10(
+            args)
     elif dataset_name is "mnist":
         train_loader, test_loader, num_classes, flat_size, width, in_channels, out_channels = get_mnist(args)
-
     elif dataset_name in os.listdir(ucr_path):  # dataset from UCR archive
-        in_channels = 1  # number of channels in the input data
-        train_dataset = UCRDataset(dataset_name, train=True,
-                                   transformations=transforms.Compose(
-                                       [ToTensor(dtype=torch.float),
-                                        AddChannel()]))
-        if is_debug and sample_count > 0:
-            train_dataset.set_length(sample_count)
-        train_size = len(train_dataset)
-        batch_size = args.min_batch_size
-        if train_size < batch_size:
-            batch_size = train_size
-        train_loader = torch.utils.data.DataLoader(
-            dataset=train_dataset, batch_size=batch_size, shuffle=True,
-            **kwargs)
-
-        test_dataset = UCRDataset(dataset_name, train=False,
-                                  transformations=transforms.Compose(
-                                      [ToTensor(dtype=torch.float),
-                                       AddChannel()]))
-        if is_debug and sample_count > 0:
-            test_dataset.set_length(sample_count)
-        num_classes = test_dataset.num_classes
-        width = test_dataset.width
-        test_loader = torch.utils.data.DataLoader(
-            dataset=test_dataset, batch_size=batch_size, shuffle=True, **kwargs)
+        train_loader, test_loader, num_classes, flat_size, width, in_channels, out_channels = get_ucr(
+            args)
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
 
