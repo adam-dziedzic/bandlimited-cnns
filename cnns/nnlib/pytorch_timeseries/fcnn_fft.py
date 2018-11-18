@@ -27,6 +27,7 @@ from torch.optim.lr_scheduler import \
 
 from cnns.nnlib.pytorch_layers.AdamFloat16 import AdamFloat16
 from cnns.nnlib.pytorch_architecture.le_net import LeNet
+from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
 from cnns.nnlib.pytorch_architecture.fcnn import FCNNPytorch
 from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.general_utils import CompressType
@@ -164,8 +165,8 @@ parser.add_argument("--compress_type", default="STANDARD",
                     # "STANDARD", "BIG_COEFF", "LOW_COEFF"
                     help="the type of compression to be applied: " + ",".join(
                         CompressType.get_names()))
-parser.add_argument("--network_type", default="LE_NET",
-                    # "FCNN_STANDARD", "FCNN_SMALL", "LE_NET"
+parser.add_argument("--network_type", default="ResNet18",
+                    # "FCNN_STANDARD", "FCNN_SMALL", "LE_NET", "ResNet18"
                     help="the type of network: " + ",".join(
                         NetworkType.get_names()))
 parser.add_argument("--tensor_type", default="FLOAT32",
@@ -259,6 +260,8 @@ def getModelPyTorch(input_size, num_classes, in_channels, out_channels=None,
         return FCNNPytorch(input_size=input_size, num_classes=num_classes,
                            in_channels=in_channels, out_channels=out_channels,
                            dtype=dtype, preserve_energy=preserve_energy)
+    elif network_type == NetworkType.ResNet18:
+        return resnet18(num_classes=num_classes, args=args)
     else:
         raise Exception("Unknown network_type: ", network_type)
 
@@ -490,10 +493,6 @@ def main(dataset_name, preserve_energy):
     elif TensorType[args.tensor_type] is TensorType.DOUBLE:
         dtype = torch.double
 
-    in_channels = None  # number of channels in the input data
-    sample_count = args.sample_count_limit
-    out_channels = None
-    flat_size = None  # the size of the flat vector after the conv layers
     batch_size = args.min_batch_size
 
     if dataset_name is "cifar10":
@@ -713,6 +712,7 @@ if __name__ == '__main__':
         for preserve_energy in preserve_energies:
             print("Dataset: ", dataset_name)
             print("preserve energy: ", preserve_energy)
+            args.preserve_energy = preserve_energy
             with open(global_log_file, "a") as file:
                 file.write("dataset name: " + dataset_name + "\n" +
                            "preserve energy: " + str(preserve_energy) + "\n")

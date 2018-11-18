@@ -43,8 +43,7 @@ class FCNNPytorch(nn.Module):
 
         conv = Conv(kernel_sizes=kernel_sizes, in_channels=in_channels,
                     out_channels=out_channels, strides=strides,
-                    padding=conv_pads, is_debug=self.is_debug,
-                    preserve_energy=preserve_energy)
+                    padding=conv_pads, args=args)
 
         index = 0
         self.conv0 = conv.get_conv(index=index)

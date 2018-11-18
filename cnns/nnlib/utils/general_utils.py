@@ -121,6 +121,7 @@ class NetworkType(EnumWithNames):
     FCNN_STANDARD = 1
     FCNN_SMALL = 2
     LE_NET = 3
+    ResNet18 = 4
 
 
 class CompressType(EnumWithNames):

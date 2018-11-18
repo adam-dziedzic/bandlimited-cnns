@@ -519,6 +519,8 @@ class Conv2dfft(Module):
             self.kernel_height = filter_value.shape[2]
             self.kernel_width = filter_value.shape[3]
 
+        # alias for the filter
+        self.weight = self.filter
         self.is_bias_value = None  # Was the bias value provided.
         if bias_value is None:
             self.is_bias_value = False

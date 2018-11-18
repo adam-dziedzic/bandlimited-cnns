@@ -49,8 +49,7 @@ class LeNet(nn.Module):
 
         conv = Conv(kernel_sizes=kernel_sizes, in_channels=in_channels,
                     out_channels=out_channels, strides=strides,
-                    padding=conv_pads, args=args, is_debug=self.is_debug,
-                    dtype=dtype, preserve_energy=preserve_energy)
+                    padding=conv_pads, args=args)
 
         # self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
         self.conv1 = conv.get_conv(index=0)
