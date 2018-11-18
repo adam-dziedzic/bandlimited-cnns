@@ -60,9 +60,12 @@ def get_cifar10(args):
     flat_size = 500
     batch_size = args.min_batch_size
     in_channels = 3  # number of channels in the input data
+    out_channels = None
     signal_dimension = 1
     if NetworkType[args.network_type] is NetworkType.LE_NET:
         out_channels = [10, 20]
+        signal_dimension = 2
+    if NetworkType[args.network_type] is NetworkType.ResNet18:
         signal_dimension = 2
     train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True,
                                                  download=True,
