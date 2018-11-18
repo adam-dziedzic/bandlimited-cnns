@@ -44,6 +44,8 @@ from cnns.nnlib.utils.general_utils import mem_log_file
 from cnns.nnlib.utils.general_utils import get_log_time
 from cnns.nnlib.datasets.mnist import get_mnist
 from cnns.nnlib.datasets.cifar10 import get_cifar10
+from cnns.nnlib.datasets.ucr.ucr import get_ucr
+
 # from memory_profiler import profile
 
 logger = logging.getLogger(__name__)
@@ -250,7 +252,7 @@ def getModelPyTorch(input_size, num_classes, in_channels, out_channels=None,
                      in_channels=in_channels, out_channels=out_channels,
                      dtype=dtype, batch_size=batch_size,
                      preserve_energy=preserve_energy, flat_size=flat_size,
-                     is_debug = is_debug)
+                     is_debug=is_debug)
     elif network_type == NetworkType.FCNN_SMALL or (
             network_type == NetworkType.FCNN_STANDARD):
         if network_type == NetworkType.FCNN_SMALL:
@@ -499,12 +501,14 @@ def main(dataset_name, preserve_energy):
         train_loader, test_loader, num_classes, flat_size, width, in_channels, out_channels = get_cifar10(
             args)
     elif dataset_name is "mnist":
-        train_loader, test_loader, num_classes, flat_size, width, in_channels, out_channels = get_mnist(args)
+        train_loader, test_loader, num_classes, flat_size, width, in_channels, out_channels = get_mnist(
+            args)
     elif dataset_name in os.listdir(ucr_path):  # dataset from UCR archive
         train_loader, test_loader, num_classes, flat_size, width, in_channels, out_channels = get_ucr(
             args)
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
+    args.in_channels = in_channels
 
     model = getModelPyTorch(input_size=width, num_classes=num_classes,
                             in_channels=in_channels, out_channels=out_channels,
