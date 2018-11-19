@@ -16,6 +16,8 @@ pip install --upgrade pip
 pip install matplotlib
 pip install memory_profiler
 
+pip install py3nvml
+pip install -U tensorflow-gpu
 
 
 

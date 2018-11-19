@@ -91,6 +91,9 @@ class Conv2dfftFunction(torch.autograd.Function):
         """
         if is_debug:
             print("execute forward pass")
+            torch.set_printoptions(threshold=5000)
+            print("input 0: ", input[0])
+            print("filter 0: ", filter[0])
 
         INPUT_ERROR = "Specify only one of: index_back, out_size, or " \
                       "preserve_energy"

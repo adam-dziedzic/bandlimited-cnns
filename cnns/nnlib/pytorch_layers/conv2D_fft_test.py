@@ -12,7 +12,9 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import MockContext
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
 from cnns.nnlib.utils.log_utils import get_logger
 from cnns.nnlib.utils.log_utils import set_up_logging
-
+from cnns.nnlib.pytorch_layers.test_data.cifar10_image import cifar10_image
+from cnns.nnlib.pytorch_layers.test_data.cifar10_lenet_filter import cifar10_lenet_filter
+from cnns.nnlib.utils.general_utils import CompressType
 
 class TestPyTorchConv2d(unittest.TestCase):
 
@@ -1029,6 +1031,39 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         print("xfft spectrum: ", get_spectrum(xfft))
         print("xfft_one spectrum: ", get_spectrum(xfft_one))
+
+    def test_FunctionForwardCompressionConvFFTPreserveEnergyCifar10LeNet1stLayer(
+            self):
+        x = cifar10_image
+        print("shape of the input image: ", x.size())
+        y = cifar10_lenet_filter
+        print("shape of the filter: ", y.size())
+        b = torch.tensor([0.0])
+        # get the expected results from numpy correlate
+
+        # print("expected_result_numpy: ", expected_result_numpy)
+
+        preserved_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 85.,
+                              80., 70., 60., 50., 40., 10.]
+        # preserved_energies = [95.]
+        # indexes_back = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+
+        for preserve_energy in preserved_energies:
+            conv = Conv2dfft(filter_value=y,
+                             bias_value=b,
+                             preserve_energy=preserve_energy,
+                             is_debug=True,
+                             use_next_power2=False,
+                             compress_type=CompressType.STANDARD)
+            result = conv.forward(input=x)
+            # print("actual result: ", result)
+
+            result = result.float()
+            print(
+                "absolute divergence for preserved energy,{},is,{},stop".format(
+                    preserve_energy, torch.sum(
+                        torch.abs(result - expected_result_tensor),
+                        dim=-1).item()))
 
 
 if __name__ == '__main__':

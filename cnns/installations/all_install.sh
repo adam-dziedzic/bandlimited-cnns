@@ -5,7 +5,7 @@
 # cd code
 # git clone https://github.com/adam-dziedzic/time-series-ml.git
 
-sudo apt-get install emacs --yes
+# sudo apt-get install emacs --yes
 
 git config --global credential.helper cache
 

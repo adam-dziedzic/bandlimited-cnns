@@ -13,12 +13,69 @@ import os
 import keras
 import numpy as np
 import pandas as pd
-from keras.callbacks import ReduceLROnPlateau
 from keras.models import Model
+from keras.callbacks import ReduceLROnPlateau as ReduceLROnPlateauKeras
 from keras.utils import np_utils
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 print("current working directory: ", dir_path)
+
+
+def getModelKeras(input_size, num_classes):
+    """
+    Create model.
+
+    :param input_size: the length (width) of the time series.
+    :param num_classes: number of classes
+    :return: the keras model.
+    """
+    x = keras.layers.Input(input_size)
+    conv1 = keras.layers.Conv1D(128, 8, border_mode='same')(x)
+    conv1 = keras.layers.normalization.BatchNormalization()(conv1)
+    conv1 = keras.layers.Activation('relu')(conv1)
+    conv2 = keras.layers.Conv1D(256, 5, border_mode='same')(conv1)
+    conv2 = keras.layers.normalization.BatchNormalization()(conv2)
+    conv2 = keras.layers.Activation('relu')(conv2)
+    conv3 = keras.layers.Conv1D(128, 3, border_mode='same')(conv2)
+    conv3 = keras.layers.normalization.BatchNormalization()(conv3)
+    conv3 = keras.layers.Activation('relu')(conv3)
+    full = keras.layers.pooling.GlobalAveragePooling1D()(conv3)
+    out = keras.layers.Dense(num_classes, activation='softmax')(full)
+    model = Model(input=x, output=out)
+    return model
+
+
+def run_keras():
+    for each in flist:
+        fname = each
+
+        x_train, y_train, x_test, y_test, batch_size, num_classes = getData(
+            fname=fname)
+
+        Y_train = np_utils.to_categorical(y_train, num_classes)
+        Y_test = np_utils.to_categorical(y_test, num_classes)
+
+        model = getModelKeras(input_size=x_train.shape[1:],
+                              num_classes=num_classes)
+
+        optimizer = keras.optimizers.Adam()
+        model.compile(loss='categorical_crossentropy',
+                      optimizer=optimizer,
+                      metrics=['accuracy'])
+
+        reduce_lr = ReduceLROnPlateauKeras(monitor='loss', factor=0.5,
+                                           patience=50, min_lr=0.0001)
+
+        hist = model.fit(x_train, Y_train, batch_size=batch_size,
+                         nb_epoch=args.epochs,
+                         verbose=1, validation_data=(x_test, Y_test),
+                         callbacks=[reduce_lr])
+
+        # Print the testing results which has the lowest training loss.
+        # Print the testing results which has the lowest training loss.
+        log = pd.DataFrame(hist.history)
+        print(log.loc[log['loss'].idxmin]['loss'],
+              log.loc[log['loss'].idxmin]['val_acc'])
 
 
 def readucr(filename, data_type):
