@@ -4,6 +4,7 @@ Pytorch utils.
 The latest version of Pytorch (in the main branch 2018.06.30)
 supports tensor flipping.
 """
+import collections
 import numpy as np
 import re
 import torch
@@ -19,6 +20,7 @@ from cnns.nnlib.utils.log_utils import get_logger
 from cnns.nnlib.utils.log_utils import set_up_logging
 import logging
 import math
+import sys
 
 logger = get_logger(name=__name__)
 logger.setLevel(logging.DEBUG)
@@ -527,7 +529,7 @@ def get_spectrum(xfft):
     """
     squared = torch.add(torch.pow(xfft.narrow(-1, 0, 1), 2),
                         torch.pow(xfft.narrow(-1, 1, 1), 2))
-    spectrum = torch.sqrt(squared).squeeze()
+    spectrum = torch.sqrt(squared).squeeze(dim=-1)
     return spectrum
 
 
@@ -1348,7 +1350,8 @@ def preserve_energy2D(xfft, yfft, preserve_energy_rate=None):
     return xfft, yfft, index_back_H, index_back_W
 
 
-def preserve_energy2D_symmetry(xfft, yfft, preserve_energy_rate=None):
+def preserve_energy2D_symmetry(xfft, yfft, preserve_energy_rate=None,
+                               is_debug=False):
     """
     Compress xfft and yfft taking into account Hermitian symmetry of the fft-ed
     2D maps.
@@ -1431,7 +1434,19 @@ def preserve_energy2D_symmetry(xfft, yfft, preserve_energy_rate=None):
         else:
             low = index + 1
             index = low + (high - low) // 2
-    return compress_2D_odd(xfft, index), compress_2D_odd(yfft, index)
+
+    cxfft = compress_2D_odd(xfft, index)
+    cyfft = compress_2D_odd(yfft, index)
+
+    if is_debug:
+        xfft_numel = xfft.numel()
+        cxfft_numel = cxfft.numel()
+        compression_ratio = (xfft_numel - cxfft_numel) / xfft_numel
+        print(f"total width,{input_W},index forward,{index}, "
+              f"num elems xfft,{xfft_numel}, "
+              f"num elems compressed xfft,{cxfft_numel}, "
+              f"compression ratio,{compression_ratio},stop")
+    return cxfft, cyfft
 
 
 def compress_2D_energy(xfft, index_forward):
@@ -1464,6 +1479,8 @@ def compress_2D_energy(xfft, index_forward):
 
     """
     n = index_forward - 1
+    if n < 0:
+        return 0.0
     energy_top_left = get_full_energy_only(xfft[:, :, :n + 1, :n + 1, :])
     if n > 0:
         energy_bottom_left = get_full_energy_only(xfft[:, :, -n:, :n + 1, :])
@@ -1684,10 +1701,11 @@ def restore_size_2D(xfft, init_H_fft, init_half_W_fft):
         return result
     else:
         # Return just a single coefficient.
-        row = torch.cat((top_left, torch.zeros(N, C, 1, W - 1, 2)), dim=3)
-        result = torch.cat(row,
-                           torch.zerso(N, C, init_H_fft - 1, init_half_W_fft,
-                                       2), dim=2)
+        row = torch.cat(
+            (top_left, torch.zeros(N, C, 1, init_half_W_fft - 1, 2)), dim=3)
+        result = torch.cat((row,
+                           torch.zeros(N, C, init_H_fft - 1, init_half_W_fft,
+                                       2)), dim=2)
         return result
 
 
@@ -3130,6 +3148,98 @@ def get_tensors_elem_size(only_cuda=True, omit_objs=[]):
     for tensor_obj in get_tensors(only_cuda=only_cuda, omit_objs=omit_objs):
         total_size += tensor_obj.numel() * get_elem_size(tensor_obj)
     return total_size
+
+
+def global_arg(input, is_min=True):
+    """
+
+    :param input: input tensor,
+    :return: indices of global min or max value.
+
+    >>> a = tensor([[ 0.2549,  0.1900, -0.1968, -1.0813], [ 0.0429,  0.2016, -0.3347, -0.8325], [ 0.4934, -0.0643, -0.0109,  2.2520], [ 0.1923,  0.7899,  0.9620, -1.3912]])
+    >>> idxs = global_arg(a, is_min=True)
+    >>> np.testing.assert_equal(idxs.numpy(), np.array([3,3]))
+    >>> idxs = global_arg(a, is_min=False)  # this is global arg max
+    >>> np.testing.assert_equal(idxs.numpy(), np.array([2,3]))
+
+    >>> b = tensor([[[0.2405, 0.0971], [0.7107, 0.7426], [0.7884, 0.3021]], [[0.5443, 0.5506], [0.5323, 0.0937], [0.8568, 0.7572]]])
+    >>> idxs = global_arg(b, is_min=True)
+    >>> np.testing.assert_equal(idxs.numpy(), np.array([1, 1, 1]))
+    >>> idxs = global_arg(b, is_min=False)
+    >>> np.testing.assert_equal(idxs.numpy(), np.array([1, 2, 0]))
+
+    >>> c = torch.rand(3, 16, 15)
+    >>> idxs = global_arg(c, is_min=True)
+    >>> # print(idxs)
+    >>> np.testing.assert_equal(c[idxs[0],idxs[1],idxs[2]].numpy(), c.min().numpy())
+    >>> idxs = global_arg(c, is_min=False)
+    >>> # print(idxs)
+    >>> np.testing.assert_equal(c[idxs[0],idxs[1],idxs[2]].numpy(), c.max().numpy())
+    """
+    if is_min:
+        rawidx = input.argmin()
+    else:
+        rawidx = input.argmax()
+    idx = collections.deque()
+    # inverted list of dimensions
+    for adim in reversed(list(input.size())):
+        idx.appendleft(rawidx % adim)
+        rawidx = rawidx / adim
+    idx = torch.tensor(idx)
+    return idx
+
+
+def zero_out_min_simple(input):
+    """
+    Zero out the min value in the input.
+
+    :param input: the input tensor with 4 dimensions.
+    :return: input with zeroed out min value.
+
+    >>> a = torch.tensor([[[[0.5435, 0.4313], [0.7498, 0.6879],[0.3355, 0.9008]],[[0.3906, 0.7883],[0.3841, 0.5293],[0.0139, 0.0468]]]])
+    >>> b = zero_out_min_simple(a)
+    >>> expected = torch.tensor([[[[0.5435, 0.4313], [0.7498, 0.6879],[0.3355, 0.9008]],[[0.3906, 0.7883],[0.3841, 0.5293],[0.0, 0.0468]]]])
+    >>> np.testing.assert_equal(expected.numpy(), b.numpy())
+    """
+    assert len(input.size()) == 4
+    idx = global_arg(input, is_min=True)
+    input[idx[0], idx[1], idx[2], idx[3]] = 0
+    return input
+
+
+def zero_out_min(input, spectrum, max=None):
+    """
+    Zero out the spectrum and corresponding element in input for a min elem
+    in spectrum.
+
+    :param input: the input tensor with 4 dimensions.
+    :return: input with zeroed out min value.
+
+    >>> a = tensor([[[[[ 3.6487,  0.0000], [-0.3913,  0.0000]], [[-0.3621, -0.1744], [ 0.3639, -0.5432]],[[-0.3621,  0.1744],[ 0.3639,  0.5432]]],[[[ 2.1530,  0.0000],[-0.5759,  0.0000]],[[ 0.6919, -0.7384],[-0.3086,  0.0972]],[[ 0.6919,  0.7384],[-0.3086, -0.0972]]]]])
+    >>> spectrum_a = tensor([[[[3.6487, 0.3913], [0.4019, 0.6538],[0.4019, 0.6538]],[[2.1530, 0.5759],[1.0119, 0.3235],[1.0119, 0.3235]]]])
+    >>> b, spectrum_b = zero_out_min(a, spectrum_a)
+    >>> spectrum_expected = tensor([[[[3.6487, 0.3913], [0.4019, 0.6538],[0.4019, 0.6538]],[[2.1530, 0.5759],[1.0119, 4.6487],[1.0119, 0.3235]]]])
+    >>> # print("spectrum_expeted: ", spectrum_expected)
+    >>> # print("spectrum_b: ", spectrum_b)
+    >>> np.testing.assert_array_almost_equal(spectrum_expected.numpy(), spectrum_b.numpy())
+    >>> a_expected = tensor([[[[[ 3.6487,  0.0000], [-0.3913,  0.0000]], [[-0.3621, -0.1744], [ 0.3639, -0.5432]],[[-0.3621,  0.1744],[ 0.3639,  0.5432]]],[[[ 2.1530,  0.0000],[-0.5759,  0.0000]],[[ 0.6919, -0.7384],[0.0, 0.0]],[[ 0.6919,  0.7384],[-0.3086, -0.0972]]]]])
+    >>> np.testing.assert_array_almost_equal(a_expected.numpy(), b.numpy())
+    """
+    assert len(input.size()) == 5
+    assert len(spectrum.size()) == 4
+    idx = global_arg(spectrum, is_min=True)
+    if max is None:
+        spectrum_max = spectrum.max()
+        if spectrum_max < float("inf"):
+            max = spectrum_max + 1.0
+        else:
+            max = float("inf")
+    # print(spectrum[idx[0], idx[1], idx[2], idx[3]])
+    spectrum[idx[0], idx[1], idx[2], idx[3]] = max
+    input[idx[0], idx[1], idx[2], idx[3], 0] = 0.0
+    input[idx[0], idx[1], idx[2], idx[3], 1] = 0.0
+    # print(spectrum)
+    return input, spectrum
 
 
 if __name__ == "__main__":

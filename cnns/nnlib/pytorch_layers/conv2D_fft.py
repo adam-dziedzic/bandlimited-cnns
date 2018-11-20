@@ -24,6 +24,8 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate
 from cnns.nnlib.pytorch_layers.pytorch_utils import to_tensor
 from cnns.nnlib.pytorch_layers.pytorch_utils import compress_2D_odd
 from cnns.nnlib.pytorch_layers.pytorch_utils import compress_2D_odd_index_back
+from cnns.nnlib.pytorch_layers.pytorch_utils import zero_out_min
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
 from cnns.nnlib.utils.general_utils import CompressType
 
 logger = logging.getLogger(__name__)
@@ -90,10 +92,11 @@ class Conv2dfftFunction(torch.autograd.Function):
         :return: the result of convolution.
         """
         if is_debug:
-            print("execute forward pass")
-            torch.set_printoptions(threshold=5000)
-            print("input 0: ", input[0])
-            print("filter 0: ", filter[0])
+            pass
+            # print("execute forward pass")
+            # torch.set_printoptions(threshold=5000)
+            # print("input 0: ", input[0])
+            # print("filter 0: ", filter[0])
 
         INPUT_ERROR = "Specify only one of: index_back, out_size, or " \
                       "preserve_energy"
@@ -206,12 +209,18 @@ class Conv2dfftFunction(torch.autograd.Function):
             # xfft, yfft, index_back_H_fft, index_back_W_fft = preserve_energy2D(
             #     xfft, yfft, preserve_energy)
             xfft, yfft = preserve_energy2D_symmetry(
-                xfft, yfft, preserve_energy_rate=preserve_energy)
+                xfft, yfft, preserve_energy_rate=preserve_energy,
+                is_debug=is_debug)
         elif index_back_W is not None and index_back_W > 0:
             # At least one coefficient is removed.
-            index_back_W_fft = int(init_half_fft_W * (index_back_W / 100)) + 1
-            xfft = compress_2D_odd_index_back(xfft, index_back_W_fft)
-            yfft = compress_2D_odd_index_back(yfft, index_back_W_fft)
+            # index_back_W_fft = int(init_half_fft_W * (index_back_W / 100)) + 1
+            # xfft = compress_2D_odd_index_back(xfft, index_back_W_fft)
+            # yfft = compress_2D_odd_index_back(yfft, index_back_W_fft)
+            xfft_spectrum = get_spectrum(xfft)
+            yfft_spectrum = get_spectrum(yfft)
+            for _ in range(index_back_W):
+                xfft, xfft_spectrum = zero_out_min(xfft, xfft_spectrum)
+                yfft, yfft_spectrum = zero_out_min(yfft, yfft_spectrum)
         elif out_size_W is not None:
             # We take one-sided fft so the output after the inverse fft should
             # be out size, thus the representation in the spectral domain is
