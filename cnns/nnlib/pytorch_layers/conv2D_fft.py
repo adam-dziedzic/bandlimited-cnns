@@ -235,6 +235,7 @@ class Conv2dfftFunction(torch.autograd.Function):
             # Take one time series and unsqueeze it for broadcasting with
             # many filters.
             xfft_nn = xfft[nn].unsqueeze(0)
+            # xfft_nn = xfft
             out[nn] = correlate_fft_signals2D(
                 xfft=xfft_nn, yfft=yfft,
                 input_height=init_fft_H, input_width=init_fft_W,
@@ -291,7 +292,7 @@ class Conv2dfftFunction(torch.autograd.Function):
         :param dout: output gradient
         :return: gradients for input map x, filter w and bias b
         """
-        logger.debug("execute backward")
+        # logger.debug("execute backward")
 
         xfft, yfft, H, HH, W, WW, init_fft_H, init_fft_W, is_manual, conv_index, compress_type, is_debug, preserve_energy, index_back_H_fft, index_back_W_fft = ctx.saved_tensors
 

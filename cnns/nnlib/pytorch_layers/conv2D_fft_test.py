@@ -1091,7 +1091,8 @@ class TestPyTorchConv2d(unittest.TestCase):
         half_fft_size = fft_size // 2 + 1
         fft_numel = half_fft_size * fft_size * C
 
-        for index_back in range(1,fft_numel,10):
+        # for index_back in range(1, fft_numel, 10):
+        for index_back in range(1, 2):
             print("index back: ", index_back)
             conv = Conv2dfft(filter_value=y,
                              bias_value=b,
@@ -1106,14 +1107,96 @@ class TestPyTorchConv2d(unittest.TestCase):
             abs_error = torch.sum(
                 torch.abs(result - expected_result_tensor)).item()
             print("abs error: ", abs_error)
-            expected_total = torch.sum(torch.abs(expected_result_tensor))
-            relative_error = abs_error / expected_total * 100.0
+            expected_total = torch.sum(
+                torch.abs(expected_result_tensor) + torch.abs(result))
+            relative_error = 100.0 * abs_error / expected_total
             print("relative error: ", relative_error)
             # relative_error = torch.mean(torch.abs(result) / torch.abs(expected_result_tensor) * 100)
             print(f"absolute divergence for index back,{index_back},"
                   f"absolute error,{abs_error},"
                   f"relative error (%),{relative_error}")
         print("elapsed: ", time.time() - start)
+
+    def test_profile_forward_pass(self):
+        """
+        100 reps wtih/wihtout n parts of input xfft:
+
+        without:
+        shape of the filter:  torch.Size([1, 3, 5, 5])
+        pytorch Conv2d forward (sec):  0.017931461334228516
+        Conv2dfft forward (sec):  0.37201499938964844
+        pytorch Conv2d backward (sec):  0.018948078155517578
+        Conv2dfft backward (sec):  0.28224706649780273
+
+        with (is it correct)?
+        shape of the filter:  torch.Size([1, 3, 5, 5])
+        pytorch Conv2d forward (sec):  0.010969877243041992
+        Conv2dfft forward (sec):  0.293215274810791
+        pytorch Conv2d backward (sec):  0.022943496704101562
+        Conv2dfft backward (sec):  0.2832372188568115
+
+        :return:
+        """
+        x = cifar10_image
+        x.requires_grad_()
+        print("shape of the input image: ", x.size())
+        y = cifar10_lenet_filter
+        y.requires_grad_()
+        print("shape of the filter: ", y.size())
+        # get the expected results from numpy correlate
+        # print("expected_result_numpy: ", expected_result_numpy)
+        # preserved_energies = [1.0]
+        # indexes_back = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+
+        repeat = 100
+        convTorch = torch.nn.Conv2d(in_channels=y.shape[1],
+                                    out_channels=y.shape[0],
+                                    kernel_size=(y.shape[2], y.shape[3]))
+        start = time.time()
+        for _ in range(repeat):
+            expected_result_tensor = convTorch(input=x)
+        print("pytorch Conv2d forward (sec): ", time.time() - start)
+
+        preserve_energy = 99.0
+        conv = Conv2dfft(in_channels=y.shape[1],
+                         out_channels=y.shape[0],
+                         kernel_size=(y.shape[2], y.shape[3]),
+                         preserve_energy=preserve_energy,
+                         bias=False,
+                         is_debug=False,
+                         use_next_power2=True,
+                         compress_type=CompressType.STANDARD)
+        start = time.time()
+        for _ in range(repeat):
+            result = conv.forward(input=x)
+        print("Conv2dfft forward (sec): ", time.time() - start)
+
+        dout = torch.randn(result.shape[0], result.shape[1], result.shape[2],
+                           result.shape[3])
+
+        start = time.time()
+        for _ in range(repeat):
+            expected_result_tensor.backward(dout, retain_graph=True)
+        print("pytorch Conv2d backward (sec): ", time.time() - start)
+
+        start = time.time()
+        for _ in range(repeat):
+            result.backward(dout, retain_graph=True)
+        print("Conv2dfft backward (sec): ", time.time() - start)
+
+        # print("actual result: ", result)
+
+        result = result.float()
+        abs_error = torch.sum(
+            torch.abs(result - expected_result_tensor)).item()
+        expected_total = torch.sum(
+            torch.abs(expected_result_tensor) + torch.abs(result))
+        relative_error = 100.0 * abs_error / expected_total
+        # relative_error = torch.mean(torch.abs(result) / torch.abs(expected_result_tensor) * 100)
+        print(f"absolute divergence for preserved energy,{preserve_energy}"
+              f",absolute error,{abs_error},"
+              f"relative error (%),{relative_error}")
+
 
 if __name__ == '__main__':
     unittest.main()
