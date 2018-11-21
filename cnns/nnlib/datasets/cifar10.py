@@ -72,7 +72,7 @@ def get_cifar10(args):
                                                  transform=get_transform_train(
                                                      dtype=torch.float,
                                                      signal_dimension=signal_dimension))
-    if is_debug and sample_count > 0:
+    if sample_count > 0:
         train_dataset.train_data = train_dataset.train_data[:sample_count]
         train_dataset.train_labels = train_dataset.train_labels[
                                      :sample_count]
@@ -87,7 +87,7 @@ def get_cifar10(args):
                                                 transform=get_transform_test(
                                                     dtype=torch.float,
                                                     signal_dimension=signal_dimension))
-    if is_debug and sample_count > 0:
+    if sample_count > 0:
         test_dataset.test_data = test_dataset.test_data[:sample_count]
         test_dataset.test_labels = test_dataset.test_labels[:sample_count]
     test_loader = torch.utils.data.DataLoader(dataset=test_dataset,

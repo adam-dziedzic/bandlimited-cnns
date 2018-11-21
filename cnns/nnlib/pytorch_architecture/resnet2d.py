@@ -26,10 +26,12 @@ def conv3x3(in_planes, out_planes, stride=1, args=None):
 
 def conv1x1(in_planes, out_planes, stride=1, args=None):
     """1x1 convolution"""
-    # return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
-    return Conv(kernel_sizes=[1], in_channels=in_planes,
-                out_channels=[out_planes], strides=[stride],
-                padding=[0], args=args, is_bias=False).get_conv()
+    return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride,
+                     bias=False)
+    # It is unnecessary to use fft convolution for kernels of size 1x1.
+    # return Conv(kernel_sizes=[1], in_channels=in_planes,
+    #             out_channels=[out_planes], strides=[stride],
+    #             padding=[0], args=args, is_bias=False).get_conv()
 
 
 class BasicBlock(nn.Module):

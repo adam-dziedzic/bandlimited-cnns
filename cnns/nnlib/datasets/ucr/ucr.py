@@ -31,7 +31,7 @@ def get_ucr(args, dataset_name):
                                transformations=transforms.Compose(
                                    [ToTensor(dtype=torch.float),
                                     AddChannel()]))
-    if is_debug and sample_count > 0:
+    if sample_count > 0:
         train_dataset.set_length(sample_count)
     train_size = len(train_dataset)
     batch_size = args.min_batch_size
@@ -45,7 +45,7 @@ def get_ucr(args, dataset_name):
                               transformations=transforms.Compose(
                                   [ToTensor(dtype=torch.float),
                                    AddChannel()]))
-    if is_debug and sample_count > 0:
+    if sample_count > 0:
         test_dataset.set_length(sample_count)
     num_classes = test_dataset.num_classes
     width = test_dataset.width

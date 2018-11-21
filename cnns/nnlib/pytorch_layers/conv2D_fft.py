@@ -212,15 +212,19 @@ class Conv2dfftFunction(torch.autograd.Function):
                 xfft, yfft, preserve_energy_rate=preserve_energy,
                 is_debug=is_debug)
         elif index_back_W is not None and index_back_W > 0:
-            # At least one coefficient is removed.
-            # index_back_W_fft = int(init_half_fft_W * (index_back_W / 100)) + 1
-            # xfft = compress_2D_odd_index_back(xfft, index_back_W_fft)
-            # yfft = compress_2D_odd_index_back(yfft, index_back_W_fft)
-            xfft_spectrum = get_spectrum(xfft)
-            yfft_spectrum = get_spectrum(yfft)
-            for _ in range(index_back_W):
-                xfft, xfft_spectrum = zero_out_min(xfft, xfft_spectrum)
-                yfft, yfft_spectrum = zero_out_min(yfft, yfft_spectrum)
+            is_fine_grained_sparsification = False
+            if is_fine_grained_sparsification:
+                xfft_spectrum = get_spectrum(xfft)
+                yfft_spectrum = get_spectrum(yfft)
+                for _ in range(index_back_W):
+                    xfft, xfft_spectrum = zero_out_min(xfft, xfft_spectrum)
+                    yfft, yfft_spectrum = zero_out_min(yfft, yfft_spectrum)
+            else:
+                # At least one coefficient is removed.
+                index_back_W_fft = int(
+                    init_half_fft_W * (index_back_W / 100)) + 1
+                xfft = compress_2D_odd_index_back(xfft, index_back_W_fft)
+                yfft = compress_2D_odd_index_back(yfft, index_back_W_fft)
         elif out_size_W is not None:
             # We take one-sided fft so the output after the inverse fft should
             # be out size, thus the representation in the spectral domain is
@@ -242,7 +246,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                 init_fft_height=init_fft_H, init_half_fft_width=init_half_fft_W,
                 out_height=out_H, out_width=out_W, is_forward=True)
             if bias is not None:
-                # Add the bias term for each filtekr (it has to be unsqueezed to
+                # Add the bias term for each filter (it has to be unsqueezed to
                 # the dimension of the out to properly sum up the values).
                 out[nn] += bias.unsqueeze(-1).unsqueeze(-1)
 

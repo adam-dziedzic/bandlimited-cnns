@@ -145,7 +145,7 @@ parser.add_argument("-b", "--mem_test", default=False, type=bool,
                     help="is it the memory test")
 parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
                     help="should the data augmentation be applied")
-parser.add_argument("-g", "--is_debug", default="TRUE",  # TRUE or FALSE
+parser.add_argument("-g", "--is_debug", default="FALSE",  # TRUE or FALSE
                     help="is it the debug mode execution: " + ",".join(
                         DebugMode.get_names()))
 parser.add_argument("--sample_count_limit", default=64, type=int,
@@ -162,7 +162,7 @@ parser.add_argument("--compress_type", default="STANDARD",
                     # "STANDARD", "BIG_COEFF", "LOW_COEFF"
                     help="the type of compression to be applied: " + ",".join(
                         CompressType.get_names()))
-parser.add_argument("--network_type", default="LE_NET",
+parser.add_argument("--network_type", default="ResNet18",
                     # "FCNN_STANDARD", "FCNN_SMALL", "LE_NET", "ResNet18"
                     help="the type of network: " + ",".join(
                         NetworkType.get_names()))
