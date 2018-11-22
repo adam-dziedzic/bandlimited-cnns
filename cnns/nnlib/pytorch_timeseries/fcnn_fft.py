@@ -136,7 +136,7 @@ parser.add_argument("-i", "--index_back", default=0, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
-parser.add_argument('--preserve_energy', nargs="+", type=int,
+parser.add_argument('--preserve_energies', nargs="+", type=int,
                     default=[90],
                     help="How much energy should be preserved in the "
                          "frequency representation of the signal? This "
@@ -649,7 +649,7 @@ if __name__ == '__main__':
     # flist = flist[3:]  # start from Beef
     # reversed(flist)
     print("flist: ", flist)
-    preserve_energies = args.preserve_energy
+    preserve_energies = args.preserve_energies
     for dataset_name in flist:
         for preserve_energy in preserve_energies:
             print("Dataset: ", dataset_name)

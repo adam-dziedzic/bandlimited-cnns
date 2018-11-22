@@ -1539,9 +1539,9 @@ def compress_2D_odd(xfft, index_forward):
     if index_forward == xfft.shape[-2]:
         return xfft
     n = index_forward - 1
-    top_left = xfft[:, :, :n + 1, :n + 1, :]
+    top_left = xfft[..., :n + 1, :n + 1, :]
     if n > 0:
-        bottom_left = xfft[:, :, -n:, :n + 1, :]
+        bottom_left = xfft[..., -n:, :n + 1, :]
         return torch.cat((top_left, bottom_left), dim=2)
     else:
         return top_left
@@ -1655,6 +1655,61 @@ def compress_2D(xfft, index_back=0):
         return compress_2D_odd(xfft, index_forward)
 
 
+def restore_size_2D_batch(xfft, init_H_fft, init_half_W_fft):
+    """
+    Fill in with zeros to the size initH x initW.
+
+    :param xfft: compressed signal.
+    :param init_H_fft: initial height.
+    :param init_half_W_fft: initial width.
+    :param index_forward: xfft was compressed to the index_forward.
+    :return: xfft filled in with zeros to the size initH x initW.
+[
+    >>> x = tensor([[[[[1.0, 2.0, 3.0, 5.0, -1.0, 5.0],
+    ... [3.0, 4.0, 1.0, -1.0, 3.0  , 5.0],
+    ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0],
+    ... [5.0, 3.0, 0.0, -1.0, 0.0, 4.0],
+    ... [3.0, 0.0, 1.0, -1.0, 0.0  , 5.0],
+    ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0]]]]])
+    >>> xfft = torch.rfft(x, signal_ndim=2, onesided=True)
+    >>> N, K, C, init_H_fft, init_half_W_fft, _ = xfft.size()
+    >>> index_forward = 3
+    >>> xfft_compressed = compress_2D_odd(xfft, index_forward)
+    >>> _, _, _, H, W, _ = xfft_compressed.size()
+    >>> # print(xfft_compressed.size())
+    >>> assert H == 5
+    >>> assert W == 3
+    >>> xfft_restored = restore_size_2D_batch(xfft, init_H_fft = init_H_fft, init_half_W_fft=init_half_W_fft)
+    >>> NN, KK, CC, initHH, initWW, _ = xfft_restored.size()
+    >>> assert initHH == init_H_fft
+    >>> assert initWW == init_half_W_fft
+    """
+    index_forward = xfft.shape[-2]
+    if index_forward == init_half_W_fft:
+        return xfft
+    n = index_forward - 1
+    N, K, C, H, W, _ = xfft.size()
+    top_left = xfft[..., :n + 1, :n + 1, :]
+    if n > 0:
+        bottom_left = xfft[..., -n:, :n + 1, :]
+        middle = torch.zeros(N, K, C, init_H_fft - (2 * n + 1), n + 1, 2,
+                             dtype=xfft.dtype)
+        left = torch.cat((top_left, middle, bottom_left), dim=-3)
+        right = torch.zeros(N, K, C, init_H_fft, init_half_W_fft - (n + 1), 2,
+                            dtype=xfft.dtype)
+        result = torch.cat((left, right), dim=-2)
+        return result
+    else:
+        # Return just a single coefficient.
+        row = torch.cat(
+            (top_left, torch.zeros(N, K, C, 1, init_half_W_fft - 1, 2)), dim=-2)
+        result = torch.cat((row,
+                            torch.zeros(N, K, C, init_H_fft - 1,
+                                        init_half_W_fft,
+                                        2)), dim=-3)
+        return result
+
+
 def restore_size_2D(xfft, init_H_fft, init_half_W_fft):
     """
     Fill in with zeros to the size initH x initW.
@@ -1689,9 +1744,9 @@ def restore_size_2D(xfft, init_H_fft, init_half_W_fft):
         return xfft
     n = index_forward - 1
     N, C, H, W, _ = xfft.size()
-    top_left = xfft[:, :, :n + 1, :n + 1, :]
+    top_left = xfft[..., :n + 1, :n + 1, :]
     if n > 0:
-        bottom_left = xfft[:, :, -n:, :n + 1, :]
+        bottom_left = xfft[..., -n:, :n + 1, :]
         middle = torch.zeros(N, C, init_H_fft - (2 * n + 1), n + 1, 2,
                              dtype=xfft.dtype)
         left = torch.cat((top_left, middle, bottom_left), dim=2)
@@ -1704,8 +1759,8 @@ def restore_size_2D(xfft, init_H_fft, init_half_W_fft):
         row = torch.cat(
             (top_left, torch.zeros(N, C, 1, init_half_W_fft - 1, 2)), dim=3)
         result = torch.cat((row,
-                           torch.zeros(N, C, init_H_fft - 1, init_half_W_fft,
-                                       2)), dim=2)
+                            torch.zeros(N, C, init_H_fft - 1, init_half_W_fft,
+                                        2)), dim=2)
         return result
 
 
@@ -2312,8 +2367,16 @@ def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
     #                      half_fft_width=half_fft_width)
 
     freq_mul = complex_mul(xfft, pytorch_conjugate(yfft))
-    freq_mul = restore_size_2D(xfft=freq_mul, init_H_fft=init_fft_height,
-                               init_half_W_fft=init_half_fft_width)
+    if freq_mul.dim() == 6:
+        freq_mul = restore_size_2D_batch(xfft=freq_mul,
+                                         init_H_fft=init_fft_height,
+                                         init_half_W_fft=init_half_fft_width)
+    elif freq_mul.dim() == 5:
+        freq_mul = restore_size_2D(xfft=freq_mul,
+                                   init_H_fft=init_fft_height,
+                                   init_half_W_fft=init_half_fft_width)
+    else:
+        raise Exception(f"Unsupported number of dimensions: {xfft.dim()}")
 
     out = torch.irfft(input=freq_mul, signal_ndim=signal_ndim,
                       signal_sizes=(input_height, input_width), onesided=True)
@@ -2321,7 +2384,7 @@ def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
     out = out[..., :out_height, :out_width]
     if out.dim() > 2 and is_forward:
         out = torch.sum(input=out, dim=-3)
-        out = torch.unsqueeze(input=out, dim=0)  # unsqueeze the channels
+        out = torch.unsqueeze(input=out, dim=-3)  # unsqueeze the channels
     return out
 
 
@@ -2969,7 +3032,7 @@ def del_object(obj):
     del obj
 
 
-def get_tensors(only_cuda=False, omit_ob7js=[]):
+def get_tensors(only_cuda=False):
     """
     https://discuss.pytorch.org/t/how-to-debug-causes-of-gpu-memory-leaks/6741/3?u=adam_dziedzic
     https://discuss.pytorch.org/t/how-to-debug-causes-of-gpu-memory-leaks/6741/19?u=adam_dziedzic
@@ -3253,7 +3316,7 @@ if __name__ == "__main__":
         a3 = tensor([[1, -2], [3, -4]], device=device)
         tensor_obj = None
 
-        tensors = get_tensors(only_cuda=True, is_debug=True)
+        tensors = get_tensors(only_cuda=True)
         for tensor_obj in tensors:
             print("tensor: ", tensor_obj)
         del tensor_obj

@@ -10,6 +10,7 @@ import sys
 import math
 import numpy as np
 import torch
+import time
 from torch import tensor
 from torch.nn import Module
 from torch.nn.functional import pad as torch_pad
@@ -208,9 +209,11 @@ class Conv2dfftFunction(torch.autograd.Function):
             #     xfft, preserve_energy)
             # xfft, yfft, index_back_H_fft, index_back_W_fft = preserve_energy2D(
             #     xfft, yfft, preserve_energy)
+            # start = time.time()
             xfft, yfft = preserve_energy2D_symmetry(
                 xfft, yfft, preserve_energy_rate=preserve_energy,
                 is_debug=is_debug)
+            # print("preserve energy timing: ", time.time() - start)
         elif index_back_W is not None and index_back_W > 0:
             is_fine_grained_sparsification = False
             if is_fine_grained_sparsification:
@@ -235,20 +238,46 @@ class Conv2dfftFunction(torch.autograd.Function):
         out = torch.zeros([N, F, out_H, out_W], dtype=input.dtype,
                           device=input.device)
 
-        for nn in range(N):  # For each time-series in the batch.
-            # Take one time series and unsqueeze it for broadcasting with
-            # many filters.
-            xfft_nn = xfft[nn].unsqueeze(0)
-            # xfft_nn = xfft
-            out[nn] = correlate_fft_signals2D(
-                xfft=xfft_nn, yfft=yfft,
-                input_height=init_fft_H, input_width=init_fft_W,
-                init_fft_height=init_fft_H, init_half_fft_width=init_half_fft_W,
-                out_height=out_H, out_width=out_W, is_forward=True)
+        is_serial = False  # Serially convolve each input map with all filters.
+        if is_serial:
+            for nn in range(N):  # For each time-series in the batch.
+                # Take one time series and unsqueeze it for broadcasting with
+                # many filters.
+                xfft_nn = xfft[nn].unsqueeze(0)
+                # xfft_nn = xfft
+                out[nn] = correlate_fft_signals2D(
+                    xfft=xfft_nn, yfft=yfft,
+                    input_height=init_fft_H, input_width=init_fft_W,
+                    init_fft_height=init_fft_H,
+                    init_half_fft_width=init_half_fft_W,
+                    out_height=out_H, out_width=out_W, is_forward=True)
+                if bias is not None:
+                    # Add the bias term for each filter (it has to be unsqueezed to
+                    # the dimension of the out to properly sum up the values).
+                    out[nn] += bias.unsqueeze(-1).unsqueeze(-1)
+        else:
+            # Convolve some part of the input batch with all filters.
+            start = 0
+            step = 16
             if bias is not None:
-                # Add the bias term for each filter (it has to be unsqueezed to
-                # the dimension of the out to properly sum up the values).
-                out[nn] += bias.unsqueeze(-1).unsqueeze(-1)
+                unsqueezed_bias = bias.unsqueeze(-1).unsqueeze(-1)
+            # For each slice of time-series in the batch.
+            for start in range(start, N, step):
+                stop = min(start + step, N)
+                # Take one time series and unsqueeze it for broadcasting with
+                # many filters.
+                xfft_nn = xfft[start:stop].unsqueeze(dim=1)
+                out[start:stop] = correlate_fft_signals2D(
+                    xfft=xfft_nn, yfft=yfft,
+                    input_height=init_fft_H, input_width=init_fft_W,
+                    init_fft_height=init_fft_H,
+                    init_half_fft_width=init_half_fft_W,
+                    out_height=out_H, out_width=out_W, is_forward=False).sum(
+                    dim=-3)
+                if bias is not None:
+                    # Add the bias term for each filter (it has to be unsqueezed to
+                    # the dimension of the out to properly sum up the values).
+                    out[start:stop] += unsqueezed_bias
 
         # TODO: how to compute the backward pass for the strided FFT convolution
         if stride_W is not None or stride_H is not None:
@@ -366,26 +395,45 @@ class Conv2dfftFunction(torch.autograd.Function):
         if need_input_grad:
             # Initialize gradient output tensors.
             # the x used for convolution was with padding
-            dx = torch.zeros([N, C, H, W], dtype=xfft.dtype)
+            dx = torch.zeros([N, C, H, W], dtype=dtype, device=device)
             conjugate_yfft = pytorch_conjugate(yfft)
-            for nn in range(N):
-                # Take one time series and unsqueeze it for broadcast with
-                # many gradients dout.
-                doutfft_nn = doutfft[nn].unsqueeze(1)
-                out = correlate_fft_signals2D(
-                    xfft=doutfft_nn, yfft=conjugate_yfft,
-                    input_height=init_fft_H, input_width=init_fft_W,
-                    init_fft_height=init_half_fft_H,
-                    init_half_fft_width=init_half_fft_W,
-                    out_height=H, out_width=W,
-                    is_forward=False)
-                # Sum over all the Filters (F).
-                out = torch.sum(out, dim=0)
-                out = torch.unsqueeze(input=out, dim=0)
-                dx[nn] = out
+            del yfft
+            is_serial = False  # Serially convolve each input map with all filters.
+            if is_serial:
+                for nn in range(N):
+                    # Take one time series and unsqueeze it for broadcast with
+                    # many gradients dout.
+                    doutfft_nn = doutfft[nn].unsqueeze(1)
+                    out = correlate_fft_signals2D(
+                        xfft=doutfft_nn, yfft=conjugate_yfft,
+                        input_height=init_fft_H, input_width=init_fft_W,
+                        init_fft_height=init_half_fft_H,
+                        init_half_fft_width=init_half_fft_W,
+                        out_height=H, out_width=W,
+                        is_forward=False)
+                    # Sum over all the Filters (F).
+                    out = torch.sum(out, dim=0)
+                    out = torch.unsqueeze(input=out, dim=0)
+                    dx[nn] = out
+            else:
+                # Convolve some part of the dout batch with all filters.
+                start = 0
+                step = 16
+                # For each slice of time-series in the batch.
+                for start in range(start, N, step):
+                    stop = min(start + step, N)
+                    doutfft_nn = doutfft[start:stop].unsqueeze(dim=2)
+                    dx[start:stop] = correlate_fft_signals2D(
+                        xfft=doutfft_nn, yfft=conjugate_yfft,
+                        input_height=init_fft_H, input_width=init_fft_W,
+                        init_fft_height=init_half_fft_H,
+                        init_half_fft_width=init_half_fft_W,
+                        out_height=H, out_width=W,
+                        is_forward=False).sum(dim=1)
+            del conjugate_yfft
 
         if need_filter_grad:
-            dw = torch.zeros([F, C, HH, WW], dtype=yfft.dtype)
+            dw = torch.zeros([F, C, HH, WW], dtype=dtype, device=device)
             # Calculate dw - the gradient for the filters w.
             # By chain rule dw is computed as: dout*x
             """
@@ -414,29 +462,48 @@ class Conv2dfftFunction(torch.autograd.Function):
             flowing back gradient dout and the input x:
             gradient L / gradient w = [x1, x2, x3, x4] * [dx1, dx2, dx3]
             """
-            for ff in range(F):
-                # doutfft_ff has as many channels as number of input filters.
-                doutfft_ff = doutfft[:, ff, ...].unsqueeze(1)
-                out = correlate_fft_signals2D(
-                    xfft=xfft, yfft=doutfft_ff,
-                    input_height=init_fft_H, input_width=init_fft_W,
-                    init_fft_height=init_half_fft_H,
-                    init_half_fft_width=init_half_fft_W,
-                    out_height=HH, out_width=WW,
-                    is_forward=False)
-                # For a given filter, we have to sum up all its contributions
-                # to all the input maps.
-                out = torch.sum(input=out, dim=0)
-                # `unsqueeze` the dimension 0 for the input data points (N).
-                out = torch.unsqueeze(input=out, dim=0)
-                # print("conv name: {}, out shape: {}, dw shape: {}, N: {}, C: {}, F: {}".format(
-                #     "conv"+str(conv_index), out.size(), dw.size(), str(N),
-                #     str(C), str(F)))
-                dw[ff] = out
-
+            # Serially convolve each input dout with all input maps xfft.
+            is_serial = False
+            if is_serial:
+                for ff in range(F):
+                    # doutfft_ff has as many channels as number of input filters.
+                    doutfft_ff = doutfft[:, ff, ...].unsqueeze(1)
+                    out = correlate_fft_signals2D(
+                        xfft=xfft, yfft=doutfft_ff,
+                        input_height=init_fft_H, input_width=init_fft_W,
+                        init_fft_height=init_half_fft_H,
+                        init_half_fft_width=init_half_fft_W,
+                        out_height=HH, out_width=WW,
+                        is_forward=False)
+                    # For a given filter, we have to sum up all its contributions
+                    # to all the input maps.
+                    out = torch.sum(input=out, dim=0)
+                    # `unsqueeze` the dimension 0 for the input data points (N).
+                    out = torch.unsqueeze(input=out, dim=0)
+                    # print("conv name: {}, out shape: {}, dw shape: {}, N: {}, C: {}, F: {}".format(
+                    #     "conv"+str(conv_index), out.size(), dw.size(), str(N),
+                    #     str(C), str(F)))
+                    dw[ff] = out
+            else:
+                # Convolve some part of the dout batch with all input maps.
+                start = 0
+                step = 16
+                for start in range(start, F, step):
+                    stop = min(start + step, F)
+                    # doutfft_ff has as many channels as number of input filters.
+                    doutfft_ff = doutfft[:, start:stop, ...]
+                    doutfft_ff = doutfft_ff.permute(1, 0, 2, 3, 4).unsqueeze(
+                        dim=2)
+                    dw[start:stop] = correlate_fft_signals2D(
+                        xfft=xfft, yfft=doutfft_ff,
+                        input_height=init_fft_H, input_width=init_fft_W,
+                        init_fft_height=init_half_fft_H,
+                        init_half_fft_width=init_half_fft_W,
+                        out_height=HH, out_width=WW,
+                        is_forward=False).sum(dim=1)
         if need_bias_grad:
             # The number of bias elements is equal to the number of filters.
-            db = torch.zeros(F)
+            db = torch.zeros(F, dtype=dtype, device=device)
 
             # Calculate dB (the gradient for the bias term).
             # We sum up all the incoming gradients for each filter

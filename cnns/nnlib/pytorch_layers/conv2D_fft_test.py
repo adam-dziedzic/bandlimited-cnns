@@ -94,6 +94,7 @@ class TestPyTorchConv2d(unittest.TestCase):
     def test_2_channels_2_filters(self):
         x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]],
                      [[1., 1., 2.], [2., 3., 1.], [2., -1., 3.]]]])
+        print("shape of x: ", x.size())
         y = tensor([[[[1.0, 2.0], [3.0, 2.0]], [[-1.0, 2.0], [3.0, -2.0]]],
                     [[[-1.0, 1.0], [2.0, 3.0]], [[-2.0, 1.0], [1.0, -3.0]]]])
         b = tensor([0.0, 0.0])
@@ -608,6 +609,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         b = np.array([1.0])
         dtype = torch.float
         x_torch = tensor(x, requires_grad=True, dtype=dtype)
+        print("size of x: ", x_torch.size())
         y_torch = tensor(y, requires_grad=True, dtype=dtype)
         b_torch = tensor(b, requires_grad=True, dtype=dtype)
 
@@ -618,8 +620,11 @@ class TestPyTorchConv2d(unittest.TestCase):
         print("expected result: ", expected_result)
 
         conv = Conv2dfft(filter_value=y_torch, bias_value=b_torch, index_back=0)
-
         result_torch = conv.forward(input=x_torch)
+
+        # ctx = MockContext()
+        # Conv2dfftFunction.forward(ctx, input=x_torch, filter=y_torch, bias=None)
+
         result = result_torch.detach().numpy()
         print("actual result: ", result)
         np.testing.assert_array_almost_equal(result, np.array(expected_result))
@@ -636,6 +641,8 @@ class TestPyTorchConv2d(unittest.TestCase):
         print("expected db: ", expected_db)
 
         result_torch.backward(dout)
+        # ctx.needs_input_grad = [True, True, True]
+        # Conv2dfftFunction.backward(ctx, dout)
         assert conv.is_manual[0] == 1
 
         # Are the gradients correct?
@@ -830,7 +837,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         input_W = 28
         filter_H = 5
         filter_W = 5
-        num_filters = 3
+        num_filters = 5
         # Input signal: 5 data points, 3 channels, 10 values.
         x = np.random.rand(num_data_points, num_channels, input_H, input_W)
         # Filters: 3 filters, 3 channels, 4 values.
@@ -848,8 +855,10 @@ class TestPyTorchConv2d(unittest.TestCase):
         y_torch = tensor(y, requires_grad=True, dtype=dtype)
         b_torch = tensor(b, requires_grad=True, dtype=dtype)
         conv = Conv2dfftFunction()
+        preserve_energy = 100.0
         result_torch = conv.forward(ctx=None, input=x_torch, filter=y_torch,
-                                    bias=b_torch)
+                                    bias=b_torch,
+                                    preserve_energy=preserve_energy)
         result = result_torch.detach().numpy()
         self.logger.debug("obtained result: " + str(result))
         np.testing.assert_array_almost_equal(
@@ -1182,6 +1191,96 @@ class TestPyTorchConv2d(unittest.TestCase):
         start = time.time()
         for _ in range(repeat):
             result.backward(dout, retain_graph=True)
+        print("Conv2dfft backward (sec): ", time.time() - start)
+
+        # print("actual result: ", result)
+
+        result = result.float()
+        abs_error = torch.sum(
+            torch.abs(result - expected_result_tensor)).item()
+        expected_total = torch.sum(
+            torch.abs(expected_result_tensor) + torch.abs(result))
+        relative_error = 100.0 * abs_error / expected_total
+        # relative_error = torch.mean(torch.abs(result) / torch.abs(expected_result_tensor) * 100)
+        print(f"absolute divergence for preserved energy,{preserve_energy}"
+              f",absolute error,{abs_error},"
+              f"relative error (%),{relative_error}")
+
+    def test_profile_forward_backward_pass_random(self):
+        """
+        100 reps wtih/wihtout n parts of input xfft:
+
+        without:
+        shape of the filter:  torch.Size([1, 3, 5, 5])
+        pytorch Conv2d forward (sec):  0.017931461334228516
+        Conv2dfft forward (sec):  0.37201499938964844
+        pytorch Conv2d backward (sec):  0.018948078155517578
+        Conv2dfft backward (sec):  0.28224706649780273
+
+        with (is it correct)?
+        shape of the filter:  torch.Size([1, 3, 5, 5])
+        pytorch Conv2d forward (sec):  0.010969877243041992
+        Conv2dfft forward (sec):  0.293215274810791
+        pytorch Conv2d backward (sec):  0.022943496704101562
+        Conv2dfft backward (sec):  0.2832372188568115
+
+        :return:
+        """
+        if torch.cuda.is_available():
+            device = torch.device('cuda')
+        else:
+            device = torch.device('cpu')
+        x = torch.randn(64, 16, 8, 8, requires_grad=True, device=device)
+        print("shape of the input image: ", x.size())
+        y = torch.randn(32, 16, 3, 3, requires_grad=True, device=device)
+        print("shape of the filter: ", y.size())
+
+        # get the expected results from numpy correlate
+        # print("expected_result_numpy: ", expected_result_numpy)
+        # preserved_energies = [1.0]
+        # indexes_back = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+
+        repeat = 1
+        convTorch = torch.nn.Conv2d(in_channels=y.shape[1],
+                                    out_channels=y.shape[0],
+                                    kernel_size=(y.shape[2], y.shape[3]),
+                                    bias=False)
+        convTorch.to(device)
+        start = time.time()
+        for _ in range(repeat):
+            expected_result_tensor = convTorch(input=x)
+        print("pytorch Conv2d forward (sec): ", time.time() - start)
+
+        preserve_energy = 90.0
+        convFFT = Conv2dfft(in_channels=y.shape[1],
+                         out_channels=y.shape[0],
+                         kernel_size=(y.shape[2], y.shape[3]),
+                         preserve_energy=preserve_energy,
+                         bias=False,
+                         is_debug=False,
+                         use_next_power2=True,
+                         compress_type=CompressType.STANDARD)
+        convFFT.to(device)
+        ctx = MockContext()
+        start = time.time()
+        for _ in range(repeat):
+            # result = convFFT.forward(input=x)
+            result = Conv2dfftFunction.forward(ctx, x, y, None)
+        print("Conv2dfft forward (sec): ", time.time() - start)
+
+        dout = torch.randn(result.shape[0], result.shape[1], result.shape[2],
+                           result.shape[3], device=device)
+
+        ctx.needs_input_grad = [True, True, True]
+        start = time.time()
+        for _ in range(repeat):
+            expected_result_tensor.backward(dout, retain_graph=True)
+        print("pytorch Conv2d backward (sec): ", time.time() - start)
+
+        start = time.time()
+        for _ in range(repeat):
+            Conv2dfftFunction.backward(ctx, dout)
+            # result.backward(dout, retain_graph=True)
         print("Conv2dfft backward (sec): ", time.time() - start)
 
         # print("actual result: ", result)
