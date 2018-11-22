@@ -1548,6 +1548,7 @@ def compress_fft_1D_gradient(g, x_len):
     zeros we should add (in the frequency domain) to both halves of the gradient signal g.
     :return: gradient of the loss R with respect to x (the input signal to the forward 1D fft compression).
     """
+
     # g_len = len(g)
     # plot_signal(g, "g input gradients")
     # gfft = rfft(g, norm="ortho")
@@ -2314,7 +2315,7 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
       - mode: 'train' or 'test'; required
       - eps: Constant for numeric stability
       - momentum: Constant for running mean / variance. momentum=0 means that
-        old information is discarded completely at every time step, while
+        oldConvNetFFT1D information is discarded completely at every time step, while
         momentum=1 means that new information is never incorporated. The
         default of momentum=0.9 should work well in most situations.
       - running_mean: Array of shape (D,) giving running mean of features

@@ -16,7 +16,7 @@ Affine layer from 1024 input units to 10 outputs
 import time
 from TensorFlowStanford import *
 
-# clear old variables
+# clear oldConvNetFFT1D variables
 # tf.reset_default_graph()
 
 # define our input (e.g. the data that changes every batch)

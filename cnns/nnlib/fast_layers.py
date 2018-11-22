@@ -82,7 +82,7 @@ def conv_forward_strides(x, w, b, conv_param):
     out = res.transpose(1, 0, 2, 3)
 
     # Be nice and return a contiguous array
-    # The old version of conv_forward_fast doesn't do this, so for a fair
+    # The oldConvNetFFT1D version of conv_forward_fast doesn't do this, so for a fair
     # comparison we won't either
     out = np.ascontiguousarray(out)
 

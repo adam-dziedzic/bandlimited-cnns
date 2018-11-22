@@ -27,6 +27,7 @@ from cnns.nnlib.pytorch_architecture.fcnn import FCNNPytorch
 from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import OptimizerType
+from cnns.nnlib.utils.general_utils import SchedulerType
 from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import TensorType
@@ -89,18 +90,18 @@ parser = argparse.ArgumentParser(description='PyTorch TimeSeries')
 min_batch_size = 64
 parser.add_argument('--min_batch_size', type=int, default=min_batch_size,
                     metavar='N',
-                    help='input batch size for training (default: {})'.format(
-                        min_batch_size))
+                    help=f'input batch size for training (default: {min_batch_size})')
 parser.add_argument('--test_batch_size', type=int, default=min_batch_size,
                     metavar='N',
                     help='input batch size for testing (default: 1000)')
 parser.add_argument('--epochs', type=int, default=num_epochs, metavar='N',
-                    help='number of epochs to train (default: {})'.format(
-                        num_epochs))
+                    help=f'number of epochs to train (default: {num_epochs})')
 learning_rate = 0.001
 parser.add_argument('--lr', type=float, default=learning_rate, metavar='LR',
-                    help='learning rate (default: {})'.format(
-                        learning_rate))
+                    help=f'learning rate (default: {learning_rate})')
+weight_decay = 5e-4
+parser.add_argument('--weight_decay', type=float, default=weight_decay,
+                    help=f'weight decay(default: {weight_decay})')
 parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
                     help='SGD momentum (default: 0.9)')
 parser.add_argument('--no_cuda', action='store_true', default=False,
@@ -114,6 +115,11 @@ parser.add_argument("--optimizer_type", default="ADAM",
                     # ADAM_FLOAT16, ADAM, MOMENTUM
                     help="the type of the optimizer, please choose from: " +
                          ",".join(OptimizerType.get_names()))
+parser.add_argument("--lr_scheduler", default="ReduceLROnPlateau",
+                    # StepLR, MultiStepLR, ReduceLROnPlateau, ExponentialLR
+                    # CosineAnnealingLR
+                    help="the type of the scheduler, please choose from: " +
+                         ",".join(SchedulerType.get_names()))
 parser.add_argument("--memory_type", default="STANDARD",
                     # "STANDARD", "PINNED"
                     help="the type of the memory used, please choose from: " +
@@ -392,11 +398,11 @@ def main(dataset_name, preserve_energy):
         file.write(
             "epoch,train_loss,train_accuracy,test_loss,test_accuracy,epoch_time\n")
 
-    with open(additional_log_file, "a") as file:
+    with open(os.path.join(results_dir, additional_log_file), "a") as file:
         # Write the metadata.
         file.write(DATASET_HEADER)
 
-    with open(mem_log_file, "a") as file:
+    with open(os.path.join(results_dir, mem_log_file), "a") as file:
         # Write the metadata.
         file.write(DATASET_HEADER)
 
@@ -406,13 +412,7 @@ def main(dataset_name, preserve_energy):
 
     device = torch.device("cuda" if use_cuda else "cpu")
     optimizer_type = OptimizerType[args.optimizer_type]
-
-    num_workers = args.workers
-    pin_memory = False
-    if MemoryType[args.memory_type] is MemoryType.PINNED:
-        pin_memory = True
     if use_cuda:
-        kwargs = {'num_workers': num_workers, 'pin_memory': pin_memory}
         if TensorType[args.tensor_type] is TensorType.FLOAT32:
             torch.set_default_tensor_type(torch.cuda.FloatTensor)
         elif TensorType[args.tensor_type] is TensorType.FLOAT16:
@@ -420,7 +420,6 @@ def main(dataset_name, preserve_energy):
         elif TensorType[args.tensor_type] is TensorType.DOUBLE:
             torch.set_default_tensor_type(torch.cuda.DoubleTensor)
     else:
-        kwargs = {'num_workers': num_workers}
         if TensorType[args.tensor_type] is TensorType.FLOAT32:
             torch.set_default_tensor_type(torch.FloatTensor)
         elif TensorType[args.tensor_type] is TensorType.FLOAT16:
@@ -481,7 +480,8 @@ def main(dataset_name, preserve_energy):
     eps = 1e-8
 
     if optimizer_type is OptimizerType.MOMENTUM:
-        optimizer = optim.SGD(params, lr=args.lr, momentum=args.momentum)
+        optimizer = optim.SGD(params, lr=args.lr, momentum=args.momentum,
+                              weight_decay=args.weight_decay)
     elif optimizer_type is OptimizerType.ADAM_FLOAT16:
         optimizer = AdamFloat16(params, lr=args.lr, eps=eps)
     else:

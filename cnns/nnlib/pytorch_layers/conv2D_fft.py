@@ -244,7 +244,6 @@ class Conv2dfftFunction(torch.autograd.Function):
                 # Take one time series and unsqueeze it for broadcasting with
                 # many filters.
                 xfft_nn = xfft[nn].unsqueeze(0)
-                # xfft_nn = xfft
                 out[nn] = correlate_fft_signals2D(
                     xfft=xfft_nn, yfft=yfft,
                     input_height=init_fft_H, input_width=init_fft_W,
@@ -258,7 +257,7 @@ class Conv2dfftFunction(torch.autograd.Function):
         else:
             # Convolve some part of the input batch with all filters.
             start = 0
-            step = 16
+            step = 128
             if bias is not None:
                 unsqueezed_bias = bias.unsqueeze(-1).unsqueeze(-1)
             # For each slice of time-series in the batch.
@@ -279,12 +278,6 @@ class Conv2dfftFunction(torch.autograd.Function):
                     # the dimension of the out to properly sum up the values).
                     out[start:stop] += unsqueezed_bias
 
-        # TODO: how to compute the backward pass for the strided FFT convolution
-        if stride_W is not None or stride_H is not None:
-            if stride_W is None:
-                stride_W = 1
-            if stride_H is None:
-                stride_H = 1
             if stride_H != 1 or stride_W != 1:
                 out = out[:, :, 0::stride_H, 0::stride_W]
 

@@ -1,7 +1,9 @@
+import torch
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 from cnns.nnlib.pytorch_layers.conv_picker import Conv
 from cnns.nnlib.pytorch_layers.conv2D_fft import Conv2dfft
+from cnns.nnlib.utils.general_utils import ConvType
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152']
@@ -160,6 +162,7 @@ class ResNet(nn.Module):
         x = self.maxpool(x)
 
         x = self.layer1(x)
+        # print("x after layer 1: ", x[0])
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
@@ -229,3 +232,36 @@ def resnet152(pretrained=False, **kwargs):
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['resnet152']))
     return model
+
+class Args(object):
+    pass
+
+if __name__ == "__main__":
+    args = Args()
+    args.in_channels = 3
+    # args.conv_type = "FFT2D"
+    args.conv_type = "STANDARD2D"
+    args.index_back = None
+    args.preserve_energy = None
+    args.is_debug = "TRUE"
+    args.next_power2 = "TRUE"
+    args.compress_type = "STANDARD"
+    args.tensor_type = "FLOAT32"
+
+    batch_size = 4
+    inputs = torch.randn(batch_size, args.in_channels, 32, 32)
+
+    model = resnet18(args=args, num_classes=10)
+    model.eval()
+    outputs_standard = model(inputs)
+
+    print("outputs standard: ", outputs_standard)
+
+    args.conv_type = "FFT2D"
+    model = resnet18(args=args, num_classes=10)
+    model.eval()
+    outputs_fft = model(inputs)
+
+    print("outputs fft: ", outputs_fft)
+
+

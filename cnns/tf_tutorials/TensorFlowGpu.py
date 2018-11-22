@@ -3,7 +3,7 @@ import numpy as np
 import math
 import time
 
-# clear old variables
+# clear oldConvNetFFT1D variables
 tf.reset_default_graph()
 
 # define our input (e.g. the data that changes every batch)

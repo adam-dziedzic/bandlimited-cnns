@@ -55,6 +55,15 @@ class OptimizerType(EnumWithNames):
     ADAM_FLOAT16 = 4
 
 
+class SchedulerType(EnumWithNames):
+    ReduceLROnPlateau = 1
+    CosineAnnealingLR = 2
+    ExponentialLR = 3
+    MultiStepLR = 4
+    StepLR = 5
+    LambdaLR = 6
+
+
 class MemoryType(EnumWithNames):
     STANDARD = 1
     PINNED = 2

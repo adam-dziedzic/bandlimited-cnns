@@ -1296,6 +1296,32 @@ class TestPyTorchConv2d(unittest.TestCase):
               f",absolute error,{abs_error},"
               f"relative error (%),{relative_error}")
 
+    def testConvStride(self):
+        x = tensor(
+            [[[
+                [1.0, 2.0, 0.0, 4.0, 0.0, 5.0, 1.0],
+                [2.0, 2.0, 3.0, 2.0, 0.0, 1.0, 0.0],
+                [3.0, -1.0, 1.0, 0.0, 1.0, 2.0, 0.0],
+                [4.0, -1.0, 2.0, 1.0, 6.0, 0.0, -1.0],
+                [0.0, 2.0, 2.0, 2.0, 0.0, 2.0, 0.0],
+                [0.0, 2.0, -1.0, 1.0, 1.0, 1.0, 0.0],
+                [2.0, 0.0, 1.0, 2.0, 2.0, 0.0, 8.0]
+            ]]])
+        y = tensor([[
+            [[1.0, 2.0, 3.0],
+             [-1.0, -1.0, 5.0],
+             [1.0, -2.0, 4.0]]]])
+        b = tensor([0.0])
+
+        convStandard = torch.nn.functional.conv2d(input=x, weight=y, stride=2)
+        print("convStandard: ", convStandard)
+
+        conv = Conv2dfftFunction()
+        convFFT = conv.forward(ctx=None, input=x, filter=y, bias=b, stride=2)
+        np.testing.assert_array_almost_equal(
+            x=convStandard, y=convFFT, decimal=5,
+            err_msg="The expected array x and computed y are not almost equal")
+
 
 if __name__ == '__main__':
     unittest.main()
