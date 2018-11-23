@@ -1,11 +1,14 @@
 from torchvision import transforms
 import torchvision
 import torch
-from cnns.nnlib.datasets.transformations.dtype_transformation import DtypeTransformation
-from cnns.nnlib.datasets.transformations.flat_transformation import FlatTransformation
+from cnns.nnlib.datasets.transformations.dtype_transformation import \
+    DtypeTransformation
+from cnns.nnlib.datasets.transformations.flat_transformation import \
+    FlatTransformation
 from cnns.nnlib.utils.general_utils import DebugMode
 from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import NetworkType
+
 
 def get_transform_train(dtype=torch.float32, signal_dimension=2):
     transformations = [
@@ -34,6 +37,7 @@ def get_transform_test(dtype=torch.float32, signal_dimension=2):
     transform_test = transforms.Compose(transformations)
     return transform_test
 
+
 def get_cifar10(args):
     """
     Get the MNIST dataset.
@@ -44,7 +48,6 @@ def get_cifar10(args):
     number of classes.
     """
     sample_count = args.sample_count_limit
-    is_debug = args.is_debug
     use_cuda = args.use_cuda
     num_workers = args.workers
     pin_memory = False
@@ -60,17 +63,19 @@ def get_cifar10(args):
     args.flat_size = 500
     args.in_channels = 3  # number of channels in the input data
     args.out_channels = None
-    signal_dimension = 1
+    args.signal_dimension = 2
     if args.network_type is NetworkType.LE_NET:
         args.out_channels = [10, 20]
         args.signal_dimension = 2
-    if args.network_type is NetworkType.ResNet18:
+    elif args.network_type is NetworkType.ResNet18:
         args.signal_dimension = 2
+    else:
+        raise Exception(f"Uknown network type: {args.network_type}")
     train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True,
                                                  download=True,
                                                  transform=get_transform_train(
                                                      dtype=torch.float,
-                                                     signal_dimension=signal_dimension))
+                                                     signal_dimension=args.signal_dimension))
     if sample_count > 0:
         train_dataset.train_data = train_dataset.train_data[:sample_count]
         train_dataset.train_labels = train_dataset.train_labels[
@@ -85,7 +90,7 @@ def get_cifar10(args):
                                                 download=True,
                                                 transform=get_transform_test(
                                                     dtype=torch.float,
-                                                    signal_dimension=signal_dimension))
+                                                    signal_dimension=args.signal_dimension))
     if sample_count > 0:
         test_dataset.test_data = test_dataset.test_data[:sample_count]
         test_dataset.test_labels = test_dataset.test_labels[:sample_count]

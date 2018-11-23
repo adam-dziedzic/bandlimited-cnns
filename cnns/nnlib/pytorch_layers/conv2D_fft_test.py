@@ -124,7 +124,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         b = tensor([0.0])
         conv = Conv2dfftFunction()
         result = conv.forward(ctx=None, input=x, filter=y, bias=b,
-                              args=Arguments(index_back=1))
+                              args=Arguments(index_back=1, preserve_energy=100))
         # expect = np.array([[[[21.5, 22.0], [17.5, 13.]]]])
         expect = np.array([[[[21.75, 21.75], [18.75, 13.75]]]])
         np.testing.assert_array_almost_equal(

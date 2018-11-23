@@ -96,14 +96,14 @@ class Conv2dfftFunction(torch.autograd.Function):
             use_next_power2 = args.next_power2
             is_debug = args.is_debug
             compress_type = args.compress_type
-            out_size = args.out_size
         else:
             index_back = None
             preserve_energy = None
             use_next_power2 = False
             is_debug = False
             compress_type = CompressType.STANDARD
-            out_size = None
+
+        out_size = None
 
         if is_debug:
             pass
@@ -270,7 +270,7 @@ class Conv2dfftFunction(torch.autograd.Function):
         else:
             # Convolve some part of the input batch with all filters.
             start = 0
-            step = 128
+            step = 32
             if bias is not None:
                 unsqueezed_bias = bias.unsqueeze(-1).unsqueeze(-1)
             # For each slice of time-series in the batch.
@@ -305,6 +305,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                                   to_tensor(preserve_energy),
                                   to_tensor(index_back_H_fft),
                                   to_tensor(index_back_W_fft),
+                                  to_tensor(stride)
                                   )
 
         return out
@@ -333,7 +334,7 @@ class Conv2dfftFunction(torch.autograd.Function):
         """
         # logger.debug("execute backward")
 
-        xfft, yfft, H, HH, W, WW, init_fft_H, init_fft_W, is_manual, conv_index, compress_type, is_debug, preserve_energy, index_back_H_fft, index_back_W_fft = ctx.saved_tensors
+        xfft, yfft, H, HH, W, WW, init_fft_H, init_fft_W, is_manual, conv_index, compress_type, is_debug, preserve_energy, index_back_H_fft, index_back_W_fft, stride = ctx.saved_tensors
 
         is_debug = True if is_debug == 1 else False
         if is_debug:
@@ -366,6 +367,14 @@ class Conv2dfftFunction(torch.autograd.Function):
         preserve_energy = from_tensor(preserve_energy)
         index_back_H_fft = from_tensor(index_back_H_fft)
         index_back_W_fft = from_tensor(index_back_W_fft)
+        stride = from_tensor(stride)
+
+        if stride is not None and stride > 1:
+            N, F, HHH, WWW = dout.size()
+            out_H = out_W = W - WW + 1
+            grad = torch.zeros(N, F, out_H, out_W)
+            grad[..., ::stride, ::stride] = dout
+            dout = grad
 
         # The last dimension for xfft and yfft is the 2 element complex number.
         N, C, half_fft_compressed_H, half_fft_compressed_W, _ = xfft.shape

@@ -215,6 +215,9 @@ parser.add_argument('--dynamic_loss_scale',
                          "If supplied, this argument supersedes " +
                          "--static-loss-scale. Options: " + ",".join(
                         DynamicLossScale.get_names()))
+parser.add_argument('--mem_size', type=float,
+                    default=args.memory_size,
+                    help="""GPU or CPU memory size in GB.""")
 
 parsed_args = parser.parse_args()
 args.set_parsed_args(parsed_args=parsed_args)
@@ -375,8 +378,7 @@ def test(model, device, test_loader, loss_function, args, dataset_type="test"):
             data, target = data.to(device=device, dtype=args.dtype), target.to(
                 device)
             output = model(data)
-            test_loss += loss_function(output, target,
-                                       reduction='sum').item()  # sum up batch loss
+            test_loss += loss_function(output, target).item()  # sum up batch loss
             # get the index of the max log-probability
             pred = output.max(1, keepdim=True)[1]
             correct += pred.eq(target.view_as(pred)).sum().item()
@@ -516,10 +518,11 @@ def main(args):
     else:
         raise Exception(f"Unknown scheduler type: {scheduler_type}")
 
+    reduction_function="sum"
     if loss_type is LossType.CROSS_ENTROPY:
-        loss_function = torch.nn.CrossEntropyLoss()
+        loss_function = torch.nn.CrossEntropyLoss(reduction=reduction_function)
     elif loss_type is LossType.NLL:
-        loss_function = torch.nn.NLLLoss()
+        loss_function = torch.nn.NLLLoss(reduction=reduction_function)
     else:
         raise Exception(f"Unknown loss type: {loss_type}")
 

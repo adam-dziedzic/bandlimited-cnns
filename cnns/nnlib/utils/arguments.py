@@ -35,21 +35,21 @@ class Arguments(object):
     def __init__(self,
                  is_debug=False,
                  network_type=NetworkType.ResNet18,
-                 preserve_energy=90,
-                 preserved_energies=[90],
+                 preserve_energy=100,
+                 preserved_energies=[100],
                  dtype=torch.float,
                  use_cuda=True,
                  compress_type=CompressType.STANDARD,
                  index_back=0,
                  weight_decay=5e-4,
-                 num_epochs=3,
-                 min_batch_size=64,
-                 test_batch_size=64,
-                 learning_rate=0.001,
+                 num_epochs=350,
+                 min_batch_size=128,
+                 test_batch_size=100,
+                 learning_rate=0.1,
                  momentum=0.9,
                  seed=31,
                  log_interval=1,
-                 optimizer_type=OptimizerType.ADAM,
+                 optimizer_type=OptimizerType.MOMENTUM,
                  scheduler_type=SchedulerType.MultiStepLR,
                  loss_type = LossType.CROSS_ENTROPY,
                  memory_type=MemoryType.STANDARD,
@@ -58,14 +58,15 @@ class Arguments(object):
                  dataset="cifar10",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=64,
-                 conv_type=ConvType.FFT2D,
+                 sample_count_limit=0,
+                 conv_type=ConvType.STANDARD2D,
                  visualize=False,
                  static_loss_scale=1,
                  out_size=None,
                  tensor_type=TensorType.FLOAT32,
                  next_power2 = False,
-                 dynamic_loss_scale = True
+                 dynamic_loss_scale = True,
+                 memory_size=25
                  ):
         """
         The default parameters for the execution of the program.
@@ -146,6 +147,7 @@ class Arguments(object):
         self.tensor_type = tensor_type
         self.next_power2 = next_power2
         self.dynamic_loss_scale = dynamic_loss_scale
+        self.memory_size = memory_size
 
     def set_parsed_args(self, parsed_args):
 

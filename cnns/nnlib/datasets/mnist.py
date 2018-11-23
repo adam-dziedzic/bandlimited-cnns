@@ -15,7 +15,6 @@ def get_mnist(args):
     number of classes.
     """
     sample_count = args.sample_count_limit
-    is_debug = args.is_debug
     use_cuda = args.use_cuda
     num_workers = args.workers
     pin_memory = False

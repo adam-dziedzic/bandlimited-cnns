@@ -1,6 +1,7 @@
 import torch
 from torch.nn import Module
 from torch import autograd
+from torch import tensor
 
 
 class SpatialStrideFunction(autograd.Function):
@@ -10,7 +11,7 @@ class SpatialStrideFunction(autograd.Function):
     """
 
     @staticmethod
-    def forward(ctx, input):
+    def forward(ctx, input, stride=2):
         """
         Pooling with a 2x2 filter with stride 2 and retaining only the top-left
         cell in the input tile covered by the filter
@@ -20,12 +21,12 @@ class SpatialStrideFunction(autograd.Function):
         :return: top-left value
         """
         if ctx is not None:
-            ctx.save_for_backward(input)
-        return SpatialStrideFunction.topLeftPooling(input)
+            ctx.save_for_backward(input, tensor([stride]))
+        return SpatialStrideFunction.topLeftPooling(input, stride)
 
     @staticmethod
-    def topLeftPooling(input):
-        output = input[..., ::2, ::2]
+    def topLeftPooling(input, stride):
+        output = input[..., ::stride, ::stride]
         return output
 
     @staticmethod
@@ -35,9 +36,10 @@ class SpatialStrideFunction(autograd.Function):
         gradient of the loss with respect to the output, and we need
         to compute the gradient of the loss with respect to the input.
         """
-        input, = ctx.saved_tensors
+        input, stride = ctx.saved_tensors
+        stride = stride.item()
         grad_input = torch.zeros_like(input)
-        grad_input[..., ::2, ::2] = grad_output
+        grad_input[..., ::stride, ::stride] = grad_output
         return grad_input
 
 
