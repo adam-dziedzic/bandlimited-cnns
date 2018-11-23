@@ -10,11 +10,9 @@ class LeNet(nn.Module):
     """
 
     def __init__(self, input_size, args, num_classes=10, in_channels=1,
-                 dtype=torch.float32, kernel_sizes=[5, 5],
-                 out_channels=[10, 20], strides=[1, 1], batch_size=64,
-                 preserve_energy=100, flat_size=320, is_debug=False):
+                 kernel_sizes=[5, 5], out_channels=[10, 20], strides=[1, 1],
+                 flat_size=320):
         """
-
         :param input_size:
         :param args: the general arguments for the program, e.g. conv type.
         :param num_classes:
@@ -24,14 +22,11 @@ class LeNet(nn.Module):
         :param out_channels:
         :param strides:
         :param batch_size:
-        :param preserve_energy: how much energy to preserve in the input map
-        and the filter in the frequency domain.
         :param flat_size: the size of the flat vector after the conv layers.
         """
         super(LeNet, self).__init__()
         self.input_size = input_size
         self.args = args
-        self.batch_size = batch_size
         if out_channels is None:
             self.out_channels = [10, 20]
         else:
@@ -40,8 +35,6 @@ class LeNet(nn.Module):
             self.flat_size = 320  # for MNIST dataset
         else:
             self.flat_size = flat_size
-
-        self.is_debug = is_debug
 
         self.relu = nn.ReLU(inplace=True)
         # For the "same" mode for the convolution, pad the input.

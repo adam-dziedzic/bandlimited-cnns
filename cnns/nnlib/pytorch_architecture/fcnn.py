@@ -9,9 +9,8 @@ class FCNNPytorch(nn.Module):
 
     # @profile
     def __init__(self, input_size, num_classes, in_channels, args,
-                 dtype=torch.float32, kernel_sizes=[8, 5, 3],
-                 out_channels=[128, 256, 128], strides=[1, 1, 1],
-                 preserve_energy=100):
+                 kernel_sizes=[8, 5, 3], out_channels=[128, 256, 128],
+                 strides=[1, 1, 1]):
         """
         Create the FCNN model in PyTorch.
 
@@ -28,14 +27,13 @@ class FCNNPytorch(nn.Module):
         self.input_size = input_size
         self.num_classes = num_classes
         self.in_channels = in_channels
-        self.dtype = dtype
+        self.dtype = args.dtype
         self.kernel_sizes = kernel_sizes
         self.out_channels = out_channels
         self.strides = strides
-        self.conv_type = ConvType[args.conv_type]
-        is_debug = True if DebugMode[args.is_debug] is DebugMode.TRUE else False
-        self.is_debug = is_debug
-        self.preserve_energy = preserve_energy
+        self.conv_type = args.conv_type
+        self.is_debug = args.is_debug
+        self.preserve_energy = args.preserve_energy
 
         self.relu = nn.ReLU(inplace=True)
         # For the "same" mode for the convolution, pad the input.

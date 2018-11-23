@@ -45,7 +45,7 @@ class OptimizerType(EnumWithNames):
 def fixed_padding(inputs, kernel_size, data_format):
     """Pads the input along the spatial dimensions independently of input size.
 
-    Args:
+    Arguments:
       inputs: A tensor of size [batch, channels, height_in, width_in] or
         [batch, height_in, width_in, channels] depending on data_format.
       kernel_size: The kernel to be used in the conv2d or max_pool2d operation.
@@ -74,7 +74,7 @@ def learning_rate_with_decay(
         batch_size, batch_denom, num_images, boundary_epochs, decay_rates):
     """Get a learning rate that decays step-wise as training progresses.
 
-    Args:
+    Arguments:
       batch_size: the number of examples processed in each training batch.
       batch_denom: this value will be used to scale the base learning rate.
         `0.1 * batch size` is divided by this number, such that when

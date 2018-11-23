@@ -63,6 +63,9 @@ class SchedulerType(EnumWithNames):
     StepLR = 5
     LambdaLR = 6
 
+class LossType(EnumWithNames):
+    NLL = 1  # Negative Log Likelihood
+    CROSS_ENTROPY = 2
 
 class MemoryType(EnumWithNames):
     STANDARD = 1
@@ -122,6 +125,21 @@ class DynamicLossScale(BoolEnumWithNames):
 
 
 class DebugMode(BoolEnumWithNames):
+    TRUE = 1
+    FALSE = 2
+
+
+class CUDAMode(BoolEnumWithNames):
+    TRUE = 1
+    FALSE = 2
+
+
+class MemTestMode(BoolEnumWithNames):
+    TRUE = 1
+    FALSE = 2
+
+
+class AugmentationMode(BoolEnumWithNames):
     TRUE = 1
     FALSE = 2
 
@@ -196,6 +214,7 @@ def save_object(obj, filename):
     with open(filename, "wb") as output:
         pickle.dump(obj, output)
 
+
 def plot_signal_raw(signal, title="signal", xlabel=""):
     # matplotlib.use("TkAgg")
     # matplotlib.use("agg")
@@ -227,9 +246,11 @@ def plot_signal_raw(signal, title="signal", xlabel=""):
                                  counter) + ".png"))
     plt.close()
 
+
 def plot_signal_time(signal, title="signal", xlabel="Time"):
     pass
     # plot_signal_raw(signal, title, xlabel)
+
 
 def plot_signal_freq(signal, title="signal", xlabel="Frequency"):
     pass
@@ -341,6 +362,6 @@ if __name__ == "__main__":
     conv_index = 0
     plot_signal_time(np_dout,
                      title=f"dout_point {dout_point}, "
-                      f"dout_channel {dout_channel},"
-                      f" conv {conv_index}",
+                     f"dout_channel {dout_channel},"
+                     f" conv {conv_index}",
                      xlabel="Time")

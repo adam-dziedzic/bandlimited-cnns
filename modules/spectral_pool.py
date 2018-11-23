@@ -112,7 +112,7 @@ def spectral_pool(image, filter_size=3,
                   return_transformed=False,
                   ):
     """ Perform a single spectral pool operation.
-    Args:
+    Arguments:
         image: numpy array representing an image, channels last
             shape: (batch_size, height, width, channel)
         filter_size: the final dimension of the filter required
@@ -169,7 +169,7 @@ def spectral_pool(image, filter_size=3,
 
 def max_pool(image, pool_size=2):
     """ Perform a single max pool operation.
-    Args:
+    Arguments:
         image: numpy array representing an image
             shape: (num_images, height, width, channel)
         pool_size: number of dimensions to throw away in each dimension,
@@ -194,7 +194,7 @@ def max_pool(image, pool_size=2):
 def l2_loss_images(orig_images, mod_images):
     """Calculates the loss for a set of modified images vs original
     formular: l2(orig-mod)/l2(orig)
-    Args:
+    Arguments:
         orig_images: numpy array size (batch, dims..)
         mod_images: numpy array of same dim as orig_images
     Returns:

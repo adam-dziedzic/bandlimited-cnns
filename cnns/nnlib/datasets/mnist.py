@@ -15,22 +15,21 @@ def get_mnist(args):
     number of classes.
     """
     sample_count = args.sample_count_limit
-    is_debug = True if DebugMode[args.is_debug] is DebugMode.TRUE else False
-    use_cuda = not args.no_cuda and torch.cuda.is_available()
+    is_debug = args.is_debug
+    use_cuda = args.use_cuda
     num_workers = args.workers
     pin_memory = False
-    if MemoryType[args.memory_type] is MemoryType.PINNED:
+    if args.memory_type is MemoryType.PINNED:
         pin_memory = True
     if use_cuda:
         kwargs = {'num_workers': num_workers, 'pin_memory': pin_memory}
     else:
         kwargs = {'num_workers': num_workers}
-    num_classes = 10
-    flat_size = 320  # the size of the flat vector after the conv layers in LeNet
-    width = 28 * 28
-    in_channels = 1  # number of channels in the input data
-    out_channels = [10, 20]
-    batch_size = args.min_batch_size
+    args.num_classes = 10
+    args.flat_size = 320  # the size of the flat vector after the conv layers in LeNet
+    args.width = 28 * 28
+    args.in_channels = 1  # number of channels in the input data
+    args.out_channels = [10, 20]
     train_dataset = torchvision.datasets.MNIST(
         root='./data', train=True,
         download=True,
@@ -48,7 +47,7 @@ def get_mnist(args):
                                      :sample_count]
 
     train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                               batch_size=batch_size,
+                                               batch_size=args.min_batch_size,
                                                shuffle=True,
                                                **kwargs)
 
@@ -67,8 +66,8 @@ def get_mnist(args):
         test_dataset.test_data = test_dataset.test_data[:sample_count]
         test_dataset.test_labels = test_dataset.test_labels[:sample_count]
     test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-                                              batch_size=batch_size,
+                                              batch_size=args.test_batch_size,
                                               shuffle=False,
                                               **kwargs)
 
-    return train_loader, test_loader, num_classes, flat_size, width, in_channels, out_channels
+    return train_loader, test_loader

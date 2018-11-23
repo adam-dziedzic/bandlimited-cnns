@@ -10,7 +10,7 @@ class DtypeTransformation(object):
 
     def __call__(self, tensor):
         """
-        Args:
+        Arguments:
             tensor (Tensor): Tensor image.
 
         Returns:

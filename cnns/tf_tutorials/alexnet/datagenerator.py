@@ -29,7 +29,7 @@ class ImageDataGenerator(object):
         this class will create TensrFlow datasets, that can be used to train
         e.g. a convolutional neural network.
 
-        Args:
+        Arguments:
             txt_file: Path to the text file.
             mode: Either 'training' or 'validation'. Depending on this value,
                 different parsing functions will be used.

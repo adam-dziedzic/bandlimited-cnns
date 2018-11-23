@@ -28,6 +28,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import compress_2D_odd_index_back
 from cnns.nnlib.pytorch_layers.pytorch_utils import zero_out_min
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
 from cnns.nnlib.utils.general_utils import CompressType
+from cnns.nnlib.utils.arguments import Arguments
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -46,10 +47,7 @@ class Conv2dfftFunction(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, input, filter, bias, padding=None, stride=None,
-                index_back=None, preserve_energy=None, out_size=None,
-                use_next_power2=False, is_manual=tensor([0]),
-                conv_index=None, is_debug=False,
-                compress_type=CompressType.STANDARD):
+                is_manual=tensor([0]), conv_index=None, args=None):
         """
         Compute the forward pass for the 2D convolution.
 
@@ -92,6 +90,21 @@ class Conv2dfftFunction(torch.autograd.Function):
 
         :return: the result of convolution.
         """
+        if args is not None:
+            index_back = args.index_back
+            preserve_energy = args.preserve_energy
+            use_next_power2 = args.next_power2
+            is_debug = args.is_debug
+            compress_type = args.compress_type
+            out_size = args.out_size
+        else:
+            index_back = None
+            preserve_energy = None
+            use_next_power2 = False
+            is_debug = False
+            compress_type = CompressType.STANDARD
+            out_size = None
+
         if is_debug:
             pass
             # print("execute forward pass")
@@ -512,11 +525,8 @@ class Conv2dfft(Module):
 
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
                  stride=1, padding=0, dilation=None, groups=None, bias=True,
-                 index_back=None, preserve_energy=None, out_size=None,
-                 filter_value=None, bias_value=None, use_next_power2=False,
-                 is_manual=tensor([0]), conv_index=None, is_complex_pad=True,
-                 is_debug=False, compress_type=CompressType.STANDARD,
-                 dtype=None):
+                 filter_value=None, bias_value=None, is_manual=tensor([0]),
+                 conv_index=None, args=None):
         """
 
         2D convolution using FFT implemented fully in PyTorch.
@@ -555,21 +565,18 @@ class Conv2dfft(Module):
         :param is_manual: to check if the backward computation of convolution
         was computed manually.
         :param conv_index: the index (number) of the convolutional layer.
-        :param is_complex_pad: is padding applied to the complex representation
-        of the input signal and filter before the reverse fft is applied.
-        :param is_debug: is this the debug mode execution?
-        :param compress_type: the type of FFT compression, NO_FILTER - do not
-        compress the filter. BIG_COEF: preserve only the largest coefficients
-        in the frequency domain.
-        :param dtype: the data type of PyTorch tensors.
 
         Regarding the stride parameter: the number of pixels between
         adjacent receptive fields in the horizontal and vertical
         directions, we can generate the full output, and then remove the
-        redundant elements according to the stride parameter. We have to figure
-        out how to run the backward pass for this strided FFT-based convolution.
+        redundant elements according to the stride parameter. The more relevant
+        method is to apply spectral pooling as a means to achieving the strided
+        convolution.
         """
         super(Conv2dfft, self).__init__()
+
+        self.args = args
+
         if dilation is not None and dilation > 1:
             raise NotImplementedError("dilation > 1 is not supported.")
         if groups is not None and groups > 1:
@@ -587,7 +594,7 @@ class Conv2dfft(Module):
             self.kernel_height, self.kernel_width = get_pair(kernel_size)
             self.filter = Parameter(
                 torch.randn(out_channels, in_channels, self.kernel_height,
-                            self.kernel_width, dtype=dtype))
+                            self.kernel_width, dtype=args.dtype))
         else:
             self.is_filter_value = True
             self.filter = filter_value
@@ -602,7 +609,7 @@ class Conv2dfft(Module):
         if bias_value is None:
             self.is_bias_value = False
             if bias is True:
-                self.bias = Parameter(torch.randn(out_channels, dtype=dtype))
+                self.bias = Parameter(torch.randn(out_channels, dtype=args.dtype))
             else:
                 self.register_parameter('bias', None)
                 self.bias = None
@@ -615,16 +622,23 @@ class Conv2dfft(Module):
         self.kernel_size = kernel_size
         self.stride = stride
         self.padding = padding
-        self.index_back = index_back
-        self.preserve_energy = preserve_energy
-        self.out_size = out_size
-        self.use_next_power2 = use_next_power2
         self.stride = stride
         self.is_manual = is_manual
         self.conv_index = conv_index
-        self.is_complex_pad = is_complex_pad
-        self.is_debug = is_debug
-        self.compress_type = compress_type
+
+        if args is None:
+            self.index_back = None
+            self.preserve_energy = None
+            self.is_debug = False
+            self.next_power2 = False
+            self.is_debug = False
+            self.compress_type = CompressType.STANDARD
+        else:
+            self.index_back = args.index_back
+            self.preserve_energy = args.preserve_energy
+            self.next_power2 = args.next_power2
+            self.is_debug = args.is_debug
+            self.compress_type = args.compress_type
 
         self.reset_parameters()
 
@@ -645,24 +659,16 @@ class Conv2dfft(Module):
         :param input: the input map (e.g., an image)
         :return: the result of 2D convolution
         """
-        return Conv2dfftFunction.apply(input, self.filter, self.bias,
-                                       self.padding, self.stride,
-                                       self.index_back, self.preserve_energy,
-                                       self.out_size,
-                                       self.use_next_power2,
-                                       self.is_manual,
-                                       self.conv_index, self.is_debug,
-                                       self.compress_type)
+        return Conv2dfftFunction.apply(
+            input, self.filter, self.bias, self.padding, self.stride,
+            self.is_manual, self.conv_index, self.args)
 
 
 class Conv2dfftAutograd(Conv2dfft):
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
                  stride=1, padding=0, dilation=None, groups=None, bias=True,
-                 index_back=None, preserve_energy=None, out_size=None,
-                 filter_value=None, bias_value=None, use_next_power2=False,
-                 is_manual=tensor([0]), conv_index=None, is_complex_pad=True,
-                 is_debug=False, compress_type=CompressType.STANDARD,
-                 dtype=None):
+                 filter_value=None, bias_value=None, is_manual=tensor([0]),
+                 conv_index=None, args=None):
         """
         2D convolution using FFT with backward pass executed via PyTorch's
         autograd.
@@ -671,12 +677,8 @@ class Conv2dfftAutograd(Conv2dfft):
             in_channels=in_channels, out_channels=out_channels,
             kernel_size=kernel_size, stride=stride, padding=padding,
             dilation=dilation, groups=groups, bias=bias,
-            index_back=index_back, preserve_energy=preserve_energy,
-            out_size=out_size, filter_value=filter_value,
-            bias_value=bias_value, use_next_power2=use_next_power2,
-            conv_index=conv_index, is_complex_pad=is_complex_pad,
-            is_debug=is_debug, compress_type=compress_type, is_manual=is_manual,
-            dtype=dtype)
+            filter_value=filter_value, bias_value=bias_value,
+            conv_index=conv_index, is_manual=is_manual, args=args)
 
     def forward(self, input):
         """
@@ -751,9 +753,9 @@ class Conv2dfftAutograd(Conv2dfft):
         ...  [ 1.0, 1.0,-1.0]]],
         ... ])
         >>> b = tensor([1.0, 0.0])
-        >>> conv = Conv2dfftAutograd(filter_value=y, bias=b, index_back=0,
+        >>> conv = Conv2dfftAutograd(filter_value=y, bias_value=b,
         ... padding=(1, 1), stride=(2, 2))
-        >>> result = conv.forward(x=x)
+        >>> result = conv.forward(input=x)
         >>> expect = np.array([[[
         ... [-2.0, 1.0,-3.0],
         ... [-1.0, 1.0,-3.0],
@@ -814,9 +816,8 @@ class Conv2dfftAutograd(Conv2dfft):
         ...  [ 1.0, 1.0,-1.0]]],
         ... ])
         >>> b = tensor([1.0, 0.0])
-        >>> conv = Conv2dfftAutograd(filter_value=y, bias=b, index_back=0,
-        ... padding=0)
-        >>> result = conv.forward(x=x)
+        >>> conv = Conv2dfftAutograd(filter_value=y, bias_value=b)
+        >>> result = conv.forward(input=x)
         >>> expect = np.array(
         ... [[[[-2.0000e+00, -1.0000e+00,  1.0000e+00, -2.0000e+00, -3.0000e+00],
         ... [ 5.0000e+00,  2.0000e+00, -2.0000e+00,  1.0000e+00, -6.0000e+00],
@@ -838,10 +839,10 @@ class Conv2dfftAutograd(Conv2dfft):
         >>> # A single filter.
         >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         >>> b = tensor([0.0])
-        >>> conv = Conv2dfftAutograd(filter_value=y, bias=b, index_back=1,
-        ... use_next_power2=False)
-        >>> result = conv.forward(x=x)
-        >>> expect = np.array([[[[21.5, 22.0], [17.5, 13.]]]])
+        >>> conv = Conv2dfftAutograd(filter_value=y, bias_value=b, args=Arguments(index_back=1, preserve_energy=100))
+        >>> result = conv.forward(input=x)
+        >>> # expect = np.array([[[[21.5, 22.0], [17.5, 13.]]]])
+        >>> expect = np.array([[[[21.75, 21.75], [18.75, 13.75]]]])
         >>> np.testing.assert_array_almost_equal(x=expect, y=result,
         ... err_msg="The expected array x and computed y are not almost equal.")
 
@@ -851,8 +852,8 @@ class Conv2dfftAutograd(Conv2dfft):
         >>> # A single filter.
         >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         >>> b = tensor([0.0])
-        >>> conv = Conv2dfftAutograd(filter_value=y, bias=b, index_back=0)
-        >>> result = conv.forward(x=x)
+        >>> conv = Conv2dfftAutograd(filter_value=y, bias_value=b)
+        >>> result = conv.forward(input=x)
         >>> expect = np.array([[[[22.0, 22.0], [18., 14.]]]])
         >>> np.testing.assert_array_almost_equal(x=expect, y=result,
         ... err_msg="The expected array x and computed y are not almost equal.")
@@ -863,8 +864,8 @@ class Conv2dfftAutograd(Conv2dfft):
         >>> # A single filter.
         >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         >>> b = tensor([-1.0])
-        >>> conv = Conv2dfftAutograd(filter_value=y, bias=b, index_back=0)
-        >>> result = conv.forward(x=x)
+        >>> conv = Conv2dfftAutograd(filter_value=y, bias_value=b)
+        >>> result = conv.forward(input=x)
         >>> expect = np.array([[[[21.0, 21.0], [17., 13.]]]])
         >>> np.testing.assert_array_almost_equal(x=expect, y=result,
         ... err_msg="The expected array x and computed y are not almost equal.")
@@ -875,9 +876,8 @@ class Conv2dfftAutograd(Conv2dfft):
         >>> # A single filter.
         >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         >>> b = tensor([0.0])
-        >>> conv = Conv2dfftAutograd(filter_value=y, bias=b, index_back=0,
-        ... use_next_power2=False)
-        >>> result = conv.forward(x=x)
+        >>> conv = Conv2dfftAutograd(filter_value=y, bias=b)
+        >>> result = conv.forward(input=x)
         >>> expect = np.array([[[[22.0, 22.0], [18., 14.]]]])
         >>> np.testing.assert_array_almost_equal(x=expect, y=result,
         ... err_msg="The expected array x and computed y are not almost equal.")
@@ -888,8 +888,8 @@ class Conv2dfftAutograd(Conv2dfft):
         >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]], [[-1.0, 2.0],[3.0, -2.0]]],
         ... [[[-1.0, 1.0], [2.0, 3.0]], [[-2.0, 1.0], [1.0, -3.0]]]])
         >>> b = tensor([0.0, 0.0])
-        >>> conv = Conv2dfftAutograd(filter_value=y, bias=b, index_back=0)
-        >>> result = conv.forward(x=x)
+        >>> conv = Conv2dfftAutograd(filter_value=y, bias_value=b)
+        >>> result = conv.forward(input=x)
         >>> expect = np.array([[[[23.0, 32.0], [30., 4.]],[[11.0, 12.0],
         ... [13.0, -11.0]]]])
         >>> np.testing.assert_array_almost_equal(x=expect, y=result, decimal=5,
@@ -897,11 +897,8 @@ class Conv2dfftAutograd(Conv2dfft):
         """
         return Conv2dfftFunction.forward(
             ctx=None, input=input, filter=self.filter, bias=self.bias,
-            padding=self.padding, stride=self.stride,
-            index_back=self.index_back, out_size=self.out_size,
-            use_next_power2=self.use_next_power2, is_manual=self.is_manual,
-            conv_index=self.conv_index, is_debug=self.is_debug,
-            compress_type=self.compress_type)
+            padding=self.padding, stride=self.stride, is_manual=self.is_manual,
+            conv_index=self.conv_index, args=self.args)
 
 
 def test_run():

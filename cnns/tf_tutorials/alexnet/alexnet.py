@@ -35,7 +35,7 @@ class AlexNet(object):
                  weights_path='DEFAULT', input_size=227):
         """Create the graph of the AlexNet model.
 
-        Args:
+        Arguments:
             x: Placeholder for the input tensor.
             keep_prob: Dropout probability.
             num_classes: Number of classes in the dataset.

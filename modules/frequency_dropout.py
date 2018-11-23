@@ -6,7 +6,7 @@ import tensorflow as tf
 def _frequency_dropout_mask(height, frequency_to_truncate_above):
     """Create a mask to be used for frequency dropout.
 
-    Args:
+    Arguments:
         height: int, the height of the image to create a mask for.
             For a 32x32 image, this should be 32.
         frequency_to_truncate_above: Tensor of shape (,) (i.e. scalar). All
@@ -73,7 +73,7 @@ def _frequency_dropout_mask(height, frequency_to_truncate_above):
 def test_frequency_dropout(images, frequency_to_truncate_above):
     """Demonstrate the use of _frequency_dropout_mask.
 
-    Args:
+    Arguments:
         images: ndarray of shape (num_images, num_channels, height, width)
         frequency_to_truncate_above: Tensor of shape (,) (i.e. scalar). All
             frequencies above this will be set to zero. For an image with

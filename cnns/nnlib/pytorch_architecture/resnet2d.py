@@ -109,7 +109,7 @@ class Bottleneck(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, layers, num_classes=1000, args=None):
+    def __init__(self, block, layers, args=None):
         super(ResNet, self).__init__()
         self.inplanes = 64
         self.conv1 = nn.Conv2d(args.in_channels, 64, kernel_size=7, stride=2,
@@ -126,7 +126,7 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
                                        args=args)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(512 * block.expansion, num_classes)
+        self.fc = nn.Linear(512 * block.expansion, args.num_classes)
         self.args = args
 
         for m in self.modules():
@@ -177,7 +177,7 @@ class ResNet(nn.Module):
 def resnet18(pretrained=False, **kwargs):
     """Constructs a ResNet-18 model.
 
-    Args:
+    Arguments:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
@@ -189,7 +189,7 @@ def resnet18(pretrained=False, **kwargs):
 def resnet34(pretrained=False, **kwargs):
     """Constructs a ResNet-34 model.
 
-    Args:
+    Arguments:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(BasicBlock, [3, 4, 6, 3], **kwargs)
@@ -201,7 +201,7 @@ def resnet34(pretrained=False, **kwargs):
 def resnet50(pretrained=False, **kwargs):
     """Constructs a ResNet-50 model.
 
-    Args:
+    Arguments:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
@@ -213,7 +213,7 @@ def resnet50(pretrained=False, **kwargs):
 def resnet101(pretrained=False, **kwargs):
     """Constructs a ResNet-101 model.
 
-    Args:
+    Arguments:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(Bottleneck, [3, 4, 23, 3], **kwargs)
@@ -225,7 +225,7 @@ def resnet101(pretrained=False, **kwargs):
 def resnet152(pretrained=False, **kwargs):
     """Constructs a ResNet-152 model.
 
-    Args:
+    Arguments:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(Bottleneck, [3, 8, 36, 3], **kwargs)

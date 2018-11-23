@@ -19,6 +19,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim.lr_scheduler import \
     ReduceLROnPlateau as ReduceLROnPlateauPyTorch
+from torch.optim.lr_scheduler import MultiStepLR
 
 from cnns.nnlib.pytorch_layers.AdamFloat16 import AdamFloat16
 from cnns.nnlib.pytorch_architecture.le_net import LeNet
@@ -28,6 +29,7 @@ from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import OptimizerType
 from cnns.nnlib.utils.general_utils import SchedulerType
+from cnns.nnlib.utils.general_utils import LossType
 from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import TensorType
@@ -35,12 +37,16 @@ from cnns.nnlib.utils.general_utils import NextPower2
 from cnns.nnlib.utils.general_utils import Visualize
 from cnns.nnlib.utils.general_utils import DynamicLossScale
 from cnns.nnlib.utils.general_utils import DebugMode
+from cnns.nnlib.utils.general_utils import CUDAMode
+from cnns.nnlib.utils.general_utils import MemTestMode
+from cnns.nnlib.utils.general_utils import AugmentationMode
 from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import mem_log_file
 from cnns.nnlib.utils.general_utils import get_log_time
 from cnns.nnlib.datasets.mnist import get_mnist
 from cnns.nnlib.datasets.cifar10 import get_cifar10
 from cnns.nnlib.datasets.ucr.ucr import get_ucr
+from cnns.nnlib.utils.arguments import Arguments
 
 # from memory_profiler import profile
 
@@ -65,9 +71,9 @@ from apex.fp16_utils import network_to_half
 dir_path = os.path.dirname(os.path.realpath(__file__))
 print("current working directory: ", dir_path)
 
-data_folder = "TimeSeriesDatasets"
+ucr_data_folder = "TimeSeriesDatasets"
 # ucr_path = os.path.join(dir_path, os.pardir, data_folder)
-ucr_path = os.path.join(os.pardir, data_folder)
+ucr_path = os.path.join(os.pardir, ucr_data_folder)
 
 results_folder_name = "results"
 results_dir = os.path.join(os.curdir, results_folder_name)
@@ -81,137 +87,150 @@ pathlib.Path(models_dir).mkdir(parents=True, exist_ok=True)
 # if not os.path.exists(models_dir):
 #     os.makedirs(models_dir)
 
-num_epochs = 3  # 300
-
 # plt.switch_backend('agg')
 
-# Training settings
+# Execution parameters.
+args = Arguments()
 parser = argparse.ArgumentParser(description='PyTorch TimeSeries')
-min_batch_size = 64
-parser.add_argument('--min_batch_size', type=int, default=min_batch_size,
-                    metavar='N',
-                    help=f'input batch size for training (default: {min_batch_size})')
-parser.add_argument('--test_batch_size', type=int, default=min_batch_size,
+parser.add_argument('--min_batch_size', type=int, default=args.min_batch_size,
+                    help=f"input mini batch size for training "
+                    f"(default: {args.min_batch_size})")
+parser.add_argument('--test_batch_size', type=int, default=args.test_batch_size,
                     metavar='N',
                     help='input batch size for testing (default: 1000)')
-parser.add_argument('--epochs', type=int, default=num_epochs, metavar='N',
-                    help=f'number of epochs to train (default: {num_epochs})')
-learning_rate = 0.001
-parser.add_argument('--lr', type=float, default=learning_rate, metavar='LR',
-                    help=f'learning rate (default: {learning_rate})')
-weight_decay = 5e-4
-parser.add_argument('--weight_decay', type=float, default=weight_decay,
-                    help=f'weight decay(default: {weight_decay})')
-parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
-                    help='SGD momentum (default: 0.9)')
-parser.add_argument('--no_cuda', action='store_true', default=False,
-                    help='disables CUDA training')
-parser.add_argument('--seed', type=int, default=31, metavar='S',
+parser.add_argument('--epochs', type=int, default=args.num_epochs, metavar='N',
+                    help=f"number of epochs to train ("
+                    f"default: {args.num_epochs})")
+parser.add_argument('--lr', type=float, default=args.learning_rate,
+                    metavar='LR',
+                    help=f'learning rate (default: {args.learning_rate})')
+parser.add_argument('--weight_decay', type=float, default=args.weight_decay,
+                    help=f'weight decay (default: {args.weight_decay})')
+parser.add_argument('--momentum', type=float, default=args.momentum,
+                    metavar='M',
+                    help=f'SGD momentum (default: {args.momentum})')
+parser.add_argument('--use_cuda', default="TRUE" if args.use_cuda else "FALSE",
+                    help="use CUDA for training and inference; "
+                         "options: " + ",".join(CUDAMode.get_names()))
+parser.add_argument('--seed', type=int, default=args.seed, metavar='S',
                     help='random seed (default: 31)')
-parser.add_argument('--log-interval', type=int, default=1, metavar='N',
+parser.add_argument('--log-interval', type=int, default=args.log_interval,
+                    metavar='N',
                     help='how many batches to wait before logging training '
                          'status')
-parser.add_argument("--optimizer_type", default="ADAM",
+parser.add_argument("--optimizer_type", default=args.optimizer_type.name,
                     # ADAM_FLOAT16, ADAM, MOMENTUM
                     help="the type of the optimizer, please choose from: " +
                          ",".join(OptimizerType.get_names()))
-parser.add_argument("--lr_scheduler", default="ReduceLROnPlateau",
+parser.add_argument("--scheduler_type", default=args.scheduler_type.name,
                     # StepLR, MultiStepLR, ReduceLROnPlateau, ExponentialLR
                     # CosineAnnealingLR
                     help="the type of the scheduler, please choose from: " +
                          ",".join(SchedulerType.get_names()))
-parser.add_argument("--memory_type", default="STANDARD",
+parser.add_argument("--loss_type", default=args.loss_type.name,
+                    # StepLR, MultiStepLR, ReduceLROnPlateau, ExponentialLR
+                    # CosineAnnealingLR
+                    help="the type of the loss, please choose from: " +
+                         ",".join(LossType.get_names()))
+parser.add_argument("--memory_type", default=args.memory_type.name,
                     # "STANDARD", "PINNED"
                     help="the type of the memory used, please choose from: " +
                          ",".join(MemoryType.get_names()))
-parser.add_argument("-w", "--workers", default=4, type=int,
+parser.add_argument("-w", "--workers", default=args.workers, type=int,
                     help="number of workers to fetch data for pytorch data "
                          "loader, 0 means that the data will be "
                          "loaded in the main process")
 parser.add_argument("--model_path",
-                    default="no_model",
+                    default=args.model_path,
                     # default = "2018-11-07-00-00-27-dataset-50words-preserve-energy-90-test-accuracy-58.46153846153846.model",
                     # default="2018-11-06-21-05-48-dataset-50words-preserve-energy-90-test-accuracy-12.5.model",
                     # default="2018-11-06-21-19-51-dataset-50words-preserve-energy-90-test-accuracy-12.5.model",
                     # no_model
                     # 2018-11-06-21-05-48-dataset-50words-preserve-energy-90-test-accuracy-12.5.model
                     help="The path to a saved model.")
-parser.add_argument("-d", "--datasets", default="debug",
+parser.add_argument("-d", "--dataset", default=args.dataset,
                     help="the type of datasets: all, debug, cifar10, mnist.")
-parser.add_argument("-i", "--index_back", default=0, type=int,
+parser.add_argument("-i", "--index_back", default=args.index_back, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
 parser.add_argument('--preserve_energies', nargs="+", type=int,
-                    default=[90],
+                    default=args.preserve_energies,
                     help="How much energy should be preserved in the "
                          "frequency representation of the signal? This "
                          "is the compression in the FFT domain.")
-parser.add_argument("-b", "--mem_test", default=False, type=bool,
-                    help="is it the memory test")
-parser.add_argument("-a", "--is_data_augmentation", default=True, type=bool,
-                    help="should the data augmentation be applied")
-parser.add_argument("-g", "--is_debug", default="FALSE",  # TRUE or FALSE
+parser.add_argument("-b", "--mem_test",
+                    default="TRUE" if args.mem_test else "FALSE",
+                    help="is it the memory test; options: " + ",".join(
+                        MemTestMode.get_names()))
+parser.add_argument("-a", "--is_data_augmentation",
+                    default="TRUE" if args.is_data_augmentation else "FALSE",
+                    help="should the data augmentation be applied; "
+                         "options: " + ",".join(AugmentationMode.get_names()))
+parser.add_argument("-g", "--is_debug",
+                    default="TRUE" if args.is_debug else "FALSE",
                     help="is it the debug mode execution: " + ",".join(
                         DebugMode.get_names()))
-parser.add_argument("--sample_count_limit", default=64, type=int,
+parser.add_argument("--sample_count_limit", default=args.sample_count_limit,
+                    type=int,
                     help="number of samples taken from the dataset "
                          "(0 - inactive)")
-parser.add_argument("-c", "--conv_type", default="FFT2D",
+parser.add_argument("-c", "--conv_type", default=args.conv_type.name,
                     # "FFT1D", "FFT2D", "STANDARD", "STANDARD2D", "AUTOGRAD",
                     # "SIMPLE_FFT"
                     help="the type of convolution, SPECTRAL_PARAM is with the "
                          "convolutional weights initialized in the spectral "
                          "domain, please choose from: " + ",".join(
                         ConvType.get_names()))
-parser.add_argument("--compress_type", default="STANDARD",
+parser.add_argument("--compress_type", default=args.compress_type.name,
                     # "STANDARD", "BIG_COEFF", "LOW_COEFF"
                     help="the type of compression to be applied: " + ",".join(
                         CompressType.get_names()))
-parser.add_argument("--network_type", default="ResNet18",
+parser.add_argument("--network_type", default=args.network_type.name,
                     # "FCNN_STANDARD", "FCNN_SMALL", "LE_NET", "ResNet18"
                     help="the type of network: " + ",".join(
                         NetworkType.get_names()))
-parser.add_argument("--tensor_type", default="FLOAT32",
+parser.add_argument("--tensor_type", default=args.tensor_type.name,
                     # "FLOAT32", "FLOAT16", "DOUBLE", "INT"
                     help="the tensor data type: " + ",".join(
                         TensorType.get_names()))
-parser.add_argument("--next_power2", default="TRUE",
+parser.add_argument("--next_power2",
+                    default="TRUE" if args.next_power2 else "FALSE",
                     # "TRUE", "FALSE"
                     help="should we extend the input to the length of a power "
                          "of 2 before taking its fft? " + ",".join(
                         NextPower2.get_names()))
-parser.add_argument("--visualize", default="FALSE",
+parser.add_argument("--visualize", default="TRUE" if args.visulize else "FALSE",
                     # "TRUE", "FALSE"
                     help="should we visualize the activations map after each "
                          "of the convolutional layers? " + ",".join(
                         Visualize.get_names()))
-parser.add_argument('--static_loss_scale', type=float, default=1,
+parser.add_argument('--static_loss_scale', type=float,
+                    default=args.static_loss_scale,
                     help="""Static loss scale, positive power of 2 values can 
                     improve fp16 convergence.""")
-parser.add_argument('--dynamic_loss_scale', default="TRUE",
-                    help='(bool) Use dynamic loss scaling.  If supplied, this argument supersedes ' +
-                         '--static-loss-scale. Options: ' + ",".join(
+parser.add_argument('--dynamic_loss_scale',
+                    default="TRUE" if args.dynamic_loss_scale else "FALSE",
+                    help="(bool) Use dynamic loss scaling. "
+                         "If supplied, this argument supersedes " +
+                         "--static-loss-scale. Options: " + ",".join(
                         DynamicLossScale.get_names()))
 
-args = parser.parse_args()
+parsed_args = parser.parse_args()
+args.set_parsed_args(parsed_args=parsed_args)
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
 print("current file name: ", current_file_name)
 
-use_cuda = True if args.no_cuda is False else False
-if torch.cuda.is_available() and use_cuda:
-    print("conv1D_cuda is available: ")
+if torch.cuda.is_available() and args.use_cuda:
+    print("cuda is available: ")
     device = torch.device("cuda")
     # torch.set_default_tensor_type('torch.cuda.FloatTensor')
 else:
     device = torch.device("cpu")
 
 
-def getModelPyTorch(input_size, num_classes, in_channels, out_channels=None,
-                    dtype=torch.float32, batch_size=args.min_batch_size,
-                    preserve_energy=100, flat_size=320, is_debug=False,
-                    args=args):
+def getModelPyTorch(args=args):
     """
     Get the PyTorch version of the FCNN model.
 
@@ -223,24 +242,18 @@ def getModelPyTorch(input_size, num_classes, in_channels, out_channels=None,
     :param flat_size: the size of the flat vector after the conv layers.
     :return: the model.
     """
-    network_type = NetworkType[args.network_type]
-    if network_type == NetworkType.LE_NET:
-        return LeNet(input_size=input_size, args=args, num_classes=num_classes,
-                     in_channels=in_channels, out_channels=out_channels,
-                     dtype=dtype, batch_size=batch_size,
-                     preserve_energy=preserve_energy, flat_size=flat_size,
-                     is_debug=is_debug)
-    elif network_type == NetworkType.FCNN_SMALL or (
-            network_type == NetworkType.FCNN_STANDARD):
-        if network_type == NetworkType.FCNN_SMALL:
+    network_type = args.network_type
+    if network_type is NetworkType.LE_NET:
+        return LeNet(args=args)
+    elif network_type is NetworkType.FCNN_SMALL or (
+            network_type is NetworkType.FCNN_STANDARD):
+        if network_type is NetworkType.FCNN_SMALL:
             out_channels = [1, 1, 1]
-        elif network_type == NetworkType.FCNN_STANDARD:
+        elif network_type is NetworkType.FCNN_STANDARD:
             out_channels = [128, 256, 128]
-        return FCNNPytorch(input_size=input_size, num_classes=num_classes,
-                           in_channels=in_channels, out_channels=out_channels,
-                           dtype=dtype, preserve_energy=preserve_energy)
+        return FCNNPytorch(args=args)
     elif network_type == NetworkType.ResNet18:
-        return resnet18(num_classes=num_classes, args=args)
+        return resnet18(args=args)
     else:
         raise Exception("Unknown network_type: ", network_type)
 
@@ -248,7 +261,7 @@ def getModelPyTorch(input_size, num_classes, in_channels, out_channels=None,
 def readucr(filename, data_type):
     parent_path = os.path.split(os.path.abspath(dir_path))[0]
     print("parent path: ", parent_path)
-    filepath = os.path.join(parent_path, data_folder, filename,
+    filepath = os.path.join(parent_path, ucr_data_folder, filename,
                             filename + "_" + data_type)
     print("filepath: ", filepath)
     data = np.loadtxt(filepath, delimiter=',')
@@ -261,7 +274,7 @@ def getData(fname):
     x_train, y_train = readucr(fname + '/' + fname + '_TRAIN')
     x_test, y_test = readucr(fname + '/' + fname + '_TEST')
     num_classes = len(np.unique(y_test))
-    batch_size = min(x_train.shape[0] // 10, args.min_batch_size)
+    batch_size = min(x_train.shape[0] // 10, parsed_args.min_batch_size)
 
     y_train = ((y_train - y_train.min()) / (y_train.max() - y_train.min()) * (
             num_classes - 1)).astype(int)
@@ -281,7 +294,7 @@ def getData(fname):
 
 
 # @profile
-def train(model, device, train_loader, optimizer, epoch, dtype=torch.float):
+def train(model, device, train_loader, optimizer, loss_function, epoch, args):
     """
     Train the model.
 
@@ -290,37 +303,35 @@ def train(model, device, train_loader, optimizer, epoch, dtype=torch.float):
     :param train_loader: the training dataset.
     :param optimizer: Adam, Momemntum, etc.
     :param epoch: the current epoch number.
-    :param dtype: the type of the tensors.
+    :param
     """
 
-    if dtype is torch.float16:
+    if args.dtype is torch.float16:
         """
         amp_handle: tells it where backpropagation occurs so that it can 
         properly scale the loss and clear internal per-iteration state.
         """
         # amp_handle = amp.init()
         # optimizer = amp_handle.wrap_optimizer(optimizer)
-        dynamic_loss_scale = DynamicLossScale[args.dynamic_loss_scale]
-        dynamic_loss_scale = True if dynamic_loss_scale is DynamicLossScale.TRUE else False
 
         optimizer = FP16_Optimizer(optimizer,
                                    static_loss_scale=args.static_loss_scale,
-                                   dynamic_loss_scale=dynamic_loss_scale,
+                                   dynamic_loss_scale=args.dynamic_loss_scale,
                                    verbose=True)
 
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
-        data, target = data.to(device=device, dtype=dtype), target.to(
+        data, target = data.to(device=device, dtype=args.dtype), target.to(
             device=device)
         optimizer.zero_grad()
         output = model(data)
-        loss = F.nll_loss(output, target)
+        train_loss = loss_function(output, target)
 
         # The cross entropy loss combines `log_softmax` and `nll_loss` in
         # a single function.
         # loss = F.cross_entropy(output, target)
 
-        if dtype is torch.float16:
+        if args.dtype is torch.float16:
             """
             https://github.com/NVIDIA/apex/tree/master/apex/amp
             
@@ -334,18 +345,18 @@ def train(model, device, train_loader, optimizer, epoch, dtype=torch.float):
             # with amp_handle.scale_loss(loss, optimizer) as scaled_loss:
             #     scaled_loss.backward()
             # loss = optimizer.scale_loss(loss)
-            optimizer.backward(loss)
+            optimizer.backward(train_loss)
         else:
-            loss.backward()
+            train_loss.backward()
 
         optimizer.step()
 
         print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
             epoch, batch_idx * len(data), len(train_loader.dataset),
-                   100.0 * batch_idx / len(train_loader), loss.item()))
+                   100.0 * batch_idx / len(train_loader), train_loss.item()))
 
 
-def test(model, device, test_loader, dataset_type="test", dtype=torch.float):
+def test(model, device, test_loader, loss_function, args, dataset_type="test"):
     """
 
     :param model: deep learning model.
@@ -361,11 +372,11 @@ def test(model, device, test_loader, dataset_type="test", dtype=torch.float):
     counter = len(test_loader.dataset)
     with torch.no_grad():
         for data, target in test_loader:
-            data, target = data.to(device=device, dtype=dtype), target.to(
+            data, target = data.to(device=device, dtype=args.dtype), target.to(
                 device)
             output = model(data)
-            test_loss += F.nll_loss(output, target,
-                                    reduction='sum').item()  # sum up batch loss
+            test_loss += loss_function(output, target,
+                                       reduction='sum').item()  # sum up batch loss
             # get the index of the max log-probability
             pred = output.max(1, keepdim=True)[1]
             correct += pred.eq(target.view_as(pred)).sum().item()
@@ -378,13 +389,16 @@ def test(model, device, test_loader, dataset_type="test", dtype=torch.float):
 
 
 # @profile
-def main(dataset_name, preserve_energy):
+def main(args):
     """
     The main training.
 
     :param dataset_name: the name of the dataset from UCR.
     """
-    is_debug = True if DebugMode[args.is_debug] is DebugMode.TRUE else False
+    is_debug = args.is_debug
+    dataset_name = args.dataset_name
+    preserve_energy = args.preserve_energy
+
     dataset_log_file = os.path.join(
         results_folder_name, get_log_time() + "-dataset-" + str(dataset_name) + \
                              "-preserve-energy-" + str(preserve_energy) + \
@@ -406,59 +420,62 @@ def main(dataset_name, preserve_energy):
         # Write the metadata.
         file.write(DATASET_HEADER)
 
-    use_cuda = not args.no_cuda and torch.cuda.is_available()
-
     torch.manual_seed(args.seed)
+    optimizer_type = args.optimizer_type
+    scheduler_type = args.scheduler_type
+    loss_type = args.loss_type
 
+    use_cuda = args.use_cuda
     device = torch.device("cuda" if use_cuda else "cpu")
-    optimizer_type = OptimizerType[args.optimizer_type]
+    tensor_type = args.tensor_type
     if use_cuda:
-        if TensorType[args.tensor_type] is TensorType.FLOAT32:
-            torch.set_default_tensor_type(torch.cuda.FloatTensor)
-        elif TensorType[args.tensor_type] is TensorType.FLOAT16:
-            torch.set_default_tensor_type(torch.cuda.HalfTensor)
-        elif TensorType[args.tensor_type] is TensorType.DOUBLE:
-            torch.set_default_tensor_type(torch.cuda.DoubleTensor)
+        if tensor_type is TensorType.FLOAT32:
+            cuda_type = torch.cuda.FloatTensor
+        elif tensor_type is TensorType.FLOAT16:
+            cuda_type = torch.cuda.HalfTensor
+        elif TensorType[parsed_args.tensor_type] is TensorType.DOUBLE:
+            cuda_type = torch.cuda.DoubleTensor
+        else:
+            raise Exception(f"Unknown tensor type: {tensor_type}")
+        torch.set_default_tensor_type(cuda_type)
     else:
-        if TensorType[args.tensor_type] is TensorType.FLOAT32:
-            torch.set_default_tensor_type(torch.FloatTensor)
-        elif TensorType[args.tensor_type] is TensorType.FLOAT16:
-            torch.set_default_tensor_type(torch.HalfTensor)
-        elif TensorType[args.tensor_type] is TensorType.DOUBLE:
-            torch.set_default_tensor_type(torch.DoubleTensor)
-    dtype = torch.float
-    if TensorType[args.tensor_type] is TensorType.FLOAT16:
-        dtype = torch.float16
-    elif TensorType[args.tensor_type] is TensorType.DOUBLE:
-        dtype = torch.double
+        if tensor_type is TensorType.FLOAT32:
+            cpu_type = torch.FloatTensor
+        elif tensor_type is TensorType.FLOAT16:
+            cpu_type = torch.HalfTensor
+        elif tensor_type is TensorType.DOUBLE:
+            cpu_type = torch.DoubleTensor
+        else:
+            raise Exception(f"Unknown tensor type: {tensor_type}")
+        torch.set_default_tensor_type(cpu_type)
 
-    batch_size = args.min_batch_size
+    if tensor_type is TensorType.FLOAT32:
+        dtype = torch.float32
+    elif tensor_type is TensorType.FLOAT16:
+        dtype = torch.float16
+    elif tensor_type is TensorType.DOUBLE:
+        dtype = torch.double
+    else:
+        raise Exception(f"Unknown tensor type: {tensor_type}")
+    args.dtype = dtype
 
     if dataset_name is "cifar10":
-        train_loader, test_loader, num_classes, flat_size, width, in_channels, out_channels = get_cifar10(
-            args)
+        train_loader, test_loader = get_cifar10(args)
     elif dataset_name is "mnist":
-        train_loader, test_loader, num_classes, flat_size, width, in_channels, out_channels = get_mnist(
-            args)
+        train_loader, test_loader = get_mnist(args)
     elif dataset_name in os.listdir(ucr_path):  # dataset from UCR archive
-        train_loader, test_loader, num_classes, flat_size, width, in_channels, out_channels = get_ucr(
-            args)
+        train_loader, test_loader = get_ucr(args)
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
-    args.in_channels = in_channels
 
-    model = getModelPyTorch(input_size=width, num_classes=num_classes,
-                            in_channels=in_channels, out_channels=out_channels,
-                            dtype=dtype, batch_size=batch_size,
-                            preserve_energy=preserve_energy,
-                            flat_size=flat_size, is_debug=is_debug, args=args)
+    model = getModelPyTorch(args=args)
 
     # https://pytorch.org/docs/master/notes/serialization.html
     if args.model_path != "no_model":
         model.load_state_dict(
-            torch.load(os.path.join(models_dir, args.model_path),
+            torch.load(os.path.join(models_dir, parsed_args.model_path),
                        map_location=device))
-        msg = "loaded model: " + args.model_path
+        msg = "loaded model: " + parsed_args.model_path
         logger.info(msg)
         print(msg)
 
@@ -480,25 +497,42 @@ def main(dataset_name, preserve_energy):
     eps = 1e-8
 
     if optimizer_type is OptimizerType.MOMENTUM:
-        optimizer = optim.SGD(params, lr=args.lr, momentum=args.momentum,
-                              weight_decay=args.weight_decay)
+        optimizer = optim.SGD(params, lr=parsed_args.lr,
+                              momentum=parsed_args.momentum,
+                              weight_decay=parsed_args.weight_decay)
     elif optimizer_type is OptimizerType.ADAM_FLOAT16:
-        optimizer = AdamFloat16(params, lr=args.lr, eps=eps)
+        optimizer = AdamFloat16(params, lr=parsed_args.lr, eps=eps)
+    elif optimizer_type is OptimizerType.ADAM:
+        optimizer = optim.Adam(params, lr=parsed_args.lr, eps=eps)
     else:
-        optimizer = optim.Adam(params, lr=args.lr, eps=eps)
+        raise Exception(f"Unknown optimizer type: {optimizer_type.name}")
 
     # https://pytorch.org/docs/stable/optim.html#torch.optim.lr_scheduler.ReduceLROnPlateau
-    scheduler = ReduceLROnPlateauPyTorch(optimizer=optimizer, mode='min',
-                                         factor=0.5, patience=50)
+    if scheduler_type is SchedulerType.ReduceLROnPlateau:
+        scheduler = ReduceLROnPlateauPyTorch(optimizer=optimizer, mode='min',
+                                             factor=0.1, patience=10)
+    elif scheduler_type is SchedulerType.MultiStepLR:
+        scheduler = MultiStepLR(optimizer=optimizer, milestones=[150, 250])
+    else:
+        raise Exception(f"Unknown scheduler type: {scheduler_type}")
+
+    if loss_type is LossType.CROSS_ENTROPY:
+        loss_function = torch.nn.CrossEntropyLoss()
+    elif loss_type is LossType.NLL:
+        loss_function = torch.nn.NLLLoss()
+    else:
+        raise Exception(f"Unknown loss type: {loss_type}")
 
     train_loss = train_accuracy = test_loss = test_accuracy = 0.0
     # max = choose the best model.
     min_train_loss = min_test_loss = sys.float_info.max
     max_train_accuracy = max_test_accuracy = 0.0
 
-    if Visualize[args.visualize] is True and is_debug is True:
-        test_loss, test_accuracy = test(model, test_loader=test_loader,
-                                        data_type="test", dtype=dtype)
+    if args.visulize is True and is_debug is True:
+        test_loss, test_accuracy = test(model=model, device=device,
+                                        test_loader=test_loader,
+                                        loss_function=loss_function,
+                                        dataset_type="test", args=args)
         with open(global_log_file, "a") as file:
             file.write(
                 "visualize," + dataset_name + "," + str(test_loss) + "," + str(
@@ -506,19 +540,21 @@ def main(dataset_name, preserve_energy):
         return
 
     dataset_start_time = time.time()
-    for epoch in range(1, args.epochs + 1):
+    for epoch in range(1, parsed_args.epochs + 1):
         epoch_start_time = time.time()
         print("training for epoch: ", epoch)
-        train(model=model, device=device, train_loader=train_loader,
-              optimizer=optimizer, epoch=epoch, dtype=dtype)
+        train(model=model, device=device, train_loader=train_loader, args=args,
+              optimizer=optimizer, loss_function=loss_function, epoch=epoch)
         print("test train set for epoch: ", epoch)
         train_loss, train_accuracy = test(model=model, device=device,
                                           test_loader=train_loader,
-                                          dataset_type="train", dtype=dtype)
+                                          loss_function=loss_function,
+                                          dataset_type="train", args=args)
         print("test test set for epoch: ", epoch)
         test_loss, test_accuracy = test(model=model, device=device,
                                         test_loader=test_loader,
-                                        dataset_type="test", dtype=dtype)
+                                        loss_function=loss_function,
+                                        dataset_type="test", args=args)
         # Scheduler step is based only on the train data, we do not use the
         # test data to schedule the decrease in the learning rate.
         scheduler.step(train_loss)
@@ -557,9 +593,7 @@ if __name__ == '__main__':
     hostname = socket.gethostname()
     global_log_file = os.path.join(results_folder_name,
                                    get_log_time() + "-ucr-fcnn.log")
-    args_dict = vars(args)
-    args_str = ",".join(
-        [str(key) + ":" + str(value) for key, value in args_dict.items()])
+    args_str = args.get_str()
     HEADER = "UCR datasets,final results,hostname," + str(
         hostname) + ",timestamp," + get_log_time() + "," + str(args_str)
     with open(additional_log_file, "a") as file:
@@ -572,13 +606,13 @@ if __name__ == '__main__':
         file.write(
             "dataset,min_train_loss,max_train_accuracy,min_test_loss,max_test_accuracy,execution_time\n")
 
-    if args.datasets == "all":
+    if args.dataset == "all":
         flist = os.listdir(ucr_path)
-    elif args.datasets == "cifar10":
+    elif args.dataset == "cifar10":
         flist = ["cifar10"]
-    elif args.datasets == "mnist":
+    elif args.dataset == "mnist":
         flist = ["mnist"]
-    elif args.datasets == "debug":
+    elif args.dataset == "debug":
         # flist = ["50words"]
         flist = ["cifar10"]
         # flist = ["mnist"]
@@ -640,7 +674,7 @@ if __name__ == '__main__':
         #          'Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass', 'yoga',
         #          'ztest']
     else:
-        raise AttributeError("Unknown datasets: ", args.datasets)
+        raise AttributeError("Unknown datasets: ", args.dataset)
 
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
@@ -651,6 +685,7 @@ if __name__ == '__main__':
     print("flist: ", flist)
     preserve_energies = args.preserve_energies
     for dataset_name in flist:
+        args.dataset_name = dataset_name
         for preserve_energy in preserve_energies:
             print("Dataset: ", dataset_name)
             print("preserve energy: ", preserve_energy)
@@ -658,6 +693,6 @@ if __name__ == '__main__':
             with open(global_log_file, "a") as file:
                 file.write("dataset name: " + dataset_name + "\n" +
                            "preserve energy: " + str(preserve_energy) + "\n")
-            main(dataset_name=dataset_name, preserve_energy=preserve_energy)
+            main(args=args)
 
             print("total elapsed time (sec): ", time.time() - start_time)

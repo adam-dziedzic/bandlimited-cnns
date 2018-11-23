@@ -41,7 +41,7 @@ plt.savefig(image_dir + "grayscale_image.png")
 def get_fft_plot(fft, shift_channel=True, eps=1e-12, pad_to_width=256):
     """ Convert a fourier transform returned from tensorflow in a format
     that can be plotted.
-    Args:
+    Arguments:
         fft: numpy array with image and channels
         shift_channel: if True, the channels are assumed as first dimension and
                        will be moved to the end.

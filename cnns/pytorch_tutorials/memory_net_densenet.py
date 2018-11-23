@@ -23,7 +23,7 @@ def densenet121(pretrained=False, **kwargs):
     r"""Densenet-121 model from
     `"Densely Connected Convolutional Networks" <https://arxiv.org/pdf/1608.06993.pdf>`
 
-    Args:
+    Arguments:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = DenseNet(num_init_features=64, growth_rate=32,
@@ -37,7 +37,7 @@ def densenet169(pretrained=False, **kwargs):
     r"""Densenet-169 model from
     `"Densely Connected Convolutional Networks" <https://arxiv.org/pdf/1608.06993.pdf>`
 
-    Args:
+    Arguments:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = DenseNet(num_init_features=64, growth_rate=32,
@@ -51,7 +51,7 @@ def densenet201(pretrained=False, **kwargs):
     r"""Densenet-201 model from
     `"Densely Connected Convolutional Networks" <https://arxiv.org/pdf/1608.06993.pdf>`
 
-    Args:
+    Arguments:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = DenseNet(num_init_features=64, growth_rate=32,
@@ -65,7 +65,7 @@ def densenet161(pretrained=False, **kwargs):
     r"""Densenet-201 model from
     `"Densely Connected Convolutional Networks" <https://arxiv.org/pdf/1608.06993.pdf>`
 
-    Args:
+    Arguments:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = DenseNet(num_init_features=96, growth_rate=48,
@@ -138,7 +138,7 @@ class DenseNet(nn.Module):
     `"Densely Connected Convolutional Networks"
     <https://arxiv.org/pdf/1608.06993.pdf>`
 
-    Args:
+    Arguments:
         growth_rate (int) - how many filters to add each layer (`k` in paper)
         block_config (list of 4 ints) - how many layers in each pooling block
         num_init_features (int) - the number of filters to learn in the first

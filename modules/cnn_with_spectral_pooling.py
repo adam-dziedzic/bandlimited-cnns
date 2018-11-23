@@ -78,7 +78,7 @@ class CNN_Spectral_Pool(object):
     def _get_cnn_num_filters(self, m):
         """Get number of filters for CNN.
 
-        Args:
+        Arguments:
             m: current layer number
         """
         return min(self.max_num_filters,
@@ -87,7 +87,7 @@ class CNN_Spectral_Pool(object):
     def _get_sp_dim(self, n):
         """Get filter size for current layer.
 
-        Args:
+        Arguments:
             n: size of image in layer
         """
         fsize = int(self.gamma * n)
@@ -97,7 +97,7 @@ class CNN_Spectral_Pool(object):
     def _get_frq_dropout_bounds(self, n, m):
         """Get the bounds for frequency dropout.
 
-        Args:
+        Arguments:
             n: size of image in layer
             m: current layer index
 

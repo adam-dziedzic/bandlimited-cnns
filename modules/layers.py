@@ -142,7 +142,7 @@ class spectral_pool_layer(object):
     ):
         """Perform a single spectral pool operation.
 
-        Args:
+        Arguments:
             input_x: Tensor representing a batch of channels-first images
                 shape: (batch_size, num_channels, height, width)
             filter_size: int, the final dimension of the filter required

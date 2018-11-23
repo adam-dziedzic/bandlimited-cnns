@@ -38,22 +38,15 @@ class Conv(object):
         self.out_channels = out_channels
         self.strides = strides
         self.padding = padding
-        self.conv_type = ConvType[args.conv_type]
-        self.index_back = args.index_back
-        self.preserve_energy = args.preserve_energy
-        self.is_debug = True if DebugMode[
-                                    args.is_debug] is DebugMode.TRUE else False
-        self.compress_type = CompressType[args.compress_type]
-        self.args = args
         self.is_bias = is_bias
-        self.dtype = torch.float
-        if TensorType[args.tensor_type] is TensorType.FLOAT16:
-            self.dtype = torch.float16
-        elif TensorType[args.tensor_type] is TensorType.DOUBLE:
-            self.dtype = torch.double
-
-        next_power2 = NextPower2[args.next_power2]
-        self.next_power2 = True if next_power2 is NextPower2.TRUE else False
+        self.conv_type = args.conv_type
+        self.preserve_energy = args.preserve_energy
+        self.is_debug = args.is_debug
+        self.compress_type = args.compress_type
+        self.args = args
+        self.dtype = args.dtype
+        self.next_power2 = args.next_power2
+        self.index_back = args.index_back
 
     def get_conv(self, index=0, index_back=None):
         if index == 0:
@@ -98,14 +91,9 @@ class Conv(object):
                              stride=self.strides[index],
                              kernel_size=self.kernel_sizes[index],
                              padding=self.padding[index],
-                             index_back=index_back,
-                             use_next_power2=self.next_power2,
                              conv_index=index,
-                             preserve_energy=self.preserve_energy,
-                             is_debug=self.is_debug,
-                             compress_type=self.compress_type,
-                             dtype=self.dtype,
-                             bias=self.is_bias)
+                             bias=self.is_bias,
+                             args=self.args)
         elif self.conv_type is ConvType.AUTOGRAD:
             return Conv1dfftAutograd(in_channels=in_channels,
                                      out_channels=self.out_channels[index],
@@ -120,8 +108,8 @@ class Conv(object):
                                      stride=self.strides[index],
                                      kernel_size=self.kernel_sizes[index],
                                      padding=self.padding[index],
-                                     index_back=self.index_back,
-                                     bias=self.is_bias)
+                                     bias=self.is_bias,
+                                     args=self.args)
         elif self.conv_type is ConvType.SIMPLE_FFT:
             return Conv1dfftSimple(in_channels=in_channels,
                                    out_channels=self.out_channels[index],

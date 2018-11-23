@@ -145,6 +145,18 @@ def get_pair(value=None, val_1_default=None, val2_default=None, name="value"):
         else:
             raise ValueError(name + " requires a tuple of length 2")
 
+def to_tensor_item(value):
+    """
+    Transform from None to -1 or retain the initial value.
+
+    :param value: a value to be changed to an element/item in a tensor
+    :return: a number representing the value, tensor with value -1 represents
+    the None input
+    """
+    if value is None:
+        value = -1.0
+    return value
+
 
 def to_tensor(value):
     """

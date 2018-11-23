@@ -39,7 +39,7 @@ def load_cifar10(num_train_images=50000,
                  channels_last=True):
     """Load the cifar data.
 
-    Args:
+    Arguments:
         num_train_images: int, the number of train images
         num_test_images: int, the number of test images
         get_test_data: bool, whether to return test data
@@ -110,7 +110,7 @@ def load_cifar100(get_test_data=True,
                   channels_last=True):
     """Load the cifar 100 data (not in batches).
 
-    Args:
+    Arguments:
         get_test_data: bool, whether to return test data
     Returns:
         (images, labels) it get_test_data False

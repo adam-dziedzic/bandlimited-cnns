@@ -39,7 +39,7 @@ def get_low_pass_filter(shape, pool_size):
 def spectral_pool(image, pool_size=4,
                   convert_grayscale=True):
     """ Perform a single spectral pool operation.
-    Args:
+    Arguments:
         image: numpy array representing an image
         pool_size: number of dimensions to throw away in each dimension,
                    same as the filter size of max_pool
@@ -90,7 +90,7 @@ def spectral_pool(image, pool_size=4,
 def max_pool(image, pool_size=4,
              convert_grayscale=True):
     """ Perform a single max pool operation.
-    Args:
+    Arguments:
         image: numpy array representing an image
         pool_size: number of dimensions to throw away in each dimension,
                    same as the filter size of max_pool
@@ -119,7 +119,7 @@ def max_pool(image, pool_size=4,
 def get_fft_plot(fft, shift_channel=True, eps=1e-12):
     """ Convert a fourier transform returned from tensorflow in a format
     that can be plotted.
-    Args:
+    Arguments:
         fft: numpy array with image and channels
         shift_channel: if True, the channels are assumed as first dimension and
                        will be moved to the end.
