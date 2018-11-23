@@ -36,10 +36,12 @@ class EnumWithNames(Enum):
         return [enum_value.name for enum_value in cls]
 
 
-class BoolEnumWithNames(EnumWithNames):
+class Bool(EnumWithNames):
     """
     Bool version of EnumWithNames.
     """
+    TRUE = 1
+    FALSE = 2
 
     @classmethod
     def get_bool(cls, bool_name):
@@ -66,6 +68,12 @@ class SchedulerType(EnumWithNames):
 class LossType(EnumWithNames):
     NLL = 1  # Negative Log Likelihood
     CROSS_ENTROPY = 2
+
+
+class LossReduction(EnumWithNames):
+    SUM = 1
+    ELEMENTWISE_MEAN = 2
+
 
 class MemoryType(EnumWithNames):
     STANDARD = 1
@@ -107,41 +115,6 @@ class TensorType(EnumWithNames):
     DOUBLE = 2
     FLOAT16 = 3
     INT = 4
-
-
-class NextPower2(BoolEnumWithNames):
-    TRUE = 1
-    FALSE = 2
-
-
-class Visualize(BoolEnumWithNames):
-    TRUE = 1
-    FALSE = 2
-
-
-class DynamicLossScale(BoolEnumWithNames):
-    TRUE = 1
-    FALSE = 2
-
-
-class DebugMode(BoolEnumWithNames):
-    TRUE = 1
-    FALSE = 2
-
-
-class CUDAMode(BoolEnumWithNames):
-    TRUE = 1
-    FALSE = 2
-
-
-class MemTestMode(BoolEnumWithNames):
-    TRUE = 1
-    FALSE = 2
-
-
-class AugmentationMode(BoolEnumWithNames):
-    TRUE = 1
-    FALSE = 2
 
 
 class NetworkType(EnumWithNames):

@@ -50,7 +50,7 @@ from TensorFlowStanford import *
 def run_complex_model():
     # Now we're going to feed a random batch into the model 
     # and make sure the output is the right size
-    is_training = tf.placeholder(tf.bool)
+    is_training = tf.placeholder(tf.get_bool)
     y_out = complex_model(X,y,is_training)
     x = np.random.randn(64, 32, 32, 3)
     with tf.Session() as sess:

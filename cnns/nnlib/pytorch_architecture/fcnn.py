@@ -1,8 +1,6 @@
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
-from cnns.nnlib.utils.general_utils import ConvType
-from cnns.nnlib.utils.general_utils import DebugMode
 from torch.nn.functional import log_softmax
 
 class FCNNPytorch(nn.Module):

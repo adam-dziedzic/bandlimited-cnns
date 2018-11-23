@@ -1,9 +1,5 @@
 import torch
 from cnns.nnlib.utils.general_utils import ConvType
-from cnns.nnlib.utils.general_utils import CompressType
-from cnns.nnlib.utils.general_utils import TensorType
-from cnns.nnlib.utils.general_utils import NextPower2
-from cnns.nnlib.utils.general_utils import DebugMode
 import torch.nn as nn
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfft
 from cnns.nnlib.pytorch_layers.conv2D_fft import Conv2dfft

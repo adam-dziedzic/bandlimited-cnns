@@ -6,15 +6,10 @@ from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.general_utils import OptimizerType
 from cnns.nnlib.utils.general_utils import SchedulerType
 from cnns.nnlib.utils.general_utils import LossType
+from cnns.nnlib.utils.general_utils import LossReduction
 from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import TensorType
-from cnns.nnlib.utils.general_utils import NextPower2
-from cnns.nnlib.utils.general_utils import Visualize
-from cnns.nnlib.utils.general_utils import DynamicLossScale
-from cnns.nnlib.utils.general_utils import DebugMode
-from cnns.nnlib.utils.general_utils import MemTestMode
-from cnns.nnlib.utils.general_utils import AugmentationMode
-from cnns.nnlib.utils.general_utils import CUDAMode
+from cnns.nnlib.utils.general_utils import Bool
 
 
 class Arguments(object):
@@ -51,7 +46,8 @@ class Arguments(object):
                  log_interval=1,
                  optimizer_type=OptimizerType.MOMENTUM,
                  scheduler_type=SchedulerType.MultiStepLR,
-                 loss_type = LossType.CROSS_ENTROPY,
+                 loss_type=LossType.CROSS_ENTROPY,
+                 loss_reduction=LossReduction.ELEMENTWISE_MEAN,
                  memory_type=MemoryType.STANDARD,
                  workers=4,
                  model_path="no_model",
@@ -64,9 +60,10 @@ class Arguments(object):
                  static_loss_scale=1,
                  out_size=None,
                  tensor_type=TensorType.FLOAT32,
-                 next_power2 = False,
-                 dynamic_loss_scale = True,
-                 memory_size=25
+                 next_power2=False,
+                 dynamic_loss_scale=True,
+                 memory_size=25,
+                 is_progress_bar=False,
                  ):
         """
         The default parameters for the execution of the program.
@@ -90,6 +87,10 @@ class Arguments(object):
         :param momentum: for the optimizer SGD
         :param out_size: users can specify arbitrary output size that we can
         deliver based on spectral pooling
+        :param memory_size: specify how much memory can be used (or is available
+        on the machine).
+        :param is_progress_bar: specify if the progress bar should be shown
+        during training and testing of the model.
         """
         super(Arguments).__init__()
         self.__counter__ = 0
@@ -133,6 +134,7 @@ class Arguments(object):
         self.optimizer_type = optimizer_type
         self.scheduler_type = scheduler_type
         self.loss_type = loss_type
+        self.loss_reduction = loss_reduction
         self.memory_type = memory_type
         self.workers = workers
         self.model_path = model_path
@@ -148,6 +150,10 @@ class Arguments(object):
         self.next_power2 = next_power2
         self.dynamic_loss_scale = dynamic_loss_scale
         self.memory_size = memory_size
+        self.is_progress_bar = is_progress_bar
+
+    def get_bool(self, arg):
+        return True if Bool[arg] is Bool.TRUE else False
 
     def set_parsed_args(self, parsed_args):
 
@@ -156,31 +162,26 @@ class Arguments(object):
         self.__dict__ = parsed_args.__dict__.copy()
         self.parsed_args = parsed_args
 
-        self.is_debug = True if DebugMode[
-                                    parsed_args.is_debug] is DebugMode.TRUE else False
+        # Enums:
         self.network_type = NetworkType[parsed_args.network_type]
-        parsed_use_cuda = True if CUDAMode[
-                                      parsed_args.use_cuda] is CUDAMode.TRUE else False
-        self.use_cuda = parsed_use_cuda and torch.cuda.is_available()
-
-        # param compress_type:
         self.compress_type = CompressType[parsed_args.compress_type]
-        self.dynamic_loss_scale = True if DynamicLossScale[
-                                              parsed_args.dynamic_loss_scale] is DynamicLossScale.TRUE else False
         self.conv_type = ConvType[parsed_args.conv_type]
         self.optimizer_type = OptimizerType[parsed_args.optimizer_type]
         self.scheduler_type = SchedulerType[parsed_args.scheduler_type]
         self.loss_type = LossType[parsed_args.loss_type]
+        self.loss_reduction = LossReduction[parsed_args.loss_reduction]
         self.memory_type = MemoryType[parsed_args.memory_type]
         self.tensor_type = TensorType[parsed_args.tensor_type]
-        self.next_power2 = True if NextPower2[
-                                       parsed_args.next_power2] is NextPower2.TRUE else False
-        self.visulize = True if Visualize[
-                                    parsed_args.visualize] is Visualize.TRUE else False
-        self.is_data_augmentation = True if AugmentationMode[
-                                                parsed_args.is_data_augmentation] is AugmentationMode.TRUE else False
-        self.mem_test = True if MemTestMode[
-                                    parsed_args.mem_test] is MemTestMode.TRUE else False
+
+        # Bools:
+        self.is_debug = self.get_bool(parsed_args.is_debug)
+        self.dynamic_loss_scale = self.get_bool(parsed_args.dynamic_loss_scale)
+        self.next_power2 = self.get_bool(parsed_args.next_power2)
+        self.visulize = self.get_bool(parsed_args.visualize)
+        self.is_progress_bar = self.get_bool(parsed_args.is_progress_bar)
+        self.is_data_augmentation = self.get_bool(parsed_args.is_data_augmentation)
+        self.mem_test = self.get_bool(parsed_args.mem_test)
+        self.use_cuda = self.get_bool(parsed_args.use_cuda) and torch.cuda.is_available()
 
         if hasattr(parsed_args, "preserve_energy"):
             self.preserve_energy = parsed_args.preserve_energy

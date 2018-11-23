@@ -1,7 +1,6 @@
 from cnns.nnlib.datasets.ucr.dataset import UCRDataset
 from torchvision import transforms
 import torch
-from cnns.nnlib.utils.general_utils import DebugMode
 from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.datasets.ucr.dataset import ToTensor
 from cnns.nnlib.datasets.ucr.dataset import AddChannel
@@ -16,12 +15,14 @@ def get_ucr(args, dataset_name):
     :return: the access handlers to the dataset
     """
     sample_count = args.sample_count_limit
-    is_debug = True if DebugMode[args.is_debug] is DebugMode.TRUE else False
-    use_cuda = not args.no_cuda and torch.cuda.is_available()
+    is_debug = args.is_debug
+    use_cuda = args.use_cuda
     num_workers = args.workers
-    pin_memory = False
-    if MemoryType[args.memory_type] is MemoryType.PINNED:
+
+    if args.memory_type is MemoryType.PINNED:
         pin_memory = True
+    else:
+        pin_memory = False
     if use_cuda:
         kwargs = {'num_workers': num_workers, 'pin_memory': pin_memory}
     else:

@@ -5,7 +5,6 @@ from cnns.nnlib.datasets.transformations.dtype_transformation import \
     DtypeTransformation
 from cnns.nnlib.datasets.transformations.flat_transformation import \
     FlatTransformation
-from cnns.nnlib.utils.general_utils import DebugMode
 from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import NetworkType
 

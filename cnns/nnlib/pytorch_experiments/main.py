@@ -15,7 +15,6 @@ import numpy as np
 import socket
 import time
 import torch
-import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim.lr_scheduler import \
     ReduceLROnPlateau as ReduceLROnPlateauPyTorch
@@ -30,16 +29,11 @@ from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import OptimizerType
 from cnns.nnlib.utils.general_utils import SchedulerType
 from cnns.nnlib.utils.general_utils import LossType
+from cnns.nnlib.utils.general_utils import LossReduction
 from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import TensorType
-from cnns.nnlib.utils.general_utils import NextPower2
-from cnns.nnlib.utils.general_utils import Visualize
-from cnns.nnlib.utils.general_utils import DynamicLossScale
-from cnns.nnlib.utils.general_utils import DebugMode
-from cnns.nnlib.utils.general_utils import CUDAMode
-from cnns.nnlib.utils.general_utils import MemTestMode
-from cnns.nnlib.utils.general_utils import AugmentationMode
+from cnns.nnlib.utils.general_utils import Bool
 from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import mem_log_file
 from cnns.nnlib.utils.general_utils import get_log_time
@@ -47,6 +41,7 @@ from cnns.nnlib.datasets.mnist import get_mnist
 from cnns.nnlib.datasets.cifar10 import get_cifar10
 from cnns.nnlib.datasets.ucr.ucr import get_ucr
 from cnns.nnlib.utils.arguments import Arguments
+from cnns.nnlib.pytorch_experiments.utils.progress_bar import progress_bar
 
 # from memory_profiler import profile
 
@@ -111,7 +106,7 @@ parser.add_argument('--momentum', type=float, default=args.momentum,
                     help=f'SGD momentum (default: {args.momentum})')
 parser.add_argument('--use_cuda', default="TRUE" if args.use_cuda else "FALSE",
                     help="use CUDA for training and inference; "
-                         "options: " + ",".join(CUDAMode.get_names()))
+                         "options: " + ",".join(Bool.get_names()))
 parser.add_argument('--seed', type=int, default=args.seed, metavar='S',
                     help='random seed (default: 31)')
 parser.add_argument('--log-interval', type=int, default=args.log_interval,
@@ -132,6 +127,9 @@ parser.add_argument("--loss_type", default=args.loss_type.name,
                     # CosineAnnealingLR
                     help="the type of the loss, please choose from: " +
                          ",".join(LossType.get_names()))
+parser.add_argument("--loss_reduction", default=args.loss_reduction.name,
+                    help="the type of the loss, please choose from: " +
+                         ",".join(LossReduction.get_names()))
 parser.add_argument("--memory_type", default=args.memory_type.name,
                     # "STANDARD", "PINNED"
                     help="the type of the memory used, please choose from: " +
@@ -162,15 +160,15 @@ parser.add_argument('--preserve_energies', nargs="+", type=int,
 parser.add_argument("-b", "--mem_test",
                     default="TRUE" if args.mem_test else "FALSE",
                     help="is it the memory test; options: " + ",".join(
-                        MemTestMode.get_names()))
+                        Bool.get_names()))
 parser.add_argument("-a", "--is_data_augmentation",
                     default="TRUE" if args.is_data_augmentation else "FALSE",
                     help="should the data augmentation be applied; "
-                         "options: " + ",".join(AugmentationMode.get_names()))
+                         "options: " + ",".join(Bool.get_names()))
 parser.add_argument("-g", "--is_debug",
                     default="TRUE" if args.is_debug else "FALSE",
                     help="is it the debug mode execution: " + ",".join(
-                        DebugMode.get_names()))
+                        Bool.get_names()))
 parser.add_argument("--sample_count_limit", default=args.sample_count_limit,
                     type=int,
                     help="number of samples taken from the dataset "
@@ -199,12 +197,12 @@ parser.add_argument("--next_power2",
                     # "TRUE", "FALSE"
                     help="should we extend the input to the length of a power "
                          "of 2 before taking its fft? " + ",".join(
-                        NextPower2.get_names()))
+                        Bool.get_names()))
 parser.add_argument("--visualize", default="TRUE" if args.visulize else "FALSE",
                     # "TRUE", "FALSE"
                     help="should we visualize the activations map after each "
                          "of the convolutional layers? " + ",".join(
-                        Visualize.get_names()))
+                        Bool.get_names()))
 parser.add_argument('--static_loss_scale', type=float,
                     default=args.static_loss_scale,
                     help="""Static loss scale, positive power of 2 values can 
@@ -214,10 +212,16 @@ parser.add_argument('--dynamic_loss_scale',
                     help="(bool) Use dynamic loss scaling. "
                          "If supplied, this argument supersedes " +
                          "--static-loss-scale. Options: " + ",".join(
-                        DynamicLossScale.get_names()))
+                        Bool.get_names()))
 parser.add_argument('--mem_size', type=float,
                     default=args.memory_size,
                     help="""GPU or CPU memory size in GB.""")
+parser.add_argument("--is_progress_bar",
+                    default="TRUE" if args.is_progress_bar else "FALSE",
+                    # "TRUE", "FALSE"
+                    help="should we show the progress bar after each batch was"
+                         "processed in training and testing? " + ",".join(
+                        Bool.get_names()))
 
 parsed_args = parser.parse_args()
 args.set_parsed_args(parsed_args=parsed_args)
@@ -251,9 +255,9 @@ def getModelPyTorch(args=args):
     elif network_type is NetworkType.FCNN_SMALL or (
             network_type is NetworkType.FCNN_STANDARD):
         if network_type is NetworkType.FCNN_SMALL:
-            out_channels = [1, 1, 1]
+            args.out_channels = [1, 1, 1]
         elif network_type is NetworkType.FCNN_STANDARD:
-            out_channels = [128, 256, 128]
+            args.out_channels = [128, 256, 128]
         return FCNNPytorch(args=args)
     elif network_type == NetworkType.ResNet18:
         return resnet18(args=args)
@@ -323,12 +327,16 @@ def train(model, device, train_loader, optimizer, loss_function, epoch, args):
                                    verbose=True)
 
     model.train()
+    train_loss = 0
+    correct = 0
+    total = 0
+
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device=device, dtype=args.dtype), target.to(
             device=device)
         optimizer.zero_grad()
         output = model(data)
-        train_loss = loss_function(output, target)
+        loss = loss_function(output, target)
 
         # The cross entropy loss combines `log_softmax` and `nll_loss` in
         # a single function.
@@ -348,18 +356,36 @@ def train(model, device, train_loader, optimizer, loss_function, epoch, args):
             # with amp_handle.scale_loss(loss, optimizer) as scaled_loss:
             #     scaled_loss.backward()
             # loss = optimizer.scale_loss(loss)
-            optimizer.backward(train_loss)
+            optimizer.backward(loss)
         else:
-            train_loss.backward()
+            loss.backward()
 
         optimizer.step()
 
-        print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-            epoch, batch_idx * len(data), len(train_loader.dataset),
-                   100.0 * batch_idx / len(train_loader), train_loss.item()))
+        # print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+        #     epoch, batch_idx * len(data), len(train_loader.dataset),
+        #            100.0 * batch_idx / len(train_loader), loss.item()))
+
+        train_loss += loss.item()
+        _, predicted = output.max(1)
+        total += target.size(0)
+        correct += predicted.eq(target).sum().item()
+
+        if args.is_progress_bar:
+            progress_bar(total, len(train_loader.dataset), epoch=epoch,
+                         msg="Train Loss: %.3f | Train Acc: %.3f%% (%d/%d)" %
+                         (train_loss / total, 100. * correct / total, correct,
+                          total))
+
+    # Test loss for the whole dataset.
+    train_loss /= total
+    accuracy = 100. * correct / total
+
+    return train_loss, accuracy
 
 
-def test(model, device, test_loader, loss_function, args, dataset_type="test"):
+def test(model, device, test_loader, loss_function, args, dataset_type="test",
+         epoch=None):
     """
 
     :param model: deep learning model.
@@ -367,26 +393,34 @@ def test(model, device, test_loader, loss_function, args, dataset_type="test"):
     :param test_loader: the input data.
     :param dataset_type: test or train.
     :param dtype: the data type of the tensor.
+    :param epoch: current epoch of the model training/testing.
     :return: test loss and accuracy.
     """
     model.eval()
     test_loss = 0
     correct = 0
-    counter = len(test_loader.dataset)
+    total = 0
     with torch.no_grad():
-        for data, target in test_loader:
+        for batch_idx, (data, target) in enumerate(test_loader):
             data, target = data.to(device=device, dtype=args.dtype), target.to(
                 device)
             output = model(data)
-            test_loss += loss_function(output, target).item()  # sum up batch loss
+            test_loss += loss_function(output,
+                                       target).item()  # sum up batch loss
             # get the index of the max log-probability
-            pred = output.max(1, keepdim=True)[1]
-            correct += pred.eq(target.view_as(pred)).sum().item()
+            _, predicted = output.max(1)
+            total += target.size(0)
+            correct += predicted.eq(target).sum().item()
 
-        test_loss /= counter
-        accuracy = 100. * correct / counter
-        print(
-            f"""{dataset_type} set: Average loss: {test_loss}, Accuracy: {correct}/{counter} ({accuracy}%)""")
+            if args.is_progress_bar:
+                progress_bar(total, len(test_loader.dataset), epoch=epoch,
+                             msg="Test Loss: %.3f | Test Acc: %.3f%% (%d/%d)" %
+                             (test_loss / total, 100. * correct / total, correct,
+                              total))
+
+        # Test loss for the whole dataset.
+        test_loss /= total
+        accuracy = 100. * correct / total
         return test_loss, accuracy
 
 
@@ -426,6 +460,7 @@ def main(args):
     optimizer_type = args.optimizer_type
     scheduler_type = args.scheduler_type
     loss_type = args.loss_type
+    loss_reduction = args.loss_reduction
 
     use_cuda = args.use_cuda
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -518,7 +553,13 @@ def main(args):
     else:
         raise Exception(f"Unknown scheduler type: {scheduler_type}")
 
-    reduction_function="sum"
+    if loss_reduction is LossReduction.ELEMENTWISE_MEAN:
+        reduction_function = "elementwise_mean"
+    elif loss_reduction is LossReduction.SUM:
+        reduction_function = "sum"
+    else:
+        raise Exception(f"Unknown loss reduction: {loss_reduction}")
+
     if loss_type is LossType.CROSS_ENTROPY:
         loss_function = torch.nn.CrossEntropyLoss(reduction=reduction_function)
     elif loss_type is LossType.NLL:
@@ -545,19 +586,17 @@ def main(args):
     dataset_start_time = time.time()
     for epoch in range(1, parsed_args.epochs + 1):
         epoch_start_time = time.time()
-        print("training for epoch: ", epoch)
-        train(model=model, device=device, train_loader=train_loader, args=args,
-              optimizer=optimizer, loss_function=loss_function, epoch=epoch)
-        print("test train set for epoch: ", epoch)
-        train_loss, train_accuracy = test(model=model, device=device,
-                                          test_loader=train_loader,
-                                          loss_function=loss_function,
-                                          dataset_type="train", args=args)
-        print("test test set for epoch: ", epoch)
-        test_loss, test_accuracy = test(model=model, device=device,
-                                        test_loader=test_loader,
-                                        loss_function=loss_function,
-                                        dataset_type="test", args=args)
+        train_loss, train_accuracy = train(
+            model=model, device=device, train_loader=train_loader, args=args,
+            optimizer=optimizer, loss_function=loss_function, epoch=epoch)
+        # print("test train set for epoch: ", epoch)
+        # train_loss, train_accuracy = test(model=model, device=device,
+        #                                   test_loader=train_loader,
+        #                                   loss_function=loss_function,
+        #                                   dataset_type="train", args=args)
+        test_loss, test_accuracy = test(
+            model=model, device=device, test_loader=test_loader,
+            loss_function=loss_function, args=args, dataset_type="test")
         # Scheduler step is based only on the train data, we do not use the
         # test data to schedule the decrease in the learning rate.
         scheduler.step(train_loss)
