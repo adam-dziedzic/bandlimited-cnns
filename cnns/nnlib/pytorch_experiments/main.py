@@ -720,7 +720,7 @@ if __name__ == '__main__':
         #          'uWaveGestureLibrary_Z', 'UWaveGestureLibraryAll', 'wafer',
         #          'Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass', 'yoga',
         #          'ztest']
-    elif args.datasets == "debug0":
+    elif args.dataset == "debug0":
         flist = ['Computers',
                  'Cricket_X',
                  'Cricket_Y',
@@ -735,7 +735,7 @@ if __name__ == '__main__':
                  'ECGFiveDays',
                  'ElectricDevices',
                  'FaceAll']
-    elif args.datasets == "debug1":
+    elif args.dataset == "debug1":
         flist = ['FaceFour',
                  'FacesUCR',
                  'FISH',
@@ -748,7 +748,7 @@ if __name__ == '__main__':
                  'Herring',
                  'InlineSkate',
                  'InsectWingbeatSound']
-    elif args.datasets == "debug2":
+    elif args.dataset == "debug2":
         flist=['ItalyPowerDemand',
                'LargeKitchenAppliances',
                'Lighting2',
@@ -762,7 +762,7 @@ if __name__ == '__main__':
                'MoteStrain',
                'NonInvasiveFatalECG_Thorax1',
                'NonInvasiveFatalECG_Thorax2']
-    elif args.datasets == "debug3":
+    elif args.dataset == "debug3":
         flist=['OliveOil',
                'OSULeaf',
                'PhalangesOutlinesCorrect',
@@ -773,7 +773,7 @@ if __name__ == '__main__':
                'ProximalPhalanxTW',
                'RefrigerationDevices',
                'ScreenType']
-    elif args.datasets == "debug4":
+    elif args.dataset == "debug4":
         flist=['ShapeletSim',
                'ShapesAll',
                'SmallKitchenAppliances',
@@ -784,7 +784,7 @@ if __name__ == '__main__':
                'SwedishLeaf',
                'Symbols',
                'synthetic_control']
-    elif args.datasets == "debug5":
+    elif args.dataset == "debug5":
         flist=['ToeSegmentation1',
                'ToeSegmentation2',
                'Trace',
@@ -799,7 +799,7 @@ if __name__ == '__main__':
                'WormsTwoClass',
                'yoga']
     else:
-        raise AttributeError("Unknown datasets: ", args.dataset)
+        raise AttributeError("Unknown dataset: ", args.dataset)
 
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
