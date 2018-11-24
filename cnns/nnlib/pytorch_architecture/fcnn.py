@@ -2,19 +2,16 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 from torch.nn.functional import log_softmax
+from cnns.nnlib.pytorch_layers.conv_picker import Conv
 
 class FCNNPytorch(nn.Module):
 
     # @profile
-    def __init__(self, input_size, num_classes, in_channels, args,
-                 kernel_sizes=[8, 5, 3], out_channels=[128, 256, 128],
-                 strides=[1, 1, 1]):
+    def __init__(self, args, kernel_sizes=[8, 5, 3],
+                 out_channels=[128, 256, 128], strides=[1, 1, 1]):
         """
         Create the FCNN model in PyTorch.
 
-        :param input_size: the length (width) of the time series.
-        :param num_classes: number of output classes.
-        :param in_channels: number of channels in the input data.
         :param args: the general arguments (conv type, debug mode, etc).
         :param dtype: global - the type of pytorch data/weights.
         :param kernel_sizes: the sizes of the kernels in each conv layer.
@@ -22,9 +19,12 @@ class FCNNPytorch(nn.Module):
         :param strides: the strides for the convolutions.
         """
         super(FCNNPytorch, self).__init__()
-        self.input_size = input_size
-        self.num_classes = num_classes
-        self.in_channels = in_channels
+        # input_size: the length (width) of the time series.
+        self.input_size = args.input_size
+        # num_classes: number of output classes.
+        self.num_classes = args.num_classes
+        # in_channels: number of channels in the input data.
+        self.in_channels = args.in_channels
         self.dtype = args.dtype
         self.kernel_sizes = kernel_sizes
         self.out_channels = out_channels
@@ -37,7 +37,7 @@ class FCNNPytorch(nn.Module):
         # For the "same" mode for the convolution, pad the input.
         conv_pads = [kernel_size - 1 for kernel_size in kernel_sizes]
 
-        conv = Conv(kernel_sizes=kernel_sizes, in_channels=in_channels,
+        conv = Conv(kernel_sizes=kernel_sizes, in_channels=self.in_channels,
                     out_channels=out_channels, strides=strides,
                     padding=conv_pads, args=args)
 
@@ -52,7 +52,7 @@ class FCNNPytorch(nn.Module):
         index = 2
         self.conv2 = conv.get_conv(index=index)
         self.bn2 = nn.BatchNorm1d(num_features=out_channels[index])
-        self.lin = nn.Linear(out_channels[index], num_classes)
+        self.lin = nn.Linear(out_channels[index], self.num_classes)
 
     def pad_out(self, out, index):
         """

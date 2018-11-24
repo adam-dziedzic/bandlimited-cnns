@@ -648,12 +648,12 @@ if __name__ == '__main__':
         file.write(HEADER + "\n")
     with open(global_log_file, "a") as file:
         # Write the metadata.
-        file.write(HEADER)
-        # Write the header.
+        file.write(HEADER+"\n")
+        file.write("preserve_energy: " + str(args.preserve_energy) + "\n")
         file.write(
             "dataset,min_train_loss,max_train_accuracy,min_test_loss,max_test_accuracy,execution_time\n")
 
-    if args.dataset == "all":
+    if args.dataset == "all" or args.dataset == "ucr":
         flist = os.listdir(ucr_path)
     elif args.dataset == "cifar10":
         flist = ["cifar10"]
@@ -720,6 +720,84 @@ if __name__ == '__main__':
         #          'uWaveGestureLibrary_Z', 'UWaveGestureLibraryAll', 'wafer',
         #          'Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass', 'yoga',
         #          'ztest']
+    elif args.datasets == "debug0":
+        flist = ['Computers',
+                 'Cricket_X',
+                 'Cricket_Y',
+                 'Cricket_Z',
+                 'DiatomSizeReduction',
+                 'DistalPhalanxOutlineAgeGroup',
+                 'DistalPhalanxOutlineCorrect',
+                 'DistalPhalanxTW',
+                 'Earthquakes',
+                 'ECG200',
+                 'ECG5000',
+                 'ECGFiveDays',
+                 'ElectricDevices',
+                 'FaceAll']
+    elif args.datasets == "debug1":
+        flist = ['FaceFour',
+                 'FacesUCR',
+                 'FISH',
+                 'FordA',
+                 'FordB',
+                 'Gun_Point',
+                 'Ham',
+                 'HandOutlines',
+                 'Haptics',
+                 'Herring',
+                 'InlineSkate',
+                 'InsectWingbeatSound']
+    elif args.datasets == "debug2":
+        flist=['ItalyPowerDemand',
+               'LargeKitchenAppliances',
+               'Lighting2',
+               'Lighting7',
+               'MALLAT',
+               'Meat',
+               'MedicalImages',
+               'MiddlePhalanxOutlineAgeGroup',
+               'MiddlePhalanxOutlineCorrect',
+               'MiddlePhalanxTW',
+               'MoteStrain',
+               'NonInvasiveFatalECG_Thorax1',
+               'NonInvasiveFatalECG_Thorax2']
+    elif args.datasets == "debug3":
+        flist=['OliveOil',
+               'OSULeaf',
+               'PhalangesOutlinesCorrect',
+               'Phoneme',
+               'Plane',
+               'ProximalPhalanxOutlineAgeGroup',
+               'ProximalPhalanxOutlineCorrect',
+               'ProximalPhalanxTW',
+               'RefrigerationDevices',
+               'ScreenType']
+    elif args.datasets == "debug4":
+        flist=['ShapeletSim',
+               'ShapesAll',
+               'SmallKitchenAppliances',
+               'SonyAIBORobotSurface',
+               'SonyAIBORobotSurfaceII',
+               'StarLightCurves',
+               'Strawberry',
+               'SwedishLeaf',
+               'Symbols',
+               'synthetic_control']
+    elif args.datasets == "debug5":
+        flist=['ToeSegmentation1',
+               'ToeSegmentation2',
+               'Trace',
+               'Two_Patterns',
+               'TwoLeadECG',
+               'uWaveGestureLibrary_X',
+               'uWaveGestureLibrary_Y',
+               'uWaveGestureLibrary_Z',
+               'UWaveGestureLibraryAll',
+               'wafer',
+               'Worms',
+               'WormsTwoClass',
+               'yoga']
     else:
         raise AttributeError("Unknown datasets: ", args.dataset)
 

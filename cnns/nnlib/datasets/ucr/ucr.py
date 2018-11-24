@@ -5,7 +5,7 @@ from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.datasets.ucr.dataset import ToTensor
 from cnns.nnlib.datasets.ucr.dataset import AddChannel
 
-def get_ucr(args, dataset_name):
+def get_ucr(args):
     """
     Get a dataset from the UCR archive.
 
@@ -14,8 +14,8 @@ def get_ucr(args, dataset_name):
     :param dataset_name: the name of a dataset from the ucr archive
     :return: the access handlers to the dataset
     """
+    dataset_name = args.dataset_name
     sample_count = args.sample_count_limit
-    is_debug = args.is_debug
     use_cuda = args.use_cuda
     num_workers = args.workers
 
@@ -27,7 +27,7 @@ def get_ucr(args, dataset_name):
         kwargs = {'num_workers': num_workers, 'pin_memory': pin_memory}
     else:
         kwargs = {'num_workers': num_workers}
-    in_channels = 1  # number of channels in the input data
+    args.in_channels = 1  # number of channels in the input data
     train_dataset = UCRDataset(dataset_name, train=True,
                                transformations=transforms.Compose(
                                    [ToTensor(dtype=torch.float),
@@ -48,12 +48,12 @@ def get_ucr(args, dataset_name):
                                    AddChannel()]))
     if sample_count > 0:
         test_dataset.set_length(sample_count)
-    num_classes = test_dataset.num_classes
-    width = test_dataset.width
-    # We don't use the 1D data with LeNet
-    flat_size = None
-    out_channels = None
+
+    args.num_classes = test_dataset.num_classes
+    args.input_size = test_dataset.width
+    args.flat_size = None
+    args.out_channels = None
     test_loader = torch.utils.data.DataLoader(
         dataset=test_dataset, batch_size=batch_size, shuffle=True, **kwargs)
 
-    return train_loader, test_loader, num_classes, flat_size, width, in_channels, out_channels
+    return train_loader, test_loader
