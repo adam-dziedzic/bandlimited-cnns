@@ -51,7 +51,7 @@ class Arguments(object):
                  memory_type=MemoryType.STANDARD,
                  workers=4,
                  model_path="no_model",
-                 dataset="ucr",
+                 dataset="debug0",
                  mem_test=False,
                  is_data_augmentation=True,
                  sample_count_limit=0,
