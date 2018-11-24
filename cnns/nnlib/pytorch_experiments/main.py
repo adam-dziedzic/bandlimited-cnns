@@ -228,8 +228,8 @@ parser.add_argument("--stride_type", default=args.stride_type.name,
                     help="the tensor data type: " + ",".join(
                         StrideType.get_names()))
 
-# parsed_args = parser.parse_args()
-# args.set_parsed_args(parsed_args=parsed_args)
+parsed_args = parser.parse_args()
+args.set_parsed_args(parsed_args=parsed_args)
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
 print("current file name: ", current_file_name)
