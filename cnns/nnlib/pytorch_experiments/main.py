@@ -379,8 +379,9 @@ def train(model, device, train_loader, optimizer, loss_function, epoch, args):
         if args.is_progress_bar:
             progress_bar(total, len(train_loader.dataset), epoch=epoch,
                          msg="Train Loss: %.3f | Train Acc: %.3f%% (%d/%d)" %
-                         (train_loss / total, 100. * correct / total, correct,
-                          total))
+                             (train_loss / total, 100. * correct / total,
+                              correct,
+                              total))
 
     # Test loss for the whole dataset.
     train_loss /= total
@@ -420,8 +421,9 @@ def test(model, device, test_loader, loss_function, args, dataset_type="test",
             if args.is_progress_bar:
                 progress_bar(total, len(test_loader.dataset), epoch=epoch,
                              msg="Test Loss: %.3f | Test Acc: %.3f%% (%d/%d)" %
-                             (test_loss / total, 100. * correct / total, correct,
-                              total))
+                                 (test_loss / total, 100. * correct / total,
+                                  correct,
+                                  total))
 
         # Test loss for the whole dataset.
         test_loss /= total
@@ -648,10 +650,15 @@ if __name__ == '__main__':
         file.write(HEADER + "\n")
     with open(global_log_file, "a") as file:
         # Write the metadata.
-        file.write(HEADER+"\n")
-        file.write("preserve_energy: " + str(args.preserve_energy) + "\n")
+        file.write(HEADER + "\n")
         file.write(
-            "dataset,min_train_loss,max_train_accuracy,min_test_loss,max_test_accuracy,execution_time\n")
+            "preserve energies: " +
+            ",".join(
+                [str(energy) for energy in args.preserve_energies]) +
+            "\n")
+        file.write(
+            "dataset,min_train_loss,max_train_accuracy,min_test_loss,"
+            "max_test_accuracy,execution_time\n")
 
     if args.dataset == "all" or args.dataset == "ucr":
         flist = os.listdir(ucr_path)
@@ -749,55 +756,55 @@ if __name__ == '__main__':
                  'InlineSkate',
                  'InsectWingbeatSound']
     elif args.dataset == "debug2":
-        flist=['ItalyPowerDemand',
-               'LargeKitchenAppliances',
-               'Lighting2',
-               'Lighting7',
-               'MALLAT',
-               'Meat',
-               'MedicalImages',
-               'MiddlePhalanxOutlineAgeGroup',
-               'MiddlePhalanxOutlineCorrect',
-               'MiddlePhalanxTW',
-               'MoteStrain',
-               'NonInvasiveFatalECG_Thorax1',
-               'NonInvasiveFatalECG_Thorax2']
+        flist = ['ItalyPowerDemand',
+                 'LargeKitchenAppliances',
+                 'Lighting2',
+                 'Lighting7',
+                 'MALLAT',
+                 'Meat',
+                 'MedicalImages',
+                 'MiddlePhalanxOutlineAgeGroup',
+                 'MiddlePhalanxOutlineCorrect',
+                 'MiddlePhalanxTW',
+                 'MoteStrain',
+                 'NonInvasiveFatalECG_Thorax1',
+                 'NonInvasiveFatalECG_Thorax2']
     elif args.dataset == "debug3":
-        flist=['OliveOil',
-               'OSULeaf',
-               'PhalangesOutlinesCorrect',
-               'Phoneme',
-               'Plane',
-               'ProximalPhalanxOutlineAgeGroup',
-               'ProximalPhalanxOutlineCorrect',
-               'ProximalPhalanxTW',
-               'RefrigerationDevices',
-               'ScreenType']
+        flist = ['OliveOil',
+                 'OSULeaf',
+                 'PhalangesOutlinesCorrect',
+                 'Phoneme',
+                 'Plane',
+                 'ProximalPhalanxOutlineAgeGroup',
+                 'ProximalPhalanxOutlineCorrect',
+                 'ProximalPhalanxTW',
+                 'RefrigerationDevices',
+                 'ScreenType']
     elif args.dataset == "debug4":
-        flist=['ShapeletSim',
-               'ShapesAll',
-               'SmallKitchenAppliances',
-               'SonyAIBORobotSurface',
-               'SonyAIBORobotSurfaceII',
-               'StarLightCurves',
-               'Strawberry',
-               'SwedishLeaf',
-               'Symbols',
-               'synthetic_control']
+        flist = ['ShapeletSim',
+                 'ShapesAll',
+                 'SmallKitchenAppliances',
+                 'SonyAIBORobotSurface',
+                 'SonyAIBORobotSurfaceII',
+                 'StarLightCurves',
+                 'Strawberry',
+                 'SwedishLeaf',
+                 'Symbols',
+                 'synthetic_control']
     elif args.dataset == "debug5":
-        flist=['ToeSegmentation1',
-               'ToeSegmentation2',
-               'Trace',
-               'Two_Patterns',
-               'TwoLeadECG',
-               'uWaveGestureLibrary_X',
-               'uWaveGestureLibrary_Y',
-               'uWaveGestureLibrary_Z',
-               'UWaveGestureLibraryAll',
-               'wafer',
-               'Worms',
-               'WormsTwoClass',
-               'yoga']
+        flist = ['ToeSegmentation1',
+                 'ToeSegmentation2',
+                 'Trace',
+                 'Two_Patterns',
+                 'TwoLeadECG',
+                 'uWaveGestureLibrary_X',
+                 'uWaveGestureLibrary_Y',
+                 'uWaveGestureLibrary_Z',
+                 'UWaveGestureLibraryAll',
+                 'wafer',
+                 'Worms',
+                 'WormsTwoClass',
+                 'yoga']
     else:
         raise AttributeError("Unknown dataset: ", args.dataset)
 
@@ -815,9 +822,6 @@ if __name__ == '__main__':
             print("Dataset: ", dataset_name)
             print("preserve energy: ", preserve_energy)
             args.preserve_energy = preserve_energy
-            with open(global_log_file, "a") as file:
-                file.write("dataset name: " + dataset_name + "\n" +
-                           "preserve energy: " + str(preserve_energy) + "\n")
             main(args=args)
 
             print("total elapsed time (sec): ", time.time() - start_time)
