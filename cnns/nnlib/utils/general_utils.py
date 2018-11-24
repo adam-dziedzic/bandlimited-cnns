@@ -80,6 +80,11 @@ class MemoryType(EnumWithNames):
     PINNED = 2
 
 
+class StrideType(EnumWithNames):
+    STANDARD = 1
+    SPECTRAL = 2
+
+
 class RunType(EnumWithNames):
     TEST = 0
     DEBUG = 1

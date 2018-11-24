@@ -10,7 +10,7 @@ from cnns.nnlib.utils.general_utils import LossReduction
 from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import TensorType
 from cnns.nnlib.utils.general_utils import Bool
-
+from cnns.nnlib.utils.general_utils import StrideType
 
 class Arguments(object):
     """
@@ -37,7 +37,7 @@ class Arguments(object):
                  compress_type=CompressType.STANDARD,
                  index_back=0,
                  weight_decay=5e-4,
-                 num_epochs=350,
+                 epochs=350,
                  min_batch_size=128,
                  test_batch_size=100,
                  learning_rate=0.1,
@@ -55,15 +55,16 @@ class Arguments(object):
                  mem_test=False,
                  is_data_augmentation=True,
                  sample_count_limit=0,
-                 conv_type=ConvType.STANDARD2D,
+                 conv_type=ConvType.FFT2D,
                  visualize=False,
                  static_loss_scale=1,
                  out_size=None,
                  tensor_type=TensorType.FLOAT32,
                  next_power2=False,
                  dynamic_loss_scale=True,
-                 memory_size=25,
+                 memory_size=20,
                  is_progress_bar=False,
+                 stride_type=StrideType.STANDARD
                  ):
         """
         The default parameters for the execution of the program.
@@ -80,7 +81,7 @@ class Arguments(object):
         :param index_back: how much compress based on discarded coefficients
         in the frequency domain.
         :param weight_decay: weight decay for optimizer parameters
-        :param num_epochs: number of epochs for training
+        :param epochs: number of epochs for training
         :param min_batch_size: mini batch size for training
         :param test_batch_size: batch size for testing
         :param learning_rate: the optimizer learning rate
@@ -124,7 +125,7 @@ class Arguments(object):
 
         # Object's variable that are not convertible to an element of a tensor.
         self.preserve_energies = preserved_energies
-        self.num_epochs = num_epochs
+        self.epochs = epochs
         self.min_batch_size = min_batch_size
         self.test_batch_size = test_batch_size
         self.learning_rate = learning_rate
@@ -151,6 +152,7 @@ class Arguments(object):
         self.dynamic_loss_scale = dynamic_loss_scale
         self.memory_size = memory_size
         self.is_progress_bar = is_progress_bar
+        self.stride_type=stride_type
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False
@@ -172,6 +174,7 @@ class Arguments(object):
         self.loss_reduction = LossReduction[parsed_args.loss_reduction]
         self.memory_type = MemoryType[parsed_args.memory_type]
         self.tensor_type = TensorType[parsed_args.tensor_type]
+        self.stride_type = StrideType[parsed_args.stride_type]
 
         # Bools:
         self.is_debug = self.get_bool(parsed_args.is_debug)
@@ -187,7 +190,7 @@ class Arguments(object):
             self.preserve_energy = parsed_args.preserve_energy
 
     def get_str(self):
-        args_dict = vars(self.parsed_args)
+        args_dict = self.__dict__
         args_str = ",".join(
             [str(key) + ":" + str(value) for key, value in args_dict.items()])
         return args_str

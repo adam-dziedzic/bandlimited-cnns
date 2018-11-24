@@ -145,6 +145,7 @@ def get_pair(value=None, val_1_default=None, val2_default=None, name="value"):
         else:
             raise ValueError(name + " requires a tuple of length 2")
 
+
 def to_tensor_item(value):
     """
     Transform from None to -1 or retain the initial value.
@@ -2380,10 +2381,12 @@ def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
 
     freq_mul = complex_mul(xfft, pytorch_conjugate(yfft))
     if freq_mul.dim() == 6:
+        # For bulk multiplication.
         freq_mul = restore_size_2D_batch(xfft=freq_mul,
                                          init_H_fft=init_fft_height,
                                          init_half_W_fft=init_half_fft_width)
     elif freq_mul.dim() == 5:
+        # For serial multiplication.
         freq_mul = restore_size_2D(xfft=freq_mul,
                                    init_H_fft=init_fft_height,
                                    init_half_W_fft=init_half_fft_width)
@@ -2392,6 +2395,10 @@ def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
 
     out = torch.irfft(input=freq_mul, signal_ndim=signal_ndim,
                       signal_sizes=(input_height, input_width), onesided=True)
+    all_tensors_size = get_tensors_elem_size()
+    # print("all tensor size in corr: ", all_tensors_size / 2 ** 30)
+    # print("torch max memory in corr: ", torch.cuda.max_memory_allocated() / 2 ** 30)
+    del freq_mul
 
     out = out[..., :out_height, :out_width]
     if out.dim() > 2 and is_forward:
@@ -3197,7 +3204,7 @@ def get_tensors_elem_size_count(only_cuda=True):
     return total_size, total_count
 
 
-def get_tensors_elem_size(only_cuda=True, omit_objs=[]):
+def get_tensors_elem_size(only_cuda=True):
     """
     Get total size of elements in tensors.
 
@@ -3220,7 +3227,7 @@ def get_tensors_elem_size(only_cuda=True, omit_objs=[]):
     >>> assert size == 40
     """
     total_size = 0
-    for tensor_obj in get_tensors(only_cuda=only_cuda, omit_objs=omit_objs):
+    for tensor_obj in get_tensors(only_cuda=only_cuda):
         total_size += tensor_obj.numel() * get_elem_size(tensor_obj)
     return total_size
 
@@ -3315,6 +3322,27 @@ def zero_out_min(input, spectrum, max=None):
     input[idx[0], idx[1], idx[2], idx[3], 1] = 0.0
     # print(spectrum)
     return input, spectrum
+
+
+def get_step_estimate(xfft, yfft, args):
+    scale = 32
+    X = 32
+    total_size = args.memory_size * 2 ** 30  # total mem size in GB
+    N, C, H, W, I = xfft.size()
+    F = yfft.shape[0]
+    item_size = get_elem_size(xfft)
+    corr_out_in_size = ((N * F * H * W) + (N + F) * C * H * W * I) * item_size
+    no_x_intermediate_size = scale * 3 * F * C * H * W * I * item_size
+    intermediate_size = X * no_x_intermediate_size
+    # 3 = corr result is complex (2) + after rfft it is real (1)
+    X = (total_size - corr_out_in_size) / no_x_intermediate_size
+    print("computed size: ", (corr_out_in_size + intermediate_size) / 2 ** 30)
+    print("all tensor size before corr: ", get_tensors_elem_size() / 2 ** 30)
+    print("torch max memory before corr: ",
+          torch.cuda.max_memory_allocated() / 2 ** 30)
+    print("X size: ", int(X))
+    step = int(X)
+    return step
 
 
 if __name__ == "__main__":

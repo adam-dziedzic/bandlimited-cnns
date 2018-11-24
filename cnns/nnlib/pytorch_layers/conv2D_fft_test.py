@@ -16,6 +16,7 @@ from cnns.nnlib.pytorch_layers.test_data.cifar10_image import cifar10_image
 from cnns.nnlib.pytorch_layers.test_data.cifar10_lenet_filter import \
     cifar10_lenet_filter
 from cnns.nnlib.utils.general_utils import CompressType
+from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.arguments import Arguments
 
 
@@ -248,7 +249,8 @@ class TestPyTorchConv2d(unittest.TestCase):
         b = tensor([1.0, 0.0])
         conv = Conv2dfftFunction()
         result = conv.forward(ctx=None, input=x, filter=y, bias=b,
-                              padding=(1, 1), stride=(2, 2))
+                              padding=(1, 1), stride=(2, 2),
+                              args=Arguments(stride_type=StrideType.STANDARD))
         expect = np.array([[[
             [-2.0, 1.0, -3.0],
             [-1.0, 1.0, -3.0],
@@ -347,7 +349,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         result = conv.forward(ctx=None, input=torch.from_numpy(x),
                               filter=torch.from_numpy(y),
                               bias=torch.from_numpy(b),
-                              args=Arguments(out_size=3))
+                              out_size=3)
         np.testing.assert_array_almost_equal(
             x=np.array(expected_result), y=result, decimal=4,
             err_msg="Expected x is different from computed y.")
@@ -676,7 +678,7 @@ class TestPyTorchConv2d(unittest.TestCase):
             for index_w, item_w in enumerate(item_h):
                 self.assertAlmostEqual(
                     first=accurate_expected_flat[index_h][index_w],
-                    second=index_w, delta=delta,
+                    second=item_w, delta=delta,
                     msg="The approximate result is not within delta={} of the "
                         "accurate result!".format(delta))
 
@@ -716,12 +718,11 @@ class TestPyTorchConv2d(unittest.TestCase):
         out_size = 3
 
         result_torch = conv.forward(ctx=None, input=x_torch, filter=y_torch,
-                                    bias=b_torch,
-                                    args=Arguments(out_size=out_size))
+                                    bias=b_torch, out_size=out_size)
         result = result_torch.detach().numpy()
         np.testing.assert_array_almost_equal(
             x=np.array(expected_result), y=result, decimal=4,
-            err_msg="Expected x is different from computed y.")
+            err_msg="Manual: Expected x is different from computed y.")
 
         # Prevent any interference/overlap of variables in manual and auto
         # differentiation.
@@ -731,8 +732,12 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         convAuto = Conv2dfftAutograd(filter_value=y_torch_auto,
                                      bias=b_torch_auto,
-                                     args=Arguments(out_size=out_size))
+                                     out_size=out_size)
         resultAuto = convAuto.forward(input=x_torch_auto)
+        np.testing.assert_array_almost_equal(
+            x=np.array(expected_result), y=resultAuto.cpu().detach().numpy(),
+            decimal=4,
+            err_msg="Auto: Expected x is different from computed y.")
 
         dout_np = np.array([[[[0.1, -0.2, 0.3],
                               [-0.1, 0.1, 0.2],
@@ -1070,11 +1075,11 @@ class TestPyTorchConv2d(unittest.TestCase):
             conv = Conv2dfft(filter_value=y,
                              bias_value=b,
                              args=Arguments(
-                             preserve_energy=preserve_energy,
-                             index_back=0,
-                             is_debug=True,
-                             next_power2=True,
-                             compress_type=CompressType.STANDARD))
+                                 preserve_energy=preserve_energy,
+                                 index_back=0,
+                                 is_debug=True,
+                                 next_power2=True,
+                                 compress_type=CompressType.STANDARD))
             result = conv.forward(input=x)
             # print("actual result: ", result)
 
@@ -1180,11 +1185,11 @@ class TestPyTorchConv2d(unittest.TestCase):
                          kernel_size=(y.shape[2], y.shape[3]),
                          bias=False,
                          args=Arguments(
-                         preserve_energy=preserve_energy,
-                         index_back=0,
-                         is_debug=False,
-                         next_power2=True,
-                         compress_type=CompressType.STANDARD))
+                             preserve_energy=preserve_energy,
+                             index_back=0,
+                             is_debug=False,
+                             next_power2=True,
+                             compress_type=CompressType.STANDARD))
         start = time.time()
         for _ in range(repeat):
             result = conv.forward(input=x)
@@ -1325,10 +1330,94 @@ class TestPyTorchConv2d(unittest.TestCase):
         print("convStandard: ", convStandard)
 
         conv = Conv2dfftFunction()
-        convFFT = conv.forward(ctx=None, input=x, filter=y, bias=b, stride=2)
+        convFFT = conv.forward(ctx=None, input=x, filter=y, bias=b, stride=2,
+                               args=Arguments(stride_type=StrideType.STANDARD))
+        print("convFFT: ", convFFT)
+
+        convSpectral = Conv2dfftFunction()
+        convFFTSpectral = convSpectral.forward(
+            ctx=None, input=x, filter=y, bias=b, stride=2,
+            args=Arguments(stride_type=StrideType.SPECTRAL))
+        print("convFFTSpectral: ", convFFTSpectral)
+
         np.testing.assert_array_almost_equal(
             x=convStandard, y=convFFT, decimal=5,
-            err_msg="The expected array x and computed y are not almost equal")
+            err_msg="The expected array x and computed y are not almost equal.")
+
+    def testConvStrideForwardBackward(self):
+        dtype=torch.float
+        x = tensor(
+            [[[
+                [1.0, 2.0, 0.0, 4.0, 0.0, 5.0, 1.0],
+                [2.0, 2.0, 3.0, 2.0, 0.0, 1.0, 0.0],
+                [3.0, -1.0, 1.0, 0.0, 1.0, 2.0, 0.0],
+                [4.0, -1.0, 2.0, 1.0, 6.0, 0.0, -1.0],
+                [0.0, 2.0, 2.0, 2.0, 0.0, 2.0, 0.0],
+                [0.0, 2.0, -1.0, 1.0, 1.0, 1.0, 0.0],
+                [2.0, 0.0, 1.0, 2.0, 2.0, 0.0, 8.0]
+            ]]], requires_grad=True, dtype=dtype)
+        x_expect = x.clone().detach().requires_grad_(True)
+        y = tensor([[
+            [[1.0, 2.0, 3.0],
+             [-1.0, -1.0, 5.0],
+             [1.0, -2.0, 4.0]]]], requires_grad=True, dtype=dtype)
+        y_expect = y.clone().detach().requires_grad_(True)
+        b = tensor([1.0], requires_grad=True, dtype=dtype)
+        b_expect = b.clone().detach().requires_grad_(True)
+
+        convStandard = torch.nn.functional.conv2d(
+            input=x_expect, weight=y_expect, bias=b_expect, stride=2)
+        print("convStandard: ", convStandard)
+
+        conv = Conv2dfftFunction()
+        convFFT = conv.forward(ctx=None, input=x, filter=y, bias=b, stride=2,
+                               args=Arguments(stride_type=StrideType.STANDARD))
+        print("convFFT: ", convFFT)
+        np.testing.assert_array_almost_equal(
+            x=convStandard.cpu().detach().numpy(),
+            y=convFFT.cpu().detach().numpy(), decimal=5,
+            err_msg="The expected array x and computed y are not almost equal.")
+
+        dout_np = np.array([[[[0.1, -0.2, 0.3],
+                              [-0.1, 0.1, 0.2],
+                              [-0.2, 1.1, -1.2]]]])
+        dout = tensor(dout_np, dtype=dtype)
+
+
+        # get the expected result from the backward pass
+        convStandard.backward(dout)
+
+        print("pytorch's grad x: ", x_expect.grad)
+        print("pytorch's grad y: ", y_expect.grad)
+        print("pytorch's grad bias: ", b_expect.grad)
+
+        convFFT.backward(dout)
+
+        print("fft grad x: ", x.grad)
+        print("fft grad y: ", y.grad)
+        print("fft grad b: ", b.grad)
+
+        # Are the gradients correct?
+        np.testing.assert_array_almost_equal(
+            x=x_expect.grad, y=x.grad, decimal=4,
+            err_msg="Expected x is different from computed y.")
+
+        self._check_delta2D(actual_result=x.grad,
+                            accurate_expected_result=x_expect.grad, delta=0.0001)
+
+        print("Expected fully correct dw from y_expect.grad: ", y_expect.grad)
+        print("actual result for dw from y.grad: ", y.grad)
+
+        np.testing.assert_array_almost_equal(
+            x=y_expect.grad, y=y.grad, decimal=4,
+            err_msg="Expected x is different from computed y.")
+
+        self._check_delta2D(actual_result=y.grad,
+                            accurate_expected_result=y_expect.grad, delta=0.0001)
+
+        np.testing.assert_array_almost_equal(
+            x=b_expect.grad, y=b.grad, decimal=4,
+            err_msg="Expected x is different from computed y for bias gradient.")
 
 
 if __name__ == '__main__':

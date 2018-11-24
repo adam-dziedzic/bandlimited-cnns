@@ -33,6 +33,7 @@ from cnns.nnlib.utils.general_utils import LossReduction
 from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import TensorType
+from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.general_utils import Bool
 from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import mem_log_file
@@ -93,11 +94,11 @@ parser.add_argument('--min_batch_size', type=int, default=args.min_batch_size,
 parser.add_argument('--test_batch_size', type=int, default=args.test_batch_size,
                     metavar='N',
                     help='input batch size for testing (default: 1000)')
-parser.add_argument('--epochs', type=int, default=args.num_epochs, metavar='N',
+parser.add_argument('--epochs', type=int, default=args.epochs, metavar='Epochs',
                     help=f"number of epochs to train ("
-                    f"default: {args.num_epochs})")
-parser.add_argument('--lr', type=float, default=args.learning_rate,
-                    metavar='LR',
+                    f"default: {args.epochs})")
+parser.add_argument("--lr", '--learning_rate', type=float,
+                    default=args.learning_rate, metavar='LR',
                     help=f'learning rate (default: {args.learning_rate})')
 parser.add_argument('--weight_decay', type=float, default=args.weight_decay,
                     help=f'weight decay (default: {args.weight_decay})')
@@ -222,9 +223,13 @@ parser.add_argument("--is_progress_bar",
                     help="should we show the progress bar after each batch was"
                          "processed in training and testing? " + ",".join(
                         Bool.get_names()))
+parser.add_argument("--stride_type", default=args.stride_type.name,
+                    # "FLOAT32", "FLOAT16", "DOUBLE", "INT"
+                    help="the tensor data type: " + ",".join(
+                        StrideType.get_names()))
 
-parsed_args = parser.parse_args()
-args.set_parsed_args(parsed_args=parsed_args)
+# parsed_args = parser.parse_args()
+# args.set_parsed_args(parsed_args=parsed_args)
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
 print("current file name: ", current_file_name)
@@ -281,7 +286,7 @@ def getData(fname):
     x_train, y_train = readucr(fname + '/' + fname + '_TRAIN')
     x_test, y_test = readucr(fname + '/' + fname + '_TEST')
     num_classes = len(np.unique(y_test))
-    batch_size = min(x_train.shape[0] // 10, parsed_args.min_batch_size)
+    batch_size = min(x_train.shape[0] // 10, args.min_batch_size)
 
     y_train = ((y_train - y_train.min()) / (y_train.max() - y_train.min()) * (
             num_classes - 1)).astype(int)
@@ -470,7 +475,7 @@ def main(args):
             cuda_type = torch.cuda.FloatTensor
         elif tensor_type is TensorType.FLOAT16:
             cuda_type = torch.cuda.HalfTensor
-        elif TensorType[parsed_args.tensor_type] is TensorType.DOUBLE:
+        elif tensor_type is TensorType.DOUBLE:
             cuda_type = torch.cuda.DoubleTensor
         else:
             raise Exception(f"Unknown tensor type: {tensor_type}")
@@ -510,9 +515,9 @@ def main(args):
     # https://pytorch.org/docs/master/notes/serialization.html
     if args.model_path != "no_model":
         model.load_state_dict(
-            torch.load(os.path.join(models_dir, parsed_args.model_path),
+            torch.load(os.path.join(models_dir, args.model_path),
                        map_location=device))
-        msg = "loaded model: " + parsed_args.model_path
+        msg = "loaded model: " + args.model_path
         logger.info(msg)
         print(msg)
 
@@ -534,13 +539,13 @@ def main(args):
     eps = 1e-8
 
     if optimizer_type is OptimizerType.MOMENTUM:
-        optimizer = optim.SGD(params, lr=parsed_args.lr,
-                              momentum=parsed_args.momentum,
-                              weight_decay=parsed_args.weight_decay)
+        optimizer = optim.SGD(params, lr=args.learning_rate,
+                              momentum=args.momentum,
+                              weight_decay=args.weight_decay)
     elif optimizer_type is OptimizerType.ADAM_FLOAT16:
-        optimizer = AdamFloat16(params, lr=parsed_args.lr, eps=eps)
+        optimizer = AdamFloat16(params, lr=args.lr, eps=eps)
     elif optimizer_type is OptimizerType.ADAM:
-        optimizer = optim.Adam(params, lr=parsed_args.lr, eps=eps)
+        optimizer = optim.Adam(params, lr=args.lr, eps=eps)
     else:
         raise Exception(f"Unknown optimizer type: {optimizer_type.name}")
 
@@ -584,7 +589,7 @@ def main(args):
         return
 
     dataset_start_time = time.time()
-    for epoch in range(1, parsed_args.epochs + 1):
+    for epoch in range(1, args.epochs + 1):
         epoch_start_time = time.time()
         train_loss, train_accuracy = train(
             model=model, device=device, train_loader=train_loader, args=args,

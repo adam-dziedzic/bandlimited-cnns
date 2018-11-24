@@ -27,7 +27,11 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import compress_2D_odd
 from cnns.nnlib.pytorch_layers.pytorch_utils import compress_2D_odd_index_back
 from cnns.nnlib.pytorch_layers.pytorch_utils import zero_out_min
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_elem_size
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_tensors_elem_size
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_step_estimate
 from cnns.nnlib.utils.general_utils import CompressType
+from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.arguments import Arguments
 
 logger = logging.getLogger(__name__)
@@ -46,8 +50,9 @@ class Conv2dfftFunction(torch.autograd.Function):
     signal_ndim = 2
 
     @staticmethod
-    def forward(ctx, input, filter, bias, padding=None, stride=None,
-                is_manual=tensor([0]), conv_index=None, args=None):
+    def forward(ctx, input, filter, bias, padding=(0, 0), stride=(1, 1),
+                args=None, out_size=None, is_manual=tensor([0]),
+                conv_index=None):
         """
         Compute the forward pass for the 2D convolution.
 
@@ -73,7 +78,8 @@ class Conv2dfftFunction(torch.autograd.Function):
         preserved.
         :param out_size: what is the expected output size - one can discard
         the elements in the frequency domain and do the spectral pooling within
-        the convolution. It can be a single number or a tuple (outH, outW).
+        the convolution. It can be a single number or a tuple (outH, outW). It
+        is more flexible than the pooling or striding.
         Default: None (the standard size, e.g., outW = W - WW + 1).
         :param use_next_power2: should we extend the size of the input for the
         FFT convolution to the next power of 2.
@@ -96,14 +102,17 @@ class Conv2dfftFunction(torch.autograd.Function):
             use_next_power2 = args.next_power2
             is_debug = args.is_debug
             compress_type = args.compress_type
+            stride_type = args.stride_type
         else:
             index_back = None
             preserve_energy = None
             use_next_power2 = False
             is_debug = False
             compress_type = CompressType.STANDARD
+            stride_type = StrideType.STANDARD
 
-        out_size = None
+        dtype = input.dtype
+        device = input.device
 
         if is_debug:
             pass
@@ -145,23 +154,37 @@ class Conv2dfftFunction(torch.autograd.Function):
         pad_H, pad_W = get_pair(value=padding, val_1_default=0, val2_default=0,
                                 name="padding")
 
+        if pad_H != pad_W:
+            raise Exception(
+                "We only support a symmetric padding in the frequency domain.")
+
         out_size_H, out_size_W = get_pair(value=out_size, val_1_default=None,
                                           val2_default=None, name="out_size")
+
+        if out_size_H != out_size_W:
+            raise Exception(
+                "We only support a symmetric outputs in the frequency domain.")
 
         stride_H, stride_W = get_pair(value=stride, val_1_default=None,
                                       val2_default=None, name="stride")
 
-        if out_size_H is not None:
-            out_H = out_size_H
-        else:
-            out_H = H - HH + 1  # the height of the output (without padding)
-            out_H += 2 * pad_H
+        if stride_H != stride_W:
+            raise Exception(
+                "We only support a symmetric striding in the frequency domain.")
 
-        if out_size_W is not None:
-            out_W = out_size_W
+        if out_size_H:
+            out_H = out_size_H
+        elif out_size or stride_type is StrideType.SPECTRAL:
+            out_H = (H - HH + 2 * pad_H) // stride_H + 1
         else:
-            out_W = W - WW + 1  # the width of the output (without padding)
-            out_W += 2 * pad_W
+            out_H = H - HH + 1 + 2 * pad_H
+
+        if out_size_W:
+            out_W = out_size_W
+        elif out_size or stride_type is StrideType.SPECTRAL:
+            out_W = (W - WW + 2 * pad_W) // stride_W + 1
+        else:
+            out_W = W - WW + 1 + 2 * pad_W
 
         if out_H != out_W:
             raise Exception(
@@ -194,6 +217,7 @@ class Conv2dfftFunction(torch.autograd.Function):
         padded_x = torch_pad(
             input, (pad_W, pad_W + fft_padding_input_W, pad_H,
                     pad_H + fft_padding_input_H), 'constant', 0)
+        del input
 
         fft_padding_filter_H = init_fft_H - HH
         fft_padding_filter_W = init_fft_W - WW
@@ -201,14 +225,17 @@ class Conv2dfftFunction(torch.autograd.Function):
         padded_filter = torch_pad(
             filter, (0, fft_padding_filter_W, 0, fft_padding_filter_H),
             'constant', 0)
+        del filter
 
         # fft of the input and filters
         xfft = torch.rfft(padded_x, signal_ndim=Conv2dfftFunction.signal_ndim,
                           onesided=True)
+        del padded_x
 
         yfft = torch.rfft(padded_filter,
                           signal_ndim=Conv2dfftFunction.signal_ndim,
                           onesided=True)
+        del padded_filter
 
         # The last dimension (-1) has size 2 as it represents the complex
         # numbers with real and imaginary parts. The last but one dimension (-2)
@@ -216,19 +243,24 @@ class Conv2dfftFunction(torch.autograd.Function):
         init_half_fft_W = xfft.shape[-2]
         init_fft_H = xfft.shape[-3]
 
+        # Pooling either via stride or explicitly via out_size_W.
+        if out_size or stride_type is StrideType.SPECTRAL:
+            # We take one-sided fft so the output after the inverse fft should
+            # be out size, thus the representation in the spectral domain is
+            # twice smaller than the one in the spatial domain.
+            half_fft_W = out_W // 2 + 1
+            xfft = compress_2D_odd(xfft, half_fft_W)
+            yfft = compress_2D_odd(yfft, half_fft_W)
+
+        # Compression.
         index_back_H_fft, index_back_W_fft = None, None
         if preserve_energy is not None and preserve_energy < 100.0:
-            # index_back_H_fft, index_back_W_fft = preserve_energy2D_index_back(
-            #     xfft, preserve_energy)
-            # xfft, yfft, index_back_H_fft, index_back_W_fft = preserve_energy2D(
-            #     xfft, yfft, preserve_energy)
-            # start = time.time()
             xfft, yfft = preserve_energy2D_symmetry(
                 xfft, yfft, preserve_energy_rate=preserve_energy,
                 is_debug=is_debug)
             # print("preserve energy timing: ", time.time() - start)
         elif index_back_W is not None and index_back_W > 0:
-            is_fine_grained_sparsification = False
+            is_fine_grained_sparsification = False  # this is for tests
             if is_fine_grained_sparsification:
                 xfft_spectrum = get_spectrum(xfft)
                 yfft_spectrum = get_spectrum(yfft)
@@ -241,15 +273,8 @@ class Conv2dfftFunction(torch.autograd.Function):
                     init_half_fft_W * (index_back_W / 100)) + 1
                 xfft = compress_2D_odd_index_back(xfft, index_back_W_fft)
                 yfft = compress_2D_odd_index_back(yfft, index_back_W_fft)
-        elif out_size_W is not None:
-            # We take one-sided fft so the output after the inverse fft should
-            # be out size, thus the representation in the spectral domain is
-            # twice smaller than the one in the spatial domain.
-            half_fft_W = out_size_W // 2 + 1
-            xfft = compress_2D_odd(xfft, half_fft_W)
-            yfft = compress_2D_odd(yfft, half_fft_W)
-        out = torch.zeros([N, F, out_H, out_W], dtype=input.dtype,
-                          device=input.device)
+
+        out = torch.zeros([N, F, out_H, out_W], dtype=dtype, device=device)
 
         is_serial = False  # Serially convolve each input map with all filters.
         if is_serial:
@@ -270,7 +295,7 @@ class Conv2dfftFunction(torch.autograd.Function):
         else:
             # Convolve some part of the input batch with all filters.
             start = 0
-            step = 32
+            step = get_step_estimate(xfft, yfft, args)
             if bias is not None:
                 unsqueezed_bias = bias.unsqueeze(-1).unsqueeze(-1)
             # For each slice of time-series in the batch.
@@ -291,8 +316,14 @@ class Conv2dfftFunction(torch.autograd.Function):
                     # the dimension of the out to properly sum up the values).
                     out[start:stop] += unsqueezed_bias
 
-            if stride_H != 1 or stride_W != 1:
-                out = out[:, :, 0::stride_H, 0::stride_W]
+            if (stride_H != 1 or stride_W != 1) and (
+                    stride_type is StrideType.STANDARD):
+                out = out[:, :, ::stride_H, ::stride_W]
+
+            print("out_size: ", out.size())
+            print("stride: ", stride)
+            print("W: ", W)
+            print("WW: ", WW)
 
         if ctx:
             ctx.save_for_backward(xfft, yfft, to_tensor(H), to_tensor(HH),
@@ -305,7 +336,8 @@ class Conv2dfftFunction(torch.autograd.Function):
                                   to_tensor(preserve_energy),
                                   to_tensor(index_back_H_fft),
                                   to_tensor(index_back_W_fft),
-                                  to_tensor(stride)
+                                  to_tensor(stride_H),
+                                  to_tensor(stride_type.value)
                                   )
 
         return out
@@ -334,7 +366,7 @@ class Conv2dfftFunction(torch.autograd.Function):
         """
         # logger.debug("execute backward")
 
-        xfft, yfft, H, HH, W, WW, init_fft_H, init_fft_W, is_manual, conv_index, compress_type, is_debug, preserve_energy, index_back_H_fft, index_back_W_fft, stride = ctx.saved_tensors
+        xfft, yfft, H, HH, W, WW, init_fft_H, init_fft_W, is_manual, conv_index, compress_type, is_debug, preserve_energy, index_back_H_fft, index_back_W_fft, stride, stride_type = ctx.saved_tensors
 
         is_debug = True if is_debug == 1 else False
         if is_debug:
@@ -368,13 +400,21 @@ class Conv2dfftFunction(torch.autograd.Function):
         index_back_H_fft = from_tensor(index_back_H_fft)
         index_back_W_fft = from_tensor(index_back_W_fft)
         stride = from_tensor(stride)
+        stride_type = StrideType(from_tensor(stride_type))
 
-        if stride is not None and stride > 1:
+        if (stride is not None and stride > 1) and (
+                stride_type is StrideType.STANDARD):
             N, F, HHH, WWW = dout.size()
             out_H = out_W = W - WW + 1
             grad = torch.zeros(N, F, out_H, out_W)
+            print("size grad: ", grad.size())
+            print("size dout: ", dout.size())
+            print("stride: ", stride)
+            print("W: ", W)
+            print("WW: ", WW)
             grad[..., ::stride, ::stride] = dout
             dout = grad
+            del grad
 
         # The last dimension for xfft and yfft is the 2 element complex number.
         N, C, half_fft_compressed_H, half_fft_compressed_W, _ = xfft.shape
@@ -396,9 +436,21 @@ class Conv2dfftFunction(torch.autograd.Function):
             dout, (0, fft_padding_dout_W, 0, fft_padding_dout_H),
             'constant', 0)
 
+        if need_bias_grad:
+            # The number of bias elements is equal to the number of filters.
+            db = torch.zeros(F, dtype=dtype, device=device)
+
+            # Calculate dB (the gradient for the bias term).
+            # We sum up all the incoming gradients for each filter
+            # bias (as in the affine layer).
+            for ff in range(F):
+                db[ff] += torch.sum(dout[:, ff, :])
+        del dout
+
         doutfft = torch.rfft(padded_dout,
                              signal_ndim=Conv2dfftFunction.signal_ndim,
                              onesided=True)
+        del padded_dout
 
         # the last dimension is for real and imaginary parts of the complex
         # numbers
@@ -516,15 +568,8 @@ class Conv2dfftFunction(torch.autograd.Function):
                         init_half_fft_width=init_half_fft_W,
                         out_height=HH, out_width=WW,
                         is_forward=False).sum(dim=1)
-        if need_bias_grad:
-            # The number of bias elements is equal to the number of filters.
-            db = torch.zeros(F, dtype=dtype, device=device)
-
-            # Calculate dB (the gradient for the bias term).
-            # We sum up all the incoming gradients for each filter
-            # bias (as in the affine layer).
-            for ff in range(F):
-                db[ff] += torch.sum(dout[:, ff, :])
+        del doutfft
+        del xfft
 
         return dx, dw, db, None, None, None, None, None, None, None, None, \
                None, None
@@ -535,7 +580,7 @@ class Conv2dfft(Module):
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
                  stride=1, padding=0, dilation=None, groups=None, bias=True,
                  filter_value=None, bias_value=None, is_manual=tensor([0]),
-                 conv_index=None, args=None):
+                 conv_index=None, args=None, out_size=None):
         """
 
         2D convolution using FFT implemented fully in PyTorch.
@@ -618,7 +663,8 @@ class Conv2dfft(Module):
         if bias_value is None:
             self.is_bias_value = False
             if bias is True:
-                self.bias = Parameter(torch.randn(out_channels, dtype=args.dtype))
+                self.bias = Parameter(
+                    torch.randn(out_channels, dtype=args.dtype))
             else:
                 self.register_parameter('bias', None)
                 self.bias = None
@@ -634,6 +680,7 @@ class Conv2dfft(Module):
         self.stride = stride
         self.is_manual = is_manual
         self.conv_index = conv_index
+        self.out_size = out_size
 
         if args is None:
             self.index_back = None
@@ -668,16 +715,19 @@ class Conv2dfft(Module):
         :param input: the input map (e.g., an image)
         :return: the result of 2D convolution
         """
+        # ctx, input, filter, bias, padding = (0, 0), stride = (1, 1),
+        # args = None, out_size = None, is_manual = tensor([0]),
+        # conv_index = None
         return Conv2dfftFunction.apply(
             input, self.filter, self.bias, self.padding, self.stride,
-            self.is_manual, self.conv_index, self.args)
+            self.args, self.out_size, self.is_manual, self.conv_index)
 
 
 class Conv2dfftAutograd(Conv2dfft):
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
                  stride=1, padding=0, dilation=None, groups=None, bias=True,
                  filter_value=None, bias_value=None, is_manual=tensor([0]),
-                 conv_index=None, args=None):
+                 conv_index=None, args=None, out_size=None):
         """
         2D convolution using FFT with backward pass executed via PyTorch's
         autograd.
@@ -687,7 +737,8 @@ class Conv2dfftAutograd(Conv2dfft):
             kernel_size=kernel_size, stride=stride, padding=padding,
             dilation=dilation, groups=groups, bias=bias,
             filter_value=filter_value, bias_value=bias_value,
-            conv_index=conv_index, is_manual=is_manual, args=args)
+            conv_index=conv_index, is_manual=is_manual, args=args,
+            out_size=out_size)
 
     def forward(self, input):
         """
@@ -907,7 +958,7 @@ class Conv2dfftAutograd(Conv2dfft):
         return Conv2dfftFunction.forward(
             ctx=None, input=input, filter=self.filter, bias=self.bias,
             padding=self.padding, stride=self.stride, is_manual=self.is_manual,
-            conv_index=self.conv_index, args=self.args)
+            conv_index=self.conv_index, args=self.args, out_size=self.out_size)
 
 
 def test_run():
