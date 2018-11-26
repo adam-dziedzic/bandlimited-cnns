@@ -50,7 +50,7 @@ class Conv2dfftFunction(torch.autograd.Function):
     signal_ndim = 2
 
     @staticmethod
-    def forward(ctx, input, filter, bias, padding=(0, 0), stride=(1, 1),
+    def forward(ctx, input, filter, bias=None, padding=(0, 0), stride=(1, 1),
                 args=None, out_size=None, is_manual=tensor([0]),
                 conv_index=None):
         """
@@ -96,6 +96,7 @@ class Conv2dfftFunction(torch.autograd.Function):
 
         :return: the result of convolution.
         """
+        print("input size: ", input.size())
         if args is not None:
             index_back = args.index_back
             preserve_energy = args.preserve_energy
@@ -405,6 +406,7 @@ class Conv2dfftFunction(torch.autograd.Function):
         if (stride is not None and stride > 1) and (
                 stride_type is StrideType.STANDARD):
             N, F, HHH, WWW = dout.size()
+            assert HHH == WWW
             out_H = out_W = W - WW + 1
             grad = torch.zeros(N, F, out_H, out_W)
             print("size grad: ", grad.size())
@@ -412,7 +414,10 @@ class Conv2dfftFunction(torch.autograd.Function):
             print("stride: ", stride)
             print("W: ", W)
             print("WW: ", WW)
-            grad[..., ::stride, ::stride] = dout
+            if out_H > HHH and out_W > WWW:
+                grad[..., ::stride, ::stride] = dout
+            else:
+                assert out_H == HHH and out_W == WWW
             dout = grad
             del grad
 

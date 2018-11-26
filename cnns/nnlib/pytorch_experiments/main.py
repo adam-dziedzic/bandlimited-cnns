@@ -214,7 +214,7 @@ parser.add_argument('--dynamic_loss_scale',
                          "If supplied, this argument supersedes " +
                          "--static-loss-scale. Options: " + ",".join(
                         Bool.get_names()))
-parser.add_argument('--mem_size', type=float,
+parser.add_argument('--memory_size', type=float,
                     default=args.memory_size,
                     help="""GPU or CPU memory size in GB.""")
 parser.add_argument("--is_progress_bar",

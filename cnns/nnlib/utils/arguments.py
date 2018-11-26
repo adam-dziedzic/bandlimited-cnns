@@ -29,8 +29,8 @@ class Arguments(object):
 
     def __init__(self,
                  is_debug=False,
-                 # network_type=NetworkType.ResNet18,
-                 network_type=NetworkType.FCNN_STANDARD,
+                 network_type=NetworkType.ResNet18,
+                 # network_type=NetworkType.FCNN_STANDARD,
                  preserve_energy=100,
                  preserved_energies=[100],
                  dtype=torch.float,
@@ -52,13 +52,13 @@ class Arguments(object):
                  memory_type=MemoryType.STANDARD,
                  workers=6,
                  model_path="no_model",
-                 # dataset="cifar10",
-                 dataset="ucr",
+                 dataset="cifar10",
+                 # dataset="ucr",
                  mem_test=False,
                  is_data_augmentation=True,
                  sample_count_limit=1024,
-                 # conv_type=ConvType.FFT2D,
-                 conv_type=ConvType.FFT1D,
+                 conv_type=ConvType.FFT2D,
+                 # conv_type=ConvType.FFT1D,
                  visualize=False,
                  static_loss_scale=1,
                  out_size=None,
@@ -68,7 +68,8 @@ class Arguments(object):
                  memory_size=25,
                  is_progress_bar=False,
                  stride_type=StrideType.STANDARD,
-                 is_dev_dataset = True,
+                 # is_dev_dataset = True,
+                 is_dev_dataset=False,
                  dev_percent = 30
                  ):
         """

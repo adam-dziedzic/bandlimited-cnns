@@ -3333,12 +3333,14 @@ def get_step_estimate(xfft, yfft, args):
     item_size = get_elem_size(xfft)
     corr_out_in_size = ((N * F * H * W) + (N + F) * C * H * W * I) * item_size
     no_x_intermediate_size = scale * 3 * F * C * H * W * I * item_size
-    intermediate_size = X * no_x_intermediate_size
+
     # 3 = corr result is complex (2) + after rfft it is real (1)
     X = (total_size - corr_out_in_size) / no_x_intermediate_size
-    print("computed size: ", (corr_out_in_size + intermediate_size) / 2 ** 30)
-    print("all tensor size before corr: ", get_tensors_elem_size() / 2 ** 30)
-    print("torch max memory before corr: ",
+    intermediate_size = X * no_x_intermediate_size
+    computed_size = corr_out_in_size + intermediate_size
+    print("computed size: ", computed_size / 2 ** 30)
+    print("all tensor size before correlation: ", get_tensors_elem_size() / 2 ** 30)
+    print("torch max memory before correlation: ",
           torch.cuda.max_memory_allocated() / 2 ** 30)
     print("X size: ", int(X))
     step = int(X)
