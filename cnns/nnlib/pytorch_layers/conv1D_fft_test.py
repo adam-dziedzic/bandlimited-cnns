@@ -471,9 +471,9 @@ class TestPyTorchConv1d(unittest.TestCase):
                                         dtype=torch.float32)
         # print("expected_result_numpy: ", expected_result_numpy)
 
-        preserved_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 85.,
-                              80., 70., 60., 50., 40., 10.]
-        # preserved_energies = [95.]
+        # preserved_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 85.,
+        #                       80., 70., 60., 50., 40., 10.]
+        preserved_energies = [95.]
         # indexes_back = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
         for preserve_energy in preserved_energies:
@@ -591,7 +591,8 @@ class TestPyTorchConv1d(unittest.TestCase):
         # preserved_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 85.,
         #                        80., 70., 60., 50., 40., 10.]
         # preserved_energies = [95.]
-        indexes_back = [1, 2, 4, 8, 16, 32, 64, 100]  # percent
+        # indexes_back = [1, 2, 4, 8, 16, 32, 64, 100]  # percent
+        indexes_back = [8]
 
         for index_back in indexes_back:
             conv = Conv1dfft(filter_value=torch.from_numpy(y),
@@ -659,7 +660,7 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         # preserved_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 85.,
         #                       80., 70., 60., 50., 40., 10.]
-        preserved_energies = [90., 50.]
+        preserved_energies = [50.]
 
         for preserve_energy in preserved_energies:
             conv = Conv1dfft(filter_value=torch.from_numpy(y),
@@ -691,9 +692,9 @@ class TestPyTorchConv1d(unittest.TestCase):
                                         dtype=torch.float32)
         print("expected_result_numpy: ", expected_result_numpy)
 
-        preserve_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 90., 80.,
-                             10., 1.]
-        # preserve_energies = [50.0]
+        # preserve_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 90., 80.,
+        #                      10., 1.]
+        preserve_energies = [50.0]
         for preserve_energy in preserve_energies:
             conv = Conv1dfftCompressSignalOnly(filter_value=torch.from_numpy(y),
                                                bias_value=torch.from_numpy(b),
@@ -1511,7 +1512,7 @@ class TestPyTorchConv1d(unittest.TestCase):
             decimal=4,
             err_msg="Expected x is different from computed y.")
         np.testing.assert_array_almost_equal(
-            x=expected_db.numpy(), y=b_torch.grad.cpu().detach().numpy(),
+            x=expected_db, y=b_torch.grad.cpu().detach().numpy(),
             decimal=5,
             err_msg="Expected x is different from computed y.")
 
@@ -1569,13 +1570,13 @@ class TestPyTorchConv1d(unittest.TestCase):
         # are the gradients correct
         np.testing.assert_array_almost_equal(
             x_torch.grad.cpu().detach().numpy(),
-            expected_dx.cpu().detach().numpy())
+            expected_dx)
         np.testing.assert_array_almost_equal(
             y_torch.grad.cpu().detach().numpy(),
-            expected_dw.cpu().detach().numpy())
+            expected_dw)
         np.testing.assert_array_almost_equal(
             b_torch.grad.cpu().detach().numpy(),
-            expected_db.cpu().detach().numpy())
+            expected_db)
 
 
 if __name__ == '__main__':
