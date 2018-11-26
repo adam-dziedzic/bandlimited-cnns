@@ -29,7 +29,8 @@ class Arguments(object):
 
     def __init__(self,
                  is_debug=False,
-                 network_type=NetworkType.ResNet18,
+                 # network_type=NetworkType.ResNet18,
+                 network_type=NetworkType.FCNN_STANDARD,
                  preserve_energy=100,
                  preserved_energies=[100],
                  dtype=torch.float,
@@ -45,17 +46,19 @@ class Arguments(object):
                  seed=31,
                  log_interval=1,
                  optimizer_type=OptimizerType.MOMENTUM,
-                 scheduler_type=SchedulerType.MultiStepLR,
+                 scheduler_type=SchedulerType.ReduceLROnPlateau,
                  loss_type=LossType.CROSS_ENTROPY,
                  loss_reduction=LossReduction.ELEMENTWISE_MEAN,
                  memory_type=MemoryType.STANDARD,
-                 workers=4,
+                 workers=6,
                  model_path="no_model",
-                 dataset="cifar10",
+                 # dataset="cifar10",
+                 dataset="ucr",
                  mem_test=False,
                  is_data_augmentation=True,
                  sample_count_limit=1024,
-                 conv_type=ConvType.FFT2D,
+                 # conv_type=ConvType.FFT2D,
+                 conv_type=ConvType.FFT1D,
                  visualize=False,
                  static_loss_scale=1,
                  out_size=None,
@@ -64,7 +67,9 @@ class Arguments(object):
                  dynamic_loss_scale=True,
                  memory_size=25,
                  is_progress_bar=False,
-                 stride_type=StrideType.STANDARD
+                 stride_type=StrideType.STANDARD,
+                 is_dev_dataset = True,
+                 dev_percent = 30
                  ):
         """
         The default parameters for the execution of the program.
@@ -92,6 +97,8 @@ class Arguments(object):
         on the machine).
         :param is_progress_bar: specify if the progress bar should be shown
         during training and testing of the model.
+        :param is_dev_set: is the dev dataset used (extracted from the trina set)
+        :param dev_percent: % of data used from the train set as the dev set
         """
         super(Arguments).__init__()
         self.__counter__ = 0
@@ -153,6 +160,8 @@ class Arguments(object):
         self.memory_size = memory_size
         self.is_progress_bar = is_progress_bar
         self.stride_type=stride_type
+        self.is_dev_dataset = is_dev_dataset
+        self.dev_percent = dev_percent
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False
@@ -183,6 +192,7 @@ class Arguments(object):
         self.visulize = self.get_bool(parsed_args.visualize)
         self.is_progress_bar = self.get_bool(parsed_args.is_progress_bar)
         self.is_data_augmentation = self.get_bool(parsed_args.is_data_augmentation)
+        self.is_dev_dataset = self.get_bool(parsed_args.is_dev_dataset)
         self.mem_test = self.get_bool(parsed_args.mem_test)
         self.use_cuda = self.get_bool(parsed_args.use_cuda) and torch.cuda.is_available()
 

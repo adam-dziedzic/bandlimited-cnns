@@ -135,3 +135,22 @@ class UCRDataset(Dataset):
         assert len(self.data) == len(self.labels)
         self.data = self.data[:length]
         self.labels = self.labels[:length]
+
+    def set_range(self, start, stop):
+        """
+        :param start: the start row
+        :param stop: the last row (exclusive) of the dataset
+
+        :return: the dataset with the specified range.
+        """
+        assert len(self.data) == len(self.labels)
+        self.data = self.data[start:stop]
+        self.labels = self.labels[start:stop]
+
+
+if __name__ == "__main__":
+    train_dataset = UCRDataset("50words", train=True,
+                               transformations=transforms.Compose(
+                                   [ToTensor(dtype=torch.float),
+                                    AddChannel()]))
+    print("length of the train dataset: ", len(train_dataset))

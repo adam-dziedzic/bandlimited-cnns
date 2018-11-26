@@ -97,7 +97,7 @@ parser.add_argument('--test_batch_size', type=int, default=args.test_batch_size,
 parser.add_argument('--epochs', type=int, default=args.epochs, metavar='Epochs',
                     help=f"number of epochs to train ("
                     f"default: {args.epochs})")
-parser.add_argument("--lr", '--learning_rate', type=float,
+parser.add_argument('--learning_rate', type=float,
                     default=args.learning_rate, metavar='LR',
                     help=f'learning rate (default: {args.learning_rate})')
 parser.add_argument('--weight_decay', type=float, default=args.weight_decay,
@@ -135,7 +135,7 @@ parser.add_argument("--memory_type", default=args.memory_type.name,
                     # "STANDARD", "PINNED"
                     help="the type of the memory used, please choose from: " +
                          ",".join(MemoryType.get_names()))
-parser.add_argument("-w", "--workers", default=args.workers, type=int,
+parser.add_argument("--workers", default=args.workers, type=int,
                     help="number of workers to fetch data for pytorch data "
                          "loader, 0 means that the data will be "
                          "loaded in the main process")
@@ -147,9 +147,9 @@ parser.add_argument("--model_path",
                     # no_model
                     # 2018-11-06-21-05-48-dataset-50words-preserve-energy-90-test-accuracy-12.5.model
                     help="The path to a saved model.")
-parser.add_argument("-d", "--dataset", default=args.dataset,
+parser.add_argument("--dataset", default=args.dataset,
                     help="the type of datasets: all, debug, cifar10, mnist.")
-parser.add_argument("-i", "--index_back", default=args.index_back, type=int,
+parser.add_argument("--index_back", default=args.index_back, type=int,
                     help="How many indexes (values) from the back of the "
                          "frequency representation should be discarded? This "
                          "is the compression in the FFT domain.")
@@ -158,15 +158,15 @@ parser.add_argument('--preserve_energies', nargs="+", type=int,
                     help="How much energy should be preserved in the "
                          "frequency representation of the signal? This "
                          "is the compression in the FFT domain.")
-parser.add_argument("-b", "--mem_test",
+parser.add_argument("--mem_test",
                     default="TRUE" if args.mem_test else "FALSE",
                     help="is it the memory test; options: " + ",".join(
                         Bool.get_names()))
-parser.add_argument("-a", "--is_data_augmentation",
+parser.add_argument("--is_data_augmentation",
                     default="TRUE" if args.is_data_augmentation else "FALSE",
                     help="should the data augmentation be applied; "
                          "options: " + ",".join(Bool.get_names()))
-parser.add_argument("-g", "--is_debug",
+parser.add_argument("--is_debug",
                     default="TRUE" if args.is_debug else "FALSE",
                     help="is it the debug mode execution: " + ",".join(
                         Bool.get_names()))
@@ -174,7 +174,7 @@ parser.add_argument("--sample_count_limit", default=args.sample_count_limit,
                     type=int,
                     help="number of samples taken from the dataset "
                          "(0 - inactive)")
-parser.add_argument("-c", "--conv_type", default=args.conv_type.name,
+parser.add_argument("--conv_type", default=args.conv_type.name,
                     # "FFT1D", "FFT2D", "STANDARD", "STANDARD2D", "AUTOGRAD",
                     # "SIMPLE_FFT"
                     help="the type of convolution, SPECTRAL_PARAM is with the "
@@ -227,6 +227,16 @@ parser.add_argument("--stride_type", default=args.stride_type.name,
                     # "FLOAT32", "FLOAT16", "DOUBLE", "INT"
                     help="the tensor data type: " + ",".join(
                         StrideType.get_names()))
+parser.add_argument("--is_dev_dataset",
+                    default="TRUE" if args.is_dev_dataset else "FALSE",
+                    help="is it the dev set extracted from the train set, "
+                         "default is {args.is_dev_set}, but choose param from: "
+                         "" + ",".join(Bool.get_names()))
+parser.add_argument("--dev_percent", default=args.dev_percent,
+                    type=int,
+                    help="percent of train set used as the development set"
+                         " (range from 0 to 100), 0 - it is inactive,"
+                         " default: {args.dev_percent}")
 
 parsed_args = parser.parse_args()
 args.set_parsed_args(parsed_args=parsed_args)
@@ -390,9 +400,9 @@ def train(model, device, train_loader, optimizer, loss_function, epoch, args):
     return train_loss, accuracy
 
 
-def test(model, device, test_loader, loss_function, args, dataset_type="test",
-         epoch=None):
+def test(model, device, test_loader, loss_function, args, epoch=None):
     """
+    Test the model and return test loss and accuracy.
 
     :param model: deep learning model.
     :param device: cpu or gpu.
@@ -453,7 +463,8 @@ def main(args):
         file.write(DATASET_HEADER)
         # Write the header with the names of the columns.
         file.write(
-            "epoch,train_loss,train_accuracy,test_loss,test_accuracy,epoch_time\n")
+            "epoch,train_loss,train_accuracy,dev_loss,dev_accuracy,test_loss,"
+            "test_accuracy,epoch_time\n")
 
     with open(os.path.join(results_dir, additional_log_file), "a") as file:
         # Write the metadata.
@@ -503,12 +514,13 @@ def main(args):
         raise Exception(f"Unknown tensor type: {tensor_type}")
     args.dtype = dtype
 
+    train_loader, dev_loader, test_loader = None, None, None
     if dataset_name is "cifar10":
         train_loader, test_loader = get_cifar10(args)
     elif dataset_name is "mnist":
         train_loader, test_loader = get_mnist(args)
     elif dataset_name in os.listdir(ucr_path):  # dataset from UCR archive
-        train_loader, test_loader = get_ucr(args)
+        train_loader, test_loader, dev_loader = get_ucr(args)
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
 
@@ -545,9 +557,9 @@ def main(args):
                               momentum=args.momentum,
                               weight_decay=args.weight_decay)
     elif optimizer_type is OptimizerType.ADAM_FLOAT16:
-        optimizer = AdamFloat16(params, lr=args.lr, eps=eps)
+        optimizer = AdamFloat16(params, lr=args.learning_rate, eps=eps)
     elif optimizer_type is OptimizerType.ADAM:
-        optimizer = optim.Adam(params, lr=args.lr, eps=eps)
+        optimizer = optim.Adam(params, lr=args.learning_rate, eps=eps)
     else:
         raise Exception(f"Unknown optimizer type: {optimizer_type.name}")
 
@@ -576,14 +588,13 @@ def main(args):
 
     train_loss = train_accuracy = test_loss = test_accuracy = 0.0
     # max = choose the best model.
-    min_train_loss = min_test_loss = sys.float_info.max
-    max_train_accuracy = max_test_accuracy = 0.0
+    min_train_loss = min_test_loss = min_dev_loss = sys.float_info.max
+    max_train_accuracy = max_test_accuracy = max_dev_accuracy = 0.0
 
     if args.visulize is True and is_debug is True:
-        test_loss, test_accuracy = test(model=model, device=device,
-                                        test_loader=test_loader,
-                                        loss_function=loss_function,
-                                        dataset_type="test", args=args)
+        test_loss, test_accuracy = test(
+            model=model, device=device, test_loader=test_loader,
+            loss_function=loss_function, args=args)
         with open(global_log_file, "a") as file:
             file.write(
                 "visualize," + dataset_name + "," + str(test_loss) + "," + str(
@@ -591,48 +602,73 @@ def main(args):
         return
 
     dataset_start_time = time.time()
+    dev_loss = dev_accuracy = None
     for epoch in range(1, args.epochs + 1):
         epoch_start_time = time.time()
         train_loss, train_accuracy = train(
             model=model, device=device, train_loader=train_loader, args=args,
             optimizer=optimizer, loss_function=loss_function, epoch=epoch)
-        # print("test train set for epoch: ", epoch)
-        # train_loss, train_accuracy = test(model=model, device=device,
-        #                                   test_loader=train_loader,
-        #                                   loss_function=loss_function,
-        #                                   dataset_type="train", args=args)
+        if args.is_dev_dataset:
+            if dev_loader is None:
+                raise Exception("The dev_loader was not set! Check methods to"
+                                "get the data, e.g. get_ucr()")
+            dev_loss, dev_accuracy = test(
+                model=model, device=device, test_loader=dev_loader,
+                loss_function=loss_function, args=args)
         test_loss, test_accuracy = test(
             model=model, device=device, test_loader=test_loader,
-            loss_function=loss_function, args=args, dataset_type="test")
+            loss_function=loss_function, args=args)
         # Scheduler step is based only on the train data, we do not use the
         # test data to schedule the decrease in the learning rate.
         scheduler.step(train_loss)
 
         with open(dataset_log_file, "a") as file:
             file.write(str(epoch) + "," + str(train_loss) + "," + str(
-                train_accuracy) + "," + str(test_loss) + "," + str(
+                train_accuracy) + "," + str(dev_loss) + "," + str(
+                dev_accuracy) + "," + str(test_loss) + "," + str(
                 test_accuracy) + "," + str(
                 time.time() - epoch_start_time) + "\n")
 
         # Metric: select the best model based on the best train loss (minimal).
-        if train_loss < min_train_loss:
-            min_train_loss = train_loss
-            max_train_accuracy = train_accuracy
-            min_test_loss = test_loss
-            max_test_accuracy = test_accuracy
+        if args.is_dev_dataset:
+            if dev_accuracy > max_dev_accuracy:
+                min_train_loss = train_loss
+                max_train_accuracy = train_accuracy
+                min_dev_loss = dev_loss
+                max_dev_accuracy = dev_accuracy
+                min_test_loss = test_loss
+                max_test_accuracy = test_accuracy
 
-            model_path = os.path.join(models_dir,
-                                      get_log_time() + "-dataset-" + str(
-                                          dataset_name) + \
-                                      "-preserve-energy-" + str(
-                                          preserve_energy) + \
-                                      "-test-accuracy-" + str(
-                                          test_accuracy) + ".model")
-            torch.save(model.state_dict(), model_path)
+                model_path = os.path.join(models_dir,
+                                          get_log_time() + "-dataset-" + str(
+                                              dataset_name) + \
+                                          "-preserve-energy-" + str(
+                                              preserve_energy) + \
+                                          "-test-accuracy-" + str(
+                                              test_accuracy) + ".model")
+                torch.save(model.state_dict(), model_path)
+        else:
+            if train_loss < min_train_loss:
+                min_train_loss = train_loss
+                max_train_accuracy = train_accuracy
+                min_dev_loss = dev_loss
+                max_dev_accuracy = dev_accuracy
+                min_test_loss = test_loss
+                max_test_accuracy = test_accuracy
+
+                model_path = os.path.join(models_dir,
+                                          get_log_time() + "-dataset-" + str(
+                                              dataset_name) + \
+                                          "-preserve-energy-" + str(
+                                              preserve_energy) + \
+                                          "-test-accuracy-" + str(
+                                              test_accuracy) + ".model")
+                torch.save(model.state_dict(), model_path)
 
     with open(global_log_file, "a") as file:
         file.write(dataset_name + "," + str(min_train_loss) + "," + str(
-            max_train_accuracy) + "," + str(min_test_loss) + "," + str(
+            max_train_accuracy) + "," + str(min_dev_loss) + "," + str(
+            max_dev_accuracy) + "," + str(min_test_loss) + "," + str(
             max_test_accuracy) + "," + str(
             time.time() - dataset_start_time) + "\n")
 
@@ -657,8 +693,11 @@ if __name__ == '__main__':
                 [str(energy) for energy in args.preserve_energies]) +
             "\n")
         file.write(
-            "dataset,min_train_loss,max_train_accuracy,min_test_loss,"
-            "max_test_accuracy,execution_time\n")
+            "dataset,"
+            "min_train_loss,max_train_accuracy,"
+            "min_dev_loss,max_dev_accuracy,"
+            "min_test_loss,max_test_accuracy,"
+            "execution_time\n")
 
     if args.dataset == "all" or args.dataset == "ucr":
         flist = os.listdir(ucr_path)
