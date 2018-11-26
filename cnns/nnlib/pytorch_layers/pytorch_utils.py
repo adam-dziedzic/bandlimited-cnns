@@ -3204,7 +3204,7 @@ def get_tensors_elem_size_count(only_cuda=True):
     return total_size, total_count
 
 
-def get_tensors_elem_size(only_cuda=True):
+def get_tensors_elem_size(only_cuda=True, omit_objs=[]):
     """
     Get total size of elements in tensors.
 
@@ -3228,7 +3228,8 @@ def get_tensors_elem_size(only_cuda=True):
     """
     total_size = 0
     for tensor_obj in get_tensors(only_cuda=only_cuda):
-        total_size += tensor_obj.numel() * get_elem_size(tensor_obj)
+        if tensor_obj not in omit_objs:
+            total_size += tensor_obj.numel() * get_elem_size(tensor_obj)
     return total_size
 
 
