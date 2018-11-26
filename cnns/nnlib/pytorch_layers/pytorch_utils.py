@@ -3051,7 +3051,7 @@ def del_object(obj):
     del obj
 
 
-def get_tensors(only_cuda=False):
+def get_tensors(only_cuda=False, omit_objs=[]):
     """
     https://discuss.pytorch.org/t/how-to-debug-causes-of-gpu-memory-leaks/6741/3?u=adam_dziedzic
     https://discuss.pytorch.org/t/how-to-debug-causes-of-gpu-memory-leaks/6741/19?u=adam_dziedzic
@@ -3227,9 +3227,8 @@ def get_tensors_elem_size(only_cuda=True, omit_objs=[]):
     >>> assert size == 40
     """
     total_size = 0
-    for tensor_obj in get_tensors(only_cuda=only_cuda):
-        if tensor_obj not in omit_objs:
-            total_size += tensor_obj.numel() * get_elem_size(tensor_obj)
+    for tensor_obj in get_tensors(only_cuda=only_cuda, omit_objs=omit_objs):
+        total_size += tensor_obj.numel() * get_elem_size(tensor_obj)
     return total_size
 
 

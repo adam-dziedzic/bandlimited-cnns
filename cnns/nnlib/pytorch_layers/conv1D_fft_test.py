@@ -435,9 +435,9 @@ class TestPyTorchConv1d(unittest.TestCase):
                                         dtype=torch.float32)
         print("expected_result_numpy: ", expected_result_numpy)
 
-        preserved_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 90.,
-                              80., 10.]
-        # preserved_energies = [95.]
+        # preserved_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 90.,
+        #                       80., 10.]
+        preserved_energies = [95.]
 
         for preserve_energy in preserved_energies:
             conv = Conv1dfft(filter_value=torch.from_numpy(y),
@@ -510,9 +510,9 @@ class TestPyTorchConv1d(unittest.TestCase):
                                         dtype=torch.float32)
         # print("expected_result_numpy: ", expected_result_numpy)
 
-        preserved_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 85.,
-                              80., 70., 60., 50., 40., 10.]
-        # preserved_energies = [95.]
+        # preserved_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 85.,
+        #                      80., 70., 60., 50., 40., 10.]
+        preserved_energies = [95.]
         # indexes_back = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
         for preserve_energy in preserved_energies:
@@ -551,7 +551,8 @@ class TestPyTorchConv1d(unittest.TestCase):
         # preserved_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 85.,
         #                        80., 70., 60., 50., 40., 10.]
         # preserved_energies = [95.]
-        indexes_back = [1, 2, 4, 8, 16, 32, 64, 100]  # percent
+        # indexes_back = [1, 2, 4, 8, 16, 32, 64, 100]  # percent
+        indexes_back = [8]  # percent
 
         for index_back in indexes_back:
             conv = Conv1dfft(filter_value=torch.from_numpy(y),
@@ -1459,7 +1460,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         conv_param = {'pad': 0, 'stride': 1}
         expected_result, _ = conv_forward_naive_1D(x=x, w=y, b=b,
                                                    conv_param=conv_param)
-        self.logger.debug("expected result: " + str(expected_result))
+        # self.logger.debug("expected result: " + str(expected_result))
 
         dtype = torch.float
         device = torch.device("cpu")
@@ -1477,7 +1478,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         result_torch.backward(dout)
 
         result = result_torch.cpu().detach().numpy()
-        self.logger.debug("obtained result: " + str(result))
+        # self.logger.debug("obtained result: " + str(result))
         np.testing.assert_array_almost_equal(result, np.array(expected_result))
 
         conv_param = {'pad': 0, 'stride': 1}
@@ -1502,13 +1503,16 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         # are the gradients correct
         np.testing.assert_array_almost_equal(
-            x=expected_dx, y=x_torch.grad, decimal=5,
+            x=expected_dx, y=x_torch.grad.cpu().detach().numpy(),
+            decimal=5,
             err_msg="Expected x is different from computed y.")
         np.testing.assert_array_almost_equal(
-            x=expected_dw, y=y_torch.grad, decimal=4,
+            x=expected_dw, y=y_torch.grad.cpu().detach().numpy(),
+            decimal=4,
             err_msg="Expected x is different from computed y.")
         np.testing.assert_array_almost_equal(
-            x=expected_db, y=b_torch.grad, decimal=5,
+            x=expected_db.numpy(), y=b_torch.grad.cpu().detach().numpy(),
+            decimal=5,
             err_msg="Expected x is different from computed y.")
 
     def test_FunctionForwardBackwardCountTensors(self):
@@ -1538,7 +1542,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         result_torch = conv.forward(x_torch)
 
         print("Get all tensors visible in the test case: ")
-        tensors = get_tensors(only_cuda=False, is_debug=True)
+        tensors = get_tensors(only_cuda=False)
         print("tensors: ", ",".join([str(tensor) for tensor in tensors]))
 
         """The forward pass saves 11 tensors for backward pass,the local code 
@@ -1546,14 +1550,15 @@ class TestPyTorchConv1d(unittest.TestCase):
         tensor, which gives 15 tensors in total. Additionally, the device,
         dtype and the input to Conv1dfft constructor is the tensor is_manual."""
         expect = 15 + 3
-        assert len(tensors) == expect, f"Expected {expect} tensors but got {len(tensors)}"
+        assert len(
+            tensors) == expect, f"Expected {expect} tensors but got {len(tensors)}"
 
         result = result_torch.cpu().detach().numpy()
         np.testing.assert_array_almost_equal(
             result, np.array(expected_result))
 
-        dout = tensor([[[0.1, -0.2, 0.1, -0.1, 0.3]]], dtype=dtype,
-                      device=device)
+        dout = torch.tensor([[[0.1, -0.2, 0.1, -0.1, 0.3]]], dtype=dtype,
+                            device=device)
 
         result_torch.backward(dout)
 
@@ -1562,12 +1567,15 @@ class TestPyTorchConv1d(unittest.TestCase):
             conv_backward_naive_1D(dout.cpu().numpy(), cache)
 
         # are the gradients correct
-        np.testing.assert_array_almost_equal(x_torch.grad,
-                                             expected_dx)
-        np.testing.assert_array_almost_equal(y_torch.grad,
-                                             expected_dw)
-        np.testing.assert_array_almost_equal(b_torch.grad,
-                                             expected_db)
+        np.testing.assert_array_almost_equal(
+            x_torch.grad.cpu().detach().numpy(),
+            expected_dx.cpu().detach().numpy())
+        np.testing.assert_array_almost_equal(
+            y_torch.grad.cpu().detach().numpy(),
+            expected_dw.cpu().detach().numpy())
+        np.testing.assert_array_almost_equal(
+            b_torch.grad.cpu().detach().numpy(),
+            expected_db.cpu().detach().numpy())
 
 
 if __name__ == '__main__':
