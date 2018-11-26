@@ -3328,8 +3328,15 @@ def get_step_estimate(xfft, yfft, args):
     scale = 32
     X = 32
     total_size = args.memory_size * 2 ** 30  # total mem size in GB
-    N, C, H, W, I = xfft.size()
-    F = yfft.shape[0]
+    if len(xfft.shape) == 5:  # 2D data
+        N, C, H, W, I = xfft.size()
+    elif len(xfft.shape) == 4:  # 1D data
+        N, C, W, I = xfft.size()
+        H = 1
+    else:
+        raise Exception(f"Unexpected number of data "
+                        f"dimensions: {len(xfft.shape)}")
+    F = yfft.shape[0]  # number of filters
     item_size = get_elem_size(xfft)
     corr_out_in_size = ((N * F * H * W) + (N + F) * C * H * W * I) * item_size
     no_x_intermediate_size = scale * 3 * F * C * H * W * I * item_size

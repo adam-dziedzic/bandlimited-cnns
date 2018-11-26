@@ -420,34 +420,57 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         output = torch.zeros([N, F, out_W], dtype=dtype, device=device)
 
-        for nn in range(N):  # For each time-series in the batch.
-            # Take one time series and un-squeeze it for broadcasting with
-            # many filters.
-            xfft_nn = xfft[nn].unsqueeze(0)
-            out_fft = correlate_fft_signals(
-                xfft=xfft_nn, yfft=yfft, fft_size=fft_size)
-            if out_fft.shape[-1] > out_W:
-                # out_fft = out_fft[..., :out_W]
-                out_fft = out_fft.narrow(dim=-1, start=0, length=out_W)
-            elif out_fft.shape[-1] < out_W:
-                out_fft = torch_pad(out_fft,
-                                    (0, out_W - out_fft.shape[-1]))
+        is_serial = False  # Serially convolve each input map with all filters.
+        if is_serial:
+            for nn in range(N):  # For each time-series in the batch.
+                # Take one time series and un-squeeze it for broadcasting with
+                # many filters.
+                xfft_nn = xfft[nn].unsqueeze(0)
+                out_fft = correlate_fft_signals(
+                    xfft=xfft_nn, yfft=yfft, fft_size=fft_size)
+                if out_fft.shape[-1] > out_W:
+                    # out_fft = out_fft[..., :out_W]
+                    out_fft = out_fft.narrow(dim=-1, start=0, length=out_W)
+                elif out_fft.shape[-1] < out_W:
+                    out_fft = torch_pad(out_fft,
+                                        (0, out_W - out_fft.shape[-1]))
 
-            """
-            Sum up the elements from computed output maps for each input 
-            channel. Each output map has as many channels as the number of 
-            filters. Each filter contributes one channel for the output map. 
-            """
-            # Sum the input channels.
-            out_fft = torch.sum(input=out_fft, dim=1)
-            # `unsqueeze` the dimension for channels.
-            out_fft = torch.unsqueeze(input=out_fft, dim=0)
-            output[nn] = out_fft
+                """
+                Sum up the elements from computed output maps for each input 
+                channel. Each output map has as many channels as the number of 
+                filters. Each filter contributes one channel for the output map. 
+                """
+                # Sum the input channels.
+                out_fft = torch.sum(input=out_fft, dim=1)
+                # `unsqueeze` the dimension for channels.
+                out_fft = torch.unsqueeze(input=out_fft, dim=0)
+                output[nn] = out_fft
+
+                if bias is not None:
+                    # Add the bias term for each filter.
+                    # Bias has to be unsqueezed to the dimension of the
+                    # out to properly sum up the values.
+                    output[nn] += bias.unsqueeze(1)
+        else:
+            # Convolve some part of the input batch with all filters.
+            start = 0
+            # step = get_step_estimate(xfft, yfft, args)
+            step = 16
             if bias is not None:
-                # Add the bias term for each filter.
-                # Bias has to be unsqueezed to the dimension of the
-                # out to properly sum up the values.
-                output[nn] += bias.unsqueeze(1)
+                unsqueezed_bias = bias.unsqueeze(-1).unsqueeze(-1)
+            # For each slice of time-series in the batch.
+            for start in range(start, N, step):
+                stop = min(start + step, N)
+                # Take one time series and unsqueeze it for broadcasting with
+                # many filters.
+                xfft_nn = xfft[start:stop].unsqueeze(dim=1)
+                output[start:stop] = correlate_fft_signals(
+                    xfft=xfft_nn, yfft=yfft, fft_size=fft_size,
+                    is_debug=False).sum(dim=-3)
+                if bias is not None:
+                    # Add the bias term for each filter (it has to be unsqueezed to
+                    # the dimension of the out to properly sum up the values).
+                    output[start:stop] += unsqueezed_bias
 
         if is_debug:
             cuda_mem_show(info="compute output")

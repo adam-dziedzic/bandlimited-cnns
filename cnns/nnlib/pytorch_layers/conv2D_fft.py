@@ -317,14 +317,14 @@ class Conv2dfftFunction(torch.autograd.Function):
                     # the dimension of the out to properly sum up the values).
                     out[start:stop] += unsqueezed_bias
 
-            if (stride_H != 1 or stride_W != 1) and (
-                    stride_type is StrideType.STANDARD):
-                out = out[:, :, ::stride_H, ::stride_W]
+        if (stride_H != 1 or stride_W != 1) and (
+                stride_type is StrideType.STANDARD):
+            out = out[:, :, ::stride_H, ::stride_W]
 
-            print("out_size: ", out.size())
-            print("stride: ", stride)
-            print("W: ", W)
-            print("WW: ", WW)
+        print("out_size: ", out.size())
+        print("stride: ", stride)
+        print("W: ", W)
+        print("WW: ", WW)
 
         if ctx:
             ctx.save_for_backward(xfft, yfft, to_tensor(H), to_tensor(HH),
