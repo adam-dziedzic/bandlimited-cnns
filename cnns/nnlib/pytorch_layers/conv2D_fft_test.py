@@ -618,7 +618,8 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         print("expected result: ", expected_result)
 
-        conv = Conv2dfft(filter_value=y_torch, bias_value=b_torch)
+        conv = Conv2dfft(filter_value=y_torch, bias_value=b_torch,
+                         args=Arguments(memory_size=8))
         result_torch = conv.forward(input=x_torch)
 
         # ctx = MockContext()

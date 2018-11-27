@@ -731,27 +731,46 @@ class Conv1dfftFunction(torch.autograd.Function):
             dx = torch.zeros([N, C, W], dtype=dtype, device=device)
             conjugate_yfft = pytorch_conjugate(yfft)
             del yfft
-            for nn in range(N):
-                # Take one time series and unsqueeze it for broadcast with
-                # many gradients dout. We assign 1 to the input channel C.
-                # dout: (N, F, WWW)
-                # weight w: (F, C, WW)
-                # grad dx: (N, C, W)
-                # A single input map was convolved with many filters F.
-                # We choose a single output map dout[nn], and unsqueeze it for
-                # the input channel dimension 1. Then we sum up over all filter
-                # F, but also produce gradients for all the channels C.
-                doutfft_nn = doutfft[nn, :, :].unsqueeze(1)
-                out = correlate_fft_signals(
-                    xfft=doutfft_nn, yfft=conjugate_yfft,
-                    fft_size=fft_size)
-                start_index = 2 * filter_pad
-                # print("start index: ", start_index)
-                out = out[:, :, start_index: start_index + W]
-                # Sum over all the Filters (F).
-                out = torch.sum(out, dim=0)
-                out = torch.unsqueeze(input=out, dim=0)
-                dx[nn] = out
+            is_serial = False  # Serially convolve each input map with all filters.
+            if is_serial:
+                for nn in range(N):
+                    # Take one time series and unsqueeze it for broadcast with
+                    # many gradients dout. We assign 1 to the input channel C.
+                    # dout: (N, F, WWW)
+                    # weight w: (F, C, WW)
+                    # grad dx: (N, C, W)
+                    # A single input map was convolved with many filters F.
+                    # We choose a single output map dout[nn], and unsqueeze it for
+                    # the input channel dimension 1. Then we sum up over all filter
+                    # F, but also produce gradients for all the channels C.
+                    doutfft_nn = doutfft[nn, :, :].unsqueeze(1)
+                    out = correlate_fft_signals(
+                        xfft=doutfft_nn, yfft=conjugate_yfft,
+                        fft_size=fft_size)
+                    start_index = 2 * filter_pad
+                    # print("start index: ", start_index)
+                    out = out[:, :, start_index: start_index + W]
+                    # Sum over all the Filters (F).
+                    out = torch.sum(out, dim=0)
+                    out = torch.unsqueeze(input=out, dim=0)
+                    dx[nn] = out
+            else:
+                # Convolve some part of the dout batch with all filters.
+                start = 0
+                step = 16
+                # For each slice of time-series in the batch.
+                for start in range(start, N, step):
+                    stop = min(start + step, N)
+                    doutfft_nn = doutfft[start:stop].unsqueeze(dim=1)
+                    out = correlate_fft_signals(
+                        xfft=doutfft_nn, yfft=conjugate_yfft,
+                        fft_size=fft_size)
+                    start_index = 2 * filter_pad
+                    # print("start index: ", start_index)
+                    out = out[:, :, start_index: start_index + W]
+                    # Sum over all the Filters (F).
+                    out = torch.sum(out, dim=1)
+                    dx[start:stop] = out
 
             del conjugate_yfft
 

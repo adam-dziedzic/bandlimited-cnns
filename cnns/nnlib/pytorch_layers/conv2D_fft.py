@@ -295,6 +295,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                     out[nn] += bias.unsqueeze(-1).unsqueeze(-1)
         else:
             # Convolve some part of the input batch with all filters.
+            # print("backward pass with step")
             start = 0
             step = get_step_estimate(xfft, yfft, args)
             if bias is not None:
