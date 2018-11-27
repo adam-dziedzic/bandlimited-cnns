@@ -457,19 +457,26 @@ class Conv1dfftFunction(torch.autograd.Function):
             # step = get_step_estimate(xfft, yfft, args)
             step = 16
             if bias is not None:
-                unsqueezed_bias = bias.unsqueeze(-1).unsqueeze(-1)
+                unsqueezed_bias = bias.unsqueeze(-1)
             # For each slice of time-series in the batch.
             for start in range(start, N, step):
                 stop = min(start + step, N)
                 # Take one time series and unsqueeze it for broadcasting with
                 # many filters.
                 xfft_nn = xfft[start:stop].unsqueeze(dim=1)
-                output[start:stop] = correlate_fft_signals(
-                    xfft=xfft_nn, yfft=yfft, fft_size=fft_size,
-                    is_debug=False).sum(dim=-3)
+                out = correlate_fft_signals(
+                    xfft=xfft_nn, yfft=yfft, fft_size=fft_size)
+                if out.shape[-1] > out_W:
+                    # out_fft = out_fft[..., :out_W]
+                    out = out.narrow(dim=-1, start=0, length=out_W)
+                elif out.shape[-1] < out_W:
+                    out = torch_pad(out, (0, out_W - out.shape[-1]))
+                out = out.sum(dim=-2)  # sum over channels C
+                output[start:stop] = out
                 if bias is not None:
-                    # Add the bias term for each filter (it has to be unsqueezed to
-                    # the dimension of the out to properly sum up the values).
+                    # Add the bias term for each filter (it has to be unsqueezed
+                    # to the dimension of the output to properly sum up the
+                    # values).
                     output[start:stop] += unsqueezed_bias
 
         if is_debug:
