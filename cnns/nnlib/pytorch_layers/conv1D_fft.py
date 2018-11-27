@@ -40,6 +40,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
 # from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul
 from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import CompressType
+from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.general_utils import plot_signal_freq
 from cnns.nnlib.utils.general_utils import plot_signal_time
 
@@ -60,18 +61,16 @@ class Conv1dfftFunction(torch.autograd.Function):
 
     @staticmethod
     # @profile
-    def forward(ctx, x, filter, bias=None, padding=None, stride=None,
-                index_back=None, preserve_energy=None, out_size=None,
-                use_next_power2=False, is_manual=tensor([0]),
-                conv_index=None, is_debug=False,
-                compress_type=CompressType.STANDARD):
+    def forward(ctx, input, filter, bias=None, padding=0, stride=1,
+                args=None, out_size=None, is_manual=tensor([0]),
+                conv_index=None):
         """
         Compute the forward pass for the 1D convolution.
 
         :param ctx: context to save intermediate results, in other
         words, a context object that can be used to stash information
         for backward computation
-        :param x: the input map to the convolution (e.g. a time-series).
+        :param input: the input map to the convolution (e.g. a time-series).
 
         The other parameters are similar to the ones in the
         Conv2dfftAutograd class.
@@ -108,17 +107,36 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         # reverse which side of a signal is cut off: head or tail
         is_lead_reversed = False
+
+        if args is not None:
+            index_back = args.index_back
+            preserve_energy = args.preserve_energy
+            use_next_power2 = args.next_power2
+            is_debug = args.is_debug
+            compress_type = args.compress_type
+            stride_type = args.stride_type
+        else:
+            index_back = None
+            preserve_energy = None
+            use_next_power2 = False
+            is_debug = False
+            compress_type = CompressType.STANDARD
+            stride_type = StrideType.STANDARD
+
+        dtype = input.dtype
+        device = input.device
+
         if is_debug:
             print(f"execute forward pass 1D for layer index {conv_index}")
             data_point = 0
             data_channel = 0
-            x_signal = x[data_point, data_channel]
+            x_signal = input[data_point, data_channel]
             np_signal = x_signal.cpu().detach().numpy()
             print("np_signal: ", np_signal)
             plot_signal_time(np_signal,
                              title=f"data_point {data_point}, "
-                                   f"data_channel {data_channel},"
-                                   f" conv {conv_index} time domain",
+                             f"data_channel {data_channel},"
+                             f" conv {conv_index} time domain",
                              xlabel="Time")
             filter_bank = 0
             filter_channel = 0
@@ -127,13 +145,10 @@ class Conv1dfftFunction(torch.autograd.Function):
             print("np_filter: ", np_filter)
             plot_signal_time(np_filter,
                              title=f"filter bank {filter_bank}, "
-                                   f"filter channel {filter_channel},"
-                                   f" conv {conv_index} time domain",
+                             f"filter channel {filter_channel},"
+                             f" conv {conv_index} time domain",
                              xlabel="Time")
             cuda_mem_show(info="forward start")
-
-        device = x.device
-        dtype = x.dtype
 
         INPUT_ERROR = "Specify only one of: index_back, out_size, or " \
                       "preserve_energy"
@@ -149,7 +164,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         # N - number of input maps (or images in the batch),
         # C - number of input channels,
         # W - width of the input (the length of the time-series).
-        N, C, W = x.size()
+        N, C, W = input.size()
 
         # F - number of filters,
         # C - number of channels in each filter,
@@ -211,14 +226,14 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         left_x_pad = filter_pad + padding_count
         right_x_pad = padding_count + filter_pad + dout_pad + fft_padding_x
-        x = torch_pad(x, (left_x_pad, right_x_pad), 'constant', 0)
+        input = torch_pad(input, (left_x_pad, right_x_pad), 'constant', 0)
         if is_debug:
             cuda_mem_show(info="input pad")
 
         # fft of the input signals.
-        xfft = torch.rfft(x, signal_ndim=Conv1dfftFunction.signal_ndim,
+        xfft = torch.rfft(input, signal_ndim=Conv1dfftFunction.signal_ndim,
                           onesided=True)
-        del x
+        del input
 
         if is_debug:
             data_point = 0
@@ -229,8 +244,8 @@ class Conv1dfftFunction(torch.autograd.Function):
             print("data spectrum np: ", data_spectrum_np)
             plot_signal_freq(data_spectrum_np,
                              title=f"data_point {data_point}, "
-                                   f"data_channel {data_channel},"
-                                   f" conv {conv_index} spectral",
+                             f"data_channel {data_channel},"
+                             f" conv {conv_index} spectral",
                              xlabel="Frequency")
             cuda_mem_show(info="input fft")
 
@@ -320,8 +335,8 @@ class Conv1dfftFunction(torch.autograd.Function):
             print("filter_spectrum_np: ", filter_spectrum_np)
             plot_signal_freq(filter_spectrum_np,
                              title=f"filter bank {filter_bank}, "
-                                   f"filter channel {filter_channel},"
-                                   f" conv {conv_index} spectral",
+                             f"filter channel {filter_channel},"
+                             f" conv {conv_index} spectral",
                              xlabel="Frequency")
             cuda_mem_show(info="filter fft")
 
@@ -486,7 +501,8 @@ class Conv1dfftFunction(torch.autograd.Function):
         # convolution?
         # Add additional zeros in the places of the output that were removed
         # by striding.
-        if stride is not None and stride > 1:
+        if stride is not None and stride > 1 and (
+                stride_type is StrideType.STANDARD):
             output = output[:, :, 0::stride]
 
         if ctx:
@@ -549,8 +565,8 @@ class Conv1dfftFunction(torch.autograd.Function):
             print("np_dout: ", np_dout)
             plot_signal_time(np_dout,
                              title=f"dout_point {dout_point}, "
-                                   f"dout_channel {dout_channel},"
-                                   f" conv {conv_index} time domain",
+                             f"dout_channel {dout_channel},"
+                             f" conv {conv_index} time domain",
                              xlabel="Time")
             total_size = 0
             for tensor_obj in ctx.saved_tensors:
@@ -637,8 +653,8 @@ class Conv1dfftFunction(torch.autograd.Function):
             print("dout spectrum np: ", dout_spectrum_np)
             plot_signal_freq(dout_spectrum_np,
                              title=f"dout_point {dout_point}, "
-                                   f"dout_channel {dout_channel},"
-                                   f" conv {conv_index} spectral",
+                             f"dout_channel {dout_channel},"
+                             f" conv {conv_index} spectral",
                              xlabel="Frequency")
             cuda_mem_show(info="gradient fft", omit_objs=omit_objs)
 
@@ -810,12 +826,9 @@ class Conv1dfft(Module):
     """
 
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
-                 stride=None, padding=None, bias=True, index_back=None,
-                 out_size=None, filter_value=None, bias_value=None,
-                 use_next_power2=False, conv_index=None, preserve_energy=None,
-                 is_debug=False, compress_type=CompressType.STANDARD,
-                 is_manual=tensor([0]), dilation=0, groups=0,
-                 is_complex_pad=False, dtype=None):
+                 stride=1, padding=0, dilation=None, groups=None, bias=True,
+                 filter_value=None, bias_value=None, is_manual=tensor([0]),
+                 conv_index=None, args=None, out_size=None):
         """
         1D convolution using FFT implemented fully in PyTorch.
 
@@ -868,6 +881,23 @@ class Conv1dfft(Module):
         out how to run the backward pass for this strided FFT-based convolution.
         """
         super(Conv1dfft, self).__init__()
+
+        self.args = args
+
+        if args is None:
+            self.index_back = None
+            self.preserve_energy = None
+            self.is_debug = False
+            self.next_power2 = False
+            self.is_debug = False
+            self.compress_type = CompressType.STANDARD
+        else:
+            self.index_back = args.index_back
+            self.preserve_energy = args.preserve_energy
+            self.next_power2 = args.next_power2
+            self.is_debug = args.is_debug
+            self.compress_type = args.compress_type
+
         if dilation is not None and dilation > 1:
             raise NotImplementedError("dilation > 1 is not supported.")
         if groups is not None and groups > 1:
@@ -884,7 +914,7 @@ class Conv1dfft(Module):
                                  "filter.")
             self.filter = Parameter(
                 torch.randn(out_channels, in_channels, kernel_size,
-                            dtype=dtype))
+                            dtype=args.dtype))
         else:
             self.is_filter_value = True
             self.filter = filter_value
@@ -896,7 +926,8 @@ class Conv1dfft(Module):
         if bias_value is None:
             self.is_bias_value = False
             if bias is True:
-                self.bias = Parameter(torch.randn(out_channels, dtype=dtype))
+                self.bias = Parameter(
+                    torch.randn(out_channels, dtype=args.dtype))
             else:
                 self.register_parameter('bias', None)
                 self.bias = None
@@ -909,16 +940,10 @@ class Conv1dfft(Module):
         self.kernel_size = kernel_size
         self.stride = stride
         self.padding = padding
-        self.index_back = index_back
-        self.preserve_energy = preserve_energy
         self.out_size = out_size
-        self.use_next_power2 = use_next_power2
         self.stride = stride
         self.is_manual = is_manual
         self.conv_index = conv_index
-        self.is_complex_pad = is_complex_pad
-        self.is_debug = is_debug
-        self.compress_type = compress_type
 
         self.reset_parameters()
 
@@ -942,9 +967,7 @@ class Conv1dfft(Module):
         """
         return Conv1dfftFunction.apply(
             input, self.filter, self.bias, self.padding, self.stride,
-            self.index_back, self.preserve_energy, self.out_size,
-            self.use_next_power2, self.is_manual,
-            self.conv_index, self.is_debug, self.compress_type)
+            self.args, self.out_size, self.is_manual, self.conv_index)
 
 
 class Conv1dfftAutograd(Conv1dfft):
@@ -1022,7 +1045,7 @@ class Conv1dfftAutograd(Conv1dfft):
         ... np.array([[expected_result]]))
         """
         return Conv1dfftFunction.forward(
-            ctx=None, x=input, filter=self.filter, bias=self.bias,
+            ctx=None, input=input, filter=self.filter, bias=self.bias,
             padding=self.padding, stride=self.stride,
             index_back=self.index_back, preserve_energy=self.preserve_energy,
             out_size=self.out_size, use_next_power2=self.use_next_power2,

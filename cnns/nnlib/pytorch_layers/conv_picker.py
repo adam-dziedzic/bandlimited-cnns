@@ -73,14 +73,9 @@ class Conv(object):
                              stride=self.strides[index],
                              kernel_size=self.kernel_sizes[index],
                              padding=self.padding[index],
-                             index_back=index_back,
-                             use_next_power2=self.next_power2,
                              conv_index=index,
-                             preserve_energy=self.preserve_energy,
-                             is_debug=self.is_debug,
-                             compress_type=self.compress_type,
-                             dtype=self.dtype,
-                             bias=self.is_bias)
+                             bias=self.is_bias,
+                             args=self.args)
         elif self.conv_type is ConvType.FFT2D:
             return Conv2dfft(in_channels=in_channels,
                              out_channels=self.out_channels[index],

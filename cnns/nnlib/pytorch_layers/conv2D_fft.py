@@ -96,7 +96,7 @@ class Conv2dfftFunction(torch.autograd.Function):
 
         :return: the result of convolution.
         """
-        print("input size: ", input.size())
+        # print("input size: ", input.size())
         if args is not None:
             index_back = args.index_back
             preserve_energy = args.preserve_energy
