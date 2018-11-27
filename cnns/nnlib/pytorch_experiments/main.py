@@ -854,6 +854,41 @@ if __name__ == '__main__':
                  'Worms',
                  'WormsTwoClass',
                  'yoga']
+    elif args.dataset == "debug6":
+        flist = ['OliveOil',
+                 'SwedishLeaf',
+                 'Symbols',
+                 'synthetic_control',
+                 'ToeSegmentation1',
+                 'ToeSegmentation2',
+                 'Worms',
+                 'WormsTwoClass',
+                 'yoga',
+                 'Trace',
+                 'Two_Patterns',
+                 'TwoLeadECG',
+                 'uWaveGestureLibrary_X',
+                 'uWaveGestureLibrary_Y',
+                 'uWaveGestureLibrary_Z',
+                 'UWaveGestureLibraryAll',
+                 'wafer',
+                 'ShapeletSim',
+                 'ShapesAll',
+                 'SmallKitchenAppliances',
+                 'SonyAIBORobotSurface',
+                 'SonyAIBORobotSurfaceII',
+                 'StarLightCurves',
+                 'Strawberry',
+                 'OSULeaf',
+                 'PhalangesOutlinesCorrect',
+                 'Phoneme',
+                 'Plane',
+                 'ProximalPhalanxOutlineAgeGroup',
+                 'ProximalPhalanxOutlineCorrect',
+                 'ProximalPhalanxTW',
+                 'RefrigerationDevices',
+                 'ScreenType'
+                 ]
     else:
         raise AttributeError("Unknown dataset: ", args.dataset)
 
