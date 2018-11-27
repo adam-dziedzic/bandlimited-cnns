@@ -29,19 +29,21 @@ class Arguments(object):
 
     def __init__(self,
                  is_debug=False,
-                 network_type=NetworkType.ResNet18,
-                 # network_type=NetworkType.FCNN_STANDARD,
+                 # network_type=NetworkType.ResNet18,
+                 network_type=NetworkType.FCNN_STANDARD,
                  preserve_energy=100,
                  preserved_energies=[100],
+                 tensor_type=TensorType.FLOAT32,
                  dtype=torch.float,
                  use_cuda=True,
                  compress_type=CompressType.STANDARD,
                  index_back=0,
-                 weight_decay=5e-4,
+                 # weight_decay=5e-4,
+                 weight_decay=0,
                  epochs=1,
-                 min_batch_size=128,
-                 test_batch_size=100,
-                 learning_rate=0.1,
+                 min_batch_size=16,
+                 test_batch_size=16,
+                 learning_rate=0.001,
                  momentum=0.9,
                  seed=31,
                  log_interval=1,
@@ -52,17 +54,17 @@ class Arguments(object):
                  memory_type=MemoryType.STANDARD,
                  workers=6,
                  model_path="no_model",
-                 dataset="cifar10",
-                 # dataset="ucr",
+                 # dataset="cifar10",
+                 dataset="ucr",
                  mem_test=False,
                  is_data_augmentation=True,
                  sample_count_limit=1024,
-                 conv_type=ConvType.FFT2D,
+                 # conv_type=ConvType.FFT2D,
                  # conv_type=ConvType.FFT1D,
+                 conv_type=ConvType.STANDARD,
                  visualize=False,
                  static_loss_scale=1,
                  out_size=None,
-                 tensor_type=TensorType.FLOAT32,
                  next_power2=False,
                  dynamic_loss_scale=True,
                  memory_size=25,
@@ -70,7 +72,9 @@ class Arguments(object):
                  stride_type=StrideType.STANDARD,
                  # is_dev_dataset = True,
                  is_dev_dataset=False,
-                 dev_percent = 30
+                 dev_percent = 30,
+                 adam_beta1=0.9,
+                 adam_beta2=0.999
                  ):
         """
         The default parameters for the execution of the program.
@@ -163,6 +167,8 @@ class Arguments(object):
         self.stride_type=stride_type
         self.is_dev_dataset = is_dev_dataset
         self.dev_percent = dev_percent
+        self.adam_beta1 = adam_beta1
+        self.adam_beta2 = adam_beta2
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False

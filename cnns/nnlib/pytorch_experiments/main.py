@@ -237,6 +237,14 @@ parser.add_argument("--dev_percent", default=args.dev_percent,
                     help="percent of train set used as the development set"
                          " (range from 0 to 100), 0 - it is inactive,"
                          " default: {args.dev_percent}")
+parser.add_argument("--adam_beta1", default=args.adam_beta1,
+                    type=float,
+                    help="beta1 value for the ADAM optimizer, default: "
+                         "{args.adam_beta1}")
+parser.add_argument("--adam_beta2", default=args.adam_beta2,
+                    type=int,
+                    help="beta2 value for the ADAM optimizer, default: "
+                         "{args.adam_beta1}")
 
 parsed_args = parser.parse_args()
 args.set_parsed_args(parsed_args=parsed_args)
@@ -559,7 +567,9 @@ def main(args):
     elif optimizer_type is OptimizerType.ADAM_FLOAT16:
         optimizer = AdamFloat16(params, lr=args.learning_rate, eps=eps)
     elif optimizer_type is OptimizerType.ADAM:
-        optimizer = optim.Adam(params, lr=args.learning_rate, eps=eps)
+        optimizer = optim.Adam(params, lr=args.learning_rate,
+                               betas=(args.adam_beta1, args.adam_beta2),
+                               weight_decay=args.weight_decay, eps=eps)
     else:
         raise Exception(f"Unknown optimizer type: {optimizer_type.name}")
 
