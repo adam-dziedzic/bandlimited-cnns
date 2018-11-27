@@ -455,7 +455,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             # Convolve some part of the input batch with all filters.
             start = 0
             # step = get_step_estimate(xfft, yfft, args)
-            step = 16
+            step = 8
             if bias is not None:
                 unsqueezed_bias = bias.unsqueeze(-1)
             # For each slice of time-series in the batch.
