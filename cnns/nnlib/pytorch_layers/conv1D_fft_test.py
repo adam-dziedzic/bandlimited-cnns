@@ -994,7 +994,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         expected_dx, expected_dw, expected_db = \
             conv_backward_naive_1D(dout.numpy(), cache)
 
-        dx, dw, db, _, _, _, _, _, _, _, _, _, _, _ = Conv1dfftFunction.backward(
+        dx, dw, db, _, _, _, _, _, _ = Conv1dfftFunction.backward(
             ctx,
             dout)
 
@@ -1037,7 +1037,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         print("expected_dw: ", expected_dw)
         print("expected_db: ", expected_db)
 
-        dx, dw, db, _, _, _, _, _, _, _, _, _, _, _ = Conv1dfftFunction.backward(
+        dx, dw, db, _, _, _, _, _, _ = Conv1dfftFunction.backward(
             ctx, dout)
 
         # are the gradients correct
@@ -1078,7 +1078,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         print("expected_dw: ", expected_dw)
         print("expected_db: ", expected_db)
 
-        dx, dw, db, _, _, _, _, _, _, _, _, _, _, _ = Conv1dfftFunction.backward(
+        dx, dw, db, _, _, _, _, _, _  = Conv1dfftFunction.backward(
             ctx,
             dout)
 
@@ -1280,7 +1280,7 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         # 1 index back
         conv_fft = Conv1dfft(filter_value=y_torch, bias_value=b_torch,
-                             args=Arguments(index_back=1))
+                             args=Arguments(index_back=1, preserve_energy=None))
         result_torch = conv_fft.forward(input=x_torch)
 
         result = result_torch.detach().numpy()
@@ -1405,7 +1405,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         expected_result = [3.666667, 7.333333]
         conv = Conv1dfft(
             filter_value=torch.from_numpy(y), bias_value=torch.from_numpy(b),
-            args=Arguments(index_back=1))
+            args=Arguments(index_back=1, preserve_energy=None))
         result = conv.forward(input=torch.from_numpy(x))
         np.testing.assert_array_almost_equal(
             result, np.array([[expected_result]]))
@@ -1417,7 +1417,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         num_data_points = 11
         num_values_data = 21
         num_values_filter = 5
-        num_filters = 3
+        num_filters = 6
         # Input signal: 5 data points, 3 channels, 10 values.
         x = np.random.rand(num_data_points, num_channels, num_values_data)
         # Filters: 3 filters, 3 channels, 4 values.
@@ -1428,7 +1428,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         conv_param = {'pad': 0, 'stride': 1}
         expected_result, _ = conv_forward_naive_1D(x=x, w=y, b=b,
                                                    conv_param=conv_param)
-        self.logger.debug("expected result: " + str(expected_result))
+        # self.logger.debug("expected result: " + str(expected_result))
 
         dtype = torch.float
         x_torch = tensor(x, requires_grad=True, dtype=dtype)
@@ -1437,7 +1437,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         conv = Conv1dfft(filter_value=y_torch, bias_value=b_torch)
         result_torch = conv.forward(input=x_torch)
         result = result_torch.detach().numpy()
-        self.logger.debug("obtained result: " + str(result))
+        # self.logger.debug("obtained result: " + str(result))
         np.testing.assert_array_almost_equal(result, np.array(expected_result))
 
         conv_param = {'pad': 0, 'stride': 1}

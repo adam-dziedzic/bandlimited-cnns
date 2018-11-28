@@ -245,6 +245,12 @@ parser.add_argument("--adam_beta2", default=args.adam_beta2,
                     type=int,
                     help="beta2 value for the ADAM optimizer, default: "
                          "{args.adam_beta1}")
+parser.add_argument("--is_serial_conv",
+                    default="TRUE" if args.is_serial_conv else "FALSE",
+                    help="is each data point convolved separately with all the "
+                         "filters, all a batch of datapoint is convolved with "
+                         "all filters in one go, choose options from: "
+                         "" + ",".join(Bool.get_names()))
 
 parsed_args = parser.parse_args()
 args.set_parsed_args(parsed_args=parsed_args)

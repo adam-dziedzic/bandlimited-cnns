@@ -37,7 +37,7 @@ class Arguments(object):
                  dtype=torch.float,
                  use_cuda=True,
                  compress_type=CompressType.STANDARD,
-                 index_back=0,
+                 index_back=None,
                  # weight_decay=5e-4,
                  weight_decay=0,
                  epochs=1,
@@ -60,8 +60,8 @@ class Arguments(object):
                  is_data_augmentation=True,
                  sample_count_limit=1024,
                  # conv_type=ConvType.FFT2D,
-                 # conv_type=ConvType.FFT1D,
-                 conv_type=ConvType.STANDARD,
+                 conv_type=ConvType.FFT1D,
+                 # conv_type=ConvType.STANDARD,
                  visualize=False,
                  static_loss_scale=1,
                  out_size=None,
@@ -74,7 +74,8 @@ class Arguments(object):
                  is_dev_dataset=False,
                  dev_percent = 30,
                  adam_beta1=0.9,
-                 adam_beta2=0.999
+                 adam_beta2=0.999,
+                 is_serial_conv=False
                  ):
         """
         The default parameters for the execution of the program.
@@ -104,6 +105,9 @@ class Arguments(object):
         during training and testing of the model.
         :param is_dev_set: is the dev dataset used (extracted from the trina set)
         :param dev_percent: % of data used from the train set as the dev set
+        :param is_serial_conv: is the convolution exeucted as going serially
+        through all data points, and convolving separately each data point with
+        all filters all a few datapoints with all filters in one go
         """
         super(Arguments).__init__()
         self.__counter__ = 0
@@ -169,6 +173,7 @@ class Arguments(object):
         self.dev_percent = dev_percent
         self.adam_beta1 = adam_beta1
         self.adam_beta2 = adam_beta2
+        self.is_serial_conv = is_serial_conv
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False
@@ -200,6 +205,7 @@ class Arguments(object):
         self.is_progress_bar = self.get_bool(parsed_args.is_progress_bar)
         self.is_data_augmentation = self.get_bool(parsed_args.is_data_augmentation)
         self.is_dev_dataset = self.get_bool(parsed_args.is_dev_dataset)
+        self.is_serial_conv = self.get_bool(parsed_args.is_serial_conv)
         self.mem_test = self.get_bool(parsed_args.mem_test)
         self.use_cuda = self.get_bool(parsed_args.use_cuda) and torch.cuda.is_available()
 

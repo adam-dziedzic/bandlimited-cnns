@@ -34,6 +34,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import retain_big_coef_bulk
 from cnns.nnlib.pytorch_layers.pytorch_utils import retain_low_coef
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_elem_size
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_tensors
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_step_estimate
 from cnns.nnlib.pytorch_layers.pytorch_utils import cuda_mem_empty
 from cnns.nnlib.pytorch_layers.pytorch_utils import cuda_mem_show
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
@@ -436,8 +437,8 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         output = torch.zeros([N, F, out_W], dtype=dtype, device=device)
 
-        is_serial = False  # Serially convolve each input map with all filters.
-        if is_serial:
+        if args.is_serial_conv:
+            # Serially convolve each input map with all filters.
             for nn in range(N):  # For each time-series in the batch.
                 # Take one time series and un-squeeze it for broadcasting with
                 # many filters.
@@ -470,8 +471,8 @@ class Conv1dfftFunction(torch.autograd.Function):
         else:
             # Convolve some part of the input batch with all filters.
             start = 0
-            # step = get_step_estimate(xfft, yfft, args)
-            step = 8
+            step = get_step_estimate(xfft, yfft, args.memory_size)
+            # step = 8
             if bias is not None:
                 unsqueezed_bias = bias.unsqueeze(-1)
             # For each slice of time-series in the batch.
@@ -482,6 +483,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                 xfft_nn = xfft[start:stop].unsqueeze(dim=1)
                 out = correlate_fft_signals(
                     xfft=xfft_nn, yfft=yfft, fft_size=fft_size)
+                del xfft_nn
                 if out.shape[-1] > out_W:
                     # out_fft = out_fft[..., :out_W]
                     out = out.narrow(dim=-1, start=0, length=out_W)
@@ -489,6 +491,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                     out = torch_pad(out, (0, out_W - out.shape[-1]))
                 out = out.sum(dim=-2)  # sum over channels C
                 output[start:stop] = out
+                del out
                 if bias is not None:
                     # Add the bias term for each filter (it has to be unsqueezed
                     # to the dimension of the output to properly sum up the
@@ -513,7 +516,9 @@ class Conv1dfftFunction(torch.autograd.Function):
                                   to_tensor(compress_type.value),
                                   to_tensor(is_debug),
                                   to_tensor(preserve_energy),
-                                  to_tensor(index_back_fft))
+                                  to_tensor(index_back_fft),
+                                  to_tensor(args.is_serial_conv),
+                                  to_tensor(args.memory_size))
 
         # print("context type: ", type(ctx))
         # tensors = get_tensors(only_cuda=False, is_debug=True)
@@ -547,16 +552,19 @@ class Conv1dfftFunction(torch.autograd.Function):
         :param dout: output gradient
         :return: gradients for input map x, filter w and bias b
         """
-
-        xfft, yfft, W, WW, fft_size, is_manual, conv_index, compress_type, is_debug, preserve_energy, index_back_fft = ctx.saved_tensors
+        print("manual backward pass")
+        xfft, yfft, W, WW, fft_size, is_manual, conv_index, compress_type, is_debug, preserve_energy, index_back_fft, is_serial_conv, memory_size = ctx.saved_tensors
         need_input_grad = ctx.needs_input_grad[0]
         need_filter_grad = ctx.needs_input_grad[1]
         need_bias_grad = ctx.needs_input_grad[2]
         for tensor_obj in ctx.saved_tensors:
             del tensor_obj
         omit_objs = [id(ctx)]
+
         conv_index = from_tensor(conv_index)  # for the debug/test purposes
 
+        is_debug = from_tensor(is_debug)
+        is_debug = True if is_debug == 1 else False
         if is_debug:
             print("Conv layer index: ", conv_index)
             dout_point = 0
@@ -585,9 +593,11 @@ class Conv1dfftFunction(torch.autograd.Function):
         fft_size = from_tensor(fft_size)
         # is_manual is already a tensor.
         compress_type = CompressType(from_tensor(compress_type))
-        is_debug = True if is_debug == 1 else False
         preserve_energy = from_tensor(preserve_energy)
         index_back_fft = from_tensor(index_back_fft)
+        is_serial_conv = from_tensor(is_serial_conv)
+        is_serial_conv = True if is_serial_conv == 1 else False
+        memory_size = from_tensor(memory_size)
 
         if is_debug:
             print("execute backward pass 1D")
@@ -732,8 +742,8 @@ class Conv1dfftFunction(torch.autograd.Function):
             dx = torch.zeros([N, C, W], dtype=dtype, device=device)
             conjugate_yfft = pytorch_conjugate(yfft)
             del yfft
-            is_serial = False  # Serially convolve each input map with all filters.
-            if is_serial:
+            if is_serial_conv:
+                # Serially convolve each input map with all filters.
                 for nn in range(N):
                     # Take one time series and unsqueeze it for broadcast with
                     # many gradients dout. We assign 1 to the input channel C.
@@ -758,19 +768,25 @@ class Conv1dfftFunction(torch.autograd.Function):
             else:
                 # Convolve some part of the dout batch with all filters.
                 start = 0
-                step = 16
+                # step = 16
+                step = get_step_estimate(doutfft, conjugate_yfft, memory_size)
+                doutfft.unsqueeze_(dim=2)
                 # For each slice of time-series in the batch.
                 for start in range(start, N, step):
                     stop = min(start + step, N)
-                    doutfft_nn = doutfft[start:stop].unsqueeze(dim=1)
+                    doutfft_nn = doutfft[start:stop]
+                    # print("doutfft_nn size: ", doutfft_nn.size())
+                    # print("conjugateyfft size: ", conjugate_yfft.size())
                     out = correlate_fft_signals(
                         xfft=doutfft_nn, yfft=conjugate_yfft,
                         fft_size=fft_size)
                     start_index = 2 * filter_pad
                     # print("start index: ", start_index)
-                    out = out[:, :, start_index: start_index + W]
+                    out = out[..., start_index: start_index + W]
+                    # print("out size: ", out.size())
                     # Sum over all the Filters (F).
                     out = torch.sum(out, dim=1)
+                    # print("out after sum size: ", out.size())
                     dx[start:stop] = out
 
             del conjugate_yfft
@@ -809,24 +825,49 @@ class Conv1dfftFunction(torch.autograd.Function):
             flowing back gradient dout and the input x:
             gradient L / gradient w = [x1, x2, x3, x4] * [dx1, dx2, dx3]
             """
-            for ff in range(F):
-                # Gather all the contributions to the output that were caused
-                # by a given filter.
-                doutfft_ff = doutfft[:, ff, :].unsqueeze(1)
-                out = correlate_fft_signals(
-                    xfft=xfft, yfft=doutfft_ff, fft_size=fft_size,
-                    signal_ndim=Conv1dfftFunction.signal_ndim)
-                out = out[:, :, :WW]
-                # For a given filter, we have to sum up all its contributions
-                # to all the input maps.
-                out = torch.sum(input=out, dim=0)
-                # `unsqueeze` the dimension 0 for the input data points (N).
-                out = torch.unsqueeze(input=out, dim=0)
-                # print("conv name: {}, out shape: {}, dw shape: {}, N: {}, C: {}, F: {}".format(
-                #     "conv"+str(conv_index), out.size(), dw.size(), str(N),
-                #     str(C), str(F)))
-                dw[ff] = out
+            if is_serial_conv:
+                for ff in range(F):
+                    # Gather all the contributions to the output that were caused
+                    # by a given filter.
+                    doutfft_ff = doutfft[:, ff, :].unsqueeze(1)
+                    out = correlate_fft_signals(
+                        xfft=xfft, yfft=doutfft_ff, fft_size=fft_size,
+                        signal_ndim=Conv1dfftFunction.signal_ndim)
+                    out = out[:, :, :WW]
+                    # For a given filter, we have to sum up all its contributions
+                    # to all the input maps.
+                    out = torch.sum(input=out, dim=0)
+                    # `unsqueeze` the dimension 0 for the input data points (N).
+                    out = torch.unsqueeze(input=out, dim=0)
+                    # print("conv name: {}, out shape: {}, dw shape: {}, N: {}, C: {}, F: {}".format(
+                    #     "conv"+str(conv_index), out.size(), dw.size(), str(N),
+                    #     str(C), str(F)))
+                    dw[ff] = out
+            else:
+                # Convolve some part of the dout batch with all input maps.
+                start = 0
+                # step = 16
+                step = get_step_estimate(xfft, doutfft, memory_size=memory_size)
+                # print("doutfft size: ", doutfft.size())
+                if len(doutfft.shape) == 4:  # we did not need grad for input
+                    doutfft.unsqueeze_(dim=2)
+                doutfft = doutfft.permute(1, 0, 2, 3, 4)
 
+                for start in range(start, F, step):
+                    stop = min(start + step, F)
+                    # doutfft_ff has as many channels as number of input filters.
+                    doutfft_ff = doutfft[start:stop]
+                    # print("doutfft_ff size: ", doutfft_ff.size())
+                    # print("xfft size: ", xfft.size())
+                    out = correlate_fft_signals(
+                        xfft=xfft, yfft=doutfft_ff, fft_size=fft_size,
+                        signal_ndim=Conv1dfftFunction.signal_ndim)
+                    out = out[..., :WW]
+                    # print("out size: ", out.size())
+                    # For a given filter, we have to sum up all its contributions
+                    # to all the input maps.
+                    out = out.sum(dim=1)
+                    dw[start:stop] = out
             del xfft
 
             if is_debug:
@@ -836,8 +877,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         if is_debug:
             cuda_mem_show(info="backward end", omit_objs=omit_objs)
 
-        return dx, dw, db, None, None, None, None, None, None, None, None, \
-               None, None, None
+        return dx, dw, db, None, None, None, None, None, None
 
 
 class Conv1dfft(Module):

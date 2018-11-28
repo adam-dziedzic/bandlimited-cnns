@@ -19,6 +19,30 @@ from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.arguments import Arguments
 
+"""
+Results:
+Testing started at 10:03 PM ...
+ssh://ady@skr-compute1:22/home/ady/anaconda3/bin/python3.6 -u /home/ady/.pycharm_helpers/pycharm/_jb_unittest_runner.py --target conv2D_fft_benchmark.TestBenchmarkConv2d.test_mem_usage
+Launching unittests with arguments python -m unittest conv2D_fft_benchmark.TestBenchmarkConv2d.test_mem_usage in /local/code/time-series-ml/cnns/nnlib/pytorch_layers
+2018-11-27 22:03:53,779 - root - INFO - set_up_logging(19)- started logging to: conv2D_benchmark.log
+2018-11-27 22:03:53,779 - conv2D_fft_benchmark - INFO - setUp(31)- Set up test
+device used:  cuda
+convStandard time:  0.0043790340423583984
+fft_forward_time:  0.00822305679321289
+backward pass with step
+create tensor time:  0.00011348724365234375
+correlation time:  0.0046923160552978516
+irfft time:  0.012486696243286133
+convFFT time:  0.028664827346801758
+Pytorch speedup is: 6.545924756356509 X
+
+
+Ran 1 test in 4.760s
+
+OK
+Process finished with exit code 0
+"""
+
 
 class TestBenchmarkConv2d(unittest.TestCase):
 
@@ -30,29 +54,76 @@ class TestBenchmarkConv2d(unittest.TestCase):
         self.logger.setLevel(logging.DEBUG)
         self.logger.info("Set up test")
 
-    def test_mem_usage(self):
+    def test_mem_usage_forward(self):
         dtype=torch.float
         if torch.cuda.is_available():
             device = torch.device("cuda")
         else:
             device = torch.device("cpu")
         print("device used: ", str(device))
-        N, C, H, W = 128, 128, 32, 32
-        K, HH, WW = 128, 3, 3
+        N, C, H, W = 128, 16, 32, 32
+        K, HH, WW = 16, 3, 3
         x = torch.randn(N, C, H, W, dtype=dtype, device=device)
         y = torch.randn(K, C, HH, WW, dtype=dtype, device=device)
 
         start = time.time()
-        convStandard = torch.nn.functional.conv2d(input=x, weight=y, stride=2)
-        print("convStandard time: ", time.time() - start)
+        convStandard = torch.nn.functional.conv2d(input=x, weight=y, stride=1)
+        convStandardTime = time.time() - start
+        print("convStandard time: ", convStandardTime)
 
         conv = Conv2dfftFunction()
         start = time.time()
-        convFFT = conv.forward(ctx=None, input=x, filter=y, stride=2,
+        convFFT = conv.forward(ctx=None, input=x, filter=y, stride=1,
                               args=Arguments(stride_type=StrideType.STANDARD))
-        print("convFFT time: ", time.time() - start)
+        convFFTtime = time.time() - start
+        print("convFFT time: ", convFFTtime)
+        speedup = convFFTtime / convStandardTime
+        print(f"Pytorch speedup is: {speedup} X")
 
         np.testing.assert_array_almost_equal(
             x=convStandard.cpu().detach().numpy(),
-            y=convFFT.cpu().detach().numpy(), decimal=4,
+            y=convFFT.cpu().detach().numpy(), decimal=3,
             err_msg="The expected array x and computed y are not almost equal.")
+
+    def test_forward_backward(self):
+        dtype=torch.float
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
+        print("device used: ", str(device))
+        N, C, H, W = 128, 16, 32, 32
+        K, HH, WW = 16, 3, 3
+        x = torch.randn(N, C, H, W, dtype=dtype, device=device,
+                        requires_grad=True)
+        x_expect = x.clone().detach().requires_grad_(True)
+        y = torch.randn(K, C, HH, WW, dtype=dtype, device=device,
+                        requires_grad=True)
+        y_expect = y.clone().detach().requires_grad_(True)
+        start = time.time()
+        convStandard = torch.nn.functional.conv2d(input=x_expect,
+                                                  weight=y_expect, stride=1)
+        convStandardTime = time.time() - start
+        print("convStandard time: ", convStandardTime)
+
+        conv = Conv2dfftFunction()
+        start = time.time()
+        convFFT = conv.forward(ctx=None, input=x, filter=y, stride=1,
+                              args=Arguments(stride_type=StrideType.STANDARD))
+        convFFTtime = time.time() - start
+        print("convFFT time: ", convFFTtime)
+        speedup = convFFTtime / convStandardTime
+        print(f"Pytorch speedup is: {speedup} X")
+
+        np.testing.assert_array_almost_equal(
+            x=convStandard.cpu().detach().numpy(),
+            y=convFFT.cpu().detach().numpy(), decimal=3,
+            err_msg="The expected array x and computed y are not almost equal.")
+
+        dout = torch.randn(list(convStandard.size()), device=device)
+
+        standard_back_time = time.time()
+        convStandard.bacward(dout)
+        print("standard back time: ", time.time() - standard_back_time)
+
+

@@ -22,6 +22,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import get_pair
 from cnns.nnlib.pytorch_layers.pytorch_utils import next_power2
 from cnns.nnlib.pytorch_layers.pytorch_utils import preserve_energy2D_symmetry
 from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate
+from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul
 from cnns.nnlib.pytorch_layers.pytorch_utils import to_tensor
 from cnns.nnlib.pytorch_layers.pytorch_utils import compress_2D_odd
 from cnns.nnlib.pytorch_layers.pytorch_utils import compress_2D_odd_index_back
@@ -228,6 +229,7 @@ class Conv2dfftFunction(torch.autograd.Function):
             'constant', 0)
         del filter
 
+        fft_forward_time = time.time()
         # fft of the input and filters
         xfft = torch.rfft(padded_x, signal_ndim=Conv2dfftFunction.signal_ndim,
                           onesided=True)
@@ -237,6 +239,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                           signal_ndim=Conv2dfftFunction.signal_ndim,
                           onesided=True)
         del padded_filter
+        print("fft_forward_time: ", time.time() - fft_forward_time)
 
         # The last dimension (-1) has size 2 as it represents the complex
         # numbers with real and imaginary parts. The last but one dimension (-2)
@@ -275,10 +278,10 @@ class Conv2dfftFunction(torch.autograd.Function):
                 xfft = compress_2D_odd_index_back(xfft, index_back_W_fft)
                 yfft = compress_2D_odd_index_back(yfft, index_back_W_fft)
 
-        out = torch.zeros([N, F, out_H, out_W], dtype=dtype, device=device)
-
-        is_serial = False  # Serially convolve each input map with all filters.
-        if is_serial:
+        start_correlation = time.time()
+        if args.is_serial_conv:
+            # Serially convolve each input map with all filters.
+            out = torch.zeros([N, F, out_H, out_W], dtype=dtype, device=device)
             for nn in range(N):  # For each time-series in the batch.
                 # Take one time series and unsqueeze it for broadcasting with
                 # many filters.
@@ -295,37 +298,44 @@ class Conv2dfftFunction(torch.autograd.Function):
                     out[nn] += bias.unsqueeze(-1).unsqueeze(-1)
         else:
             # Convolve some part of the input batch with all filters.
-            # print("backward pass with step")
+            print("backward pass with step")
+            # 2 is for complex numbers
+            create_tensor_time = time.time()
+            outfft = torch.zeros([N, F, init_fft_H, init_half_fft_W, 2],
+                                 dtype=dtype, device=device)
+            print("create tensor time: ", time.time() - create_tensor_time)
             start = 0
-            step = get_step_estimate(xfft, yfft, args)
+            # step = get_step_estimate(xfft, yfft, args.memory_size, scale=1)
+            step = 128
             if bias is not None:
                 unsqueezed_bias = bias.unsqueeze(-1).unsqueeze(-1)
             # For each slice of time-series in the batch.
+            global_correlation_time = 0
+            conjugate_yfft = pytorch_conjugate(yfft)
+            start_correlation_time = time.time()
             for start in range(start, N, step):
                 stop = min(start + step, N)
                 # Take one time series and unsqueeze it for broadcasting with
                 # many filters.
                 xfft_nn = xfft[start:stop].unsqueeze(dim=1)
-                out[start:stop] = correlate_fft_signals2D(
-                    xfft=xfft_nn, yfft=yfft,
-                    input_height=init_fft_H, input_width=init_fft_W,
-                    init_fft_height=init_fft_H,
-                    init_half_fft_width=init_half_fft_W,
-                    out_height=out_H, out_width=out_W, is_forward=False).sum(
-                    dim=-3)
-                if bias is not None:
-                    # Add the bias term for each filter (it has to be unsqueezed to
-                    # the dimension of the out to properly sum up the values).
-                    out[start:stop] += unsqueezed_bias
+                outfft[start:stop] = complex_mul(xfft_nn, conjugate_yfft).sum(dim=2)
+            print("correlation time: ", time.time() - start_correlation_time)
+            start_irfft_time = time.time()
+            out = torch.irfft(input=outfft,
+                              signal_ndim=Conv2dfftFunction.signal_ndim,
+                              signal_sizes=(init_fft_H, init_fft_W),
+                              onesided=True)
+            del outfft
+            print("irfft time: ", time.time() - start_irfft_time)
+            out = out[..., :out_H, :out_W]
+            if bias is not None:
+                # Add the bias term for each filter (it has to be unsqueezed to
+                # the dimension of the out to properly sum up the values).
+                out[start:stop] += unsqueezed_bias
 
         if (stride_H != 1 or stride_W != 1) and (
                 stride_type is StrideType.STANDARD):
             out = out[:, :, ::stride_H, ::stride_W]
-
-        print("out_size: ", out.size())
-        print("stride: ", stride)
-        print("W: ", W)
-        print("WW: ", WW)
 
         if ctx:
             ctx.save_for_backward(xfft, yfft, to_tensor(H), to_tensor(HH),
@@ -339,7 +349,8 @@ class Conv2dfftFunction(torch.autograd.Function):
                                   to_tensor(index_back_H_fft),
                                   to_tensor(index_back_W_fft),
                                   to_tensor(stride_H),
-                                  to_tensor(stride_type.value)
+                                  to_tensor(stride_type.value),
+                                  to_tensor(args.memory_size)
                                   )
 
         return out
@@ -368,7 +379,7 @@ class Conv2dfftFunction(torch.autograd.Function):
         """
         # logger.debug("execute backward")
 
-        xfft, yfft, H, HH, W, WW, init_fft_H, init_fft_W, is_manual, conv_index, compress_type, is_debug, preserve_energy, index_back_H_fft, index_back_W_fft, stride, stride_type = ctx.saved_tensors
+        xfft, yfft, H, HH, W, WW, init_fft_H, init_fft_W, is_manual, conv_index, compress_type, is_debug, preserve_energy, index_back_H_fft, index_back_W_fft, stride, stride_type, memory_size = ctx.saved_tensors
 
         is_debug = True if is_debug == 1 else False
         if is_debug:
@@ -403,6 +414,7 @@ class Conv2dfftFunction(torch.autograd.Function):
         index_back_W_fft = from_tensor(index_back_W_fft)
         stride = from_tensor(stride)
         stride_type = StrideType(from_tensor(stride_type))
+        memory_size = from_tensor(memory_size)
 
         if (stride is not None and stride > 1) and (
                 stride_type is StrideType.STANDARD):
@@ -491,7 +503,8 @@ class Conv2dfftFunction(torch.autograd.Function):
             else:
                 # Convolve some part of the dout batch with all filters.
                 start = 0
-                step = 16
+                # step = 16
+                step = get_step_estimate(xfft, yfft, memory_size=memory_size)
                 # For each slice of time-series in the batch.
                 for start in range(start, N, step):
                     stop = min(start + step, N)
@@ -560,7 +573,10 @@ class Conv2dfftFunction(torch.autograd.Function):
             else:
                 # Convolve some part of the dout batch with all input maps.
                 start = 0
-                step = 16
+                # step = 16
+                step = get_step_estimate(xfft, yfft, memory_size=memory_size,
+                                         scale=4)
+                # step = 32
                 for start in range(start, F, step):
                     stop = min(start + step, F)
                     # doutfft_ff has as many channels as number of input filters.

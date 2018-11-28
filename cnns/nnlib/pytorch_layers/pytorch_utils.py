@@ -21,7 +21,7 @@ from cnns.nnlib.utils.log_utils import set_up_logging
 import logging
 import math
 import sys
-
+import time
 logger = get_logger(name=__name__)
 logger.setLevel(logging.DEBUG)
 logger.info("Set up test")
@@ -2232,16 +2232,16 @@ def correlate_fft_signals(xfft, yfft, fft_size: int,
     """
     # xfft = complex_pad_simple(xfft=xfft, fft_size=fft_size)
     # yfft = complex_pad_simple(xfft=yfft, fft_size=fft_size)
-
     freq_mul = complex_mul(xfft, pytorch_conjugate(yfft))
-
     freq_mul = complex_pad_simple(xfft=freq_mul, fft_size=fft_size)
-
+    # print("freq mul size: ", freq_mul.size())
     out = torch.irfft(
         input=freq_mul, signal_ndim=signal_ndim, signal_sizes=(fft_size,))
+    del freq_mul
     return out
 
-
+total_mul_time = 0
+total_restore_time = 0
 def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
                             init_fft_height, init_half_fft_width,
                             out_height, out_width, is_forward=True):
@@ -2378,8 +2378,12 @@ def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
     #                      half_fft_width=half_fft_width)
     # yfft = complex_pad2D(fft_input=yfft, half_fft_height=half_fft_height,
     #                      half_fft_width=half_fft_width)
-
+    global total_mul_time
+    start = time.time()
     freq_mul = complex_mul(xfft, pytorch_conjugate(yfft))
+    total_mul_time += time.time() - start
+    print("total multiply time: ", total_mul_time)
+    start_restore_time = time.time()
     if freq_mul.dim() == 6:
         # For bulk multiplication.
         freq_mul = restore_size_2D_batch(xfft=freq_mul,
@@ -2392,7 +2396,9 @@ def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
                                    init_half_W_fft=init_half_fft_width)
     else:
         raise Exception(f"Unsupported number of dimensions: {xfft.dim()}")
-
+    global total_restore_time
+    total_restore_time += time.time() - start_restore_time
+    print("total restore time: ", total_restore_time)
     out = torch.irfft(input=freq_mul, signal_ndim=signal_ndim,
                       signal_sizes=(input_height, input_width), onesided=True)
     all_tensors_size = get_tensors_elem_size()
@@ -3324,10 +3330,9 @@ def zero_out_min(input, spectrum, max=None):
     return input, spectrum
 
 
-def get_step_estimate(xfft, yfft, args):
-    scale = 32
+def get_step_estimate(xfft, yfft, memory_size, scale=32):
     X = 32
-    total_size = args.memory_size * 2 ** 30  # total mem size in GB
+    total_size = memory_size * 2 ** 30  # total mem size in GB
     if len(xfft.shape) == 5:  # 2D data
         N, C, H, W, I = xfft.size()
     elif len(xfft.shape) == 4:  # 1D data
