@@ -99,7 +99,7 @@ class Conv2dfftFunction(torch.autograd.Function):
 
         :return: the result of convolution.
         """
-        # print("input size: ", input.size())
+        Conv2dfftFunction.mark_dirty(input)
         if args is not None:
             index_back = args.index_back
             preserve_energy = args.preserve_energy
@@ -120,10 +120,6 @@ class Conv2dfftFunction(torch.autograd.Function):
 
         if is_debug:
             pass
-            # print("execute forward pass")
-            # torch.set_printoptions(threshold=5000)
-            # print("input 0: ", input[0])
-            # print("filter 0: ", filter[0])
 
         INPUT_ERROR = "Specify only one of: index_back, out_size, or " \
                       "preserve_energy"
@@ -218,30 +214,26 @@ class Conv2dfftFunction(torch.autograd.Function):
 
         # Pad only the dimensions for the height and width and neither the data
         # points (the batch dimension) nor the channels.
-        padded_x = torch_pad(
+        input = torch_pad(
             input, (pad_W, pad_W + fft_padding_input_W, pad_H,
                     pad_H + fft_padding_input_H), 'constant', 0)
-        del input
 
         fft_padding_filter_H = init_H_fft - HH
         fft_padding_filter_W = init_W_fft - WW
 
-        padded_filter = torch_pad(
+        filter = torch_pad(
             filter, (0, fft_padding_filter_W, 0, fft_padding_filter_H),
             'constant', 0)
-        del filter
 
-        fft_forward_time = time.time()
         # fft of the input and filters
-        xfft = torch.rfft(padded_x, signal_ndim=Conv2dfftFunction.signal_ndim,
+        xfft = torch.rfft(input, signal_ndim=Conv2dfftFunction.signal_ndim,
                           onesided=True)
-        del padded_x
+        del input
 
-        yfft = torch.rfft(padded_filter,
+        yfft = torch.rfft(filter,
                           signal_ndim=Conv2dfftFunction.signal_ndim,
                           onesided=True)
-        del padded_filter
-        print("fft_forward_time: ", time.time() - fft_forward_time)
+        del filter
 
         # The last dimension (-1) has size 2 as it represents the complex
         # numbers with real and imaginary parts. The last but one dimension (-2)
@@ -264,7 +256,6 @@ class Conv2dfftFunction(torch.autograd.Function):
             xfft, yfft = preserve_energy2D_symmetry(
                 xfft, yfft, preserve_energy_rate=preserve_energy,
                 is_debug=is_debug)
-            # print("preserve energy timing: ", time.time() - start)
         elif index_back_W is not None and index_back_W > 0:
             is_fine_grained_sparsification = False  # this is for tests
             if is_fine_grained_sparsification:
@@ -306,7 +297,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                                  dtype=dtype, device=device)
             start = 0
             # step = get_step_estimate(xfft, yfft, args.memory_size, scale=1)
-            step = 16
+            step = args.min_batch_size
             if bias is not None:
                 unsqueezed_bias = bias.unsqueeze(-1).unsqueeze(-1)
             # For each slice of time-series in the batch.
@@ -338,16 +329,24 @@ class Conv2dfftFunction(torch.autograd.Function):
             out = out[:, :, ::stride_H, ::stride_W]
 
         if ctx:
+            # for dx size
             ctx.H = H
             ctx.HH = HH
+            # for dw size
             ctx.W = W
             ctx.WW = WW
-            ctx.is_manual = is_manual
-            ctx.conv_index = conv_index
-            ctx.init_H_fft = init_H_fft
-            ctx.init_W_fft = init_W_fft
+            # for standard stride
+            ctx.out_H = out_H
+            ctx.out_W = out_W
             ctx.stride_H = stride_H
             ctx.stride_W = stride_W
+            # for debug
+            ctx.is_manual = is_manual
+            # for debug
+            ctx.conv_index = conv_index
+            # for fft operations
+            ctx.init_H_fft = init_H_fft
+            ctx.init_W_fft = init_W_fft
             ctx.run_args = args
             ctx.save_for_backward(xfft, yfft)
 
@@ -375,18 +374,20 @@ class Conv2dfftFunction(torch.autograd.Function):
         :param dout: output gradient
         :return: gradients for input map x, filter w and bias b
         """
-        print("execute backward")
+        # print("execute backward")
 
         H = ctx.H
         HH = ctx.HH
         W = ctx.W
         WW = ctx.WW
+        out_H = ctx.out_H
+        out_W = ctx.out_W
+        stride_H = ctx.stride_H
+        stride_W = ctx.stride_W
         ctx.is_manual[0] = 1  # Mark the manual execution of the backward pass.
         conv_index = ctx.conv_index
         init_H_fft = ctx.init_H_fft
         init_W_fft = ctx.init_W_fft
-        stride_H = ctx.stride_H
-        stride_W = ctx.stride_W
         args = ctx.run_args
         xfft, yfft = ctx.saved_tensors
 
@@ -413,7 +414,6 @@ class Conv2dfftFunction(torch.autograd.Function):
                 args.stride_type is StrideType.STANDARD):
             N, F, HHH, WWW = dout.size()
             assert HHH == WWW
-            out_H = out_W = W - WW + 1
             grad = torch.zeros(N, F, out_H, out_W)
             if out_H > HHH and out_W > WWW:
                 grad[..., ::stride_H, ::stride_W] = dout
@@ -494,7 +494,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                                     dtype=dtype, device=device)
                 start = 0
                 # step = get_step_estimate(xfft, yfft, args.memory_size, scale=1)
-                step = 16
+                step = args.min_batch_size
                 doutfft = doutfft.unsqueeze(dim=2)
                 for start in range(start, N, step):
                     stop = min(start + step, N)
@@ -508,7 +508,6 @@ class Conv2dfftFunction(torch.autograd.Function):
                                  signal_sizes=(init_H_fft, init_W_fft),
                                  onesided=True)
                 del dxfft
-                print("dx: ", dx)
                 dx = dx[..., :H, :W]
             del yfft
 
@@ -564,7 +563,6 @@ class Conv2dfftFunction(torch.autograd.Function):
                     #     "conv"+str(conv_index), out.size(), dw.size(), str(N),
                     #     str(C), str(F)))
                     dw[ff] = out
-                print("dw: ", dw)
             else:
                 # 2 is for the complex numbers
                 dwfft = torch.zeros([F, C, xfft.shape[2], xfft.shape[3], 2],
@@ -573,7 +571,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                 start = 0
                 # step = get_step_estimate(xfft, doutfft, memory_size=memory_size,
                 #                          scale=4)
-                step = 16
+                step = args.min_batch_size
                 if len(doutfft.shape) == 5:  # we did not need grad for input
                     doutfft.unsqueeze_(dim=2)
                 doutfft = doutfft.permute(1, 0, 2, 3, 4, 5)
@@ -588,7 +586,6 @@ class Conv2dfftFunction(torch.autograd.Function):
                                  signal_sizes=(init_H_fft, init_W_fft),
                                  onesided=True)
                 del dwfft
-                print("dw: ", dw)
                 dw = dw[..., :HH, :WW]
         del doutfft
         del xfft
@@ -672,7 +669,7 @@ class Conv2dfft(Module):
                             self.kernel_width, dtype=args.dtype))
         else:
             self.is_weight_value = True
-            self.weight = Parameter(weight_value)
+            self.weight = weight_value
             out_channels = weight_value.shape[0]
             in_channels = weight_value.shape[1]
             self.kernel_height = weight_value.shape[2]
@@ -684,14 +681,12 @@ class Conv2dfft(Module):
             if bias is True:
                 self.bias = Parameter(
                     torch.randn(out_channels, dtype=args.dtype))
-                self.register_parameter('bias', self.bias)
             else:
                 self.register_parameter('bias', None)
                 self.bias = None
         else:
             self.is_bias_value = True
-            self.bias = Parameter(bias_value)
-            self.register_parameter('bias', self.bias)
+            self.bias = bias_value
 
         self.in_channels = in_channels
         self.out_channels = out_channels

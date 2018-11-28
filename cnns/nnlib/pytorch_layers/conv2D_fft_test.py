@@ -17,6 +17,7 @@ from cnns.nnlib.pytorch_layers.test_data.cifar10_lenet_filter import \
     cifar10_lenet_filter
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import StrideType
+from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.arguments import Arguments
 
 
@@ -38,11 +39,11 @@ class TestPyTorchConv2d(unittest.TestCase):
         y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         b = tensor([0.0])
 
-        convManual = Conv2dfft(weight_value=y, bias=b)
+        convManual = Conv2dfft(weight_value=y, bias_value=b)
         resultManual = convManual.forward(input=x)
         print("result of manual convolution: ", resultManual)
 
-        convAuto = Conv2dfftAutograd(weight_value=y, bias=b)
+        convAuto = Conv2dfftAutograd(weight_value=y, bias_value=b)
         resultAuto = convAuto.forward(input=x)
 
         expect = np.array([[[[22.0, 22.0], [18., 14.]]]])
@@ -64,7 +65,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         # A single filter.
         y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         b = tensor([0.0])
-        convManual = Conv2dfft(weight_value=y, bias=b)
+        convManual = Conv2dfft(weight_value=y, bias_value=b)
         result = convManual.forward(input=x)
         print("result of manual convolution: ", result)
         expect = np.array([[[[22.0, 22.0], [18., 14.]]]])
@@ -314,8 +315,8 @@ class TestPyTorchConv2d(unittest.TestCase):
         expected_result, _ = conv_forward_naive(x, y, b, conv_param)
         self.logger.debug("expected result: " + str(expected_result))
 
-        conv = Conv2dfftAutograd(weight_value=torch.from_numpy(y),
-                                 bias_value=torch.from_numpy(b))
+        conv = Conv2dfft(weight_value=torch.from_numpy(y),
+                         bias_value=torch.from_numpy(b))
         result = conv.forward(input=torch.from_numpy(x))
         self.logger.debug("obtained result: " + str(result))
         np.testing.assert_array_almost_equal(
@@ -376,8 +377,10 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         ctx = MockContext()
         ctx.set_needs_input_grad(3)
+        is_manual = tensor([0])
         result_torch = Conv2dfftFunction.forward(
-            ctx, input=x_torch, filter=y_torch, bias=b_torch, args=Arguments())
+            ctx, input=x_torch, filter=y_torch, bias=b_torch, args=Arguments(),
+            is_manual=is_manual)
         result = result_torch.detach().numpy()
         np.testing.assert_array_almost_equal(result, np.array(expected_result))
 
@@ -391,6 +394,7 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         self.logger.debug("\nexpected dx: " + str(expected_dx))
         self.logger.debug("\ncomputed dx: " + str(dx))
+        assert is_manual[0] == 1
 
         # are the gradients correct
         np.testing.assert_array_almost_equal(dx.detach().numpy(),
@@ -473,9 +477,10 @@ class TestPyTorchConv2d(unittest.TestCase):
         print("expected result: ", expected_result)
 
         conv = Conv2dfft(weight_value=y_torch, bias_value=b_torch)
-        # conv = Conv2dfft(weight_value=y_torch)
+        # conv = Conv2dfft()
 
         result_torch = conv.forward(input=x_torch)
+        print("result torch: ", result_torch)
         dout = torch.autograd.Variable(
             tensor([[[[0.1, -0.2], [0.3, -0.1]]]], dtype=dtype))
         result_torch.backward(dout)
@@ -878,8 +883,10 @@ class TestPyTorchConv2d(unittest.TestCase):
         b_torch = tensor(b, requires_grad=True, dtype=dtype)
         conv = Conv2dfftFunction()
         preserve_energy = 100.0
-        result_torch = conv.forward(ctx=None, input=x_torch, filter=y_torch,
-                                    bias=b_torch,
+        is_manual = tensor([0])
+        ctx = MockContext()
+        result_torch = conv.forward(ctx=ctx, input=x_torch, filter=y_torch,
+                                    bias=b_torch, is_manual=is_manual,
                                     args=Arguments(
                                         preserve_energy=preserve_energy))
         result = result_torch.detach().numpy()
@@ -897,8 +904,9 @@ class TestPyTorchConv2d(unittest.TestCase):
         expected_dx, expected_dw, expected_db = \
             conv_backward_naive(dout.numpy(), cache)
 
-        result_torch.backward(dout)
-
+        ctx.needs_input_grad = [True, True, True]
+        dx, dw, db, _, _, _, _, _, _ = conv.backward(ctx, dout)
+        assert is_manual[0] == 1
         # print()
         # print("expected dx: " + str(expected_dx))
         # print("computed dx: {}".format(x_torch.grad))
@@ -910,13 +918,13 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         # are the gradients correct
         np.testing.assert_array_almost_equal(
-            x=expected_dx, y=x_torch.grad, decimal=5,
+            x=expected_dx, y=dx.detach().numpy(), decimal=5,
             err_msg="Expected x is different from computed y.")
         np.testing.assert_array_almost_equal(
-            x=expected_dw, y=y_torch.grad, decimal=4,
+            x=expected_dw, y=dw.detach().numpy(), decimal=4,
             err_msg="Expected x is different from computed y.")
         np.testing.assert_array_almost_equal(
-            x=expected_db, y=b_torch.grad, decimal=4,
+            x=expected_db, y=db.detach().numpy(), decimal=4,
             err_msg="Expected x is different from computed y.")
 
     def test_ForwardNoCompressionForConv2dfftPreserveEenrgy(self):
@@ -1385,11 +1393,12 @@ class TestPyTorchConv2d(unittest.TestCase):
             input=x_expect, weight=y_expect, bias=b_expect, stride=2)
         print("convStandard: ", convStandard)
 
-        conv = Conv2dfftFunction()
         is_manual = tensor([0])
-        convFFT = conv.forward(ctx=None, input=x, filter=y, bias=b, stride=2,
-                               is_manual=is_manual,
-                               args=Arguments(stride_type=StrideType.STANDARD))
+        conv = Conv2dfft(weight_value=y, bias_value=b, stride=2,
+                         is_manual=is_manual,
+                         args=Arguments(stride_type=StrideType.STANDARD))
+
+        convFFT = conv.forward(input=x)
         dout_np = np.array([[[[0.1, -0.2, 0.3],
                               [-0.1, 0.1, 0.2],
                               [-0.2, 1.1, -1.2]]]])
@@ -1400,6 +1409,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         convFFT.backward(dout.clone())
         print("is_manual: ", is_manual[0])
         assert is_manual[0] == 1
+        assert conv.is_manual[0] == 1
 
         print("convFFT: ", convFFT)
         np.testing.assert_array_almost_equal(
@@ -1412,8 +1422,8 @@ class TestPyTorchConv2d(unittest.TestCase):
         print("pytorch's grad bias: ", b_expect.grad)
 
         print("fft grad x: ", x.grad)
-        print("fft grad y: ", y.grad)
-        print("fft grad b: ", b.grad)
+        print("fft grad y: ", conv.weight.grad)
+        print("fft grad b: ", conv.bias.grad)
 
         # Are the gradients correct?
         np.testing.assert_array_almost_equal(
@@ -1428,16 +1438,29 @@ class TestPyTorchConv2d(unittest.TestCase):
         print("actual result for dw from y.grad: ", y.grad)
 
         np.testing.assert_array_almost_equal(
-            x=y_expect.grad, y=y.grad, decimal=4,
+            x=y_expect.grad, y=conv.weight.grad, decimal=4,
             err_msg="Expected x is different from computed y.")
 
-        self._check_delta2D(actual_result=y.grad,
+        self._check_delta2D(actual_result=conv.weight.grad,
                             accurate_expected_result=y_expect.grad,
                             delta=0.0001)
 
         np.testing.assert_array_almost_equal(
-            x=b_expect.grad, y=b.grad, decimal=4,
+            x=b_expect.grad, y=conv.bias.grad, decimal=4,
             err_msg="Expected x is different from computed y for bias gradient.")
+
+    def test_conv2d_picker(self):
+        in_planes = 3
+        out_planes = 64
+        stride = 1
+        args = Arguments(conv_type=ConvType.FFT2D)
+        from cnns.nnlib.pytorch_layers.conv_picker import Conv
+        conv = Conv(kernel_sizes=[3], in_channels=in_planes,
+             out_channels=[out_planes], strides=[stride],
+             padding=[1], args=args, is_bias=False).get_conv()
+        result = conv.forward(torch.randn(8,3,32,32))
+        result.backward(torch.ones_like(result))
+        assert conv.is_manual[0] == 1
 
 
 if __name__ == '__main__':
