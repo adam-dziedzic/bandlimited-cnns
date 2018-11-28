@@ -696,7 +696,7 @@ if __name__ == '__main__':
     global_log_file = os.path.join(results_folder_name,
                                    get_log_time() + "-ucr-fcnn.log")
     args_str = args.get_str()
-    HEADER = "UCR datasets,final results,hostname," + str(
+    HEADER = "hostname," + str(
         hostname) + ",timestamp," + get_log_time() + "," + str(args_str)
     with open(additional_log_file, "a") as file:
         # Write the metadata.
