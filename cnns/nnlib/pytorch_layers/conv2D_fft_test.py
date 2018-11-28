@@ -470,17 +470,19 @@ class TestPyTorchConv2d(unittest.TestCase):
         conv = Conv2dfft(filter_value=y_torch, bias_value=b_torch)
 
         result_torch = conv.forward(input=x_torch)
-        result = result_torch.detach().numpy()
-        print("actual result: ", result)
-        np.testing.assert_array_almost_equal(result, np.array(expected_result))
 
         dout = tensor([[[[0.1, -0.2], [0.3, -0.1]]]], dtype=dtype)
+
+        result_torch.backward(dout)
+        assert conv.is_manual[0] == 1
+
         # get the expected result from the backward pass
         expected_dx, expected_dw, expected_db = \
             conv_backward_naive(dout.numpy(), cache)
 
-        result_torch.backward(dout)
-        assert conv.is_manual[0] == 1
+        result = result_torch.detach().numpy()
+        print("actual result: ", result)
+        np.testing.assert_array_almost_equal(result, np.array(expected_result))
 
         # Are the gradients correct?
 
@@ -1175,7 +1177,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         # preserved_energies = [1.0]
         # indexes_back = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
-        repeat = 100
+        repeat = 1
         convTorch = torch.nn.Conv2d(in_channels=y.shape[1],
                                     out_channels=y.shape[0],
                                     kernel_size=(y.shape[2], y.shape[3]))
@@ -1375,7 +1377,9 @@ class TestPyTorchConv2d(unittest.TestCase):
         print("convStandard: ", convStandard)
 
         conv = Conv2dfftFunction()
+        is_manual = tensor([0])
         convFFT = conv.forward(ctx=None, input=x, filter=y, bias=b, stride=2,
+                               is_manual=is_manual,
                                args=Arguments(stride_type=StrideType.STANDARD))
         print("convFFT: ", convFFT)
         np.testing.assert_array_almost_equal(
@@ -1391,6 +1395,8 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         # get the expected result from the backward pass
         convStandard.backward(dout)
+        print("is_manual: ", is_manual[0])
+        assert is_manual[0] == 1
 
         print("pytorch's grad x: ", x_expect.grad)
         print("pytorch's grad y: ", y_expect.grad)

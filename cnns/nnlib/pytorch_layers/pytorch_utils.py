@@ -22,6 +22,7 @@ import logging
 import math
 import sys
 import time
+
 logger = get_logger(name=__name__)
 logger.setLevel(logging.DEBUG)
 logger.info("Set up test")
@@ -1761,19 +1762,22 @@ def restore_size_2D(xfft, init_H_fft, init_half_W_fft):
     if n > 0:
         bottom_left = xfft[..., -n:, :n + 1, :]
         middle = torch.zeros(N, C, init_H_fft - (2 * n + 1), n + 1, 2,
-                             dtype=xfft.dtype)
+                             dtype=xfft.dtype, device=xfft.device)
         left = torch.cat((top_left, middle, bottom_left), dim=2)
         right = torch.zeros(N, C, init_H_fft, init_half_W_fft - (n + 1), 2,
-                            dtype=xfft.dtype)
+                            dtype=xfft.dtype, device=xfft.device)
         result = torch.cat((left, right), dim=3)
         return result
     else:
         # Return just a single coefficient.
         row = torch.cat(
-            (top_left, torch.zeros(N, C, 1, init_half_W_fft - 1, 2)), dim=3)
+            (top_left, torch.zeros(N, C, 1, init_half_W_fft - 1, 2,
+                                   device=xfft.device, dtype=xfft.dtype)),
+            dim=3)
         result = torch.cat((row,
                             torch.zeros(N, C, init_H_fft - 1, init_half_W_fft,
-                                        2)), dim=2)
+                                        2, device=xfft.device,
+                                        dtype=xfft.dtype)), dim=2)
         return result
 
 
@@ -2240,8 +2244,11 @@ def correlate_fft_signals(xfft, yfft, fft_size: int,
     del freq_mul
     return out
 
+
 total_mul_time = 0
 total_restore_time = 0
+
+
 def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
                             init_fft_height, init_half_fft_width,
                             out_height, out_width, is_forward=True):
@@ -3351,7 +3358,8 @@ def get_step_estimate(xfft, yfft, memory_size, scale=32):
     intermediate_size = X * no_x_intermediate_size
     computed_size = corr_out_in_size + intermediate_size
     print("computed size: ", computed_size / 2 ** 30)
-    print("all tensor size before correlation: ", get_tensors_elem_size() / 2 ** 30)
+    print("all tensor size before correlation: ",
+          get_tensors_elem_size() / 2 ** 30)
     print("torch max memory before correlation: ",
           torch.cuda.max_memory_allocated() / 2 ** 30)
     print("X size: ", int(X))

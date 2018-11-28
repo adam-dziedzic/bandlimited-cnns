@@ -770,7 +770,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                 start = 0
                 # step = 16
                 step = get_step_estimate(doutfft, conjugate_yfft, memory_size)
-                doutfft.unsqueeze_(dim=2)
+                doutfft = doutfft.unsqueeze(dim=2)
                 # For each slice of time-series in the batch.
                 for start in range(start, N, step):
                     stop = min(start + step, N)
@@ -850,7 +850,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                 step = get_step_estimate(xfft, doutfft, memory_size=memory_size)
                 # print("doutfft size: ", doutfft.size())
                 if len(doutfft.shape) == 4:  # we did not need grad for input
-                    doutfft.unsqueeze_(dim=2)
+                    doutfft = doutfft.unsqueeze(dim=2)
                 doutfft = doutfft.permute(1, 0, 2, 3, 4)
 
                 for start in range(start, F, step):
