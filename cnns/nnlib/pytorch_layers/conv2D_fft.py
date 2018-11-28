@@ -24,6 +24,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import preserve_energy2D_symmetry
 from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate
 from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul
 from cnns.nnlib.pytorch_layers.pytorch_utils import to_tensor
+from cnns.nnlib.pytorch_layers.pytorch_utils import cuda_mem_show
 from cnns.nnlib.pytorch_layers.pytorch_utils import compress_2D_odd
 from cnns.nnlib.pytorch_layers.pytorch_utils import compress_2D_odd_index_back
 from cnns.nnlib.pytorch_layers.pytorch_utils import zero_out_min
@@ -204,16 +205,16 @@ class Conv2dfftFunction(torch.autograd.Function):
         init_H_fft = H + 2 * pad_H + HHH - 1
 
         WWW = max(out_W, WW)
-        init_fft_W = W + 2 * pad_W + WWW - 1
+        init_W_fft = W + 2 * pad_W + WWW - 1
 
         if use_next_power2 is True:
             init_H_fft = next_power2(init_H_fft)
-            init_fft_W = next_power2(init_fft_W)
+            init_W_fft = next_power2(init_W_fft)
 
         # How many padded (zero) values there are because of going to the next
         # power of 2?
         fft_padding_input_H = init_H_fft - 2 * pad_H - H
-        fft_padding_input_W = init_fft_W - 2 * pad_W - W
+        fft_padding_input_W = init_W_fft - 2 * pad_W - W
 
         # Pad only the dimensions for the height and width and neither the data
         # points (the batch dimension) nor the channels.
@@ -223,7 +224,7 @@ class Conv2dfftFunction(torch.autograd.Function):
         del input
 
         fft_padding_filter_H = init_H_fft - HH
-        fft_padding_filter_W = init_fft_W - WW
+        fft_padding_filter_W = init_W_fft - WW
 
         padded_filter = torch_pad(
             filter, (0, fft_padding_filter_W, 0, fft_padding_filter_H),
@@ -279,6 +280,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                 xfft = compress_2D_odd_index_back(xfft, index_back_W_fft)
                 yfft = compress_2D_odd_index_back(yfft, index_back_W_fft)
 
+        yfft = pytorch_conjugate(yfft)
         start_correlation = time.time()
         if args.is_serial_conv:
             # Serially convolve each input map with all filters.
@@ -289,7 +291,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                 xfft_nn = xfft[nn].unsqueeze(0)
                 out[nn] = correlate_fft_signals2D(
                     xfft=xfft_nn, yfft=yfft,
-                    input_height=init_H_fft, input_width=init_fft_W,
+                    input_height=init_H_fft, input_width=init_W_fft,
                     init_fft_height=init_H_fft,
                     init_half_fft_width=init_half_W_fft,
                     out_height=out_H, out_width=out_W, is_forward=True)
@@ -309,21 +311,20 @@ class Conv2dfftFunction(torch.autograd.Function):
                 unsqueezed_bias = bias.unsqueeze(-1).unsqueeze(-1)
             # For each slice of time-series in the batch.
             global_correlation_time = 0
-            conjugate_yfft = pytorch_conjugate(yfft)
             xfft = xfft.unsqueeze(dim=1)
             for start in range(start, N, step):
                 stop = min(start + step, N)
                 # Take one time series and unsqueeze it for broadcasting with
                 # many filters.
                 xfft_nn = xfft[start:stop]
-                outfft[start:stop] = complex_mul(xfft_nn, conjugate_yfft).sum(
+                outfft[start:stop] = complex_mul(xfft_nn, yfft).sum(
                     dim=2)
             xfft = xfft.squeeze(dim=1)
             outfft = restore_size_2D(outfft, init_H_fft=init_H_fft,
                                      init_half_W_fft=init_half_W_fft)
             out = torch.irfft(input=outfft,
                               signal_ndim=Conv2dfftFunction.signal_ndim,
-                              signal_sizes=(init_H_fft, init_fft_W),
+                              signal_sizes=(init_H_fft, init_W_fft),
                               onesided=True)
             del outfft
             out = out[..., :out_H, :out_W]
@@ -337,20 +338,18 @@ class Conv2dfftFunction(torch.autograd.Function):
             out = out[:, :, ::stride_H, ::stride_W]
 
         if ctx:
-            ctx.save_for_backward(xfft, yfft, to_tensor(H), to_tensor(HH),
-                                  to_tensor(W), to_tensor(WW),
-                                  to_tensor(init_H_fft), to_tensor(init_fft_W),
-                                  is_manual,
-                                  to_tensor(conv_index),
-                                  to_tensor(compress_type.value),
-                                  to_tensor(is_debug),
-                                  to_tensor(preserve_energy),
-                                  to_tensor(index_back_H_fft),
-                                  to_tensor(index_back_W_fft),
-                                  to_tensor(stride_H),
-                                  to_tensor(stride_type.value),
-                                  to_tensor(args.memory_size)
-                                  )
+            ctx.H = H
+            ctx.HH = HH
+            ctx.W = W
+            ctx.WW = WW
+            ctx.is_manual = is_manual
+            ctx.conv_index = conv_index
+            ctx.init_H_fft = init_H_fft
+            ctx.init_W_fft = init_W_fft
+            ctx.stride_H = stride_H
+            ctx.stride_W = stride_W
+            ctx.run_args = args
+            ctx.save_for_backward(xfft, yfft)
 
         return out
 
@@ -376,13 +375,24 @@ class Conv2dfftFunction(torch.autograd.Function):
         :param dout: output gradient
         :return: gradients for input map x, filter w and bias b
         """
-        # logger.debug("execute backward")
+        print("execute backward")
 
-        xfft, yfft, H, HH, W, WW, init_H_fft, init_W_fft, is_manual, conv_index, compress_type, is_debug, preserve_energy, index_back_H_fft, index_back_W_fft, stride, stride_type, memory_size = ctx.saved_tensors
+        H = ctx.H
+        HH = ctx.HH
+        W = ctx.W
+        WW = ctx.WW
+        ctx.is_manual[0] = 1  # Mark the manual execution of the backward pass.
+        conv_index = ctx.conv_index
+        init_H_fft = ctx.init_H_fft
+        init_W_fft = ctx.init_W_fft
+        stride_H = ctx.stride_H
+        stride_W = ctx.stride_W
+        args = ctx.run_args
+        xfft, yfft = ctx.saved_tensors
 
-        is_debug = True if is_debug == 1 else False
+        is_debug = args.is_debug
         if is_debug:
-            print("execute backward pass")
+            print(f"execute backward pass for convolution index: {conv_index}")
 
         need_input_grad = ctx.needs_input_grad[0]
         need_filter_grad = ctx.needs_input_grad[1]
@@ -391,43 +401,22 @@ class Conv2dfftFunction(torch.autograd.Function):
         for tensor_obj in ctx.saved_tensors:
             del tensor_obj
         omit_objs = [id(ctx)]
-
         del ctx
+
+        if is_debug:
+            cuda_mem_show(info="backward start", omit_objs=omit_objs)
 
         dtype = xfft.dtype
         device = xfft.device
 
-        is_manual[0] = 1  # Mark the manual execution of the backward pass.
-
-        H = from_tensor(H)
-        HH = from_tensor(HH)
-        W = from_tensor(W)
-        WW = from_tensor(WW)
-        init_H_fft = from_tensor(init_H_fft)
-        init_W_fft = from_tensor(init_W_fft)
-        # is_manual is already a tensor.
-        conv_index = from_tensor(conv_index)  # for the debug/test purposes
-        compress_type = CompressType(from_tensor(compress_type))
-        preserve_energy = from_tensor(preserve_energy)
-        index_back_H_fft = from_tensor(index_back_H_fft)
-        index_back_W_fft = from_tensor(index_back_W_fft)
-        stride = from_tensor(stride)
-        stride_type = StrideType(from_tensor(stride_type))
-        memory_size = from_tensor(memory_size)
-
-        if (stride is not None and stride > 1) and (
-                stride_type is StrideType.STANDARD):
+        if (stride_H != 1 or stride_W != 1) and (
+                args.stride_type is StrideType.STANDARD):
             N, F, HHH, WWW = dout.size()
             assert HHH == WWW
             out_H = out_W = W - WW + 1
             grad = torch.zeros(N, F, out_H, out_W)
-            print("size grad: ", grad.size())
-            print("size dout: ", dout.size())
-            print("stride: ", stride)
-            print("W: ", W)
-            print("WW: ", WW)
             if out_H > HHH and out_W > WWW:
-                grad[..., ::stride, ::stride] = dout
+                grad[..., ::stride_H, ::stride_W] = dout
             else:
                 assert out_H == HHH and out_W == WWW
             dout = grad
@@ -449,10 +438,6 @@ class Conv2dfftFunction(torch.autograd.Function):
         fft_padding_dout_H = init_H_fft - H_out
         fft_padding_dout_W = init_W_fft - W_out
 
-        padded_dout = torch_pad(
-            dout, (0, fft_padding_dout_W, 0, fft_padding_dout_H),
-            'constant', 0)
-
         if need_bias_grad:
             # The number of bias elements is equal to the number of filters.
             db = torch.zeros(F, dtype=dtype, device=device)
@@ -462,6 +447,10 @@ class Conv2dfftFunction(torch.autograd.Function):
             # bias (as in the affine layer).
             for ff in range(F):
                 db[ff] += torch.sum(dout[:, ff, :])
+
+        padded_dout = torch_pad(
+            dout, (0, fft_padding_dout_W, 0, fft_padding_dout_H),
+            'constant', 0)
         del dout
 
         doutfft = torch.rfft(padded_dout,
@@ -477,19 +466,18 @@ class Conv2dfftFunction(torch.autograd.Function):
             doutfft = compress_2D_odd(doutfft, half_fft_compressed_W)
 
         if need_input_grad:
+            yfft = pytorch_conjugate(yfft)
             # Initialize gradient output tensors.
             # the x used for convolution was with padding
-            conjugate_yfft = pytorch_conjugate(yfft)
-            del yfft
-            is_serial = False  # Serially convolve each input map with all filters.
-            if is_serial:
+            if args.is_serial_conv:
+                # Serially convolve each input map with all filters.
                 dx = torch.zeros([N, C, H, W], dtype=dtype, device=device)
                 for nn in range(N):
                     # Take one time series and unsqueeze it for broadcast with
                     # many gradients dout.
                     doutfft_nn = doutfft[nn].unsqueeze(1)
                     out = correlate_fft_signals2D(
-                        xfft=doutfft_nn, yfft=conjugate_yfft,
+                        xfft=doutfft_nn, yfft=yfft,
                         input_height=init_H_fft, input_width=init_W_fft,
                         init_fft_height=init_half_H_fft,
                         init_half_fft_width=init_half_W_fft,
@@ -503,7 +491,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                 # Convolve some part of the dout batch with all filters.
                 # 2 is for complex numbers
                 dxfft = torch.zeros([N, C, xfft.shape[2], xfft.shape[3], 2],
-                                     dtype=dtype, device=device)
+                                    dtype=dtype, device=device)
                 start = 0
                 # step = get_step_estimate(xfft, yfft, args.memory_size, scale=1)
                 step = 16
@@ -512,18 +500,17 @@ class Conv2dfftFunction(torch.autograd.Function):
                     stop = min(start + step, N)
                     doutfft_nn = doutfft[start:stop]
                     dxfft[start:stop] = complex_mul(doutfft_nn,
-                                                     conjugate_yfft).sum(
-                        dim=1)
+                                                    yfft).sum(dim=1)
                 dxfft = restore_size_2D(dxfft, init_H_fft=init_H_fft,
-                                         init_half_W_fft=init_half_W_fft)
+                                        init_half_W_fft=init_half_W_fft)
                 dx = torch.irfft(input=dxfft,
-                                  signal_ndim=Conv2dfftFunction.signal_ndim,
-                                  signal_sizes=(init_H_fft, init_W_fft),
-                                  onesided=True)
+                                 signal_ndim=Conv2dfftFunction.signal_ndim,
+                                 signal_sizes=(init_H_fft, init_W_fft),
+                                 onesided=True)
                 del dxfft
                 print("dx: ", dx)
                 dx = dx[..., :H, :W]
-            del conjugate_yfft
+            del yfft
 
         if need_filter_grad:
             # Calculate dw - the gradient for the filters w.
@@ -554,9 +541,9 @@ class Conv2dfftFunction(torch.autograd.Function):
             flowing back gradient dout and the input x:
             gradient L / gradient w = [x1, x2, x3, x4] * [dx1, dx2, dx3]
             """
-            # Serially convolve each input dout with all input maps xfft.
-            is_serial = False
-            if is_serial:
+            doutfft = pytorch_conjugate(doutfft)
+            if args.is_serial_conv:
+                # Serially convolve each input dout with all input maps xfft.
                 dw = torch.zeros([F, C, HH, WW], dtype=dtype, device=device)
                 for ff in range(F):
                     # doutfft_ff has as many channels as number of input filters.
@@ -577,6 +564,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                     #     "conv"+str(conv_index), out.size(), dw.size(), str(N),
                     #     str(C), str(F)))
                     dw[ff] = out
+                print("dw: ", dw)
             else:
                 # 2 is for the complex numbers
                 dwfft = torch.zeros([F, C, xfft.shape[2], xfft.shape[3], 2],
@@ -594,12 +582,13 @@ class Conv2dfftFunction(torch.autograd.Function):
                     doutfft_nn = doutfft[start:stop]
                     dwfft[start:stop] = complex_mul(xfft, doutfft_nn).sum(dim=1)
                 dwfft = restore_size_2D(dwfft, init_H_fft=init_H_fft,
-                                         init_half_W_fft=init_half_W_fft)
+                                        init_half_W_fft=init_half_W_fft)
                 dw = torch.irfft(input=dwfft,
-                                  signal_ndim=Conv2dfftFunction.signal_ndim,
-                                  signal_sizes=(init_H_fft, init_W_fft),
-                                  onesided=True)
+                                 signal_ndim=Conv2dfftFunction.signal_ndim,
+                                 signal_sizes=(init_H_fft, init_W_fft),
+                                 onesided=True)
                 del dwfft
+                print("dw: ", dw)
                 dw = dw[..., :HH, :WW]
         del doutfft
         del xfft
@@ -610,8 +599,8 @@ class Conv2dfftFunction(torch.autograd.Function):
 class Conv2dfft(Module):
 
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
-                 stride=1, padding=0, dilation=None, groups=None, bias=True,
-                 filter_value=None, bias_value=None, is_manual=tensor([0]),
+                 stride=1, padding=0, dilation=None, groups=None, bias=False,
+                 weight_value=None, bias_value=None, is_manual=tensor([0]),
                  conv_index=None, args=Arguments(), out_size=None):
         """
 
@@ -640,7 +629,7 @@ class Conv2dfft(Module):
         the max pooling can be omitted and the compression
         in this layer can serve as the frequency-based (spectral)
         pooling.
-        :param filter_value: you can provide the initial filter, i.e.
+        :param weight_value: you can provide the initial filter, i.e.
         filter weights of shape (F, C, HH, WW), where
         F - number of filters, C - number of channels, HH - height of the
         filter, WW - width of the filter
@@ -668,9 +657,9 @@ class Conv2dfft(Module):
         if groups is not None and groups > 1:
             raise NotImplementedError("groups > 1 is not supported.")
 
-        self.is_filter_value = None  # Was the filter value provided?
-        if filter_value is None:
-            self.is_filter_value = False
+        self.is_weight_value = None  # Was the filter value provided?
+        if weight_value is None:
+            self.is_weight_value = False
             if out_channels is None or in_channels is None or \
                     kernel_size is None:
                 raise ValueError("Either specify filter_value or provide all"
@@ -678,31 +667,31 @@ class Conv2dfft(Module):
                                  "in_channels and kernel_size) to generate the "
                                  "filter.")
             self.kernel_height, self.kernel_width = get_pair(kernel_size)
-            self.filter = Parameter(
+            self.weight = Parameter(
                 torch.randn(out_channels, in_channels, self.kernel_height,
                             self.kernel_width, dtype=args.dtype))
         else:
-            self.is_filter_value = True
-            self.filter = filter_value
-            out_channels = filter_value.shape[0]
-            in_channels = filter_value.shape[1]
-            self.kernel_height = filter_value.shape[2]
-            self.kernel_width = filter_value.shape[3]
+            self.is_weight_value = True
+            self.weight = Parameter(weight_value)
+            out_channels = weight_value.shape[0]
+            in_channels = weight_value.shape[1]
+            self.kernel_height = weight_value.shape[2]
+            self.kernel_width = weight_value.shape[3]
 
-        # alias for the filter
-        self.weight = self.filter
         self.is_bias_value = None  # Was the bias value provided.
         if bias_value is None:
             self.is_bias_value = False
             if bias is True:
                 self.bias = Parameter(
                     torch.randn(out_channels, dtype=args.dtype))
+                self.register_parameter('bias', self.bias)
             else:
                 self.register_parameter('bias', None)
                 self.bias = None
         else:
             self.is_bias_value = True
-            self.bias = bias_value
+            self.bias = Parameter(bias_value)
+            self.register_parameter('bias', self.bias)
 
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -734,8 +723,8 @@ class Conv2dfft(Module):
         n = self.in_channels
         n *= self.kernel_height * self.kernel_width
         stdv = 1. / math.sqrt(n)
-        if self.is_filter_value is not None and self.is_filter_value is False:
-            self.filter.data.uniform_(-stdv, stdv)
+        if self.is_weight_value is not None and self.is_weight_value is False:
+            self.weight.data.uniform_(-stdv, stdv)
         if self.bias is not None and self.is_bias_value is False:
             self.bias.data.uniform_(-stdv, stdv)
 
@@ -751,14 +740,14 @@ class Conv2dfft(Module):
         # args = None, out_size = None, is_manual = tensor([0]),
         # conv_index = None
         return Conv2dfftFunction.apply(
-            input, self.filter, self.bias, self.padding, self.stride,
+            input, self.weight, self.bias, self.padding, self.stride,
             self.args, self.out_size, self.is_manual, self.conv_index)
 
 
 class Conv2dfftAutograd(Conv2dfft):
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
                  stride=1, padding=0, dilation=None, groups=None, bias=True,
-                 filter_value=None, bias_value=None, is_manual=tensor([0]),
+                 weight_value=None, bias_value=None, is_manual=tensor([0]),
                  conv_index=None, args=Arguments(), out_size=None):
         """
         2D convolution using FFT with backward pass executed via PyTorch's
@@ -768,7 +757,7 @@ class Conv2dfftAutograd(Conv2dfft):
             in_channels=in_channels, out_channels=out_channels,
             kernel_size=kernel_size, stride=stride, padding=padding,
             dilation=dilation, groups=groups, bias=bias,
-            filter_value=filter_value, bias_value=bias_value,
+            weight_value=weight_value, bias_value=bias_value,
             conv_index=conv_index, is_manual=is_manual, args=args,
             out_size=out_size)
 
@@ -845,7 +834,7 @@ class Conv2dfftAutograd(Conv2dfft):
         ...  [ 1.0, 1.0,-1.0]]],
         ... ])
         >>> b = tensor([1.0, 0.0])
-        >>> conv = Conv2dfftAutograd(filter_value=y, bias_value=b,
+        >>> conv = Conv2dfftAutograd(weight_value=y, bias_value=b,
         ... padding=(1, 1), stride=(2, 2))
         >>> result = conv.forward(input=x)
         >>> expect = np.array([[[
@@ -908,7 +897,7 @@ class Conv2dfftAutograd(Conv2dfft):
         ...  [ 1.0, 1.0,-1.0]]],
         ... ])
         >>> b = tensor([1.0, 0.0])
-        >>> conv = Conv2dfftAutograd(filter_value=y, bias_value=b)
+        >>> conv = Conv2dfftAutograd(weight_value=y, bias_value=b)
         >>> result = conv.forward(input=x)
         >>> expect = np.array(
         ... [[[[-2.0000e+00, -1.0000e+00,  1.0000e+00, -2.0000e+00, -3.0000e+00],
@@ -931,7 +920,7 @@ class Conv2dfftAutograd(Conv2dfft):
         >>> # A single filter.
         >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         >>> b = tensor([0.0])
-        >>> conv = Conv2dfftAutograd(filter_value=y, bias_value=b, args=Arguments(index_back=1, preserve_energy=100))
+        >>> conv = Conv2dfftAutograd(weight_value=y, bias_value=b, args=Arguments(index_back=1, preserve_energy=100))
         >>> result = conv.forward(input=x)
         >>> # expect = np.array([[[[21.5, 22.0], [17.5, 13.]]]])
         >>> expect = np.array([[[[21.75, 21.75], [18.75, 13.75]]]])
@@ -944,7 +933,7 @@ class Conv2dfftAutograd(Conv2dfft):
         >>> # A single filter.
         >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         >>> b = tensor([0.0])
-        >>> conv = Conv2dfftAutograd(filter_value=y, bias_value=b)
+        >>> conv = Conv2dfftAutograd(weight_value=y, bias_value=b)
         >>> result = conv.forward(input=x)
         >>> expect = np.array([[[[22.0, 22.0], [18., 14.]]]])
         >>> np.testing.assert_array_almost_equal(x=expect, y=result,
@@ -956,7 +945,7 @@ class Conv2dfftAutograd(Conv2dfft):
         >>> # A single filter.
         >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         >>> b = tensor([-1.0])
-        >>> conv = Conv2dfftAutograd(filter_value=y, bias_value=b)
+        >>> conv = Conv2dfftAutograd(weight_value=y, bias_value=b)
         >>> result = conv.forward(input=x)
         >>> expect = np.array([[[[21.0, 21.0], [17., 13.]]]])
         >>> np.testing.assert_array_almost_equal(x=expect, y=result,
@@ -968,7 +957,7 @@ class Conv2dfftAutograd(Conv2dfft):
         >>> # A single filter.
         >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         >>> b = tensor([0.0])
-        >>> conv = Conv2dfftAutograd(filter_value=y, bias=b)
+        >>> conv = Conv2dfftAutograd(weight_value=y, bias=b)
         >>> result = conv.forward(input=x)
         >>> expect = np.array([[[[22.0, 22.0], [18., 14.]]]])
         >>> np.testing.assert_array_almost_equal(x=expect, y=result,
@@ -980,7 +969,7 @@ class Conv2dfftAutograd(Conv2dfft):
         >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]], [[-1.0, 2.0],[3.0, -2.0]]],
         ... [[[-1.0, 1.0], [2.0, 3.0]], [[-2.0, 1.0], [1.0, -3.0]]]])
         >>> b = tensor([0.0, 0.0])
-        >>> conv = Conv2dfftAutograd(filter_value=y, bias_value=b)
+        >>> conv = Conv2dfftAutograd(weight_value=y, bias_value=b)
         >>> result = conv.forward(input=x)
         >>> expect = np.array([[[[23.0, 32.0], [30., 4.]],[[11.0, 12.0],
         ... [13.0, -11.0]]]])
@@ -988,7 +977,7 @@ class Conv2dfftAutograd(Conv2dfft):
         ... err_msg="The expected array x and computed y are not almost equal.")
         """
         return Conv2dfftFunction.forward(
-            ctx=None, input=input, filter=self.filter, bias=self.bias,
+            ctx=None, input=input, filter=self.weight, bias=self.bias,
             padding=self.padding, stride=self.stride, is_manual=self.is_manual,
             conv_index=self.conv_index, args=self.args, out_size=self.out_size)
 

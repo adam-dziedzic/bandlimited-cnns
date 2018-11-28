@@ -2245,10 +2245,6 @@ def correlate_fft_signals(xfft, yfft, fft_size: int,
     return out
 
 
-total_mul_time = 0
-total_restore_time = 0
-
-
 def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
                             init_fft_height, init_half_fft_width,
                             out_height, out_width, is_forward=True):
@@ -2273,7 +2269,8 @@ def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
     >>> onesided = True
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
-    >>> result = correlate_fft_signals2D(xfft=xfft, yfft=yfft,
+    >>> result = correlate_fft_signals2D(xfft=xfft,
+    ... yfft=pytorch_conjugate(yfft),
     ... input_height=fft_height, input_width=fft_width,
     ... init_fft_height=xfft.shape[-3], init_half_fft_width=xfft.shape[-2],
     ... out_height=(x.shape[-2]-y.shape[-2] + 1),
@@ -2300,7 +2297,7 @@ def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
     >>> onesided = True
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
-    >>> result = correlate_fft_signals2D(xfft=xfft, yfft=yfft,
+    >>> result = correlate_fft_signals2D(xfft=xfft, yfft=pytorch_conjugate(yfft),
     ... input_height=fft_height, input_width=fft_width,
     ... init_fft_height=xfft.shape[-2], init_half_fft_width=xfft.shape[-1],
     ... out_height=(x.shape[-2]-y.shape[-2]+1),
@@ -2326,7 +2323,7 @@ def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
     >>> onesided = True
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
-    >>> result = correlate_fft_signals2D(xfft=xfft, yfft=yfft,
+    >>> result = correlate_fft_signals2D(xfft=xfft, yfft=pytorch_conjugate(yfft),
     ... input_height=fft_height, input_width=fft_width,
     ... init_fft_height=xfft.shape[-3], init_half_fft_width=xfft.shape[-2],
     ... out_height=(x.shape[-2]-y.shape[-2]+1),
@@ -2355,7 +2352,7 @@ def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
     >>> onesided = True
     >>> xfft = torch.rfft(x, signal_ndim=signal_ndim, onesided=onesided)
     >>> yfft = torch.rfft(y_padded, signal_ndim=signal_ndim, onesided=onesided)
-    >>> result = correlate_fft_signals2D(xfft=xfft, yfft=yfft,
+    >>> result = correlate_fft_signals2D(xfft=xfft, yfft=pytorch_conjugate(yfft),
     ... input_height=fft_height, input_width=fft_width,
     ... init_fft_height=xfft.shape[-3], init_half_fft_width=xfft.shape[-2],
     ... out_height=(x.shape[-2]-y.shape[-2]+1),
@@ -2385,12 +2382,7 @@ def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
     #                      half_fft_width=half_fft_width)
     # yfft = complex_pad2D(fft_input=yfft, half_fft_height=half_fft_height,
     #                      half_fft_width=half_fft_width)
-    global total_mul_time
-    start = time.time()
-    freq_mul = complex_mul(xfft, pytorch_conjugate(yfft))
-    total_mul_time += time.time() - start
-    print("total multiply time: ", total_mul_time)
-    start_restore_time = time.time()
+    freq_mul = complex_mul(xfft, yfft)
     if freq_mul.dim() == 6:
         # For bulk multiplication.
         freq_mul = restore_size_2D_batch(xfft=freq_mul,
@@ -2403,9 +2395,6 @@ def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
                                    init_half_W_fft=init_half_fft_width)
     else:
         raise Exception(f"Unsupported number of dimensions: {xfft.dim()}")
-    global total_restore_time
-    total_restore_time += time.time() - start_restore_time
-    print("total restore time: ", total_restore_time)
     out = torch.irfft(input=freq_mul, signal_ndim=signal_ndim,
                       signal_sizes=(input_height, input_width), onesided=True)
     all_tensors_size = get_tensors_elem_size()

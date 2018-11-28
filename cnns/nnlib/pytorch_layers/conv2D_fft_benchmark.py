@@ -156,7 +156,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
         convStandardTime = time.time() - start
         print("convStandard time: ", convStandardTime)
 
-        conv = Conv2dfft(filter_value=y, stride=1, bias=False,
+        conv = Conv2dfft(weight_value=y, stride=1, bias=False,
                          args=Arguments(stride_type=StrideType.STANDARD))
         start = time.time()
         convFFT = conv.forward(input=x)
