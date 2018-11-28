@@ -544,6 +544,7 @@ def main(args):
         print(msg)
 
     model.to(device)
+    model = torch.nn.DataParallel(model)
     if dtype is torch.float16:
         # model.half()  # convert to half precision
         model = network_to_half(model)

@@ -43,6 +43,7 @@ from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.general_utils import plot_signal_freq
 from cnns.nnlib.utils.general_utils import plot_signal_time
+from cnns.nnlib.utils.arguments import Arguments
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -62,7 +63,7 @@ class Conv1dfftFunction(torch.autograd.Function):
     @staticmethod
     # @profile
     def forward(ctx, input, filter, bias=None, padding=0, stride=1,
-                args=None, out_size=None, is_manual=tensor([0]),
+                args=Arguments(), out_size=None, is_manual=tensor([0]),
                 conv_index=None):
         """
         Compute the forward pass for the 1D convolution.
@@ -847,7 +848,7 @@ class Conv1dfft(Module):
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
                  stride=1, padding=0, dilation=None, groups=None, bias=True,
                  filter_value=None, bias_value=None, is_manual=tensor([0]),
-                 conv_index=None, args=None, out_size=None):
+                 conv_index=None, args=Arguments(), out_size=None):
         """
         1D convolution using FFT implemented fully in PyTorch.
 

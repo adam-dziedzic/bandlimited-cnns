@@ -51,7 +51,7 @@ class Conv2dfftFunction(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, input, filter, bias=None, padding=(0, 0), stride=(1, 1),
-                args=None, out_size=None, is_manual=tensor([0]),
+                args=Arguments(), out_size=None, is_manual=tensor([0]),
                 conv_index=None):
         """
         Compute the forward pass for the 2D convolution.
@@ -586,7 +586,7 @@ class Conv2dfft(Module):
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
                  stride=1, padding=0, dilation=None, groups=None, bias=True,
                  filter_value=None, bias_value=None, is_manual=tensor([0]),
-                 conv_index=None, args=None, out_size=None):
+                 conv_index=None, args=Arguments(), out_size=None):
         """
 
         2D convolution using FFT implemented fully in PyTorch.
@@ -733,7 +733,7 @@ class Conv2dfftAutograd(Conv2dfft):
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
                  stride=1, padding=0, dilation=None, groups=None, bias=True,
                  filter_value=None, bias_value=None, is_manual=tensor([0]),
-                 conv_index=None, args=None, out_size=None):
+                 conv_index=None, args=Arguments(), out_size=None):
         """
         2D convolution using FFT with backward pass executed via PyTorch's
         autograd.
