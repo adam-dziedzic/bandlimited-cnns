@@ -608,7 +608,7 @@ def main(args):
     min_train_loss = min_test_loss = min_dev_loss = sys.float_info.max
     max_train_accuracy = max_test_accuracy = max_dev_accuracy = 0.0
 
-    if args.visulize is True and is_debug is True:
+    if args.visulize is True:
         test_loss, test_accuracy = test(
             model=model, device=device, test_loader=test_loader,
             loss_function=loss_function, args=args)
