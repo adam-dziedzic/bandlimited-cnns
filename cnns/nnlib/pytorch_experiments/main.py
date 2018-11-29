@@ -947,6 +947,10 @@ if __name__ == '__main__':
             print("Dataset: ", dataset_name)
             print("preserve energy: ", preserve_energy)
             args.preserve_energy = preserve_energy
-            main(args=args)
+            try:
+                main(args=args)
+            except RuntimeError as err:
+                print(f"Out of memory for dataset: {dataset_name}. "
+                      "Details: " + str(err))
 
             print("total elapsed time (sec): ", time.time() - start_time)

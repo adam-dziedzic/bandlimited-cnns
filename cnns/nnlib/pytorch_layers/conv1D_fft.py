@@ -472,7 +472,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             # Convolve some part of the input batch with all filters.
             start = 0
             # step = get_step_estimate(xfft, yfft, args.memory_size)
-            step = args.min_batch_size
+            step = int(args.min_batch_size)
             if bias is not None:
                 unsqueezed_bias = bias.unsqueeze(-1)
             # For each slice of time-series in the batch.
@@ -771,7 +771,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                 start = 0
                 # step = 16
                 # step = get_step_estimate(doutfft, conjugate_yfft, memory_size)
-                step = args.min_batch_size
+                step = int(args.min_batch_size)
                 doutfft = doutfft.unsqueeze(dim=2)
                 # For each slice of time-series in the batch.
                 for start in range(start, N, step):
@@ -850,7 +850,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                 start = 0
                 # step = 16
                 # step = get_step_estimate(xfft, doutfft, memory_size=memory_size)
-                step = args.min_batch_size
+                step = int(args.min_batch_size)
                 # print("doutfft size: ", doutfft.size())
                 if len(doutfft.shape) == 4:  # we did not need grad for input
                     doutfft = doutfft.unsqueeze(dim=2)

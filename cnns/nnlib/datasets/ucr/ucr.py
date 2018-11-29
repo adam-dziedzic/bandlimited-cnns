@@ -95,8 +95,8 @@ def get_ucr(args):
 
     args.num_classes = test_dataset.num_classes
     args.input_size = test_dataset.width
-    args.min_batch_size = min(args.input_size / 10, args.min_batch_size)
-    args.test_batch_size = min(args.input_size / 10, args.test_batch_size)
+    # args.min_batch_size = int(min(args.input_size / 10, args.min_batch_size))
+    # args.test_batch_size = int(min(args.input_size / 10, args.test_batch_size))
     args.flat_size = None
     args.out_channels = None
     test_loader = torch.utils.data.DataLoader(
