@@ -18,6 +18,8 @@ from cnns.nnlib.pytorch_layers.test_data.cifar10_lenet_filter import \
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.arguments import Arguments
+from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
+from cnns.nnlib.utils.arguments import Arguments
 
 """
 Results:
@@ -111,6 +113,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
     def test_forward_compression(self):
         dtype = torch.float
         if torch.cuda.is_available():
+            print("cuda is available")
             device = torch.device("cuda")
         else:
             device = torch.device("cpu")
@@ -129,7 +132,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
         start = time.time()
         conv.forward(ctx=None, input=x, filter=y, stride=1,
                      args=Arguments(stride_type=StrideType.STANDARD,
-                                    preserve_energy=90))
+                                    preserve_energy=80))
         convFFTtime = time.time() - start
         print("convFFT time: ", convFFTtime)
         speedup = convFFTtime / convStandardTime
@@ -194,6 +197,35 @@ class TestBenchmarkConv2d(unittest.TestCase):
         np.testing.assert_array_almost_equal(y.grad.cpu().detach().numpy(),
                                              y_expect.grad.cpu().detach().numpy(),
                                              decimal=3)
+
+    def test_forward_backward_pass_resnet18(self):
+        dtype = torch.float
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
+        print("device used: ", str(device))
+
+        # mini batch imitating cifar-10
+        N, C, H, W = 128, 3, 32, 32
+        x = torch.randn(N, C, H, W, dtype=dtype, device=device,
+                        requires_grad=True)
+
+        args = Arguments()
+        args.in_channels = C
+        # args.conv_type = "FFT2D"
+        args.conv_type = "STANDARD2D"
+        args.index_back = None
+        args.preserve_energy = None
+        args.is_debug = "FALSE"
+        args.next_power2 = "TRUE"
+        args.compress_type = "STANDARD"
+        args.tensor_type = "FLOAT32"
+
+
+        model = resnet18(args=args, num_classes=10)
+        model.to(device)
+
 
 
 

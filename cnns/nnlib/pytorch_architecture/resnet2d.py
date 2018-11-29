@@ -4,6 +4,8 @@ import torch.utils.model_zoo as model_zoo
 from cnns.nnlib.pytorch_layers.conv_picker import Conv
 from cnns.nnlib.pytorch_layers.conv2D_fft import Conv2dfft
 from cnns.nnlib.utils.general_utils import ConvType
+from cnns.nnlib.utils.general_utils import TensorType
+from cnns.nnlib.utils.general_utils import CompressType
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152']
@@ -242,28 +244,28 @@ class Args(object):
 
 
 if __name__ == "__main__":
-    args = Args()
+    args = Arguments()
     args.in_channels = 3
     # args.conv_type = "FFT2D"
-    args.conv_type = "STANDARD2D"
+    args.conv_type = ConvType.STANDARD2D
     args.index_back = None
     args.preserve_energy = None
-    args.is_debug = "TRUE"
-    args.next_power2 = "TRUE"
-    args.compress_type = "STANDARD"
-    args.tensor_type = "FLOAT32"
+    args.is_debug = False
+    args.next_power2 = True
+    args.compress_type = Com
+    args.tensor_type = TensorType.FLOAT32
 
     batch_size = 4
     inputs = torch.randn(batch_size, args.in_channels, 32, 32)
 
-    model = resnet18(args=args, num_classes=10)
+    model = resnet18(args=args)
     model.eval()
     outputs_standard = model(inputs)
 
     print("outputs standard: ", outputs_standard)
 
-    args.conv_type = "FFT2D"
-    model = resnet18(args=args, num_classes=10)
+    args.conv_type = ConvType.FFT2D
+    model = resnet18(args=args)
     model.eval()
     outputs_fft = model(inputs)
 
