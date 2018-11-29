@@ -784,8 +784,7 @@ if __name__ == '__main__':
         #          'Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass', 'yoga',
         #          'ztest']
     elif args.dataset == "debug0":
-        flist = ['Computers',
-                 'Cricket_X',
+        flist = ['Cricket_X',
                  'Cricket_Y',
                  'Cricket_Z',
                  'DiatomSizeReduction',
@@ -895,6 +894,41 @@ if __name__ == '__main__':
                  'ProximalPhalanxTW',
                  'RefrigerationDevices',
                  'ScreenType'
+                 ]
+    elif args.dataset == "debug7":
+        flist = ['FordB',
+                 'Gun_Point',
+                 'Ham',
+                 'HandOutlines',
+                 'Haptics',
+                 'Herring',
+                 'InlineSkate',
+                 'InsectWingbeatSound',
+                 'ProximalPhalanxOutlineCorrect',
+                 'ProximalPhalanxTW',
+                 'RefrigerationDevices',
+                 'ScreenType',
+                 'ShapeletSim',
+                 'ShapesAll',
+                 'SmallKitchenAppliances',
+                 'SonyAIBORobotSurface',
+                 'SonyAIBORobotSurfaceII',
+                 'StarLightCurves',
+                 'Strawberry',
+                 'SwedishLeaf',
+                 'Symbols',
+                 'synthetic_control',
+                 'Trace',
+                 'Two_Patterns',
+                 'TwoLeadECG',
+                 'uWaveGestureLibrary_X',
+                 'uWaveGestureLibrary_Y',
+                 'uWaveGestureLibrary_Z',
+                 'UWaveGestureLibraryAll',
+                 'wafer',
+                 'Worms',
+                 'WormsTwoClass',
+                 'yoga'
                  ]
     else:
         raise AttributeError("Unknown dataset: ", args.dataset)

@@ -471,8 +471,8 @@ class Conv1dfftFunction(torch.autograd.Function):
         else:
             # Convolve some part of the input batch with all filters.
             start = 0
-            step = get_step_estimate(xfft, yfft, args.memory_size)
-            # step = 8
+            # step = get_step_estimate(xfft, yfft, args.memory_size)
+            step = args.min_batch_size
             if bias is not None:
                 unsqueezed_bias = bias.unsqueeze(-1)
             # For each slice of time-series in the batch.
@@ -510,6 +510,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             output = output[:, :, 0::stride]
 
         if ctx:
+            ctx.run_args = args
             ctx.save_for_backward(xfft, yfft, to_tensor(W), to_tensor(WW),
                                   to_tensor(fft_size), is_manual,
                                   to_tensor(conv_index),
@@ -560,7 +561,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         for tensor_obj in ctx.saved_tensors:
             del tensor_obj
         omit_objs = [id(ctx)]
-
+        args = ctx.run_args
         conv_index = from_tensor(conv_index)  # for the debug/test purposes
 
         is_debug = from_tensor(is_debug)
@@ -769,7 +770,8 @@ class Conv1dfftFunction(torch.autograd.Function):
                 # Convolve some part of the dout batch with all filters.
                 start = 0
                 # step = 16
-                step = get_step_estimate(doutfft, conjugate_yfft, memory_size)
+                # step = get_step_estimate(doutfft, conjugate_yfft, memory_size)
+                step = args.min_batch_size
                 doutfft = doutfft.unsqueeze(dim=2)
                 # For each slice of time-series in the batch.
                 for start in range(start, N, step):
@@ -847,7 +849,8 @@ class Conv1dfftFunction(torch.autograd.Function):
                 # Convolve some part of the dout batch with all input maps.
                 start = 0
                 # step = 16
-                step = get_step_estimate(xfft, doutfft, memory_size=memory_size)
+                # step = get_step_estimate(xfft, doutfft, memory_size=memory_size)
+                step = args.min_batch_size
                 # print("doutfft size: ", doutfft.size())
                 if len(doutfft.shape) == 4:  # we did not need grad for input
                     doutfft = doutfft.unsqueeze(dim=2)
