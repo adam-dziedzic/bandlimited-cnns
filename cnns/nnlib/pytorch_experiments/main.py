@@ -930,6 +930,8 @@ if __name__ == '__main__':
                  'WormsTwoClass',
                  'yoga'
                  ]
+    elif args.dataset == "debug8":
+        flist = ["SwedishLeaf"]
     else:
         raise AttributeError("Unknown dataset: ", args.dataset)
 
