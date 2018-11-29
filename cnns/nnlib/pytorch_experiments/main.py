@@ -724,7 +724,7 @@ if __name__ == '__main__':
         flist = ["mnist"]
     elif args.dataset == "debug":
         # flist = ["50words"]
-        flist = ["cifar10"]
+        # flist = ["cifar10"]
         # flist = ["mnist"]
         # flist = ["zTest"]
         # flist = ["zTest50words"]
@@ -733,6 +733,7 @@ if __name__ == '__main__':
         # flist = ["HandOutlines"]
         # flist = ["ztest"]
         # flist = ["Cricket_X"]
+        flist = ["FISH", "ProximalPhalanxTW", "Worms", "Plane", "50words"]
         # flist = ['50words', 'Adiac', 'ArrowHead', 'Beef', 'BeetleFly',
         #         'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
         #         'CinC_ECG_torso', 'Coffee', 'Computers', 'Cricket_X',
