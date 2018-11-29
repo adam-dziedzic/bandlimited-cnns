@@ -539,6 +539,8 @@ def main(args):
         raise ValueError(f"Unknown dataset: {dataset_name}")
 
     model = getModelPyTorch(args=args)
+    model.to(device)
+    # model = torch.nn.DataParallel(model)
 
     # https://pytorch.org/docs/master/notes/serialization.html
     if args.model_path != "no_model":
@@ -548,9 +550,6 @@ def main(args):
         msg = "loaded model: " + args.model_path
         logger.info(msg)
         print(msg)
-
-    model.to(device)
-    model = torch.nn.DataParallel(model)
     if dtype is torch.float16:
         # model.half()  # convert to half precision
         model = network_to_half(model)
@@ -609,13 +608,16 @@ def main(args):
     max_train_accuracy = max_test_accuracy = max_dev_accuracy = 0.0
 
     if args.visulize is True:
+        start_visualize_time = time.time()
         test_loss, test_accuracy = test(
             model=model, device=device, test_loader=test_loader,
             loss_function=loss_function, args=args)
+        elapsed_time = time.time() - start_visualize_time
         with open(global_log_file, "a") as file:
             file.write(
-                "visualize," + dataset_name + "," + str(test_loss) + "," + str(
-                    test_accuracy) + "," + str(get_log_time()) + "\n")
+                dataset_name + ",None,None,None,None," + str(
+                    test_loss) + "," + str(test_accuracy) + "," + str(
+                    elapsed_time) + ",visualize" + "\n")
         return
 
     dataset_start_time = time.time()
@@ -723,7 +725,7 @@ if __name__ == '__main__':
     elif args.dataset == "mnist":
         flist = ["mnist"]
     elif args.dataset == "debug":
-        # flist = ["50words"]
+        flist = ["50words"]
         # flist = ["cifar10"]
         # flist = ["mnist"]
         # flist = ["zTest"]
@@ -733,7 +735,8 @@ if __name__ == '__main__':
         # flist = ["HandOutlines"]
         # flist = ["ztest"]
         # flist = ["Cricket_X"]
-        flist = ["FISH", "ProximalPhalanxTW", "Worms", "Plane", "50words"]
+        # flist = ["50words"]
+        # flist = ["SwedishLeaf"]
         # flist = ['50words', 'Adiac', 'ArrowHead', 'Beef', 'BeetleFly',
         #         'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
         #         'CinC_ECG_torso', 'Coffee', 'Computers', 'Cricket_X',
