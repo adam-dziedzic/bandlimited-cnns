@@ -20,7 +20,6 @@ model_urls = {
     'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
 }
 
-
 def conv3x3(in_planes, out_planes, stride=1, args=None):
     """3x3 convolution with padding"""
     # return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
@@ -39,7 +38,7 @@ def conv1x1(in_planes, out_planes, stride=1, args=None):
     #             out_channels=[out_planes], strides=[stride],
     #             padding=[0], args=args, is_bias=False).get_conv()
 
-
+# global_block_conv1_time = 0.0
 class BasicBlock(nn.Module):
     expansion = 1
 
@@ -57,7 +56,14 @@ class BasicBlock(nn.Module):
     def forward(self, x):
         residual = x
 
+        # start_conv1 = time.time()
+
         out = self.conv1(x)
+
+        # global global_block_conv1_time
+        # global_block_conv1_time += time.time() - start_conv1
+        # print("global_block_conv1_time: ", global_block_conv1_time)
+
         out = self.bn1(out)
         out = self.relu(out)
 
@@ -115,6 +121,7 @@ class ResNet(nn.Module):
 
     def __init__(self, block, layers, args=None):
         super(ResNet, self).__init__()
+        # self.global_layer1_time = 0.0
         self.inplanes = 64
         # self.conv1 = nn.Conv2d(args.in_channels, 64, kernel_size=7, stride=2,
         #                        padding=3,
@@ -168,7 +175,10 @@ class ResNet(nn.Module):
         x = self.relu(x)
         x = self.maxpool(x)
 
+        # start_time = time.time()
         x = self.layer1(x)
+        # self.global_layer1_time += time.time() - start_time
+        # print("global layer1 time: ", self.global_layer1_time)
         # print("x after layer 1: ", x[0])
         x = self.layer2(x)
         x = self.layer3(x)

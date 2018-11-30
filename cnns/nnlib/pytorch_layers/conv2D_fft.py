@@ -23,6 +23,10 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import next_power2
 from cnns.nnlib.pytorch_layers.pytorch_utils import preserve_energy2D_symmetry
 from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate
 from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul
+from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul2
+from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul3
+from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul4
+from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul5
 from cnns.nnlib.pytorch_layers.pytorch_utils import to_tensor
 from cnns.nnlib.pytorch_layers.pytorch_utils import cuda_mem_show
 from cnns.nnlib.pytorch_layers.pytorch_utils import compress_2D_odd
@@ -44,6 +48,11 @@ logger.addHandler(consoleLog)
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
 
+# global_preserve_energy_time = 0.0
+# global_correlation_time = 0.0
+# global_fft_time = 0.0
+# global_irfft_time = 0.0
+# global_complex_time = 0.0
 
 class Conv2dfftFunction(torch.autograd.Function):
     """
@@ -225,6 +234,8 @@ class Conv2dfftFunction(torch.autograd.Function):
             filter, (0, fft_padding_filter_W, 0, fft_padding_filter_H),
             'constant', 0)
 
+        #global global_fft_time
+        #start_fft_time = time.time()
         # fft of the input and filters
         xfft = torch.rfft(input, signal_ndim=Conv2dfftFunction.signal_ndim,
                           onesided=True)
@@ -234,6 +245,8 @@ class Conv2dfftFunction(torch.autograd.Function):
                           signal_ndim=Conv2dfftFunction.signal_ndim,
                           onesided=True)
         del filter
+        #global_fft_time += time.time() - start_fft_time
+        #print("global fft time: ", global_fft_time)
 
         # The last dimension (-1) has size 2 as it represents the complex
         # numbers with real and imaginary parts. The last but one dimension (-2)
@@ -253,9 +266,14 @@ class Conv2dfftFunction(torch.autograd.Function):
         # Compression.
         index_back_H_fft, index_back_W_fft = None, None
         if preserve_energy is not None and preserve_energy < 100.0:
+            #start_energy = time.time()
             xfft, yfft = preserve_energy2D_symmetry(
                 xfft, yfft, preserve_energy_rate=preserve_energy,
                 is_debug=is_debug)
+            # global global_preserve_energy_time
+            # global_preserve_energy_time += time.time() - start_energy
+            # print("preserve energy time total: ", global_preserve_energy_time)
+
         elif index_back_W is not None and index_back_W > 0:
             is_fine_grained_sparsification = False  # this is for tests
             if is_fine_grained_sparsification:
@@ -272,7 +290,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                 yfft = compress_2D_odd_index_back(yfft, index_back_W_fft)
 
         yfft = pytorch_conjugate(yfft)
-        start_correlation = time.time()
+        # start_correlation = time.time()
         if args.is_serial_conv:
             # Serially convolve each input map with all filters.
             out = torch.zeros([N, F, out_H, out_W], dtype=dtype, device=device)
@@ -293,36 +311,57 @@ class Conv2dfftFunction(torch.autograd.Function):
         else:
             # Convolve some part of the input batch with all filters.
             # 2 is for complex numbers
-            outfft = torch.zeros([N, F, xfft.shape[2], xfft.shape[3], 2],
+            outfft = torch.empty([N, F, C, xfft.shape[2], xfft.shape[3], 2],
                                  dtype=dtype, device=device)
             start = 0
             # step = get_step_estimate(xfft, yfft, args.memory_size, scale=1)
+            # step = max(args.min_batch_size // 4, 1)
             step = args.min_batch_size
             if bias is not None:
                 unsqueezed_bias = bias.unsqueeze(-1).unsqueeze(-1)
-            # For each slice of time-series in the batch.
-            global_correlation_time = 0
+
             xfft = xfft.unsqueeze(dim=1)
-            for start in range(start, N, step):
-                stop = min(start + step, N)
-                # Take one time series and unsqueeze it for broadcasting with
-                # many filters.
-                xfft_nn = xfft[start:stop]
-                outfft[start:stop] = complex_mul(xfft_nn, yfft).sum(
-                    dim=2)
+            # For each slice of batch.
+
+            # start_complex_time = time.time()
+            # for start in range(start, N, step):
+            #     stop = min(start + step, N)
+            #     # Take one time series and unsqueeze it for broadcasting with
+            #     # many filters.
+            #     xfft_nn = xfft[start:stop]
+            #     outfft[start:stop] = complex_mul(xfft_nn, yfft).sum(dim=2)
+
+            complex_mul5(xfft, yfft, outfft)
+            # outfft = complex_mul(xfft, yfft)
+            outfft = outfft.sum(dim=2)
+
+            # global global_complex_time
+            # global_complex_time += time.time() - start_complex_time
+            # print("global complex time: ", global_complex_time)
+
             xfft = xfft.squeeze(dim=1)
             outfft = restore_size_2D(outfft, init_H_fft=init_H_fft,
                                      init_half_W_fft=init_half_W_fft)
+
+            # start_irfft_time = time.time()
             out = torch.irfft(input=outfft,
                               signal_ndim=Conv2dfftFunction.signal_ndim,
                               signal_sizes=(init_H_fft, init_W_fft),
                               onesided=True)
+            # global global_irfft_time
+            # global_irfft_time += time.time() - start_irfft_time
+            # print("global irfft time: ", global_irfft_time)
+
             del outfft
             out = out[..., :out_H, :out_W]
             if bias is not None:
                 # Add the bias term for each filter (it has to be unsqueezed to
                 # the dimension of the out to properly sum up the values).
-                out[start:stop] += unsqueezed_bias
+                out += unsqueezed_bias
+
+        # global global_correlation_time
+        # global_correlation_time += time.time() - start_correlation
+        # print("global correlation time: ", global_correlation_time)
 
         if (stride_H != 1 or stride_W != 1) and (
                 stride_type is StrideType.STANDARD):
@@ -374,7 +413,7 @@ class Conv2dfftFunction(torch.autograd.Function):
         :param dout: output gradient
         :return: gradients for input map x, filter w and bias b
         """
-        # print("execute backward")
+        print("execute backward")
 
         H = ctx.H
         HH = ctx.HH

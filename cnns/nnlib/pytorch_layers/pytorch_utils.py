@@ -231,7 +231,8 @@ def next_power2(x):
     # return math.pow(2, math.ceil(math.log2(x)))
     return int(2 ** np.ceil(np.log2(x)))
 
-
+# from memory_profiler import profile
+# @profile
 def complex_mul(x, y):
     """
     Multiply arrays of complex numbers (it also handles
@@ -410,6 +411,278 @@ def complex_mul2(x, y):
     # use the last dimension: dim=-1
     result = cat(tensors=(result_rel, result_im), dim=-1)
     return result
+
+
+def complex_mul3(x, y):
+    """
+    Simply multiplication of complex numbers (it also handles
+    multidimensional arrays of complex numbers). Each complex
+    number is expressed as a pair of real and imaginary parts.
+
+    :param x: the first array of complex numbers
+    :param y: the second array complex numbers
+    :return: result of multiplication (an array with complex numbers)
+    # based on the paper: Fast Algorithms for Convolutional Neural
+    Networks (https://arxiv.org/pdf/1509.09308.pdf)
+
+    >>> # complex multiply for 2D (complex) tensors
+    >>> x = tensor([[[[1., 2.], [5., 5.]], [[2., 1.], [3., 3.]]]])
+    >>> y = tensor([[[[2., 3.], [-1., 2.]], [[0.0, 2.0], [2., 1.]]]])
+    >>> xy = complex_mul3(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[[[-4., 7.], [-15., 5.0]],
+    ... [[-2., 4.0], [3.0, 9.]]]]))
+
+    >>> x = tensor([[ 6.,  0.], [0., -2.], [1., 0.], [ 1.,  1.],
+    ... [1., 2.]])
+    >>> y = tensor([[2.,  0.], [0., -6.], [0., 1.], [ 1.,  1.],
+    ... [2., 3.]])
+    >>> np.testing.assert_array_equal(complex_mul(x, y),
+    ... tensor([[12.,   0.], [-12., 0.], [0., 1.], [ 0.,   2.],
+    ... [-4., 7.]]))
+    >>> # x = torch.rfft(torch.tensor([1., 2., 3., 0.]), 1)
+    >>> x = tensor([[ 6.,  0.], [-2., -2.], [ 2.,  0.]])
+    >>> # y = torch.rfft(torch.tensor([5., 6., 7., 0.]), 1)
+    >>> y = tensor([[18.,  0.], [-2., -6.], [ 6.,  0.]])
+    >>> # torch.equal(tensor1, tensor2): True if two tensors
+    >>> # have the same size and elements, False otherwise.
+    >>> np.testing.assert_array_equal(complex_mul3(x, y),
+    ... tensor([[108.,   0.], [ -8.,  16.], [ 12.,   0.]]))
+
+    >>> x = tensor([[1., 2.]])
+    >>> y = tensor([[2., 3.]])
+    >>> xy = complex_mul3(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[-4., 7.]]))
+
+    >>> x = tensor([[5., 5.]])
+    >>> y = tensor([[-1., 2.]])
+    >>> xy = complex_mul3(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[-15., 5.]]))
+
+    >>> x = tensor([[5., 5.]])
+    >>> y = tensor([[-1., 2.]])
+    >>> xy = complex_mul3(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[-15., 5.]]))
+
+    >>> x = tensor([[[1., 2.]]])
+    >>> y = tensor([[[2., 3.]]])
+    >>> xy = complex_mul3(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[[-4., 7.]]]))
+    >>> x = tensor([[[1., 2.], [3., 1.]]])
+    >>> y = tensor([[[2., 3.], [1., 2.]]])
+    >>> xy = complex_mul3(x, y)
+    >>> np.testing.assert_array_equal(xy,
+    ... tensor([[[-4., 7.], [1., 7.]]]))
+    >>> x = tensor([[[1., 2.], [3., 1.]], [[ 6.,  0.], [-2., -2.]]])
+    >>> y = tensor([[[2., 3.], [1., 2.]], [[18.,  0.], [-2., -6.]]])
+    >>> xy = complex_mul3(x, y)
+    >>> np.testing.assert_array_equal(xy,
+    ... tensor([[[-4., 7.], [1., 7.]], [[108.,   0.], [ -8.,  16.]]]))
+    >>> del x
+    >>> del y
+    """
+
+    # x = a + bi
+    # y = c + di
+    # x * y = (ac - bd) + i(ad + bc)
+    # a = x[..., :1]
+    # b = x[..., 1:]
+    # c = y[..., :1]
+    # d = y[..., 1:]
+
+    # relational part of the complex number
+    # result_rel = add(uavc, mul(mul(ub, vb), -1))
+    # result_rel = a * c - b * d
+    # imaginary part of the complex number
+    # result_im = a * d + b * c
+    # use the last dimension: dim=-1
+    return torch.cat(tensors=(x[..., :1]*y[..., :1]-x[..., 1:]*y[..., 1:],
+                              x[..., 1:]*y[..., :1]+x[..., :1]*y[..., 1:]),
+                     dim=-1)
+
+def complex_mul4(x, y):
+    """
+    Simply multiplication of complex numbers (it also handles
+    multidimensional arrays of complex numbers). Each complex
+    number is expressed as a pair of real and imaginary parts.
+
+    :param x: the first array of complex numbers
+    :param y: the second array complex numbers
+    :return: result of multiplication (an array with complex numbers)
+    # based on the paper: Fast Algorithms for Convolutional Neural
+    Networks (https://arxiv.org/pdf/1509.09308.pdf)
+
+    >>> # complex multiply for 2D (complex) tensors
+    >>> x = tensor([[[[1., 2.], [5., 5.]], [[2., 1.], [3., 3.]]]])
+    >>> y = tensor([[[[2., 3.], [-1., 2.]], [[0.0, 2.0], [2., 1.]]]])
+    >>> xy = complex_mul4(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[[[-4., 7.], [-15., 5.0]],
+    ... [[-2., 4.0], [3.0, 9.]]]]))
+
+    >>> x = tensor([[ 6.,  0.], [0., -2.], [1., 0.], [ 1.,  1.],
+    ... [1., 2.]])
+    >>> y = tensor([[2.,  0.], [0., -6.], [0., 1.], [ 1.,  1.],
+    ... [2., 3.]])
+    >>> np.testing.assert_array_equal(complex_mul4(x, y),
+    ... tensor([[12.,   0.], [-12., 0.], [0., 1.], [ 0.,   2.],
+    ... [-4., 7.]]))
+    >>> # x = torch.rfft(torch.tensor([1., 2., 3., 0.]), 1)
+    >>> x = tensor([[ 6.,  0.], [-2., -2.], [ 2.,  0.]])
+    >>> # y = torch.rfft(torch.tensor([5., 6., 7., 0.]), 1)
+    >>> y = tensor([[18.,  0.], [-2., -6.], [ 6.,  0.]])
+    >>> # torch.equal(tensor1, tensor2): True if two tensors
+    >>> # have the same size and elements, False otherwise.
+    >>> np.testing.assert_array_equal(complex_mul4(x, y),
+    ... tensor([[108.,   0.], [ -8.,  16.], [ 12.,   0.]]))
+
+    >>> x = tensor([[1., 2.]])
+    >>> y = tensor([[2., 3.]])
+    >>> xy = complex_mul4(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[-4., 7.]]))
+
+    >>> x = tensor([[5., 5.]])
+    >>> y = tensor([[-1., 2.]])
+    >>> xy = complex_mul4(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[-15., 5.]]))
+
+    >>> x = tensor([[5., 5.]])
+    >>> y = tensor([[-1., 2.]])
+    >>> xy = complex_mul4(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[-15., 5.]]))
+
+    >>> x = tensor([[[1., 2.]]])
+    >>> y = tensor([[[2., 3.]]])
+    >>> xy = complex_mul4(x, y)
+    >>> np.testing.assert_array_equal(xy, tensor([[[-4., 7.]]]))
+    >>> x = tensor([[[1., 2.], [3., 1.]]])
+    >>> y = tensor([[[2., 3.], [1., 2.]]])
+    >>> xy = complex_mul4(x, y)
+    >>> np.testing.assert_array_equal(xy,
+    ... tensor([[[-4., 7.], [1., 7.]]]))
+    >>> x = tensor([[[1., 2.], [3., 1.]], [[ 6.,  0.], [-2., -2.]]])
+    >>> y = tensor([[[2., 3.], [1., 2.]], [[18.,  0.], [-2., -6.]]])
+    >>> xy = complex_mul4(x, y)
+    >>> np.testing.assert_array_equal(xy,
+    ... tensor([[[-4., 7.], [1., 7.]], [[108.,   0.], [ -8.,  16.]]]))
+    >>> del x
+    >>> del y
+    """
+    # mul = torch.mul
+    # add = torch.add
+    # torch.cat(tensors=(x[..., :1]*y[..., :1]-x[..., 1:]*y[..., 1:],
+    #                    x[..., 1:]*y[..., :1]+x[..., :1]*y[..., 1:]))
+    out = x*y[..., :1]
+    out[..., :1].add_(-1*x[..., 1:]*y[..., 1:])
+    out[..., 1:].add_(x[..., :1]*y[..., 1:])
+    return out
+
+
+def complex_mul5(x, y, out):
+    """
+    Multiply arrays of complex numbers (it also handles
+    multidimensional arrays of complex numbers). Each complex
+    number is expressed as a pair of real and imaginary parts.
+
+    :param x: the first array of complex numbers
+    :param y: the second array complex numbers
+    :return: result of multiplication (an array with complex numbers)
+    # based on the paper: Fast Algorithms for Convolutional Neural
+    Networks (https://arxiv.org/pdf/1509.09308.pdf)
+
+    >>> # complex multiply for 2D (complex) tensors
+    >>> x = tensor([[[[1., 2.], [5., 5.]], [[2., 1.], [3., 3.]]]])
+    >>> y = tensor([[[[2., 3.], [-1., 2.]], [[0.0, 2.0], [2., 1.]]]])
+    >>> expect = tensor([[[[-4., 7.], [-15., 5.0]],
+    ... [[-2., 4.0], [3.0, 9.]]]])
+    >>> out = torch.empty_like(expect)
+    >>> complex_mul5(x, y, out)
+    >>> np.testing.assert_array_equal(out, expect)
+
+    >>> x = tensor([[ 6.,  0.], [0., -2.], [1., 0.], [ 1.,  1.],
+    ... [1., 2.]])
+    >>> y = tensor([[2.,  0.], [0., -6.], [0., 1.], [ 1.,  1.],
+    ... [2., 3.]])
+    >>> expect = tensor([[12.,   0.], [-12., 0.], [0., 1.], [ 0.,   2.],
+    ... [-4., 7.]])
+    >>> out = torch.empty_like(expect)
+    >>> complex_mul5(x, y, out)
+    >>> np.testing.assert_array_equal(out, expect)
+
+    >>> # x = torch.rfft(torch.tensor([1., 2., 3., 0.]), 1)
+    >>> x = tensor([[ 6.,  0.], [-2., -2.], [ 2.,  0.]])
+    >>> # y = torch.rfft(torch.tensor([5., 6., 7., 0.]), 1)
+    >>> y = tensor([[18.,  0.], [-2., -6.], [ 6.,  0.]])
+    >>> # torch.equal(tensor1, tensor2): True if two tensors
+    >>> # have the same size and elements, False otherwise.
+    >>> expect = tensor([[108.,   0.], [ -8.,  16.], [ 12.,   0.]])
+    >>> out = torch.empty_like(expect)
+    >>> complex_mul5(x, y, out)
+    >>> np.testing.assert_array_equal(expect, out)
+
+    >>> x = tensor([[1., 2.]])
+    >>> y = tensor([[2., 3.]])
+    >>> expect = tensor([[-4., 7.]])
+    >>> out = torch.empty_like(expect)
+    >>> complex_mul5(x, y, out)
+    >>> np.testing.assert_array_equal(expect, out)
+
+    >>> x = tensor([[5., 5.]])
+    >>> y = tensor([[-1., 2.]])
+    >>> expect = tensor([[-15., 5.]])
+    >>> out = torch.empty_like(expect)
+    >>> complex_mul5(x, y, out)
+    >>> np.testing.assert_array_equal(expect, out)
+
+    >>> x = tensor([[5., 5.]])
+    >>> y = tensor([[-1., 2.]])
+    >>> expect = tensor([[-15., 5.]])
+    >>> out = torch.empty_like(expect)
+    >>> complex_mul5(x, y, out)
+    >>> np.testing.assert_array_equal(expect, out)
+
+    >>> x = tensor([[[1., 2.]]])
+    >>> y = tensor([[[2., 3.]]])
+    >>> expect = tensor([[[-4., 7.]]])
+    >>> out = torch.empty_like(expect)
+    >>> complex_mul5(x, y, out)
+    >>> np.testing.assert_array_equal(expect, out)
+
+    >>> x = tensor([[[1., 2.], [3., 1.]]])
+    >>> y = tensor([[[2., 3.], [1., 2.]]])
+    >>> expect = tensor([[[-4., 7.], [1., 7.]]])
+    >>> out = torch.empty_like(expect)
+    >>> complex_mul5(x, y, out)
+    >>> np.testing.assert_array_equal(expect, out)
+
+    >>> x = tensor([[[1., 2.], [3., 1.]], [[ 6.,  0.], [-2., -2.]]])
+    >>> y = tensor([[[2., 3.], [1., 2.]], [[18.,  0.], [-2., -6.]]])
+    >>> expect = tensor([[[-4., 7.], [1., 7.]], [[108.,   0.], [ -8.,  16.]]])
+    >>> out = torch.empty_like(expect)
+    >>> complex_mul5(x, y, out)
+    >>> np.testing.assert_array_equal(expect, out)
+    """
+    # # ua = x.narrow(dim=-1, start=0, length=1)
+    # ua = x[..., :1]
+    # # ud = x.narrow(-1, 1, 1)
+    # ud = x[..., 1:]
+    # # va = y.narrow(-1, 0, 1)
+    # va = y[..., :1]
+    # # vb = y.narrow(-1, 1, 1)
+    # vb = y[..., 1:]
+    # ub = ua + ud
+    # uc = ud - ua
+    # vc = va + vb
+    # uavc = ua * vc
+    # # result_rel = add(uavc, mul(mul(ub, vb), -1))
+    # result_rel = uavc - ub * vb
+    # # imaginary part of the complex number
+    # result_im = uc * va + uavc
+
+    uavc = x[..., 0] * (y[..., 0] + y[..., 1])
+    # real part of the complex number
+    # result_rel = add(uavc, mul(mul(ub, vb), -1))
+    out[..., 0] = uavc - (x[..., 0] + x[..., 1]) * y[..., 1]
+    # imaginary part of the complex number
+    out[..., 1] = (x[..., 1] - x[..., 0]) * y[..., 0] + uavc
 
 
 def pytorch_conjugate(x):
@@ -3307,7 +3580,7 @@ def zero_out_min(input, spectrum, max=None):
     >>> # print("spectrum_b: ", spectrum_b)
     >>> np.testing.assert_array_almost_equal(spectrum_expected.numpy(), spectrum_b.numpy())
     >>> a_expected = tensor([[[[[ 3.6487,  0.0000], [-0.3913,  0.0000]], [[-0.3621, -0.1744], [ 0.3639, -0.5432]],[[-0.3621,  0.1744],[ 0.3639,  0.5432]]],[[[ 2.1530,  0.0000],[-0.5759,  0.0000]],[[ 0.6919, -0.7384],[0.0, 0.0]],[[ 0.6919,  0.7384],[-0.3086, -0.0972]]]]])
-    >>> np.testing.assert_array_almost_equal(a_expected.numpy(), b.numpy())
+    >>> np.testing.assert_array_almost_equal(a_expected.numpy(), b.numpy(), decimal=4)
     """
     assert len(input.size()) == 5
     assert len(spectrum.size()) == 4

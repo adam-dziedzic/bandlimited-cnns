@@ -242,7 +242,7 @@ parser.add_argument("--adam_beta1", default=args.adam_beta1,
                     help="beta1 value for the ADAM optimizer, default: "
                          "{args.adam_beta1}")
 parser.add_argument("--adam_beta2", default=args.adam_beta2,
-                    type=int,
+                    type=float,
                     help="beta2 value for the ADAM optimizer, default: "
                          "{args.adam_beta1}")
 parser.add_argument("--is_serial_conv",

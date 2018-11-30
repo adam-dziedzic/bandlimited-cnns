@@ -19,6 +19,9 @@ from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.general_utils import TensorType
+from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul
+from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul4
+from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul5
 from cnns.nnlib.utils.arguments import Arguments
 from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
 from cnns.nnlib.utils.arguments import Arguments
@@ -85,6 +88,123 @@ Ran 1 test in 346.483s
 
 OK
 Process finished with exit code 0
+
+device used:  cuda
+convStandard time:  0.07773208618164062
+global fft time:  0.8000748157501221
+preserve energy time total:  1.1724259853363037
+global irfft time:  0.6015880107879639
+global correlation time:  2.4582550525665283
+convFFT time:  4.650243282318115
+Pytorch speedup is: 59.823986602542085 X
+
+preserve energy: 50
+global fft time:  0.8730700016021729
+preserve energy time total:  1.0860843658447266
+global complex time:  0.930959939956665
+global irfft time:  0.5697360038757324
+global correlation time:  1.7040534019470215
+convFFT time:  3.8487296104431152
+Pytorch speedup is: 58.458966169089365 X
+
+device used:  cuda
+preserve energy:  100
+min_batch_size (equivalent to the batch slice for fft):  128
+global fft time:  0.8541977405548096
+global complex time:  1.8472542762756348
+global irfft time:  0.5717365741729736
+global correlation time:  2.4818029403686523
+convFFT time:  3.5268049240112305
+Pytorch speedup is: 59.6344007127509 X
+
+device used:  cuda
+preserve energy:  100
+min_batch_size (equivalent to the batch slice for fft):  128
+next power 2:  True
+convStandard time:  0.07816290855407715
+global fft time:  0.1257774829864502
+global complex time:  2.027482271194458
+global irfft time:  0.15481352806091309
+global correlation time:  2.260103225708008
+convFFT time:  2.583146095275879
+Pytorch speedup is: 33.0482340417095 X
+
+global_block_conv1_time:  0.0033943653106689453
+global_block_conv1_time:  1.5696039199829102
+
+energy: 50%
+global_block_conv1_time:  0.0033521652221679688
+standard eval time:  0.02388596534729004
+standard layer1 cumulative time:  0.004895925521850586
+global_block_conv1_time:  0.15587091445922852
+global fft time:  0.041803598403930664
+preserve energy time total:  0.062485456466674805
+global complex time:  0.16770434379577637
+global irfft time:  0.021817684173583984
+global correlation time:  0.21394872665405273
+conv2D FFT time:  0.35585856437683105
+fft layer1 cumulative time:  0.045282602310180664
+pytorch speedup over fft for testing resnet18:  14.89822827768628
+pytorch speedup over fft for layer 1:  9.249038227416605
+
+energy: 80%
+global_block_conv1_time:  0.0033524036407470703
+standard eval time:  0.023734569549560547
+standard layer1 cumulative time:  0.004805088043212891
+global_block_conv1_time:  0.20783185958862305
+global fft time:  0.04039120674133301
+preserve energy time total:  0.060901641845703125
+global complex time:  0.30475831031799316
+global irfft time:  0.018187522888183594
+global correlation time:  0.34923863410949707
+conv2D FFT time:  0.48766398429870605
+fft layer1 cumulative time:  0.0490567684173584
+pytorch speedup over fft for testing resnet18:  20.54656956303365
+pytorch speedup over fft for layer 1:  10.20933809665575
+
+energy: 90%
+global_block_conv1_time:  0.003366231918334961
+standard eval time:  0.02382636070251465
+standard layer1 cumulative time:  0.004833221435546875
+global_block_conv1_time:  0.29797935485839844
+global fft time:  0.04062294960021973
+preserve energy time total:  0.06063055992126465
+global complex time:  0.44714999198913574
+global irfft time:  0.022483348846435547
+global correlation time:  0.5007925033569336
+conv2D FFT time:  0.6423120498657227
+fft layer1 cumulative time:  0.07581090927124023
+pytorch speedup over fft for testing resnet18:  26.95804272777305
+pytorch speedup over fft for layer 1:  15.685378847671666
+
+energy 95%:
+global_block_conv1_time:  0.003363370895385742
+standard eval time:  0.023844003677368164
+standard layer1 cumulative time:  0.004848480224609375
+global_block_conv1_time:  0.4710414409637451
+global fft time:  0.04078269004821777
+preserve energy time total:  0.06490635871887207
+global complex time:  0.7352702617645264
+global irfft time:  0.01799488067626953
+global correlation time:  0.7867190837860107
+conv2D FFT time:  0.9344315528869629
+fft layer1 cumulative time:  0.1287529468536377
+pytorch speedup over fft for testing resnet18:  39.18937295643392
+pytorch speedup over fft for layer 1:  26.555320613690007
+
+energy 100%:
+standard eval time:  0.027710437774658203
+standard layer1 cumulative time:  0.004811525344848633
+global fft time:  0.0032012462615966797
+global_block_conv1_time:  1.5661354064941406
+global fft time:  0.04030442237854004
+global complex time:  1.4989120960235596
+global irfft time:  0.018094539642333984
+global correlation time:  2.169558048248291
+conv2D FFT time:  2.256150007247925
+fft layer1 cumulative time:  0.33473920822143555
+pytorch speedup over fft for testing resnet18:  81.41877893070398
+pytorch speedup over fft for layer 1:  69.57028888558546
 """
 
 
@@ -150,9 +270,16 @@ class TestBenchmarkConv2d(unittest.TestCase):
         repetitions = 100
         min_batch_size = 128
         preserve_energy = 100
+        stride = 1
+        next_power2 = True
+
+        print("preserve energy: ", preserve_energy)
+        print("min_batch_size (equivalent to the batch slice for fft): ",
+              min_batch_size)
+        print("next power 2: ", next_power2)
 
         convStandard = torch.nn.Conv2d(in_channels=C, out_channels=K,
-                                       kernel_size=(HH, WW))
+                                       kernel_size=(HH, WW), stride=stride)
         convStandard.to(device)
 
         start = time.time()
@@ -161,10 +288,11 @@ class TestBenchmarkConv2d(unittest.TestCase):
         convStandardTime = time.time() - start
         print("convStandard time: ", convStandardTime)
 
-        conv = Conv2dfft(weight_value=y,
+        conv = Conv2dfft(weight_value=y, stride=stride,
                          args=Arguments(stride_type=StrideType.STANDARD,
                                         min_batch_size=min_batch_size,
-                                        preserve_energy=preserve_energy))
+                                        preserve_energy=preserve_energy,
+                                        next_power2=next_power2))
         conv.to(device)
         start = time.time()
         for repeat in range(repetitions):
@@ -262,7 +390,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
                                              y_expect.grad.cpu().detach().numpy(),
                                              decimal=3)
 
-    def test_forward_backward_pass_resnet18(self):
+    def test_forward_pass_resnet18(self):
         dtype = torch.float
         if torch.cuda.is_available():
             device = torch.device("cuda")
@@ -271,7 +399,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
         print("device used: ", str(device))
 
         # mini batch imitating cifar-10
-        N, C, H, W = 128, 3, 32, 32
+        N, C, H, W = 32, 3, 32, 32
         inputs = torch.randn(N, C, H, W, dtype=dtype, device=device,
                              requires_grad=True)
 
@@ -280,7 +408,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
         # args.conv_type = "FFT2D"
         args.conv_type = ConvType.STANDARD2D
         args.index_back = None
-        args.preserve_energy = None
+        args.preserve_energy = 50
         args.is_debug = False
         args.next_power2 = True
         args.compress_type = CompressType.STANDARD
@@ -297,6 +425,8 @@ class TestBenchmarkConv2d(unittest.TestCase):
         outputs_standard = model(inputs)
         standard_time = time.time() - start_eval
         print("standard eval time: ", standard_time)
+        # layer1_standard = model.global_layer1_time
+        # print("standard layer1 cumulative time: ", layer1_standard)
 
         # print("outputs standard: ", outputs_standard)
 
@@ -308,8 +438,71 @@ class TestBenchmarkConv2d(unittest.TestCase):
         outputs_fft = model(inputs)
         fft_time = time.time() - start_eval
         print("conv2D FFT time: ", fft_time)
+        # layer1_fft = model.global_layer1_time
+        # print("fft layer1 cumulative time: ", layer1_fft)
 
         # print("outputs fft: ", outputs_fft)
 
         print("pytorch speedup over fft for testing resnet18: ",
               fft_time / standard_time)
+        # print("pytorch speedup over fft for layer 1: ",
+        #       layer1_fft / layer1_standard)
+
+    def test_complex_mul(self):
+        N, C, H, W, I = 128, 3, 32, 32, 2
+        K = 16  # number of filter banks
+        repetitions = 1000
+        dtype = torch.float
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
+        x = torch.randn(N, 1, C, H, W, I, dtype=dtype, device=device)
+        y = torch.randn(K, C, H, W, I, dtype=dtype, device=device)
+        start_mul_time = time.time()
+        for _ in range(repetitions):
+            complex_mul(x, y)
+        print("multiplication time: ", time.time() - start_mul_time)
+
+    def test_complex_mul_torch_vs_numpy(self):
+        N, C, H, W, I = 128, 3, 32, 32, 2
+        K = 16  # number of filter banks
+        repetitions = 10
+        dtype = torch.float
+        device = torch.device("cpu")
+        x = torch.randn(N, 1, C, H, W, I, dtype=dtype, device=device)
+        y = torch.randn(K, C, H, W, I, dtype=dtype, device=device)
+        x_np = x.numpy()
+        x_complex = x_np[..., :1] + 1.0j * x_np[..., 1:]
+        y_np = y.numpy()
+        y_complex = y_np[..., :1] + 1.0j * y_np[..., 1:]
+        start_mul_time = time.time()
+        # out = torch.empty(N, K, C, H, W, I, dtype=dtype, device=device)
+        for _ in range(repetitions):
+            result_torch = complex_mul(x, y)
+        print("multiplication time: ", time.time() - start_mul_time)
+
+        start_mul_np = time.time()
+        for _ in range(repetitions):
+            result_np = x_complex * y_complex
+        print("numpy multiplication time: ", time.time() - start_mul_np)
+
+        np.testing.assert_array_almost_equal(result_torch, np.concatenate(
+            (result_np.real, result_np.imag), axis=-1), decimal=5)
+
+    def test_complex_mul_with_out_tensor(self):
+        N, C, H, W, I = 128, 3, 32, 32, 2
+        K = 16  # number of filter banks
+        repetitions = 1000
+        dtype = torch.float
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
+        x = torch.randn(N, 1, C, H, W, I, dtype=dtype, device=device)
+        y = torch.randn(K, C, H, W, I, dtype=dtype, device=device)
+        start_mul_time = time.time()
+        out = torch.empty(N, K, C, H, W, I, dtype=dtype, device=device)
+        for _ in range(repetitions):
+            complex_mul5(x, y, out)
+        print("multiplication time: ", time.time() - start_mul_time)
