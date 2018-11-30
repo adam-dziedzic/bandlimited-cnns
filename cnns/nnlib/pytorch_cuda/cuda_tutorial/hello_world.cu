@@ -1,4 +1,4 @@
-#include <iostream>
+k#include <iostream>
 #include <cstdio>
 
 // compile with nvcc: nvcc hello_world.cu

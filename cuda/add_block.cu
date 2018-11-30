@@ -5,8 +5,8 @@
 __global__
 void add(int n, float *x, float *y)
 {
-  int index = threadIdx.x;
-  int stride = blockDim.x;
+  int index = threadIdx.x;  // the index of thread within the thread block
+  int stride = blockDim.x;  // # of thread in the thread block
   for (int i = index; i < n; i += stride) {
     y[i] = x[i] + y[i];
   }
@@ -14,7 +14,7 @@ void add(int n, float *x, float *y)
 
 int main(void)
 {
-  int N = 1024;
+  int N = 1<<20;
   float *x, *y;
 
   // Allocate Unified Memory so that it is accessible from CPU or GPU

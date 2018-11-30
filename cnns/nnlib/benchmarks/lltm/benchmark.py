@@ -1,8 +1,8 @@
 import torch
 import time
-from cnns.nnlib.pytorch_cuda.cpp.lltm import LLTM as LLTM_CPP
-from cnns.nnlib.pytorch_cuda.python.lltm import LLTM as LLTM_PY
-from cnns.nnlib.pytorch_cuda.cuda_lltm.lltm import LLTM as LLTM_CUDA
+from cnns.nnlib.pytorch_cpp.lltm_cpp import LLTM as LLTM_CPP
+from cnns.nnlib.pytorch_python.lltm import LLTM as LLTM_PY
+from cnns.nnlib.pytorch_cuda.lltm_cuda.lltm import LLTM as LLTM_CUDA
 
 batch_size = 16
 input_features = 32
@@ -55,7 +55,7 @@ print(FORWARD_BACK_INFO.format(str(device), 'python', forward, backward))
 X, h, C = init_vars(device=device)
 rnn = LLTM_CPP(input_features, state_size, device=device).to(device)
 forward, backward = test(X, h, C, device=device)
-print(FORWARD_BACK_INFO.format(str(device), 'cpp', forward, backward))
+print(FORWARD_BACK_INFO.format(str(device), 'lltm_cpp', forward, backward))
 
 device = torch.device("cpu")
 
@@ -67,11 +67,11 @@ print(FORWARD_BACK_INFO.format(str(device), 'python', forward, backward))
 X, h, C = init_vars(device=device)
 rnn = LLTM_CPP(input_features, state_size, device=device)
 forward, backward = test(X, h, C, device=device)
-print(FORWARD_BACK_INFO.format(str(device), 'cpp', forward, backward))
+print(FORWARD_BACK_INFO.format(str(device), 'lltm_cpp', forward, backward))
 
 
 """
-ssh://cc@129.114.108.89:22/home/cc/anaconda3/bin/python -u /home/cc/code/time-series-ml/cnns/nnlib/pytorch_cuda/benchmark.py
+ssh://cc@129.114.108.89:22/home/cc/anaconda3/bin/python -u /home/cc/code/time-series-ml/cnns/nnlib/pytorch_cuda/benchmark_small.py
 lltm cpu python: Forward: 44.325 sec | Backward 53.321 sec
 
 """

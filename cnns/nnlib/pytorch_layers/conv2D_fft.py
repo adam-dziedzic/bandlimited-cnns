@@ -329,10 +329,10 @@ class Conv2dfftFunction(torch.autograd.Function):
             #     # Take one time series and unsqueeze it for broadcasting with
             #     # many filters.
             #     xfft_nn = xfft[start:stop]
-            #     outfft[start:stop] = complex_mul(xfft_nn, yfft).sum(dim=2)
+            #     outfft[start:stop] = complex_mul_cpp(xfft_nn, yfft).sum(dim=2)
 
             complex_mul5(xfft, yfft, outfft)
-            # outfft = complex_mul(xfft, yfft)
+            # outfft = complex_mul_cpp(xfft, yfft)
             outfft = outfft.sum(dim=2)
 
             # global global_complex_time

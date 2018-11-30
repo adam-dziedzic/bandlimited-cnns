@@ -505,4 +505,29 @@ class TestBenchmarkConv2d(unittest.TestCase):
         out = torch.empty(N, K, C, H, W, I, dtype=dtype, device=device)
         for _ in range(repetitions):
             complex_mul5(x, y, out)
-        print("multiplication time: ", time.time() - start_mul_time)
+        print("complex mul out multiplication time: ",
+              time.time() - start_mul_time)
+
+    def test_complex_mul_cpp(self):
+        from complex_mul_cpp import complex_mul as complex_mul_cpp
+        N, C, H, W, I = 128, 3, 32, 32, 2
+        K = 16  # number of filter banks
+        repetitions = 1000
+        dtype = torch.float
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
+        x = torch.randn(N, 1, C, H, W, I, dtype=dtype, device=device)
+        y = torch.randn(K, C, H, W, I, dtype=dtype, device=device)
+        start_mul_time = time.time()
+        for _ in range(repetitions):
+            out = complex_mul_cpp(x, y)
+        stop_mul_time = time.time()
+        print("complex mul cpp multiplication time: ",
+              stop_mul_time - start_mul_time)
+
+        expect = complex_mul(x, y)
+        expect = expect.cpu().numpy()
+        out = out.cpu().numpy()
+        np.testing.assert_array_almost_equal(expect, out, decimal=5)

@@ -38,7 +38,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import get_step_estimate
 from cnns.nnlib.pytorch_layers.pytorch_utils import cuda_mem_empty
 from cnns.nnlib.pytorch_layers.pytorch_utils import cuda_mem_show
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
-# from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul
+# from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul_cpp
 from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import StrideType
@@ -412,7 +412,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         #     # Take one time series and un-squeeze it for broadcasting with
         #     # many filters.
         #     xfft_nn = xfft[nn].unsqueeze(0)
-        #     out = complex_mul(xfft_nn, pytorch_conjugate(yfft))
+        #     out = complex_mul_cpp(xfft_nn, pytorch_conjugate(yfft))
         #     """
         #     Sum up the elements from computed output maps for each input
         #     channel. Each output map has as many channels as the number of

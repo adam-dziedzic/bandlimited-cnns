@@ -27,7 +27,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         expected_result = np.correlate(x[0, 0, :], y[0, 0, :], mode="valid")
         if torch.cuda.is_available() is False:
             self.fail("This test can be executed only on GPU!")
-        device = torch.device("cuda_lltm")
+        device = torch.device("lltm_cuda")
         print("Conv Cuda")
         conv = Conv1dfftCuda(filter_value=torch.tensor(y, device=device),
                              bias_value=torch.tensor(b, device=device))

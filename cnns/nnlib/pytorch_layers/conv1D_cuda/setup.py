@@ -5,7 +5,7 @@ setup(
     name='conv1D_cuda',
     ext_modules=[
         CUDAExtension('conv1D_cuda', [
-            'conv_cuda.cpp',
+            'conv_cuda.lltm_cpp',
             'conv_cuda_kernel.cu',
         ]),
     ],

@@ -52,8 +52,10 @@ class Conv1dfftFunctionCuda(torch.autograd.Function):
         output = outputs[0]
         xfft, yfft, W, WW, fft_size = outputs[1:]
         if ctx:
-            ctx.save_for_backward(xfft, yfft, to_tensor(W), to_tensor(WW),
-                                  to_tensor(fft_size))
+            ctx.W = W
+            ctx.WW = WW
+            ctx.fft_size = fft_size
+            ctx.save_for_backward(xfft, yfft)
         return output
 
     @staticmethod
@@ -78,10 +80,10 @@ class Conv1dfftFunctionCuda(torch.autograd.Function):
         :param dout: output gradient
         :return: gradients for input map x, filter w and bias b
         """
-        xfft, yfft, W, WW, fft_size = ctx.saved_tensors
-        W = from_tensor(W)
-        WW = from_tensor(WW)
-        fft_size = from_tensor(fft_size)
+        xfft, yfft = ctx.saved_tensors
+        W = ctx.W
+        WW = ctx.WW
+        fft_size = ctx.fft_size
 
         # The last dimension (_) for xfft and yfft is the 2 element complex
         # number.

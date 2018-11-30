@@ -2,11 +2,11 @@ from setuptools import setup
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 
 setup(
-    name='plus_scan_cuda',
+    name='complex_mul_cuda',
     ext_modules=[
-        CUDAExtension('plus_scan_cuda', [
-            'plus_scan_cuda.lltm_cpp',
-            'plus_scan_cuda_kernel.cu',
+        CUDAExtension('complex_mul_cuda', [
+            'complex_mul_cuda.cpp',
+            'complex_mul_kernel.cu',
         ]),
     ],
     cmdclass={

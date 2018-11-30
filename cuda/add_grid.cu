@@ -1,11 +1,13 @@
 #include <iostream>
 #include <math.h>
+#include <stdio.h>
 
 // Kernel function to add the elements of two arrays
 __global__
 void add(int n, float *x, float *y)
 {
   int index = blockIdx.x + blockDim.x + threadIdx.x;
+  printf("index: %d", index);
   int stride = blockDim.x * gridDim.x;
   for (int i = index; i < n; i += stride) {
     y[i] = x[i] + y[i];
@@ -14,7 +16,7 @@ void add(int n, float *x, float *y)
 
 int main(void)
 {
-  int N = 1024;
+  int N = 1<<20;
   float *x, *y;
 
   // Allocate Unified Memory so that it is accessible from CPU or GPU
@@ -22,7 +24,7 @@ int main(void)
   cudaMallocManaged(&y, N*sizeof(float));
 
   // initialize x and y arrays on the host
-  for (int i = 0; i < N; i++) {
+  for (int i = 0; i < N; ++i) {
     x[i] = 1.0f;
     y[i] = 2.0f;
   }
