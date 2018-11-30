@@ -1,3 +1,4 @@
+import time
 import torch
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
@@ -6,6 +7,7 @@ from cnns.nnlib.pytorch_layers.conv2D_fft import Conv2dfft
 from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.general_utils import TensorType
 from cnns.nnlib.utils.general_utils import CompressType
+from cnns.nnlib.utils.arguments import Arguments
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152']
@@ -244,6 +246,13 @@ class Args(object):
 
 
 if __name__ == "__main__":
+    dtype = torch.float
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+    print("device used: ", str(device))
+
     args = Arguments()
     args.in_channels = 3
     # args.conv_type = "FFT2D"
@@ -252,21 +261,37 @@ if __name__ == "__main__":
     args.preserve_energy = None
     args.is_debug = False
     args.next_power2 = True
-    args.compress_type = Com
+    args.compress_type = CompressType.STANDARD
     args.tensor_type = TensorType.FLOAT32
+    args.num_classes = 10
+    args.min_batch_size = 16
+    args.test_batch_size = 16
 
-    batch_size = 4
-    inputs = torch.randn(batch_size, args.in_channels, 32, 32)
+    batch_size = 16
+    inputs = torch.randn(batch_size, args.in_channels, 32, 32, dtype=dtype,
+                         device=device)
 
     model = resnet18(args=args)
+    model.to(device)
     model.eval()
+    start_eval = time.time()
     outputs_standard = model(inputs)
+    standard_time = time.time() - start_eval
+    print("standard eval time: ", standard_time)
 
     print("outputs standard: ", outputs_standard)
 
     args.conv_type = ConvType.FFT2D
+
     model = resnet18(args=args)
+    model.to(device)
     model.eval()
+    start_eval = time.time()
     outputs_fft = model(inputs)
+    fft_time = time.time() - start_eval
+    print("conv2D FFT time: ", fft_time)
 
     print("outputs fft: ", outputs_fft)
+
+    print("pytorch speedup over fft for testing resnet18: ",
+          fft_time / standard_time)
