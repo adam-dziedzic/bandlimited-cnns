@@ -413,7 +413,7 @@ class Conv2dfftFunction(torch.autograd.Function):
         :param dout: output gradient
         :return: gradients for input map x, filter w and bias b
         """
-        print("execute backward")
+        # print("execute backward")
 
         H = ctx.H
         HH = ctx.HH
