@@ -2,7 +2,7 @@
 
 // CUDA forward declarations
 
-at::Tensor complex_mul_cuda(at::Tensor x, at::Tensor y);
+void complex_mul_cuda(at::Tensor x, at::Tensor y, at::Tensor out);
 
 // C++ interface
 
@@ -12,11 +12,12 @@ at::Tensor complex_mul_cuda(at::Tensor x, at::Tensor y);
 #define CHECK_INPUT(x) CHECK_CUDA(x); CHECK_CONTIGUOUS(x)
 
 
-at::Tensor complex_mul(at::Tensor x, at::Tensor y) {
+void complex_mul(at::Tensor x, at::Tensor y, at::Tensor out) {
     CHECK_INPUT(x);
     CHECK_INPUT(y);
+    CHECK_INPUT(out)
 
-    return complex_mul_cuda(x, y);
+    complex_mul_cuda(x, y, out);
 }
 
 

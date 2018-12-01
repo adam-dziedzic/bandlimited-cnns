@@ -2,9 +2,14 @@ import torch
 import unittest
 from cnns.nnlib.pytorch_layers.pytorch_utils import flip
 from cnns.nnlib.pytorch_layers.pytorch_utils import preserve_energy2D
+from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul
 import numpy as np
 from torch import tensor
+import socket
 
+if socket.gethostname() == "skr-compute1":
+    from complex_mul_cpp import complex_mul as complex_mul_cpp
+    from complex_mul_cuda import complex_mul as complex_mul_cuda
 
 class TestPytorchUtils(unittest.TestCase):
 
@@ -286,6 +291,28 @@ class TestPytorchUtils(unittest.TestCase):
         np.testing.assert_equal(yfft2.numpy(), expect_yfft2.numpy())
         np.testing.assert_equal(index_back_H, 0)
         np.testing.assert_equal(index_back_W, 2)
+
+    def test_cuda_multiply(self):
+        N, C, H, W, I = 2, 3, 5, 3, 2
+        F = 4
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
+        dtype = torch.float
+        x = torch.randn(N, C, H, W, I , device=device, dtype=dtype)
+        y = torch.randn(F, C, H, W, I, device=device, dtype=dtype)
+        out = torch.zeros(N, F, H, W, I, device=device, dtype=dtype)
+
+        complex_mul_cuda(x, y, out)
+
+        expect = complex_mul(x, y)
+
+        np.testing.assert_allclose(
+            acutal=out, desired=expect,
+            err_msg="actual out different from desired expected")
+
+
 
 if __name__ == '__main__':
     unittest.main()

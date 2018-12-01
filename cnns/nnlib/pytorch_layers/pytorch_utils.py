@@ -27,6 +27,7 @@ import socket
 
 if socket.gethostname() == "skr-compute1":
     from complex_mul_cpp import complex_mul as complex_mul_cpp
+    from complex_mul_cuda import complex_mul as complex_mul_cuda
 
 logger = get_logger(name=__name__)
 logger.setLevel(logging.DEBUG)
@@ -755,6 +756,93 @@ def complex_mul6_cpp(x, y):
     ... tensor([[[-4., 7.], [1., 7.]], [[108.,   0.], [ -8.,  16.]]]))
     """
     return complex_mul_cpp(x, y)
+
+
+def complex_mul7_cuda(x, y, out):
+    """
+    Multiply arrays of complex numbers (it also handles
+    multidimensional arrays of complex numbers). Each complex
+    number is expressed as a pair of real and imaginary parts.
+
+    :param x: the first array of complex numbers
+    :param y: the second array complex numbers
+    :return: result of multiplication (an array with complex numbers)
+    # based on the paper: Fast Algorithms for Convolutional Neural
+    Networks (https://arxiv.org/pdf/1509.09308.pdf)
+
+    >>> # complex multiply for 2D (complex) tensors
+    >>> x = tensor([[[[1., 2.], [5., 5.]], [[2., 1.], [3., 3.]]]])
+    >>> y = tensor([[[[2., 3.], [-1., 2.]], [[0.0, 2.0], [2., 1.]]]])
+    >>> expect = tensor([[[[-4., 7.], [-15., 5.0]],
+    ... [[-2., 4.0], [3.0, 9.]]]])
+    >>> out = torch.empty_like(expect)
+    >>> complex_mul7_cuda(x, y, out)
+    >>> np.testing.assert_array_equal(out, expect)
+
+    >>> x = tensor([[ 6.,  0.], [0., -2.], [1., 0.], [ 1.,  1.],
+    ... [1., 2.]])
+    >>> y = tensor([[2.,  0.], [0., -6.], [0., 1.], [ 1.,  1.],
+    ... [2., 3.]])
+    >>> expect = tensor([[12.,   0.], [-12., 0.], [0., 1.], [ 0.,   2.],
+    ... [-4., 7.]])
+    >>> out = torch.empty_like(expect)
+    >>> complex_mul7_cuda(x, y, out)
+    >>> np.testing.assert_array_equal(out, expect)
+
+    >>> # x = torch.rfft(torch.tensor([1., 2., 3., 0.]), 1)
+    >>> x = tensor([[ 6.,  0.], [-2., -2.], [ 2.,  0.]])
+    >>> # y = torch.rfft(torch.tensor([5., 6., 7., 0.]), 1)
+    >>> y = tensor([[18.,  0.], [-2., -6.], [ 6.,  0.]])
+    >>> # torch.equal(tensor1, tensor2): True if two tensors
+    >>> # have the same size and elements, False otherwise.
+    >>> expect = tensor([[108.,   0.], [ -8.,  16.], [ 12.,   0.]])
+    >>> out = torch.empty_like(expect)
+    >>> complex_mul7_cuda(x, y, out)
+    >>> np.testing.assert_array_equal(expect, out)
+
+    >>> x = tensor([[1., 2.]])
+    >>> y = tensor([[2., 3.]])
+    >>> expect = tensor([[-4., 7.]])
+    >>> out = torch.empty_like(expect)
+    >>> complex_mul7_cuda(x, y, out)
+    >>> np.testing.assert_array_equal(expect, out)
+
+    >>> x = tensor([[5., 5.]])
+    >>> y = tensor([[-1., 2.]])
+    >>> expect = tensor([[-15., 5.]])
+    >>> out = torch.empty_like(expect)
+    >>> complex_mul7_cuda(x, y, out)
+    >>> np.testing.assert_array_equal(expect, out)
+
+    >>> x = tensor([[5., 5.]])
+    >>> y = tensor([[-1., 2.]])
+    >>> expect = tensor([[-15., 5.]])
+    >>> out = torch.empty_like(expect)
+    >>> complex_mul7_cuda(x, y, out)
+    >>> np.testing.assert_array_equal(expect, out)
+
+    >>> x = tensor([[[1., 2.]]])
+    >>> y = tensor([[[2., 3.]]])
+    >>> expect = tensor([[[-4., 7.]]])
+    >>> out = torch.empty_like(expect)
+    >>> complex_mul7_cuda(x, y, out)
+    >>> np.testing.assert_array_equal(expect, out)
+
+    >>> x = tensor([[[1., 2.], [3., 1.]]])
+    >>> y = tensor([[[2., 3.], [1., 2.]]])
+    >>> expect = tensor([[[-4., 7.], [1., 7.]]])
+    >>> out = torch.empty_like(expect)
+    >>> complex_mul7_cuda(x, y, out)
+    >>> np.testing.assert_array_equal(expect, out)
+
+    >>> x = tensor([[[1., 2.], [3., 1.]], [[ 6.,  0.], [-2., -2.]]])
+    >>> y = tensor([[[2., 3.], [1., 2.]], [[18.,  0.], [-2., -6.]]])
+    >>> expect = tensor([[[-4., 7.], [1., 7.]], [[108.,   0.], [ -8.,  16.]]])
+    >>> out = torch.empty_like(expect)
+    >>> complex_mul7_cuda(x, y, out)
+    >>> np.testing.assert_array_equal(expect, out)
+    """
+    return complex_mul_cuda(x, y, out)
 
 def pytorch_conjugate(x):
     """
