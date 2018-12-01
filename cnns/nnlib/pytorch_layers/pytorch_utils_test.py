@@ -306,10 +306,44 @@ class TestPytorchUtils(unittest.TestCase):
 
         complex_mul_cuda(x, y, out)
 
+        print("out.size(): ", out.size())
+
+        x = x.unsqueeze(dim=1)
         expect = complex_mul(x, y)
+        expect = expect.sum(dim=2)
 
         np.testing.assert_allclose(
-            acutal=out, desired=expect,
+            actual=out.cpu().numpy(), desired=expect.cpu().numpy(),
+            err_msg="actual out different from desired expected")
+
+    def test_cuda_multiply_simple(self):
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
+        dtype = torch.float
+        x = torch.tensor([[[[[3,-2]]]]], device=device, dtype=dtype)
+        y = torch.tensor([[[[[5,4]]]]], device=device, dtype=dtype)
+        expect = torch.tensor([[[[[23, 2]]]]])
+        out = torch.zeros_like(expect, device=device, dtype=dtype)
+        complex_mul_cuda(x, y, out)
+        np.testing.assert_allclose(
+            actual=out.cpu().numpy(), desired=expect.cpu().numpy(),
+            err_msg="actual out different from desired expected")
+
+    def test_cuda_multiply_simple2(self):
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
+        dtype = torch.float
+        x = torch.tensor([[[[[3,-2], [2,5]]]]], device=device, dtype=dtype)
+        y = torch.tensor([[[[[5,4], [-1, 3]]]]], device=device, dtype=dtype)
+        expect = torch.tensor([[[[[23, 2], [-17, 1]]]]])
+        out = torch.zeros_like(expect, device=device, dtype=dtype)
+        complex_mul_cuda(x, y, out)
+        np.testing.assert_allclose(
+            actual=out.cpu().numpy(), desired=expect.cpu().numpy(),
             err_msg="actual out different from desired expected")
 
 

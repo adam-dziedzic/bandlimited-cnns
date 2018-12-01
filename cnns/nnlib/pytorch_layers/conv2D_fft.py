@@ -40,6 +40,10 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import restore_size_2D
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.arguments import Arguments
+import socket
+if socket.gethostname() == "skr-compute1":
+    from complex_mul_cpp import complex_mul as complex_mul_cpp
+    from complex_mul_cuda import complex_mul as complex_mul_cuda
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -311,16 +315,12 @@ class Conv2dfftFunction(torch.autograd.Function):
         else:
             # Convolve some part of the input batch with all filters.
             # 2 is for complex numbers
-            outfft = torch.empty([N, F, C, xfft.shape[2], xfft.shape[3], 2],
-                                 dtype=dtype, device=device)
             start = 0
             # step = get_step_estimate(xfft, yfft, args.memory_size, scale=1)
             # step = max(args.min_batch_size // 4, 1)
             step = args.min_batch_size
             if bias is not None:
                 unsqueezed_bias = bias.unsqueeze(-1).unsqueeze(-1)
-
-            xfft = xfft.unsqueeze(dim=1)
             # For each slice of batch.
 
             # start_complex_time = time.time()
@@ -331,15 +331,25 @@ class Conv2dfftFunction(torch.autograd.Function):
             #     xfft_nn = xfft[start:stop]
             #     outfft[start:stop] = complex_mul_cpp(xfft_nn, yfft).sum(dim=2)
 
-            complex_mul5(xfft, yfft, outfft)
-            # outfft = complex_mul_cpp(xfft, yfft)
-            outfft = outfft.sum(dim=2)
+            is_cuda = True
+            if is_cuda:
+                outfft = torch.empty([N, F, xfft.shape[2], xfft.shape[3], 2],
+                                     dtype=dtype, device=device)
+                complex_mul_cuda(xfft, yfft, outfft)
+            else:
+                xfft = xfft.unsqueeze(dim=1)
+                outfft = torch.empty([N, F, C, xfft.shape[2], xfft.shape[3], 2],
+                                     dtype=dtype, device=device)
+                complex_mul5(xfft, yfft, outfft)
+                # outfft = complex_mul_cpp(xfft, yfft)
+                outfft = outfft.sum(dim=2)
 
-            # global global_complex_time
-            # global_complex_time += time.time() - start_complex_time
-            # print("global complex time: ", global_complex_time)
+                # global global_complex_time
+                # global_complex_time += time.time() - start_complex_time
+                # print("global complex time: ", global_complex_time)
 
-            xfft = xfft.squeeze(dim=1)
+                xfft = xfft.squeeze(dim=1)
+
             outfft = restore_size_2D(outfft, init_H_fft=init_H_fft,
                                      init_half_W_fft=init_half_W_fft)
 
