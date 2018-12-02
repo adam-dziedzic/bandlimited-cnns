@@ -28,6 +28,7 @@ import socket
 if socket.gethostname() == "skr-compute1":
     from complex_mul_cpp import complex_mul as complex_mul_cpp
     from complex_mul_cuda import complex_mul as complex_mul_cuda
+    from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
 
 logger = get_logger(name=__name__)
 logger.setLevel(logging.DEBUG)
@@ -843,6 +844,9 @@ def complex_mul7_cuda(x, y, out):
     >>> np.testing.assert_array_equal(expect, out)
     """
     return complex_mul_cuda(x, y, out)
+
+def complex_mul8_stride_cuda(x, y, out):
+    return complex_mul_strid_cuda(x, y, out)
 
 def pytorch_conjugate(x):
     """

@@ -7,6 +7,7 @@ setup(
         CUDAExtension('complex_mul_cuda', [
             'complex_mul_cuda.cpp',
             'complex_mul_kernel.cu',
+            'complex_mul_kernel_stride.cu',
         ]),
     ],
     cmdclass={

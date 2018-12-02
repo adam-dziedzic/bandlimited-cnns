@@ -331,7 +331,7 @@ class Conv2dfftFunction(torch.autograd.Function):
             #     xfft_nn = xfft[start:stop]
             #     outfft[start:stop] = complex_mul_cpp(xfft_nn, yfft).sum(dim=2)
 
-            is_cuda = True
+            is_cuda = False
             if is_cuda:
                 outfft = torch.empty([N, F, xfft.shape[2], xfft.shape[3], 2],
                                      dtype=dtype, device=device)

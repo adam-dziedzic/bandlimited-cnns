@@ -10,6 +10,7 @@ import socket
 if socket.gethostname() == "skr-compute1":
     from complex_mul_cpp import complex_mul as complex_mul_cpp
     from complex_mul_cuda import complex_mul as complex_mul_cuda
+    from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
 
 class TestPytorchUtils(unittest.TestCase):
 
@@ -305,6 +306,30 @@ class TestPytorchUtils(unittest.TestCase):
         out = torch.zeros(N, F, H, W, I, device=device, dtype=dtype)
 
         complex_mul_cuda(x, y, out)
+
+        print("out.size(): ", out.size())
+
+        x = x.unsqueeze(dim=1)
+        expect = complex_mul(x, y)
+        expect = expect.sum(dim=2)
+
+        np.testing.assert_allclose(
+            actual=out.cpu().numpy(), desired=expect.cpu().numpy(),
+            err_msg="actual out different from desired expected")
+
+    def test_cuda_stride_multiply(self):
+        N, C, H, W, I = 2, 3, 5, 3, 2
+        F = 4
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
+        dtype = torch.float
+        x = torch.randn(N, C, H, W, I , device=device, dtype=dtype)
+        y = torch.randn(F, C, H, W, I, device=device, dtype=dtype)
+        out = torch.zeros(N, F, H, W, I, device=device, dtype=dtype)
+
+        complex_mul_stride_cuda(x, y, out)
 
         print("out.size(): ", out.size())
 
