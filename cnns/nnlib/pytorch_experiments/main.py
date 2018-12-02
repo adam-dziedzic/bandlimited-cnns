@@ -936,6 +936,32 @@ if __name__ == '__main__':
                  ]
     elif args.dataset == "debug8":
         flist = ["SwedishLeaf"]
+    elif args.dataset == "debug9conv1-100":
+        flist = ['FordB',
+                 'Gun_Point',
+                 'HandOutlines',
+                 'Haptics',
+                 'Herring',
+                 'InlineSkate',
+                 'NonInvasiveFatalECG_Thorax1',
+                 'NonInvasiveFatalECG_Thorax2',
+                 'Phoneme',
+                 'ProximalPhalanxOutlineAgeGroup',
+                 'RefrigerationDevices',
+                 'ScreenType',
+                 'ShapeletSim',
+                 'ShapesAll',
+                 'SmallKitchenAppliances',
+                 'SonyAIBORobotSurface',
+                 'StarLightCurves',
+                 'Strawberry',
+                 'uWaveGestureLibrary_Z',
+                 'UWaveGestureLibraryAll',
+                 'wafer',
+                 'Worms',
+                 'WormsTwoClass',
+                 'yoga'
+                 ]
     else:
         raise AttributeError("Unknown dataset: ", args.dataset)
 
