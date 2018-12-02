@@ -962,6 +962,33 @@ if __name__ == '__main__':
                  'WormsTwoClass',
                  'yoga'
                  ]
+    elif args.dataset == "debug9conv1-100-reverse":
+        flist = ['FordB',
+                 'Gun_Point',
+                 'HandOutlines',
+                 'Haptics',
+                 'Herring',
+                 'InlineSkate',
+                 'NonInvasiveFatalECG_Thorax1',
+                 'NonInvasiveFatalECG_Thorax2',
+                 'Phoneme',
+                 'ProximalPhalanxOutlineAgeGroup',
+                 'RefrigerationDevices',
+                 'ScreenType',
+                 'ShapeletSim',
+                 'ShapesAll',
+                 'SmallKitchenAppliances',
+                 'SonyAIBORobotSurface',
+                 'StarLightCurves',
+                 'Strawberry',
+                 'uWaveGestureLibrary_Z',
+                 'UWaveGestureLibraryAll',
+                 'wafer',
+                 'Worms',
+                 'WormsTwoClass',
+                 'yoga'
+                 ]
+        flist = reversed(flist)
     elif args.dataset == "debug10conv1-99":
         flist = ['FordA',
                  'FordB',
@@ -1009,13 +1036,61 @@ if __name__ == '__main__':
                  'ElectricDevices',
                  'FaceAll'
                  ]
+    elif args.dataset == "debug10conv1-99-reverse":
+        flist = ['FordA',
+                 'FordB',
+                 'HandOutlines',
+                 'Haptics',
+                 'Herring',
+                 'InlineSkate',
+                 'LargeKitchenAppliances',
+                 'Lighting2',
+                 'MALLAT',
+                 'Meat',
+                 'NonInvasiveFatalECG_Thorax1',
+                 'NonInvasiveFatalECG_Thorax2',
+                 'OliveOil',
+                 'OSULeaf',
+                 'Phoneme',
+                 'RefrigerationDevices',
+                 'ScreenType',
+                 'ShapeletSim',
+                 'ShapesAll',
+                 'SmallKitchenAppliances',
+                 'SonyAIBORobotSurface',
+                 'SonyAIBORobotSurfaceII',
+                 'StarLightCurves',
+                 'Strawberry',
+                 'SwedishLeaf',
+                 'ToeSegmentation1',
+                 'ToeSegmentation2',
+                 'TwoLeadECG',
+                 'UWaveGestureLibraryAll',
+                 'wafer',
+                 'Wine',
+                 'WordsSynonyms',
+                 'Worms',
+                 'WormsTwoClass', # start from almost the beginning
+                 'Cricket_Z',
+                 'DiatomSizeReduction',
+                 'DistalPhalanxOutlineAgeGroup',
+                 'DistalPhalanxOutlineCorrect',
+                 'DistalPhalanxTW',
+                 'Earthquakes',
+                 'ECG200',
+                 'ECG5000',
+                 'ECGFiveDays',
+                 'ElectricDevices',
+                 'FaceAll'
+                 ]
+        flist = reversed(flist)
     else:
         raise AttributeError("Unknown dataset: ", args.dataset)
 
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
-    flist = sorted(flist, key=lambda s: s.lower())
+    # flist = sorted(flist, key=lambda s: s.lower())
     # flist = flist[3:]  # start from Beef
     # reversed(flist)
     print("flist: ", flist)
