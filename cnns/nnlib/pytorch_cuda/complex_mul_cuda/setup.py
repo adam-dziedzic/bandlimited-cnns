@@ -8,8 +8,10 @@ setup(
             'complex_mul_cuda.cpp',
             'complex_mul_kernel.cu',
             'complex_mul_kernel_stride.cu',
+            'complex_mul_kernel_stride_no_permute.cu',
         ]),
     ],
     cmdclass={
         'build_ext': BuildExtension
     })
+

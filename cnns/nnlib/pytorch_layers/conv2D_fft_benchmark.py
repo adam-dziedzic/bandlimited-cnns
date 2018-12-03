@@ -396,10 +396,10 @@ class TestBenchmarkConv2d(unittest.TestCase):
             device = torch.device("cuda")
         else:
             device = torch.device("cpu")
-        print("device used: ", str(device))
+        print("\ndevice used: ", str(device))
 
         # mini batch imitating cifar-10
-        N, C, H, W = 32, 3, 32, 32
+        N, C, H, W = 128, 3, 32, 32
         inputs = torch.randn(N, C, H, W, dtype=dtype, device=device,
                              requires_grad=True)
 
@@ -408,7 +408,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
         # args.conv_type = "FFT2D"
         args.conv_type = ConvType.STANDARD2D
         args.index_back = None
-        args.preserve_energy = 50
+        args.preserve_energy = 100
         args.is_debug = False
         args.next_power2 = True
         args.compress_type = CompressType.STANDARD

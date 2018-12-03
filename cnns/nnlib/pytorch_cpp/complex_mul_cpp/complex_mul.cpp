@@ -24,7 +24,7 @@
     return result
 */
 
-at::Tensor complex_mul(at::Tensor x, at::Tensor y) {
+at::Tensor complex_mul_cpp(at::Tensor x, at::Tensor y) {
     at::Tensor ua = x.narrow(/*dim=*/-1, /*start=*/0, /*length=*/1);
     at::Tensor ud = x.narrow(/*dim=*/-1, /*start=*/1, /*length=*/1);
 
@@ -45,6 +45,6 @@ at::Tensor complex_mul(at::Tensor x, at::Tensor y) {
 
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-  m.def("complex_mul", &complex_mul,
+  m.def("complex_mul_cpp", &complex_mul_cpp,
   "cpp based multiplication of complex tensors");
 }

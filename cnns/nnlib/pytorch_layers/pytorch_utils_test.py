@@ -6,11 +6,15 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul
 import numpy as np
 from torch import tensor
 import socket
+import time
 
 if socket.gethostname() == "skr-compute1":
     from complex_mul_cpp import complex_mul as complex_mul_cpp
     from complex_mul_cuda import complex_mul as complex_mul_cuda
     from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
+    from complex_mul_cuda import \
+        complex_mul_stride_no_permute as complex_mul_stride_no_permute_cuda
+
 
 class TestPytorchUtils(unittest.TestCase):
 
@@ -267,10 +271,10 @@ class TestPytorchUtils(unittest.TestCase):
             [
                 [  # 1st  channel
                     [[[2, 2], [2, 2], [2, 2], [2, 2], [2, 2], [2, 2],
-                     [-2, -2],
-                     [-2, -2], [-2, 2], [-2, 2]],
-                    [[2, 2], [-2, -2], [2, 2], [2, 2], [-2, -2], [-2, -2],
-                     [2, 2], [2, 2], [-2, -2], [-2, -2]]],  # 2nd row
+                      [-2, -2],
+                      [-2, -2], [-2, 2], [-2, 2]],
+                     [[2, 2], [-2, -2], [2, 2], [2, 2], [-2, -2], [-2, -2],
+                      [2, 2], [2, 2], [-2, -2], [-2, -2]]],  # 2nd row
                 ]
             ])
         print("dimensions of xfft: ", xfft.size())
@@ -282,8 +286,10 @@ class TestPytorchUtils(unittest.TestCase):
         expect_xfft2 = torch.tensor(
             [
                 [  # 1st  channel
-                    [[[2, 2], [2, 2], [2, 2], [2, 2], [2, 2], [2, 2], [-2, -2], [-2, -2], [-2, 2], [-2, 2]],
-                    [[2, 2], [-2, -2], [2, 2], [2, 2], [-2, -2], [-2, -2], [2, 2], [0, 0], [-2, -2], [-2, -2]]],  # 2nd row
+                    [[[2, 2], [2, 2], [2, 2], [2, 2], [2, 2], [2, 2], [-2, -2],
+                      [-2, -2], [-2, 2], [-2, 2]],
+                     [[2, 2], [-2, -2], [2, 2], [2, 2], [-2, -2], [-2, -2],
+                      [2, 2], [0, 0], [-2, -2], [-2, -2]]],  # 2nd row
                 ]
             ])
         expect_yfft2 = expect_xfft2.clone()
@@ -293,6 +299,29 @@ class TestPytorchUtils(unittest.TestCase):
         np.testing.assert_equal(index_back_H, 0)
         np.testing.assert_equal(index_back_W, 2)
 
+    def test_cuda_first_complex_multiply(self):
+        N, C, H, W, I = 2, 3, 5, 3, 2
+        F = 4
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
+        dtype = torch.float
+        x = torch.randn(N, C, H, W, I, device=device, dtype=dtype)
+        y = torch.randn(F, C, H, W, I, device=device, dtype=dtype)
+
+        expect = complex_mul(x, y)
+        expect = expect.sum(dim=2)
+
+        out = torch.zeros_like(expect, dtype=dtype, device=device)
+        complex_mul_stride_no_permute_cuda(x, y, out, 1)
+
+        print("out.size(): ", out.size())
+
+        np.testing.assert_allclose(
+            actual=out.cpu().numpy(), desired=expect.cpu().numpy(),
+            err_msg="actual out different from desired expected")
+
     def test_cuda_multiply(self):
         N, C, H, W, I = 2, 3, 5, 3, 2
         F = 4
@@ -301,11 +330,11 @@ class TestPytorchUtils(unittest.TestCase):
         else:
             device = torch.device("cpu")
         dtype = torch.float
-        x = torch.randn(N, C, H, W, I , device=device, dtype=dtype)
+        x = torch.randn(N, C, H, W, I, device=device, dtype=dtype)
         y = torch.randn(F, C, H, W, I, device=device, dtype=dtype)
         out = torch.zeros(N, F, H, W, I, device=device, dtype=dtype)
 
-        complex_mul_cuda(x, y, out)
+        complex_mul_stride_no_permute_cuda(x, y, out, 8)
 
         print("out.size(): ", out.size())
 
@@ -314,7 +343,7 @@ class TestPytorchUtils(unittest.TestCase):
         expect = expect.sum(dim=2)
 
         np.testing.assert_allclose(
-            actual=out.cpu().numpy(), desired=expect.cpu().numpy(),
+            actual=out.cpu().numpy(), desired=expect.cpu().numpy(), rtol=1e-4,
             err_msg="actual out different from desired expected")
 
     def test_cuda_stride_multiply(self):
@@ -325,11 +354,11 @@ class TestPytorchUtils(unittest.TestCase):
         else:
             device = torch.device("cpu")
         dtype = torch.float
-        x = torch.randn(N, C, H, W, I , device=device, dtype=dtype)
+        x = torch.randn(N, C, H, W, I, device=device, dtype=dtype)
         y = torch.randn(F, C, H, W, I, device=device, dtype=dtype)
         out = torch.zeros(N, F, H, W, I, device=device, dtype=dtype)
 
-        complex_mul_stride_cuda(x, y, out)
+        complex_mul_stride_no_permute_cuda(x, y, out, 3)
 
         print("out.size(): ", out.size())
 
@@ -338,7 +367,7 @@ class TestPytorchUtils(unittest.TestCase):
         expect = expect.sum(dim=2)
 
         np.testing.assert_allclose(
-            actual=out.cpu().numpy(), desired=expect.cpu().numpy(),
+            actual=out.cpu().numpy(), desired=expect.cpu().numpy(), rtol=1e-4,
             err_msg="actual out different from desired expected")
 
     def test_cuda_multiply_simple(self):
@@ -347,8 +376,8 @@ class TestPytorchUtils(unittest.TestCase):
         else:
             device = torch.device("cpu")
         dtype = torch.float
-        x = torch.tensor([[[[[3,-2]]]]], device=device, dtype=dtype)
-        y = torch.tensor([[[[[5,4]]]]], device=device, dtype=dtype)
+        x = torch.tensor([[[[[3, -2]]]]], device=device, dtype=dtype)
+        y = torch.tensor([[[[[5, 4]]]]], device=device, dtype=dtype)
         expect = torch.tensor([[[[[23, 2]]]]])
         out = torch.zeros_like(expect, device=device, dtype=dtype)
         complex_mul_cuda(x, y, out)
@@ -362,8 +391,8 @@ class TestPytorchUtils(unittest.TestCase):
         else:
             device = torch.device("cpu")
         dtype = torch.float
-        x = torch.tensor([[[[[3,-2], [2,5]]]]], device=device, dtype=dtype)
-        y = torch.tensor([[[[[5,4], [-1, 3]]]]], device=device, dtype=dtype)
+        x = torch.tensor([[[[[3, -2], [2, 5]]]]], device=device, dtype=dtype)
+        y = torch.tensor([[[[[5, 4], [-1, 3]]]]], device=device, dtype=dtype)
         expect = torch.tensor([[[[[23, 2], [-17, 1]]]]])
         out = torch.zeros_like(expect, device=device, dtype=dtype)
         complex_mul_cuda(x, y, out)
@@ -371,7 +400,284 @@ class TestPytorchUtils(unittest.TestCase):
             actual=out.cpu().numpy(), desired=expect.cpu().numpy(),
             err_msg="actual out different from desired expected")
 
+    def test_cuda_multiply_simple3(self):
+        if not torch.cuda.is_available():
+            print("cuda device is available: ")
+            return
 
+        device = torch.device("cuda")
+        dtype = torch.float
+        x = torch.tensor([[[[[-2, 3]]]]], device=device, dtype=dtype)
+        y = torch.tensor([[[[[4, 3]]]]], device=device, dtype=dtype)
+        expect = torch.tensor([[[[[-17, 6]]]]])
+        out = torch.zeros_like(expect, device=device, dtype=dtype)
+        complex_mul_stride_no_permute_cuda(x, y, out, 5)
+        np.testing.assert_allclose(
+            actual=out.cpu().numpy(), desired=expect.cpu().numpy(),
+            err_msg="actual out different from desired expected")
+
+    def test_cuda_multiply_simple4(self):
+        if not torch.cuda.is_available():
+            print("cuda device is available: ")
+            return
+
+        device = torch.device("cuda")
+        dtype = torch.float
+
+        x = torch.tensor([[[[[-2, 3]],[[3,-2]]]]], device=device, dtype=dtype)
+        y = torch.tensor([[[[[4, 3]],[[5,4]]]]], device=device, dtype=dtype)
+        expect = torch.tensor([[[[[-17, 6]],[[23, 2]]]]])
+        out = torch.zeros_like(expect, device=device, dtype=dtype)
+        complex_mul_stride_no_permute_cuda(x, y, out, 5)
+        np.testing.assert_allclose(
+            actual=out.cpu().numpy(), desired=expect.cpu().numpy(),
+            err_msg="actual out different from desired expected")
+
+    def test_cuda_multiply_simple2_no_permute_with_stride(self):
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
+        dtype = torch.float
+        x = torch.tensor([[[[[3, -2], [2, 5]]]]], device=device, dtype=dtype)
+        y = torch.tensor([[[[[5, 4], [-1, 3]]]]], device=device, dtype=dtype)
+        expect = torch.tensor([[[[[23, 2], [-17, 1]]]]])
+        out = torch.zeros_like(expect, device=device, dtype=dtype)
+        complex_mul_stride_no_permute_cuda(x, y, out, 3)
+        np.testing.assert_allclose(
+            actual=out.cpu().numpy(), desired=expect.cpu().numpy(),
+            err_msg="actual out different from desired expected")
+
+    def test_cuda_multiply_simple3_no_permute_with_stride(self):
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
+        dtype = torch.float
+
+        array = torch.arange(9, device=device, dtype=dtype)
+        zeros = torch.zeros(9, device=device, dtype=dtype)
+
+        # create a single xy plane with size 3x3
+        array = array.reshape(1, 1, 3, 3, 1)
+        zeros = zeros.reshape(1, 1, 3, 3, 1)
+
+        # set zeros as the imaginary parts
+        x = torch.cat((array, zeros), dim=-1)
+        y = x.clone()
+
+        expect = torch.pow(x, 2)
+        out = torch.zeros_like(expect, device=device, dtype=dtype)
+        complex_mul_stride_no_permute_cuda(x, y, out, 2)
+        np.testing.assert_allclose(
+            actual=out.cpu().numpy(), desired=expect.cpu().numpy(),
+            err_msg="actual out different from desired expected")
+
+    def test_cuda_multiply_simple4_no_permute_with_stride(self):
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
+        dtype = torch.float
+
+        size = 9
+        array = torch.arange(size, device=device, dtype=dtype)
+        zeros = torch.zeros(size, device=device, dtype=dtype)
+
+        # create a single xy plane with size 3x3
+        array = array.reshape(1, 1, 3, 3, 1)
+        zeros = zeros.reshape(1, 1, 3, 3, 1)
+
+        expect = torch.pow(array, 2)
+        expect += expect
+        expect = torch.cat((expect, zeros), dim=-1)
+        print("expect: ", expect)
+
+        array = torch.cat((array, array), dim=1)
+        print("array: ", array)
+
+        zeros = torch.cat((zeros, zeros), dim=1)
+
+        # set zeros as the imaginary parts
+        x = torch.cat((array, zeros), dim=-1)
+        print("x: ", x)
+        y = x.clone()
+
+        out = torch.zeros_like(expect, device=device, dtype=dtype)
+        complex_mul_stride_no_permute_cuda(x, y, out, 2)
+        print("out: ", out)
+        np.testing.assert_allclose(
+            actual=out.cpu().numpy(), desired=expect.cpu().numpy(),
+            err_msg="actual out different from desired expected")
+
+    def test_cuda_multiply_simple5_no_permute_with_stride(self):
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
+        dtype = torch.float
+
+        size = 9
+        array = torch.arange(size, device=device, dtype=dtype)
+        zeros = torch.zeros(size, device=device, dtype=dtype)
+
+        # create a single xy plane with size 3x3
+        array = array.reshape(1, 1, 3, 3, 1)
+        zeros = zeros.reshape(1, 1, 3, 3, 1)
+
+        expect = torch.pow(array, 2)
+        expect += expect
+        expect = torch.cat((expect, zeros), dim=-1)
+        # two imitate the result after applying 2 filters
+        expect = torch.cat((expect, expect), dim=1)
+        print("expect: ", expect)
+
+        array = torch.cat((array, array), dim=1)
+        print("array: ", array)
+
+        zeros = torch.cat((zeros, zeros), dim=1)
+
+        # set zeros as the imaginary parts
+        x = torch.cat((array, zeros), dim=-1)
+        print("x: ", x)
+        y = x.clone()
+        # 2 filters
+        y = torch.cat((y, y), dim=0)
+
+        out = torch.zeros_like(expect, device=device, dtype=dtype)
+        complex_mul_stride_no_permute_cuda(x, y, out, 1024)
+        print("out size: ", out.size())
+        print("out: ", out)
+        np.testing.assert_allclose(
+            actual=out.cpu().numpy(), desired=expect.cpu().numpy(),
+            err_msg="actual out different from desired expected")
+
+    def test_cuda_multiply_simple6_no_permute_with_stride(self):
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
+        dtype = torch.float
+
+        size = 9
+        array = torch.arange(size, device=device, dtype=dtype)
+        zeros = torch.zeros(size, device=device, dtype=dtype)
+
+        # create a single xy plane with size 3x3
+        array = array.reshape(1, 1, 3, 3, 1)
+        zeros = zeros.reshape(1, 1, 3, 3, 1)
+
+        expect = torch.pow(array, 2)
+        expect += expect
+        expect = torch.cat((expect, zeros), dim=-1)
+        # imitate the result after applying 2 filters
+        expect = torch.cat((expect, expect), dim=1)
+        # imiate 2 images (in the batch)
+        expect = torch.cat((expect, expect), dim=0)
+        print("expect: ", expect)
+
+        array = torch.cat((array, array), dim=1)
+        print("array: ", array)
+
+        zeros = torch.cat((zeros, zeros), dim=1)
+
+        # set zeros as the imaginary parts
+        x = torch.cat((array, zeros), dim=-1)
+        # add another image (2 images in the batch)
+        x = torch.cat((x, x), dim=0)
+        print("x size: ", x.size())
+        print("x: ", x)
+
+        # we already have 2 filters
+        y = x.clone()
+
+        out = torch.zeros_like(expect, device=device, dtype=dtype)
+        complex_mul_stride_no_permute_cuda(x, y, out, 2)
+        print("out size: ", out.size())
+        print("out: ", out)
+        np.testing.assert_allclose(
+            actual=out.cpu().numpy(), desired=expect.cpu().numpy(),
+            err_msg="actual out different from desired expected")
+
+    def test_cuda_stride_no_permute_multiply(self):
+        N, C, H, W, I = 2, 3, 5, 3, 2
+        F = 4
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
+        dtype = torch.float
+        x = torch.randn(N, C, H, W, I, device=device, dtype=dtype)
+        y = torch.randn(F, C, H, W, I, device=device, dtype=dtype)
+        out = torch.zeros(N, F, H, W, I, device=device, dtype=dtype)
+
+        complex_mul_stride_no_permute_cuda(x, y, out, 11)
+
+        print("out.size(): ", out.size())
+
+        x = x.unsqueeze(dim=1)
+        expect = complex_mul(x, y)
+        expect = expect.sum(dim=2)
+
+        np.testing.assert_allclose(
+            actual=out.cpu().numpy(), desired=expect.cpu().numpy(), rtol=1e-4,
+            err_msg="actual out different from desired expected")
+
+    def test_cuda_stride_no_permute_multiply_big(self):
+        N, C, H, W, I = 8, 3, 16, 8, 2
+        F = 4
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
+        dtype = torch.float
+        x = torch.randn(N, C, H, W, I, device=device, dtype=dtype)
+        y = torch.randn(F, C, H, W, I, device=device, dtype=dtype)
+        out = torch.zeros(N, F, H, W, I, device=device, dtype=dtype)
+
+        start = time.time()
+        complex_mul_stride_no_permute_cuda(x, y, out, 1024)
+        print("\ncuda mul time: ", time.time() - start)
+
+        x = x.unsqueeze(dim=1)
+        start = time.time()
+        expect = complex_mul(x, y)
+        expect = expect.sum(dim=2)
+        print("pytorch mul time: ", time.time() - start)
+
+        print("out.size(): ", out.size())
+
+        np.testing.assert_allclose(
+            actual=out.cpu().numpy(), desired=expect.cpu().numpy(), rtol=1e-3,
+            err_msg="actual out different from desired expected")
+
+    def test_cuda_stride_no_permute_multiply_big2(self):
+        N, C, H, W, I = 16, 128, 8, 4, 2
+        F = 64
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
+        dtype = torch.float
+        x = torch.randn(N, C, H, W, I, device=device, dtype=dtype)
+        y = torch.randn(F, C, H, W, I, device=device, dtype=dtype)
+        out = torch.zeros(N, F, H, W, I, device=device, dtype=dtype)
+
+        start = time.time()
+        complex_mul_stride_no_permute_cuda(x, y, out, 1024)
+        print("\ncuda mul time: ", time.time() - start)
+
+        x = x.unsqueeze(dim=1)
+        start = time.time()
+        expect = complex_mul(x, y)
+        expect = expect.sum(dim=2)
+        print("pytorch mul time: ", time.time() - start)
+
+        print("out.size(): ", out.size())
+
+        np.testing.assert_allclose(
+            actual=out.cpu().numpy(), desired=expect.cpu().numpy(), rtol=1e-3,
+            err_msg="actual out different from desired expected")
 
 if __name__ == '__main__':
     unittest.main()

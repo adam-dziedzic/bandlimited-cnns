@@ -83,7 +83,8 @@ class Arguments(object):
                  dev_percent = 0,
                  adam_beta1=0.9,
                  adam_beta2=0.999,
-                 is_serial_conv=False
+                 is_serial_conv=False,
+                 cuda_block_threads=1024,
                  ):
         """
         The default parameters for the execution of the program.
@@ -182,6 +183,7 @@ class Arguments(object):
         self.adam_beta1 = adam_beta1
         self.adam_beta2 = adam_beta2
         self.is_serial_conv = is_serial_conv
+        self.cuda_block_threads = cuda_block_threads
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False

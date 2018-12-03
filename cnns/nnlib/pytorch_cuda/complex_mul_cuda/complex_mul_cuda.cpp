@@ -1,9 +1,13 @@
 #include <torch/torch.h>
 
-// CUDA forward declarations
-
 void complex_mul_cuda(at::Tensor x, at::Tensor y, at::Tensor out);
 void complex_mul_stride_cuda(at::Tensor x, at::Tensor y, at::Tensor out);
+void complex_mul_stride_no_permute_cuda(
+    at::Tensor x, at::Tensor y, at::Tensor out, int threads = 1024);
+
+// for profiling
+void complex_mul_stride_no_permute_cuda_pure(
+    at::Tensor x, at::Tensor y, at::Tensor out, int threads = 1024);
 
 // C++ interface
 
@@ -28,7 +32,14 @@ void complex_mul_stride(at::Tensor x, at::Tensor y, at::Tensor out) {
     complex_mul_stride_cuda(x, y, out);
 }
 
+void complex_mul_stride_no_permute(at::Tensor x, at::Tensor y, at::Tensor out,
+    int threads=1024) {
+    check_input(x, y, out);
+    complex_mul_stride_no_permute_cuda(x, y, out, threads);
+}
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-  m.def("complex_mul", &complex_mul, "cuda based multiplication of complex tensors");
-  m.def("complex_mul_stride", &complex_mul_stride, "cuda based multiplication of complex tensors with stride");
+  m.def("complex_mul", &complex_mul, "CUDA based multiplication of complex tensors.");
+  m.def("complex_mul_stride", &complex_mul_stride, "CUDA based multiplication of complex tensors with stride.");
+  m.def("complex_mul_stride_no_permute", &complex_mul_stride_no_permute, "CUDA based multiplication of complex tensors with stride and no permutation of the tensor.");
 }

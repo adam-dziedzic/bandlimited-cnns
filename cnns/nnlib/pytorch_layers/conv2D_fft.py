@@ -41,9 +41,13 @@ from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.arguments import Arguments
 import socket
+
 if socket.gethostname() == "skr-compute1":
     from complex_mul_cpp import complex_mul as complex_mul_cpp
     from complex_mul_cuda import complex_mul as complex_mul_cuda
+    from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
+    from complex_mul_cuda import \
+        complex_mul_stride_no_permute as complex_mul_stride_no_permute_cuda
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -51,6 +55,7 @@ consoleLog = logging.StreamHandler()
 logger.addHandler(consoleLog)
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
+
 
 # global_preserve_energy_time = 0.0
 # global_correlation_time = 0.0
@@ -238,8 +243,8 @@ class Conv2dfftFunction(torch.autograd.Function):
             filter, (0, fft_padding_filter_W, 0, fft_padding_filter_H),
             'constant', 0)
 
-        #global global_fft_time
-        #start_fft_time = time.time()
+        # global global_fft_time
+        # start_fft_time = time.time()
         # fft of the input and filters
         xfft = torch.rfft(input, signal_ndim=Conv2dfftFunction.signal_ndim,
                           onesided=True)
@@ -249,8 +254,8 @@ class Conv2dfftFunction(torch.autograd.Function):
                           signal_ndim=Conv2dfftFunction.signal_ndim,
                           onesided=True)
         del filter
-        #global_fft_time += time.time() - start_fft_time
-        #print("global fft time: ", global_fft_time)
+        # global_fft_time += time.time() - start_fft_time
+        # print("global fft time: ", global_fft_time)
 
         # The last dimension (-1) has size 2 as it represents the complex
         # numbers with real and imaginary parts. The last but one dimension (-2)
@@ -270,7 +275,7 @@ class Conv2dfftFunction(torch.autograd.Function):
         # Compression.
         index_back_H_fft, index_back_W_fft = None, None
         if preserve_energy is not None and preserve_energy < 100.0:
-            #start_energy = time.time()
+            # start_energy = time.time()
             xfft, yfft = preserve_energy2D_symmetry(
                 xfft, yfft, preserve_energy_rate=preserve_energy,
                 is_debug=is_debug)
@@ -293,11 +298,14 @@ class Conv2dfftFunction(torch.autograd.Function):
                 xfft = compress_2D_odd_index_back(xfft, index_back_W_fft)
                 yfft = compress_2D_odd_index_back(yfft, index_back_W_fft)
 
+        _, _, half_fft_compressed_H, half_fft_compressed_W, _ = xfft.size()
+        cuda_block_threads = min(1024,
+                                 half_fft_compressed_H * half_fft_compressed_W)
         yfft = pytorch_conjugate(yfft)
         # start_correlation = time.time()
         if args.is_serial_conv:
             # Serially convolve each input map with all filters.
-            out = torch.zeros([N, F, out_H, out_W], dtype=dtype, device=device)
+            out = torch.empty([N, F, out_H, out_W], dtype=dtype, device=device)
             for nn in range(N):  # For each time-series in the batch.
                 # Take one time series and unsqueeze it for broadcasting with
                 # many filters.
@@ -331,16 +339,19 @@ class Conv2dfftFunction(torch.autograd.Function):
             #     xfft_nn = xfft[start:stop]
             #     outfft[start:stop] = complex_mul_cpp(xfft_nn, yfft).sum(dim=2)
 
-            is_cuda = False
-            if is_cuda:
+            if torch.cuda.is_available():
+                # print("complex cuda multiplication")
                 outfft = torch.empty([N, F, xfft.shape[2], xfft.shape[3], 2],
                                      dtype=dtype, device=device)
-                complex_mul_cuda(xfft, yfft, outfft)
+                # complex_mul_cuda(xfft, yfft, outfft)
+                complex_mul_stride_no_permute_cuda(xfft, yfft, outfft,
+                                                   cuda_block_threads)
             else:
                 xfft = xfft.unsqueeze(dim=1)
-                outfft = torch.empty([N, F, C, xfft.shape[2], xfft.shape[3], 2],
-                                     dtype=dtype, device=device)
-                complex_mul5(xfft, yfft, outfft)
+                # outfft = torch.empty([N, F, C, xfft.shape[2], xfft.shape[3], 2],
+                #                      dtype=dtype, device=device)
+                # complex_mul5(xfft, yfft, outfft)
+                outfft = complex_mul(xfft, yfft)
                 # outfft = complex_mul_cpp(xfft, yfft)
                 outfft = outfft.sum(dim=2)
 
@@ -397,9 +408,10 @@ class Conv2dfftFunction(torch.autograd.Function):
             ctx.init_H_fft = init_H_fft
             ctx.init_W_fft = init_W_fft
             ctx.run_args = args
+            ctx.cuda_block_threads = cuda_block_threads
             ctx.save_for_backward(xfft, yfft)
 
-        return out
+        return out.clone()
 
     @staticmethod
     def backward(ctx, dout):
@@ -438,6 +450,7 @@ class Conv2dfftFunction(torch.autograd.Function):
         init_H_fft = ctx.init_H_fft
         init_W_fft = ctx.init_W_fft
         args = ctx.run_args
+        cuda_block_threads = ctx.cuda_block_threads
         xfft, yfft = ctx.saved_tensors
 
         is_debug = args.is_debug
@@ -537,19 +550,24 @@ class Conv2dfftFunction(torch.autograd.Function):
                     out = torch.unsqueeze(input=out, dim=0)
                     dx[nn] = out
             else:
-                # Convolve some part of the dout batch with all filters.
-                # 2 is for complex numbers
-                dxfft = torch.zeros([N, C, xfft.shape[2], xfft.shape[3], 2],
+                dxfft = torch.empty([N, C, xfft.shape[2], xfft.shape[3], 2],
                                     dtype=dtype, device=device)
-                start = 0
-                # step = get_step_estimate(xfft, yfft, args.memory_size, scale=1)
-                step = args.min_batch_size
-                doutfft = doutfft.unsqueeze(dim=2)
-                for start in range(start, N, step):
-                    stop = min(start + step, N)
-                    doutfft_nn = doutfft[start:stop]
-                    dxfft[start:stop] = complex_mul(doutfft_nn,
-                                                    yfft).sum(dim=1)
+                if torch.cuda.is_available():
+                    yfft = yfft.permute(1, 0, 2, 3, 4).contiguous()
+                    complex_mul_stride_no_permute_cuda(doutfft, yfft, dxfft,
+                                                       cuda_block_threads)
+                else:
+                    # Convolve some part of the dout batch with all filters.
+                    # 2 is for complex numbers
+                    start = 0
+                    # step = get_step_estimate(xfft, yfft, args.memory_size, scale=1)
+                    step = args.min_batch_size
+                    doutfft = doutfft.unsqueeze(dim=2)
+                    for start in range(start, N, step):
+                        stop = min(start + step, N)
+                        doutfft_nn = doutfft[start:stop]
+                        dxfft[start:stop] = complex_mul(doutfft_nn,
+                                                        yfft).sum(dim=1)
                 dxfft = restore_size_2D(dxfft, init_H_fft=init_H_fft,
                                         init_half_W_fft=init_half_W_fft)
                 dx = torch.irfft(input=dxfft,
@@ -592,7 +610,7 @@ class Conv2dfftFunction(torch.autograd.Function):
             doutfft = pytorch_conjugate(doutfft)
             if args.is_serial_conv:
                 # Serially convolve each input dout with all input maps xfft.
-                dw = torch.zeros([F, C, HH, WW], dtype=dtype, device=device)
+                dw = torch.empty([F, C, HH, WW], dtype=dtype, device=device)
                 for ff in range(F):
                     # doutfft_ff has as many channels as number of input filters.
                     doutfft_ff = doutfft[:, ff, ...].unsqueeze(1)
@@ -616,18 +634,25 @@ class Conv2dfftFunction(torch.autograd.Function):
                 # 2 is for the complex numbers
                 dwfft = torch.zeros([F, C, xfft.shape[2], xfft.shape[3], 2],
                                     dtype=dtype, device=device)
-                # Convolve some part of the dout batch with all input maps.
-                start = 0
-                # step = get_step_estimate(xfft, doutfft, memory_size=memory_size,
-                #                          scale=4)
-                step = args.min_batch_size
-                if len(doutfft.shape) == 5:  # we did not need grad for input
-                    doutfft.unsqueeze_(dim=2)
-                doutfft = doutfft.permute(1, 0, 2, 3, 4, 5)
-                for start in range(start, F, step):
-                    stop = min(start + step, N)
-                    doutfft_nn = doutfft[start:stop]
-                    dwfft[start:stop] = complex_mul(xfft, doutfft_nn).sum(dim=1)
+                if torch.cuda.is_available():
+                    doutfft = doutfft.permute(1, 0, 2, 3, 4).contiguous()
+                    xfft = xfft.permute(1, 0, 2, 3, 4).contiguous()
+                    complex_mul_stride_no_permute_cuda(doutfft, xfft, dwfft,
+                                                       cuda_block_threads)
+                else:
+                    # Convolve some part of the dout batch with all input maps.
+                    start = 0
+                    # step = get_step_estimate(xfft, doutfft, memory_size=memory_size,
+                    #                          scale=4)
+                    step = args.min_batch_size
+                    if len(doutfft.shape) == 5:  # we did not need grad for input
+                        doutfft.unsqueeze_(dim=2)
+                    doutfft = doutfft.permute(1, 0, 2, 3, 4, 5)
+                    for start in range(start, F, step):
+                        stop = min(start + step, N)
+                        doutfft_nn = doutfft[start:stop]
+                        dwfft[start:stop] = complex_mul(xfft, doutfft_nn).sum(dim=1)
+
                 dwfft = restore_size_2D(dwfft, init_H_fft=init_H_fft,
                                         init_half_W_fft=init_half_W_fft)
                 dw = torch.irfft(input=dwfft,

@@ -149,11 +149,11 @@ parser.add_argument("--model_path",
                     help="The path to a saved model.")
 parser.add_argument("--dataset", default=args.dataset,
                     help="the type of datasets: all, debug, cifar10, mnist.")
-parser.add_argument("--index_back", default=args.index_back, type=int,
-                    help="How many indexes (values) from the back of the "
-                         "frequency representation should be discarded? This "
-                         "is the compression in the FFT domain.")
-parser.add_argument('--preserve_energies', nargs="+", type=int,
+parser.add_argument("--index_back", default=args.index_back, type=float,
+                    help="Percentage of indexes (values) from the back of the "
+                         "frequency representation that should be discarded. "
+                         "This is the compression in the FFT domain.")
+parser.add_argument('--preserve_energies', nargs="+", type=float,
                     default=args.preserve_energies,
                     help="How much energy should be preserved in the "
                          "frequency representation of the signal? This "
@@ -251,6 +251,8 @@ parser.add_argument("--is_serial_conv",
                          "filters, all a batch of datapoint is convolved with "
                          "all filters in one go, choose options from: "
                          "" + ",".join(Bool.get_names()))
+parser.add_argument("--cuda_block_threads", default=args.cuda_block_threads,
+                    type=int, help="Max number of threads for a cuda block.")
 
 parsed_args = parser.parse_args()
 args.set_parsed_args(parsed_args=parsed_args)

@@ -553,7 +553,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         :param dout: output gradient
         :return: gradients for input map x, filter w and bias b
         """
-        print("manual backward pass")
+        # print("manual backward pass")
         xfft, yfft, W, WW, fft_size, is_manual, conv_index, compress_type, is_debug, preserve_energy, index_back_fft, is_serial_conv, memory_size = ctx.saved_tensors
         need_input_grad = ctx.needs_input_grad[0]
         need_filter_grad = ctx.needs_input_grad[1]
