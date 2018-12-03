@@ -612,11 +612,12 @@ class TestPyTorchConv2d(unittest.TestCase):
         print("computed dx: " + str(x_torch.grad.cpu().numpy()))
 
         # are the gradients correct
-        np.testing.assert_array_almost_equal(
-            y_torch.grad.cpu().detach().numpy(), expected_dw, decimal=5)
 
         np.testing.assert_array_almost_equal(
             x_torch.grad.cpu().detach().numpy(), expected_dx, decimal=5)
+
+        np.testing.assert_array_almost_equal(
+            y_torch.grad.cpu().detach().numpy(), expected_dw, decimal=5)
 
         np.testing.assert_array_almost_equal(
             b_torch.grad.cpu().detach().numpy(), expected_db, decimal=5)

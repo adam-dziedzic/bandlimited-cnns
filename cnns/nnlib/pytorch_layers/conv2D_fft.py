@@ -305,6 +305,7 @@ class Conv2dfftFunction(torch.autograd.Function):
         _, _, half_fft_compressed_H, half_fft_compressed_W, _ = xfft.size()
         cuda_block_threads = min(1024,
                                  half_fft_compressed_H * half_fft_compressed_W)
+        # cuda_block_threads = 1024
 
         if bias is not None:
             unsqueezed_bias = bias.unsqueeze(-1).unsqueeze(-1)

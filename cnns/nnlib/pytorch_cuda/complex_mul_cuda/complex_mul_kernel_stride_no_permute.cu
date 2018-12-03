@@ -66,10 +66,9 @@ __global__ void complex_mul_cuda_kernel(
 
     const int n = blockIdx.x; // current index of an image/input map in the batch
     const int f = blockIdx.y; // current index of a filter from the filter bank
-    const int start = threadIdx.x; // current XY cell to be computed (element wise multiplication between corresponding cells in the image and filter, then summed up
-    // number of threads per block
-    const int raw_stride = blockDim.x;  // stride for the H*W map is equal to the number of threads declared in a block
-    const int stride = raw_stride * I; // we need HxW threads per plane
+
+    // stride for the H*W map is equal to the number of threads declared in a block
+    const int stride = blockDim.x * I; // we need H*W threads per plane, each deals with C channels and I numbers
 
     const int n_idx = n * image_size;  // start index in the batch for this input map
     const int f_idx = f * image_size;  // start index in the bank for this filter
@@ -78,35 +77,43 @@ __global__ void complex_mul_cuda_kernel(
     const int no_idx = n * (F * channel_size); // output index for the batch data point
     const int fo_idx = f * channel_size;       // output index for the filter/channel
 
-    const int start_idx = start*I;
+    // Each H*W plane contains H*W*I elements in depth.
+    // We linearize it and start from 0, move by #threads*I steps in outer loop.
+    const int start_idx = threadIdx.x*I;
 
     // index in the input map
     int N_idx = n_idx + start_idx; // index across the first channel plane (in the input map n).
-    const int last_N_idx = n_idx + H * W * I;  // last index for the starting position to compute the sum through each channel for this pixel
+    const int last_N_idx = n_idx + plane_size * I;  // last index for the starting position to compute the sum through each channel for this pixel
 
     // index in the filter
     int F_idx = f_idx + start_idx; // index across the first channel plane (in the filter f).
 
-    // index in the output
+    // index in the output, we compute cells on a flat plane (no channels)
     int O_idx = no_idx + fo_idx + start_idx;
 
     while (N_idx < last_N_idx)  {
         int cN_idx = N_idx;  // current input n index across the channels
         int cF_idx = F_idx;  // current filter f index across the channels
 
-        scalar_t out_re = 0.0f;
-        scalar_t out_im = 0.0f;
+        scalar_t out_re = 0;
+        scalar_t out_im = 0;
 
         for (int c = 0; c < C; ++c) {
 //            printf("n:%d,N_idx:%d,f:%d,threadIdx.x:%d,cN_idx:%d,cF_idx:%d,last_N_idx:%d\n", n, N_idx, f, threadIdx.x, cN_idx, cF_idx, last_N_idx);
 //            if (N_idx > N*C*H*W*I || F_idx > F*C*H*W*I)
 //                printf("error out of bound\n");
+//            if (x[cN_idx] > 1 || x[cN_idx + 1] > 1 || y[cF_idx] > 1 || y[cF_idx + 1] > 1) {
+//                printf("n:%d,N_idx:%d,f:%d,threadIdx.x:%d,cN_idx:%d,cF_idx:%d,last_N_idx:%d,O_idx:%d,in_re:%f,in_im:%f,filter_re:%f,filter_im:%f. Error, the position cN_idx and cF_idx was already touched.\n", n, N_idx, f, threadIdx.x, cN_idx, cF_idx, last_N_idx, O_idx, x[cN_idx], x[cN_idx + 1], y[cF_idx], y[cF_idx + 1]);
+//            }
             scalar_t x_re = x[cN_idx];
             scalar_t x_im = x[cN_idx + 1];
             scalar_t y_re = y[cF_idx];
             scalar_t y_im = y[cF_idx + 1];
             single_mul(x_re, x_im, y_re, y_im, &out_re, &out_im);
-            // x[cN_idx] = x[cN_idx + 1];
+//            x[cN_idx] = cN_idx;
+//            x[cN_idx + 1] = cN_idx + 1;
+//            y[cF_idx] = cF_idx;
+//            y[cF_idx + 1] = cF_idx + 1;
             cN_idx += channel_size;
             cF_idx += channel_size;
         }
@@ -215,10 +222,10 @@ Segmentation fault
 */
 int main(void)
 {
-    int N = 32;
+    int N = 1;
     int F = 1;
-    int C = 1;
-    int H = 8;
+    int C = 4;
+    int H = 16;
     int W = 8;
     int size_input = N * C * H * W * 2;
     int size_filter = F * C * H * W * 2;
@@ -237,19 +244,19 @@ int main(void)
     cudaMallocManaged(&out, size_output*sizeof(float));
 
     for (int i=0; i < size_input-1; i+=2) {
-        x[i] = 8;
+        x[i] = -8;
         x[i+1] = -1;
-        y[i] = 1;
-        y[i+1] = 2;
+        y[i] = -1;
+        y[i+1] = -2;
         out[i] = 0.0f;
         out[i+1] = 0.0f;
     }
 
     const dim3 blocks(N, F);
 
-    for(int i=0; i<32; ++i)
-        complex_mul_cuda_kernel<float><<<blocks, cuda_block_threads>>>(
-            x, y, out, N, F, C, H, W);
+    // for(int i=0; i<32; ++i)
+    complex_mul_cuda_kernel<float><<<blocks, cuda_block_threads>>>(
+        x, y, out, N, F, C, H, W);
 
     cudaFree(x);
     cudaFree(y);
