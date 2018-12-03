@@ -3,6 +3,7 @@ import torch
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.utils.general_utils import ConvType
+from cnns.nnlib.utils.general_utils import ConvExecType
 from cnns.nnlib.utils.general_utils import OptimizerType
 from cnns.nnlib.utils.general_utils import SchedulerType
 from cnns.nnlib.utils.general_utils import LossType
@@ -11,6 +12,12 @@ from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import TensorType
 from cnns.nnlib.utils.general_utils import Bool
 from cnns.nnlib.utils.general_utils import StrideType
+
+"""
+cFFT cuda_multiply: total elapsed time (sec):  15.602577447891235
+
+Pytorch: total elapsed time (sec):  7.639773607254028
+"""
 
 class Arguments(object):
     """
@@ -29,20 +36,21 @@ class Arguments(object):
 
     def __init__(self,
                  is_debug=False,
-                 # network_type=NetworkType.ResNet18,
-                 network_type=NetworkType.FCNN_STANDARD,
+                 network_type=NetworkType.ResNet18,
+                 # network_type=NetworkType.FCNN_STANDARD,
                  preserve_energy=100,
-                 preserved_energies=[100,99.5,99,98,95,90,80,50],
+                 # preserved_energies=[100,99.5,99,98,95,90,80,50],
+                 preserved_energies=[100],
                  tensor_type=TensorType.FLOAT32,
                  dtype=torch.float,
                  use_cuda=True,
                  compress_type=CompressType.STANDARD,
                  index_back=None,
-                 # weight_decay=5e-4,
-                 weight_decay=0,
+                 weight_decay=5e-4,
+                 # weight_decay=0,
                  epochs=1,
-                 min_batch_size=16,
-                 test_batch_size=16,
+                 min_batch_size=128,
+                 test_batch_size=128,
                  learning_rate=0.001,
                  momentum=0.9,
                  seed=31,
@@ -53,27 +61,30 @@ class Arguments(object):
                  loss_reduction=LossReduction.ELEMENTWISE_MEAN,
                  memory_type=MemoryType.STANDARD,
                  workers=6,
-                 # model_path="no_model",
+                 model_path="no_model",
                  #model_path="2018-11-29-12-50-03-178526-dataset-50words-preserve-energy-100-test-accuracy-0.0.model",
                  # model_path="2018-11-29-00-08-38-530297-dataset-SwedishLeaf-preserve-energy-100-test-accuracy-94.56.model",
                  # model_path="2018-11-29-11-28-09-977656-dataset-50words-preserve-energy-90-test-accuracy-59.56043956043956.model",
                  # model_path="2018-11-29-13-12-20-114486-dataset-50words-preserve-energy-100-test-accuracy-63.51648351648352.model",
-                 model_path="2018-11-29-12-26-08-403300-dataset-50words-preserve-energy-99-test-accuracy-63.51648351648352.model",
+                 # model_path="2018-11-29-12-26-08-403300-dataset-50words-preserve-energy-99-test-accuracy-63.51648351648352.model",
                  # model_path="2018-11-26-20-04-34-197804-dataset-50words-preserve-energy-100-test-accuracy-67.47252747252747.model",
-                 #dataset="cifar10",
+                 dataset="cifar10",
                  # dataset="ucr",
-                 dataset="debug",
+                 # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=0,
-                 # conv_type=ConvType.FFT2D,
+                 sample_count_limit=1024,
+                 conv_type=ConvType.FFT2D,
                  # conv_type=ConvType.STANDARD2D,
-                 conv_type=ConvType.FFT1D,
+                 # conv_type=ConvType.FFT1D,
                  # conv_type=ConvType.STANDARD,
-                 visualize=True,
+                 conv_exec_type=ConvExecType.CUDA,
+                 # conv_exec_type=ConvExecType.BATCH,
+                 # conv_exec_type=ConvExecType.SERIAL,
+                 visualize=False,
                  static_loss_scale=1,
                  out_size=None,
-                 next_power2=False,
+                 next_power2=True,
                  dynamic_loss_scale=True,
                  memory_size=25,
                  is_progress_bar=False,
@@ -169,6 +180,7 @@ class Arguments(object):
         self.is_data_augmentation = is_data_augmentation
         self.sample_count_limit = sample_count_limit
         self.conv_type = conv_type
+        self.conv_exec_type = conv_exec_type
         self.visulize = visualize
         self.static_loss_scale = static_loss_scale
         self.out_size = out_size
@@ -199,6 +211,7 @@ class Arguments(object):
         self.network_type = NetworkType[parsed_args.network_type]
         self.compress_type = CompressType[parsed_args.compress_type]
         self.conv_type = ConvType[parsed_args.conv_type]
+        self.conv_exec_type = ConvExecType[parsed_args.conv_exec_type]
         self.optimizer_type = OptimizerType[parsed_args.optimizer_type]
         self.scheduler_type = SchedulerType[parsed_args.scheduler_type]
         self.loss_type = LossType[parsed_args.loss_type]
@@ -215,7 +228,6 @@ class Arguments(object):
         self.is_progress_bar = self.get_bool(parsed_args.is_progress_bar)
         self.is_data_augmentation = self.get_bool(parsed_args.is_data_augmentation)
         self.is_dev_dataset = self.get_bool(parsed_args.is_dev_dataset)
-        self.is_serial_conv = self.get_bool(parsed_args.is_serial_conv)
         self.mem_test = self.get_bool(parsed_args.mem_test)
         self.use_cuda = self.get_bool(parsed_args.use_cuda) and torch.cuda.is_available()
 

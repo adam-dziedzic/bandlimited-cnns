@@ -115,6 +115,12 @@ class ConvType(EnumWithNames):
     AUTOGRAD2D = 12
 
 
+class ConvExecType(EnumWithNames):
+    SERIAL = 1
+    BATCH= 2
+    CUDA = 3
+
+
 class TensorType(EnumWithNames):
     FLOAT32 = 1
     DOUBLE = 2

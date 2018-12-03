@@ -9,6 +9,7 @@ import os
 import sys
 import pathlib
 import logging
+import traceback
 
 import argparse
 import numpy as np
@@ -25,6 +26,7 @@ from cnns.nnlib.pytorch_architecture.le_net import LeNet
 from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
 from cnns.nnlib.pytorch_architecture.fcnn import FCNNPytorch
 from cnns.nnlib.utils.general_utils import ConvType
+from cnns.nnlib.utils.general_utils import ConvExecType
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import OptimizerType
 from cnns.nnlib.utils.general_utils import SchedulerType
@@ -181,6 +183,15 @@ parser.add_argument("--conv_type", default=args.conv_type.name,
                          "convolutional weights initialized in the spectral "
                          "domain, please choose from: " + ",".join(
                         ConvType.get_names()))
+parser.add_argument("--conv_exec_type",
+                    default=args.conv_exec_type.name,
+                    help="the type of internal execution of the convolution"
+                         "operation, for example: SERIAL: is each data point "
+                         "convolved separately with all the filters, all a "
+                         "batch of datapoint is convolved with all filters in "
+                         "one go; CUDA: the tensor element wise complex "
+                         "multiplication is done on CUDA, choose options from: "
+                         "" + ",".join(ConvExecType.get_names()))
 parser.add_argument("--compress_type", default=args.compress_type.name,
                     # "STANDARD", "BIG_COEFF", "LOW_COEFF"
                     help="the type of compression to be applied: " + ",".join(
@@ -245,14 +256,9 @@ parser.add_argument("--adam_beta2", default=args.adam_beta2,
                     type=float,
                     help="beta2 value for the ADAM optimizer, default: "
                          "{args.adam_beta1}")
-parser.add_argument("--is_serial_conv",
-                    default="TRUE" if args.is_serial_conv else "FALSE",
-                    help="is each data point convolved separately with all the "
-                         "filters, all a batch of datapoint is convolved with "
-                         "all filters in one go, choose options from: "
-                         "" + ",".join(Bool.get_names()))
 parser.add_argument("--cuda_block_threads", default=args.cuda_block_threads,
                     type=int, help="Max number of threads for a cuda block.")
+
 
 parsed_args = parser.parse_args()
 args.set_parsed_args(parsed_args=parsed_args)
@@ -626,6 +632,7 @@ def main(args):
     dev_loss = dev_accuracy = None
     for epoch in range(1, args.epochs + 1):
         epoch_start_time = time.time()
+        print("\ntrain:")
         train_loss, train_accuracy = train(
             model=model, device=device, train_loader=train_loader, args=args,
             optimizer=optimizer, loss_function=loss_function, epoch=epoch)
@@ -636,6 +643,7 @@ def main(args):
             dev_loss, dev_accuracy = test(
                 model=model, device=device, test_loader=dev_loader,
                 loss_function=loss_function, args=args)
+        print("\ntest:")
         test_loss, test_accuracy = test(
             model=model, device=device, test_loader=test_loader,
             loss_function=loss_function, args=args)
@@ -1106,7 +1114,8 @@ if __name__ == '__main__':
             try:
                 main(args=args)
             except RuntimeError as err:
-                print(f"Out of memory for dataset: {dataset_name}. "
+                print(f"ERROR: {dataset_name}. "
                       "Details: " + str(err))
+                traceback.print_tb(err.__traceback__)
 
             print("total elapsed time (sec): ", time.time() - start_time)
