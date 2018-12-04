@@ -105,19 +105,16 @@ __global__ void complex_mul_cuda_kernel(
 
         __syncthreads();  // Make the results visible to all threads.
 
-        // It is not O(logN) but O(N) as of now. For each element in the output
-        // map we have a dedicated thread. The thread goes through all the
-        // channels present in the cache.
-        if (thread_nr < plane_size) {
-            for (int cache_index = thread_nr + plane_size;
-                     cache_index < block_size;
-                     cache_index += plane_size) {
-                cache[thread_cidx] += cache[cache_index*I];
-                cache[thread_cidx + 1] += cache[cache_index*I + 1];
-            }
-            // Move the summed values (across the channels) for each pixel to
-            // the output.
+        // Summed the pixels across channels.
+        // It is of complexity O(logN). For each element in the output
+        // map we add the computed pixels summed across channels.
+        // This goes through all the channels present in the cache.
 
+        sum_channels(cache, threadIdx.x, C);
+
+        __syncthreads();
+        // Write the output for the pixels summed (across channels).
+        if (threadIdx.x % C == 0) {
             // Running index through the current XY plane in the output.
             // Assume 8 threads. Plane size HxW = 3x2 = 6 and 3 channels.
             // There are 6*3=18 complex multiplications for the output f-th plane.
@@ -126,7 +123,7 @@ __global__ void complex_mul_cuda_kernel(
             // The 20th index should return
             int run_O_idx = (thread_nr % (plane_size * C)) / C;
 
-            const int O_idx = base_O_idx + run_O_cidx;
+            const int O_idx = base_O_idx + run_O_idx*I;
             out[O_idx] += cache[thread_cidx];
             out[O_idx + 1] = cache[thread_cidx + 1];
         }
@@ -167,6 +164,42 @@ __device__ __forceinline__ void single_add(
 
     *out_re += x_re + y_re;
     *out_im += x_im + y_im;
+}
+
+template <typename scalar_t>
+__global__ void test_sum_channels(float* cache, int C) {
+
+}
+
+/**
+Cache is with complex numbers. Sum the complex channels for a given pixel.
+
+:param cache: an array of complex values to be summed for C consecutive complex
+elements.
+:param cache_index: the position of the thread in the cache.
+:param C: number of channels.
+*/
+template <typename scalar_t>
+__device__ __forceinline__ void sum_channels(float* cache, int cache_idx, int C) {
+    const int I = 2;
+    int i = C;
+    while (i != 0) {
+        bool is_write = False;
+        if(i%2 == 0) {
+            i /= 2;
+            if (cache_index%C < i) {
+                is_write = True;
+            }
+        } else {
+            i = (i+1)/2;
+            if (cache_index%C < i-1) {
+                is_write = True;
+            }
+        }
+        if (is_write) {
+            cache[cache_index*I] += cache[cache_index*I + i*I];
+        }
+    }
 }
 
 } // namespace
@@ -272,9 +305,9 @@ int main(void)
         printf("%p %d: %f, %f, %f, %f\n", x, i, x[i], x[i+1], y[i], y[i+1]);
     }
 
-//    float *dz;  // device z
-//    cudaMalloc(&dz, 9*sizeof(float));
-//    cudaMemcpy(dz, hz, 9*sizeof(float), cudaMemcpyHostToDevice);
+    float *dz;  // device z
+    cudaMalloc(&dz, 9*sizeof(float));
+    cudaMemcpy(dz, hz, 9*sizeof(float), cudaMemcpyHostToDevice);
 
     const dim3 blocks(N, F);
 
