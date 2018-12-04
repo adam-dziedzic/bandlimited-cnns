@@ -171,7 +171,7 @@ __global__ void complex_mul_cuda_kernel(
     // index in the output, we compute cells on a flat plane (no channels)
     int O_idx = no_idx + fo_idx + start_idx;
 
-    while (N_idx < last_N_idx)  {
+    while (N_idx < last_N_idx - 1)  {
         int cN_idx = N_idx;  // current input n index across the channels
         int cF_idx = F_idx;  // current filter f index across the channels
 
