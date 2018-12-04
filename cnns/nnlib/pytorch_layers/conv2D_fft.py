@@ -58,7 +58,7 @@ logger.addHandler(consoleLog)
 current_file_name = __file__.split("/")[-1].split(".")[0]
 
 
-# global_preserve_energy_time = 0.0
+global_preserve_energy_time = 0.0
 global_correlation_time = 0.0
 global_fft_time = 0.0
 global_irfft_time = 0.0
@@ -246,8 +246,8 @@ class Conv2dfftFunction(torch.autograd.Function):
             filter, (0, fft_padding_filter_W, 0, fft_padding_filter_H),
             'constant', 0)
 
-        global global_fft_time
-        start_fft_time = time.time()
+        # global global_fft_time
+        # start_fft_time = time.time()
         # fft of the input and filters
         xfft = torch.rfft(input, signal_ndim=Conv2dfftFunction.signal_ndim,
                           onesided=True)
@@ -258,8 +258,8 @@ class Conv2dfftFunction(torch.autograd.Function):
                           onesided=True)
         del filter
 
-        global_fft_time += time.time() - start_fft_time
-        print("global fft time: ", global_fft_time)
+        # global_fft_time += time.time() - start_fft_time
+        # print("rfft time: ", global_fft_time)
 
         # The last dimension (-1) has size 2 as it represents the complex
         # numbers with real and imaginary parts. The last but one dimension (-2)
@@ -285,7 +285,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                 is_debug=is_debug)
             # global global_preserve_energy_time
             # global_preserve_energy_time += time.time() - start_energy
-            # print("preserve energy time total: ", global_preserve_energy_time)
+            # print("preserve energy time: ", global_preserve_energy_time)
 
         elif index_back_W is not None and index_back_W > 0:
             is_fine_grained_sparsification = False  # this is for tests
@@ -330,15 +330,19 @@ class Conv2dfftFunction(torch.autograd.Function):
                     # the dimension of the out to properly sum up the values).
                     out[nn] += unsqueezed_bias
         else:
-            start_complex_time = time.time()
             if args.conv_exec_type is ConvExecType.CUDA:
                 if torch.cuda.is_available():
                     # print("complex cuda multiplication")
                     outfft = torch.empty([N, F, xfft.shape[2], xfft.shape[3], 2],
                                          dtype=dtype, device=device)
                     # complex_mul_cuda(xfft, yfft, outfft)
+
+                    # start_complex_time = time.time()
                     complex_mul_stride_no_permute_cuda(xfft, yfft, outfft,
                                                        cuda_block_threads)
+                    # global global_complex_time
+                    # global_complex_time += time.time() - start_complex_time
+                    # print("complex multiply time: ", global_complex_time)
                 else:
                     raise Exception("Selected CUDA conv execution but no cuda "
                                     "device is available.")
@@ -371,21 +375,17 @@ class Conv2dfftFunction(torch.autograd.Function):
                 raise Exception(f"Unknown conv exec "
                                 f"type: {args.conv_exec_type.name}.")
 
-            global global_complex_time
-            global_complex_time += time.time() - start_complex_time
-            print("global complex time: ", global_complex_time)
-
             outfft = restore_size_2D(outfft, init_H_fft=init_H_fft,
                                      init_half_W_fft=init_half_W_fft)
 
-            start_irfft_time = time.time()
+            # start_irfft_time = time.time()
             out = torch.irfft(input=outfft,
                               signal_ndim=Conv2dfftFunction.signal_ndim,
                               signal_sizes=(init_H_fft, init_W_fft),
                               onesided=True)
-            global global_irfft_time
-            global_irfft_time += time.time() - start_irfft_time
-            print("global irfft time: ", global_irfft_time)
+            # global global_irfft_time
+            # global_irfft_time += time.time() - start_irfft_time
+            # print("irfft time: ", global_irfft_time)
 
             del outfft
             out = out[..., :out_H, :out_W]
@@ -394,9 +394,9 @@ class Conv2dfftFunction(torch.autograd.Function):
                 # the dimension of the out to properly sum up the values).
                 out += unsqueezed_bias
 
-        global global_correlation_time
-        global_correlation_time += time.time() - start_correlation
-        print("global correlation time: ", global_correlation_time)
+        # global global_correlation_time
+        # global_correlation_time += time.time() - start_correlation
+        # print("complex correlation time: ", global_correlation_time)
 
         if (stride_H != 1 or stride_W != 1) and (
                 stride_type is StrideType.STANDARD):
@@ -568,17 +568,17 @@ class Conv2dfftFunction(torch.autograd.Function):
                                     dtype=dtype, device=device)
                 if args.conv_exec_type is ConvExecType.CUDA:
                     if torch.cuda.is_available():
-                        global global_permute_time
-                        start_permute = time.time()
+                        # global global_permute_time
+                        # start_permute = time.time()
                         yfft = yfft.permute(1, 0, 2, 3, 4).contiguous()
-                        global_permute_time += time.time() - start_permute
-                        print("global permute time: ", global_permute_time)
-                        global global_complex_dxfft
-                        start_complex = time.time()
+                        # global_permute_time += time.time() - start_permute
+                        # print("permute time: ", global_permute_time)
+                        # global global_complex_dxfft
+                        # start_complex = time.time()
                         complex_mul_stride_no_permute_cuda(doutfft, yfft, dxfft,
                                                            cuda_block_threads)
-                        global_complex_dxfft += time.time() - start_complex
-                        print("global complex dxfft: ", global_complex_dxfft)
+                        # global_complex_dxfft += time.time() - start_complex
+                        # print("complex dxfft: ", global_complex_dxfft)
                     else:
                         raise Exception(
                             "Selected CUDA conv execution but no cuda "

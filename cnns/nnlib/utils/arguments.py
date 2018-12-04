@@ -236,8 +236,8 @@ class Arguments(object):
 
     def get_str(self):
         args_dict = self.__dict__
-        args_str = ",".join(
-            [str(key) + ":" + str(value) for key, value in args_dict.items()])
+        args_str = " ".join(
+            ["--" + str(key) + "=" + str(value) for key, value in args_dict.items()])
         return args_str
 
     def from_bool_arg(self, arg):

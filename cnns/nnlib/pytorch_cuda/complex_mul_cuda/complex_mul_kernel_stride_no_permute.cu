@@ -51,6 +51,86 @@ coordinate to be computed or finishes its execution.
 
 We use min(max_threads_in_block, H*W) threads per block.
 
+Timing for running a single forward pass of ResNet-18:
+global correlation time:  6.692555665969849
+global fft time:  0.6110324859619141
+global complex time:  6.235848426818848
+global irfft time:  0.49118685722351074
+global correlation time:  6.737519025802612
+
+Running forward pass of ResNet-18 100 times:
+rfft time:  8.698078155517578
+complex multiply time:  81.90509557723999
+irfft time:  7.067264080047607
+complex correlation time:  89.14919781684875
+total time with FFT based conv2D:  147.95940494537354
+total time with pytorch conv2D: 44.175782918930054
+pytorch speedup over cFFT for testing ResNet-18:  3.3493329414648696 X
+
+With compression, energy preserved 90% in the signals:
+rfft time:  6.97404146194458
+preserve energy time total:  29.02157688140869
+complex multiply time:  26.571154594421387
+irfft time:  5.745055437088013
+complex correlation time:  36.62075328826904
+conv2D FFT time:  117.9371497631073
+total time with pytorch conv2D: 42.78296375274658
+pytorch speedup over cFFT for testing ResNet-18:  2.7566381432734652
+
+Run forward pass for the whole ResNet-18 dataset:
+total time with pytorch conv2D:  5.489983320236206
+total time with FFT based conv2D:  285.2201008796692
+pytorch speedup over cFFT for testing ResNet-18:  51.95281738440648
+
+We also implemented the complex multiplication in C++ using torch library, but
+there was almost no difference between the Python based version in PyTorch and
+the C++ version using the Torch C++ library. However, the custom CUDA
+implementation saves us a lot of memory and accelerates the computation by
+about 10X.
+
+conv2D_fft_benchmark.py .
+cuda multiply time:  0.32549619674682617
+pytorch multiply time:  3.791210651397705
+cuda speedup is:  11.647480644287043
+(the computation was executed 1000X for sizes N, C, H, W, I = 128, 3, 32, 32, 2,
+and F = 16  # number of filter banks
+
+Savings in memory from about 20% (for 3 channel input) to even 94% for 128 filter
+banks and N, C, H, W, I = 64, 64, 32, 32, 2.
+CUDA:
++-----------------------------------------------------------------------------+
+| Processes:                                                       GPU Memory |
+|  GPU       PID   Type   Process name                             Usage      |
+|=============================================================================|
+|    0     15764      C   /home/ady/anaconda3/bin/python3.6           8607MiB |
+|    0     25840      C   /home/ady/anaconda3/bin/python3.6            565MiB |
++-----------------------------------------------------------------------------+
+
+PyTorch:
++-----------------------------------------------------------------------------+
+| Processes:                                                       GPU Memory |
+|  GPU       PID   Type   Process name                             Usage      |
+|=============================================================================|
+|    0     15764      C   /home/ady/anaconda3/bin/python3.6           8607MiB |
+|    0     25908      C   /home/ady/anaconda3/bin/python3.6            681MiB |
++-----------------------------------------------------------------------------+
+
+CUDA:
++-----------------------------------------------------------------------------+
+| Processes:                                                       GPU Memory |
+|  GPU       PID   Type   Process name                             Usage      |
+|=============================================================================|
+|    0     15764      C   /home/ady/anaconda3/bin/python3.6           8607MiB |
+|    0     26124      C   /home/ady/anaconda3/bin/python3.6            753MiB |
+
+PyTorch:
++-----------------------------------------------------------------------------+
+| Processes:                                                       GPU Memory |
+|  GPU       PID   Type   Process name                             Usage      |
+|=============================================================================|
+|    0     15764      C   /home/ady/anaconda3/bin/python3.6           8607MiB |
+|    0     26072      C   -                                          12977MiB |
++-----------------------------------------------------------------------------+
 */
 template <typename scalar_t>
 __global__ void complex_mul_cuda_kernel(
@@ -98,6 +178,7 @@ __global__ void complex_mul_cuda_kernel(
         scalar_t out_re = 0;
         scalar_t out_im = 0;
 
+        // If we have 512 channels - then it is rather inefficient loop
         for (int c = 0; c < C; ++c) {
 //            printf("n:%d,N_idx:%d,f:%d,threadIdx.x:%d,cN_idx:%d,cF_idx:%d,last_N_idx:%d\n", n, N_idx, f, threadIdx.x, cN_idx, cF_idx, last_N_idx);
 //            if (N_idx > N*C*H*W*I || F_idx > F*C*H*W*I)
@@ -114,8 +195,8 @@ __global__ void complex_mul_cuda_kernel(
 //            x[cN_idx + 1] = cN_idx + 1;
 //            y[cF_idx] = cF_idx;
 //            y[cF_idx + 1] = cF_idx + 1;
-            cN_idx += channel_size;
-            cF_idx += channel_size;
+            cN_idx += channel_size;  // this is rather an inefficient strided memory access
+            cF_idx += channel_size;  // this is rather an inefficient strided memory access
         }
 //        if (out[O_idx] > 1 || out[O_idx + 1] > 1) {
 //            printf("n:%d,N_idx:%d,f:%d,threadIdx.x:%d,cN_idx:%d,cF_idx:%d,last_N_idx:%d,O_idx:%d,re:%f,im:%f. Error, the position was already computed.\n", n, N_idx, f, threadIdx.x, cN_idx, cF_idx, last_N_idx, O_idx, out[O_idx], out[O_idx+1]);

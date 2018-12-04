@@ -16,15 +16,26 @@ from cnns.nnlib.pytorch_layers.test_data.cifar10_image import cifar10_image
 from cnns.nnlib.pytorch_layers.test_data.cifar10_lenet_filter import \
     cifar10_lenet_filter
 from cnns.nnlib.utils.general_utils import CompressType
+from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.general_utils import ConvType
+from cnns.nnlib.utils.general_utils import ConvExecType
 from cnns.nnlib.utils.general_utils import TensorType
 from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul
 from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul4
 from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul5
+
 from cnns.nnlib.utils.arguments import Arguments
 from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
 from cnns.nnlib.utils.arguments import Arguments
+
+import socket
+if socket.gethostname() == "skr-compute1":
+    from complex_mul_cpp import complex_mul as complex_mul_cpp
+    from complex_mul_cuda import complex_mul as complex_mul_cuda
+    from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
+    from complex_mul_cuda import \
+        complex_mul_stride_no_permute as complex_mul_stride_no_permute_cuda
 
 """
 Results:
@@ -391,19 +402,28 @@ class TestBenchmarkConv2d(unittest.TestCase):
                                              decimal=3)
 
     def test_forward_pass_resnet18(self):
-        dtype = torch.float
         if torch.cuda.is_available():
             device = torch.device("cuda")
         else:
             device = torch.device("cpu")
         print("\ndevice used: ", str(device))
 
-        # mini batch imitating cifar-10
-        N, C, H, W = 128, 3, 32, 32
-        inputs = torch.randn(N, C, H, W, dtype=dtype, device=device,
-                             requires_grad=True)
-
+        C = 3
+        # dtype = torch.float
+        # random mini batch imitating cifar-10
+        # N, H, W = 128, 32, 32
+        # inputs = torch.randn(N, C, H, W, dtype=dtype, device=device,
+        #                      requires_grad=True)
         args = Arguments()
+        args.sample_count_limit = 0
+        args.min_batch_size = 256
+        args.test_batch_size = args.min_batch_size
+        args.network_type = NetworkType.ResNet18
+        from cnns.nnlib.datasets.cifar10 import get_cifar10
+        train_loader, test_loader = get_cifar10(args)
+
+        repetition = 1
+
         args.in_channels = 3
         # args.conv_type = "FFT2D"
         args.conv_type = ConvType.STANDARD2D
@@ -414,7 +434,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
         args.compress_type = CompressType.STANDARD
         args.tensor_type = TensorType.FLOAT32
         args.num_classes = 10
-        args.min_batch_size = 32
+        args.min_batch_size = 128
         args.test_batch_size = args.min_batch_size
         args.in_channels = C
 
@@ -422,47 +442,67 @@ class TestBenchmarkConv2d(unittest.TestCase):
         model.to(device)
         model.eval()
         start_eval = time.time()
-        outputs_standard = model(inputs)
+        for _ in range(repetition):
+            for inputs, _ in train_loader:
+                inputs = inputs.to(device)
+                outputs_standard = model(inputs)
         standard_time = time.time() - start_eval
-        print("standard eval time: ", standard_time)
+        print("total time with pytorch conv2D: ", standard_time)
         # layer1_standard = model.global_layer1_time
         # print("standard layer1 cumulative time: ", layer1_standard)
 
         # print("outputs standard: ", outputs_standard)
 
         args.conv_type = ConvType.FFT2D
+        args.conv_exec_type = ConvExecType.CUDA
         model = resnet18(args=args)
         model.to(device)
         model.eval()
         start_eval = time.time()
-        outputs_fft = model(inputs)
+        for _ in range(repetition):
+            for inputs, _ in train_loader:
+                inputs = inputs.to(device)
+                outputs_fft = model(inputs)
         fft_time = time.time() - start_eval
-        print("conv2D FFT time: ", fft_time)
+        print("total time with FFT based conv2D: ", fft_time)
         # layer1_fft = model.global_layer1_time
         # print("fft layer1 cumulative time: ", layer1_fft)
 
         # print("outputs fft: ", outputs_fft)
 
-        print("pytorch speedup over fft for testing resnet18: ",
+        print("pytorch speedup over cFFT for testing ResNet-18: ",
               fft_time / standard_time)
         # print("pytorch speedup over fft for layer 1: ",
         #       layer1_fft / layer1_standard)
 
     def test_complex_mul(self):
-        N, C, H, W, I = 128, 3, 32, 32, 2
-        K = 16  # number of filter banks
-        repetitions = 1000
+        N, C, H, W, I = 512, 64, 2, 2, 2
+        F = 128  # number of filter banks
+        repetitions = 100
         dtype = torch.float
         if torch.cuda.is_available():
             device = torch.device("cuda")
         else:
             device = torch.device("cpu")
-        x = torch.randn(N, 1, C, H, W, I, dtype=dtype, device=device)
-        y = torch.randn(K, C, H, W, I, dtype=dtype, device=device)
+        x = torch.randn(N, C, H, W, I, dtype=dtype, device=device)
+        y = torch.randn(F, C, H, W, I, dtype=dtype, device=device)
+
+        start_mul_time = time.time()
+        if torch.cuda.is_available():
+            for _ in range(repetitions):
+                out = torch.empty(N, F, H, W, I, dtype=dtype, device=device)
+                complex_mul_stride_no_permute_cuda(x, y, out, 1024)
+        cuda_time = time.time() - start_mul_time
+        print("\ncuda multiply time: ", cuda_time)
+
+        x = x.unsqueeze(dim=1)
         start_mul_time = time.time()
         for _ in range(repetitions):
             complex_mul(x, y)
-        print("multiplication time: ", time.time() - start_mul_time)
+        pytorch_time = time.time() - start_mul_time
+        print("pytorch multiply time: ", pytorch_time)
+
+        print("cuda speedup is: ", pytorch_time/cuda_time)
 
     def test_complex_mul_torch_vs_numpy(self):
         N, C, H, W, I = 128, 3, 32, 32, 2
@@ -493,7 +533,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
     def test_complex_mul_with_out_tensor(self):
         N, C, H, W, I = 128, 3, 32, 32, 2
         K = 16  # number of filter banks
-        repetitions = 1000
+        repetitions = 100
         dtype = torch.float
         if torch.cuda.is_available():
             device = torch.device("cuda")
@@ -509,7 +549,6 @@ class TestBenchmarkConv2d(unittest.TestCase):
               time.time() - start_mul_time)
 
     def test_complex_mul_cpp(self):
-        from complex_mul_cpp import complex_mul as complex_mul_cpp
         N, C, H, W, I = 128, 3, 32, 32, 2
         K = 16  # number of filter banks
         repetitions = 1000
