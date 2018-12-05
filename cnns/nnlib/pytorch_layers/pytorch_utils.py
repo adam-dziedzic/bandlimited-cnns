@@ -26,8 +26,8 @@ import os
 import socket
 
 if socket.gethostname() == "skr-compute1" or socket.gethostname() == "adam-gpu2":
-    from complex_mul_cpp import complex_mul as complex_mul_cpp
-    from complex_mul_cuda import complex_mul as complex_mul_cuda
+    # from complex_mul_cpp import complex_mul as complex_mul_cpp
+    # from complex_mul_cuda import complex_mul as complex_mul_cuda
     from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
     from complex_mul_cuda import \
         complex_mul_shared_log as complex_mul_shared_log_cuda
@@ -758,7 +758,8 @@ def complex_mul6_cpp(x, y):
     >>> np.testing.assert_array_equal(xy,
     ... tensor([[[-4., 7.], [1., 7.]], [[108.,   0.], [ -8.,  16.]]]))
     """
-    return complex_mul_cpp(x, y)
+    pass
+    # return complex_mul_cpp(x, y)
 
 
 def complex_mul7_cuda(x, y, out):

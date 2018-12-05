@@ -32,8 +32,8 @@ from cnns.nnlib.utils.arguments import Arguments
 import socket
 if socket.gethostname() == "skr-compute1" or socket.gethostname() == "adam-gpu2":
     from complex_mul_cpp import complex_mul as complex_mul_cpp
-    from complex_mul_cuda import complex_mul as complex_mul_cuda
-    from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
+    # from complex_mul_cuda import complex_mul as complex_mul_cuda
+    # from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
     from complex_mul_cuda import \
         complex_mul_stride_no_permute as complex_mul_stride_no_permute_cuda
     from complex_mul_cuda import \
