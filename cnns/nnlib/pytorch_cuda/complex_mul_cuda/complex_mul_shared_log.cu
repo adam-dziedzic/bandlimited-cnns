@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cmath>
 #include <iostream>
+#include <cassert>
 
 namespace {
 
@@ -38,9 +39,10 @@ __global__ void complex_mul_cuda_kernel(
     const int n = blockIdx.x; // current index of an image/input map in the batch
     const int f = blockIdx.y; // current index of a filter from the filter bank
     const int block_size = blockDim.x;
+
     // After running all the threads in the block, we increment the thread
     // number by the block size.
-    const int thread_nr = threadIdx.x;
+    int thread_nr = threadIdx.x;
 
     // stride for the H*W map is equal to the number of threads declared in a block
     const int stride = block_size * I; // we need H*W threads per plane, each deals with I numbers
@@ -49,7 +51,7 @@ __global__ void complex_mul_cuda_kernel(
     const int f_idx = f * image_size;  // start index in the bank for this filter
 
     // find index for the output
-    const int output_fchannel_size = plane_size * I
+    const int output_fchannel_size = plane_size * I;
     const int no_idx = n * (F * output_fchannel_size); // output index for the batch data point
     const int fo_idx = f * output_fchannel_size;       // output index for the filter/channel
 
@@ -166,11 +168,6 @@ __device__ __forceinline__ void single_add(
     *out_im += x_im + y_im;
 }
 
-template <typename scalar_t>
-__global__ void test_sum_channels(float* cache, int C) {
-
-}
-
 /**
 Cache is with complex numbers. Sum the complex channels for a given pixel.
 
@@ -180,54 +177,217 @@ elements.
 :param C: number of channels.
 */
 template <typename scalar_t>
-__device__ __forceinline__ void sum_channels(float* cache, int cache_idx, int C) {
-    const int I = 2;
-    int i = C;
-    while (i != 0) {
-        bool is_write = False;
-        if(i%2 == 0) {
-            i /= 2;
-            if (cache_index%C < i) {
-                is_write = True;
+__device__ __forceinline__
+void sum_channels(scalar_t* cache, int cache_index, int C) {
+    const int I = 2;  // complex number representation as 2 float numbers
+    int c = C;  // C - number of all channels, c - still to be summed channels
+    while (c != 0) {
+        // printf("cache_index:%d, c:%d\n", cache_index, c);
+        bool is_write = false;  // should we sum the values up with this thread?
+        if (c % 2 == 0 || c == 1) {
+            c /= 2;
+            if (cache_index % C < c) {
+                is_write = true;
             }
         } else {
-            i = (i+1)/2;
-            if (cache_index%C < i-1) {
-                is_write = True;
+            c = (c+1)/2;
+            if (cache_index % C < c - 1) {
+                is_write = true;
             }
         }
         if (is_write) {
-            cache[cache_index*I] += cache[cache_index*I + i*I];
+            const int cache_index_I = cache_index*I;
+            const int c_I = c*I;
+            cache[cache_index_I] += cache[cache_index_I + c_I];
+            cache[cache_index_I + 1] += cache[cache_index_I + c_I + 1];
+        }
+        __syncthreads();
+        // printf("%d: %d, %d\n", cache_index, cache[cache_index*I], cache[cache_index*I+1]);
+    }
+}
+
+template <typename scalar_t>
+__global__ void test_sum_channels_device(scalar_t* cache, int C) {
+    // printf("threadIdx.x: %d, C:%d\n", threadIdx.x, C);
+    sum_channels(cache, threadIdx.x, C);
+}
+
+void test_sum_channels_host() {
+    int *x, *y;
+    const int I = 2;
+    const int C = 2;
+    const int W = 3;
+    int size_input = W*C*I;
+
+    // Allocate unified memory - accessible from cpu or gpu
+    // cudaMallocManaged(&x, size_input*sizeof(int));
+    x = new int[size_input];
+    y = new int[size_input];
+    int *d_x;
+    cudaMalloc(&d_x, size_input*sizeof(int));
+
+    for (int i = 0; i < size_input; ++i) {
+        x[i] = i;
+        y[i] = i;
+    }
+
+    printf("Initial numbers:\n");
+    for (int w=0; w<W; ++w) {
+        int w_idx = w*C*I;
+        for (int c=0; c<C; ++c) {
+           int c_idx = c*I;
+           printf("(w:%d, c:%d): %d + %dj\n", w, c, x[w_idx + c_idx], x[w_idx+c_idx+1]);
         }
     }
+
+    cudaMemcpy(d_x, x, size_input*sizeof(int), cudaMemcpyHostToDevice);
+
+    const dim3 blocks(1);
+    const int cuda_block_threads = 6;
+
+    test_sum_channels_device<int><<<blocks, cuda_block_threads>>>(d_x, C);
+
+    // Wait for GPU to finish before accessing on host.
+    cudaDeviceSynchronize();
+
+    cudaMemcpy(x, d_x, size_input*sizeof(int), cudaMemcpyDeviceToHost);
+
+    printf("Expected numbers for the output map (after summing up channels):\n");
+    // Generate the expected output y - only for each channel.
+    for (int w=0; w<W; ++w) {
+        int w_idx = w*C*I;   // channels are on the last but one dimension
+        printf("(w:%d): %d + %dj\n", w, y[w_idx], y[w_idx + 1]);
+        for (int c = 1; c < C; ++c) {
+            int c_idx = c*I;
+            printf("(w:%d, c:%d): %d + %dj\n", w, c, y[w_idx + c_idx], y[w_idx + c_idx + 1]);
+            y[w_idx] += y[w_idx + c_idx];
+            y[w_idx + 1] += y[w_idx + c_idx + 1];
+        }
+        printf("expected: (w:%d): %d + %dj\n", w, y[w_idx], y[w_idx + 1]);
+        printf("obtained: (w:%d): %d + %dj\n", w, x[w_idx], x[w_idx + 1]);
+        assert (y[w_idx] == x[w_idx]);
+        assert (y[w_idx + 1] == x[w_idx + 1]);
+    }
+
+    printf("Obtained numbers:\n");
+    for (int w=0; w<W; ++w) {
+        int w_idx = w*C*I;
+        for (int c=0; c<C; ++c) {
+           int c_idx = c*I;
+           printf("(w:%d, c:%d): %d + %dj\n", w, c, x[w_idx + c_idx], x[w_idx+c_idx+1]);
+        }
+    }
+
+//    for (int i=0; i < size_input; ++i) {
+//        printf("%d: %d\n", i, x[i]);
+//        // assert (expect[i] == x[i++]);
+//    }
+
+    cudaFree(d_x);
+    cudaDeviceSynchronize();
+    delete [] x;
+    delete [] y;
+
+    printf("finished test sum channels\n");
+}
+
+void test_sum_channels_host_big(int C, int W) {
+    int *x, *y;
+    const int I = 2;
+
+    int size_input = W*C*I;
+
+    // Allocate unified memory - accessible from cpu or gpu
+    // cudaMallocManaged(&x, size_input*sizeof(int));
+    x = new int[size_input];
+    y = new int[size_input];
+    int *d_x;
+    cudaMalloc(&d_x, size_input*sizeof(int));
+
+    for (int i = 0; i < size_input; ++i) {
+        x[i] = i;
+        y[i] = i;
+    }
+
+    printf("Initial numbers:\n");
+    for (int w=0; w<W; ++w) {
+        int w_idx = w*C*I;
+        for (int c=0; c<C; ++c) {
+           int c_idx = c*I;
+           printf("(w:%d, c:%d): %d + %dj\n", w, c, x[w_idx + c_idx], x[w_idx+c_idx+1]);
+        }
+    }
+
+    cudaMemcpy(d_x, x, size_input*sizeof(int), cudaMemcpyHostToDevice);
+
+    const dim3 blocks(1);
+    const int cuda_block_threads = W*C;
+
+    test_sum_channels_device<int><<<blocks, cuda_block_threads>>>(d_x, C);
+
+    // Wait for GPU to finish before accessing on host.
+    cudaDeviceSynchronize();
+
+    cudaMemcpy(x, d_x, size_input*sizeof(int), cudaMemcpyDeviceToHost);
+
+    printf("Expected numbers for the output map (after summing up channels):\n");
+    // Generate the expected output y - only for each channel.
+    for (int w=0; w<W; ++w) {
+        int w_idx = w*C*I;   // channels are on the last but one dimension
+        for (int c = 1; c < C; ++c) {
+            int c_idx = c*I;
+            y[w_idx] += y[w_idx + c_idx];
+            y[w_idx + 1] += y[w_idx + c_idx + 1];
+        }
+        printf("expected: (w:%d): %d + %dj\n", w, y[w_idx], y[w_idx + 1]);
+        printf("obtained: (w:%d): %d + %dj\n", w, x[w_idx], x[w_idx + 1]);
+        assert (y[w_idx] == x[w_idx]);
+        assert (y[w_idx + 1] == x[w_idx + 1]);
+    }
+
+    printf("Obtained numbers:\n");
+    for (int w=0; w<W; ++w) {
+        int w_idx = w*C*I;
+        for (int c=0; c<C; ++c) {
+           int c_idx = c*I;
+           printf("(w:%d, c:%d): %d + %dj\n", w, c, x[w_idx + c_idx], x[w_idx+c_idx+1]);
+        }
+    }
+
+    cudaFree(d_x);
+    cudaDeviceSynchronize();
+    delete [] x;
+    delete [] y;
+
+    printf("finished test sum channels\n");
 }
 
 } // namespace
 
-void complex_mul_shared_log_cuda(
-    at::Tensor x,
-    at::Tensor y,
-    at::Tensor out) {
-
-    const auto N = x.size(0);  // batch_size
-    const auto F = y.size(0);  // filter_bank_size
-    const auto H = x.size(1);  // height of the matrix
-    const auto W = x.size(2);  // width of the matrix
-    const auto C = x.size(3);  // number of channels
-
-    const auto x_blocks = N;
-    const auto y_blocks = F;
-    const dim3 blocks(x_blocks, y_blocks);
-
-    const int threads = int(1024/C) * C;
-
-    AT_DISPATCH_FLOATING_TYPES(x.type(), "complex_mul_cuda",
-    ([&] {
-        complex_mul_cuda_kernel<scalar_t><<<blocks, threads>>>(
-        x.data<scalar_t>(), y.data<scalar_t>(), out.data<scalar_t>(),
-        N, F, C, H, W);
-    }));
-}
+//void complex_mul_shared_log_cuda(
+//    at::Tensor x,
+//    at::Tensor y,
+//    at::Tensor out) {
+//
+//    const auto N = x.size(0);  // batch_size
+//    const auto F = y.size(0);  // filter_bank_size
+//    const auto H = x.size(1);  // height of the matrix
+//    const auto W = x.size(2);  // width of the matrix
+//    const auto C = x.size(3);  // number of channels
+//
+//    const auto x_blocks = N;
+//    const auto y_blocks = F;
+//    const dim3 blocks(x_blocks, y_blocks);
+//
+//    const int threads = int(1024/C) * C;
+//
+//    AT_DISPATCH_FLOATING_TYPES(x.type(), "complex_mul_cuda",
+//    ([&] {
+//        complex_mul_cuda_kernel<scalar_t><<<blocks, threads>>>(
+//        x.data<scalar_t>(), y.data<scalar_t>(), out.data<scalar_t>(),
+//        N, F, C, H, W);
+//    }));
+//}
 
 //template <typename scalar_t>
 //void complex_mul_stride_no_permute_cuda_pure(
@@ -265,8 +425,8 @@ nvidia
 nvcc -I/local/ady/anaconda3/lib/python3.6/site-packages/torch/lib/include -I/local/ady/anaconda3/lib/python3.6/site-packages/torch/lib/include/torch/csrc/api/include -I/local/ady/anaconda3/lib/python3.6/site-packages/torch/lib/include/TH -I/local/ady/anaconda3/lib/python3.6/site-packages/torch/lib/include/THC -I/usr/local/cuda/include -I/local/ady/anaconda3/include/python3.6m complex_mul_kernel_stride_no_permute.cu -o complex_mul_kernel_stride_no_permute.out -std=c++11
 Segmentation fault
 */
-int main(void)
-{
+
+void test_multiply() {
     int N = 1;
     int F = 1;
     int H = 3;
@@ -292,9 +452,9 @@ int main(void)
     for (int j=0; j<H; ++j) {
         for (int i=0; i<W; ++i) {
             for (int c=0; c<C; ++c) {
-                index = (j*W*C+i*C+c)*2
-                x[index] = 3;
-                x[index + 1] = 1;
+                const int index = (j*W*C+i*C+c)*2;
+                x[index] = index;
+                x[index + 1] = index + 1;
                 y[index] = 4;
                 y[index + 1] = 2;
             }
@@ -304,10 +464,6 @@ int main(void)
     for (int i=0; i<H*W*2; i+=2) {
         printf("%p %d: %f, %f, %f, %f\n", x, i, x[i], x[i+1], y[i], y[i+1]);
     }
-
-    float *dz;  // device z
-    cudaMalloc(&dz, 9*sizeof(float));
-    cudaMemcpy(dz, hz, 9*sizeof(float), cudaMemcpyHostToDevice);
 
     const dim3 blocks(N, F);
 
@@ -321,9 +477,26 @@ int main(void)
     cudaFree(x);
     cudaFree(y);
     cudaFree(out);
-//    cudaFree(dz);
 
     printf("finished computation\n");
+}
+
+void test_sum_channels_suit() {
+    test_sum_channels_host();
+    test_sum_channels_host_big(/*C=*/1, /*W=*/7);
+    test_sum_channels_host_big(/*C=*/1, /*W=*/1024);
+    test_sum_channels_host_big(/*C=*/3, /*W=*/300);
+    test_sum_channels_host_big(/*C=*/1, /*W=*/19);
+    test_sum_channels_host_big(/*C=*/4, /*W=*/4);
+    test_sum_channels_host_big(/*C=*/16, /*W=*/6);
+    test_sum_channels_host_big(/*C=*/32, /*W=*/32);
+    test_sum_channels_host_big(/*C=*/3, /*W=*/300);
+}
+
+int main(void)
+{
+    test_sum_channels_suit();
+    // test_multiply();
 
     return 0;
 }
