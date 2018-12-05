@@ -415,8 +415,8 @@ class TestBenchmarkConv2d(unittest.TestCase):
         # inputs = torch.randn(N, C, H, W, dtype=dtype, device=device,
         #                      requires_grad=True)
         args = Arguments()
-        args.sample_count_limit = 0
-        args.min_batch_size = 256
+        args.sample_count_limit = 128
+        args.min_batch_size = 128
         args.test_batch_size = args.min_batch_size
         args.network_type = NetworkType.ResNet18
         from cnns.nnlib.datasets.cifar10 import get_cifar10
@@ -428,7 +428,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
         # args.conv_type = "FFT2D"
         args.conv_type = ConvType.STANDARD2D
         args.index_back = None
-        args.preserve_energy = 100
+        args.preserve_energy = 95
         args.is_debug = False
         args.next_power2 = True
         args.compress_type = CompressType.STANDARD

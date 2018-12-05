@@ -336,6 +336,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                     outfft = torch.empty([N, F, xfft.shape[2], xfft.shape[3], 2],
                                          dtype=dtype, device=device)
                     # complex_mul_cuda(xfft, yfft, outfft)
+                    print("xfft size: ", xfft.size())
 
                     # start_complex_time = time.time()
                     complex_mul_stride_no_permute_cuda(xfft, yfft, outfft,

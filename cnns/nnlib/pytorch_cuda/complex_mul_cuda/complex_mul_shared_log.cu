@@ -324,14 +324,14 @@ void test_sum_channels_host_big(int C, int W) {
         y[i] = i;
     }
 
-    printf("Initial numbers:\n");
-    for (int w=0; w<W; ++w) {
-        int w_idx = w*C*I;
-        for (int c=0; c<C; ++c) {
-           int c_idx = c*I;
-           printf("(w:%d, c:%d): %d + %dj\n", w, c, x[w_idx + c_idx], x[w_idx+c_idx+1]);
-        }
-    }
+//    printf("Initial numbers:\n");
+//    for (int w=0; w<W; ++w) {
+//        int w_idx = w*C*I;
+//        for (int c=0; c<C; ++c) {
+//           int c_idx = c*I;
+//           printf("(w:%d, c:%d): %d + %dj\n", w, c, x[w_idx + c_idx], x[w_idx+c_idx+1]);
+//        }
+//    }
 
     cudaMemcpy(d_x, x, size_input*sizeof(int), cudaMemcpyHostToDevice);
 
@@ -345,7 +345,7 @@ void test_sum_channels_host_big(int C, int W) {
 
     cudaMemcpy(x, d_x, size_input*sizeof(int), cudaMemcpyDeviceToHost);
 
-    printf("Expected numbers for the output map (after summing up channels):\n");
+    // printf("Expected numbers for the output map (after summing up channels):\n");
     // Generate the expected output y - only for each channel.
     for (int w=0; w<W; ++w) {
         int w_idx = w*C*I;   // channels are on the last but one dimension
@@ -354,20 +354,20 @@ void test_sum_channels_host_big(int C, int W) {
             y[w_idx] += y[w_idx + c_idx];
             y[w_idx + 1] += y[w_idx + c_idx + 1];
         }
-        printf("expected: (w:%d): %d + %dj\n", w, y[w_idx], y[w_idx + 1]);
-        printf("obtained: (w:%d): %d + %dj\n", w, x[w_idx], x[w_idx + 1]);
+        // printf("expected: (w:%d): %d + %dj\n", w, y[w_idx], y[w_idx + 1]);
+        // printf("obtained: (w:%d): %d + %dj\n", w, x[w_idx], x[w_idx + 1]);
         assert (y[w_idx] == x[w_idx]);
         assert (y[w_idx + 1] == x[w_idx + 1]);
     }
 
-    printf("Obtained numbers:\n");
-    for (int w=0; w<W; ++w) {
-        int w_idx = w*C*I;
-        for (int c=0; c<C; ++c) {
-           int c_idx = c*I;
-           printf("(w:%d, c:%d): %d + %dj\n", w, c, x[w_idx + c_idx], x[w_idx+c_idx+1]);
-        }
-    }
+//    printf("Obtained numbers:\n");
+//    for (int w=0; w<W; ++w) {
+//        int w_idx = w*C*I;
+//        for (int c=0; c<C; ++c) {
+//           int c_idx = c*I;
+//           printf("(w:%d, c:%d): %d + %dj\n", w, c, x[w_idx + c_idx], x[w_idx+c_idx+1]);
+//        }
+//    }
 
     cudaFree(d_x);
     cudaDeviceSynchronize();
@@ -431,18 +431,18 @@ void test_complex_multiply_host(int H, int W, int C) {
         expect[i] = 0;
     }
 
-    printf("Initial numbers:\n");
-    for (int h=0; h<H; ++h) {
-        int h_idx = h*W*C*I;
-        for (int w=0; w<W; ++w) {
-            int w_idx = w*C*I;
-            for (int c=0; c<C; ++c) {
-               int c_idx = c*I;
-               printf("(h:%d, w:%d, c:%d): %lld + %lld \n", h, w, c,
-                   x[h_idx + w_idx + c_idx], x[h_idx + w_idx + c_idx + 1]);
-            }
-        }
-    }
+//    printf("Initial numbers:\n");
+//    for (int h=0; h<H; ++h) {
+//        int h_idx = h*W*C*I;
+//        for (int w=0; w<W; ++w) {
+//            int w_idx = w*C*I;
+//            for (int c=0; c<C; ++c) {
+//               int c_idx = c*I;
+//               printf("(h:%d, w:%d, c:%d): %lld + %lld \n", h, w, c,
+//                   x[h_idx + w_idx + c_idx], x[h_idx + w_idx + c_idx + 1]);
+//            }
+//        }
+//    }
 
     cudaMemcpy(d_x, x, raw_size_input, cudaMemcpyHostToDevice);
     cudaMemcpy(d_y, y, raw_size_input, cudaMemcpyHostToDevice);
@@ -452,7 +452,7 @@ void test_complex_multiply_host(int H, int W, int C) {
     const dim3 blocks(1);
     const int block_threads = min(int(1024/C) * C, H*W*C);
     // const int block_threads = 9;
-    printf("block threads: %d\n", block_threads);
+    // printf("block threads: %d\n", block_threads);
 
     complex_mul_cuda_kernel<long long><<<blocks, block_threads,
         block_threads*2*type_size>>>(
@@ -463,7 +463,7 @@ void test_complex_multiply_host(int H, int W, int C) {
 
     cudaMemcpy(out, d_out, raw_size_output, cudaMemcpyDeviceToHost);
 
-    printf("Expected numbers for the output map (after summing up channels):\n");
+    // printf("Expected numbers for the output map (after summing up channels):\n");
     // Generate the expected output y - only for each channel.
     for (int h=0; h<H; ++h) {
         int h_idx = h*W*C*I;
@@ -491,8 +491,9 @@ void test_complex_multiply_host(int H, int W, int C) {
                 expect[out_h_idx + out_w_idx] += out_re;
                 expect[out_h_idx + out_w_idx + 1] += out_im;
             }
-            printf("expected: (h:%d, w:%d): %lld + %lld\n", h, w, expect[out_h_idx + out_w_idx], expect[out_h_idx + out_w_idx + 1]);
-            printf("obtained: (h:%d, w:%d): %lld + %lld\n", h, w, out[out_h_idx + out_w_idx], out[out_h_idx + out_w_idx + 1]);
+            // Uncomment the printf below to debug the code.
+            // printf("expected: (h:%d, w:%d): %lld + %lld\n", h, w, expect[out_h_idx + out_w_idx], expect[out_h_idx + out_w_idx + 1]);
+            // printf("obtained: (h:%d, w:%d): %lld + %lld\n", h, w, out[out_h_idx + out_w_idx], out[out_h_idx + out_w_idx + 1]);
             assert (expect[out_h_idx + out_w_idx] == out[out_h_idx + out_w_idx]);
             assert (expect[out_h_idx + out_w_idx + 1] == out[out_h_idx + out_w_idx + 1]);
         }
@@ -525,9 +526,7 @@ void test_complex_multiply_host(int H, int W, int C) {
 //    const auto W = x.size(2);  // width of the matrix
 //    const auto C = x.size(3);  // number of channels
 //
-//    const auto x_blocks = N;
-//    const auto y_blocks = F;
-//    const dim3 blocks(x_blocks, y_blocks);
+//    const dim3 blocks(N, F);
 //
 //    const int threads = min(int(1024/C) * C, H*W*C);
 //
@@ -611,32 +610,39 @@ void test_multiply() {
 }
 
 void test_sum_channels_suit() {
-//    test_sum_channels_host();
-//    test_sum_channels_host_big(/*C=*/64, /*W=*/1);
+    test_sum_channels_host();
+    test_sum_channels_host_big(/*C=*/64, /*W=*/1);
     test_sum_channels_host_big(/*C=*/3, /*W=*/341);
-//    test_sum_channels_host_big(/*C=*/1, /*W=*/7);
-//    test_sum_channels_host_big(/*C=*/1, /*W=*/1024);
-//    test_sum_channels_host_big(/*C=*/3, /*W=*/300);
-//    test_sum_channels_host_big(/*C=*/1, /*W=*/19);
-//    test_sum_channels_host_big(/*C=*/4, /*W=*/4);
-//    test_sum_channels_host_big(/*C=*/16, /*W=*/6);
-//    test_sum_channels_host_big(/*C=*/32, /*W=*/32);
-//    test_sum_channels_host_big(/*C=*/3, /*W=*/300);
+    test_sum_channels_host_big(/*C=*/1, /*W=*/7);
+    test_sum_channels_host_big(/*C=*/1, /*W=*/1024);
+    test_sum_channels_host_big(/*C=*/3, /*W=*/300);
+    test_sum_channels_host_big(/*C=*/1, /*W=*/19);
+    test_sum_channels_host_big(/*C=*/4, /*W=*/4);
+    test_sum_channels_host_big(/*C=*/16, /*W=*/6);
+    test_sum_channels_host_big(/*C=*/32, /*W=*/32);
+    test_sum_channels_host_big(/*C=*/3, /*W=*/300);
 }
 
 void test_multiply_suit() {
-//    test_complex_multiply_host(/*H=*/3, /*W=*/2, /*C=*/1);
-//    test_complex_multiply_host(/*H=*/3, /*W=*/2, /*C=*/3);
-//    test_complex_multiply_host(/*H=*/16, /*W=*/8, /*C=*/4);
-//    test_complex_multiply_host(/*H=*/1, /*W=*/1, /*C=*/64);
-//    test_complex_multiply_host(/*H=*/2, /*W=*/1, /*C=*/512);
-//    test_complex_multiply_host(/*H=*/2, /*W=*/2, /*C=*/512);
+    test_complex_multiply_host(/*H=*/3, /*W=*/2, /*C=*/1);
+    test_complex_multiply_host(/*H=*/3, /*W=*/2, /*C=*/3);
+    test_complex_multiply_host(/*H=*/16, /*W=*/8, /*C=*/4);
+    test_complex_multiply_host(/*H=*/1, /*W=*/1, /*C=*/64);
+    test_complex_multiply_host(/*H=*/2, /*W=*/1, /*C=*/512);
+    test_complex_multiply_host(/*H=*/2, /*W=*/2, /*C=*/512);
     test_complex_multiply_host(/*H=*/32, /*W=*/32, /*C=*/3);
+    // ResNet sizes: 100% energy preserved.
+    test_complex_multiply_host(/*H=*/128, /*W=*/65, /*C=*/3);
+    test_complex_multiply_host(/*H=*/64, /*W=*/33, /*C=*/64);
+    test_complex_multiply_host(/*H=*/32, /*W=*/17, /*C=*/128);
+    test_complex_multiply_host(/*H=*/16, /*W=*/9, /*C=*/256);
+    test_complex_multiply_host(/*H=*/8, /*W=*/5, /*C=*/512);
+
 }
 
 int main(void)
 {
-    // test_sum_channels_suit();
+    test_sum_channels_suit();
     test_multiply_suit();
     printf("All tests finished successfully.\n");
     return 0;
