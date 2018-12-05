@@ -417,7 +417,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
         # inputs = torch.randn(N, C, H, W, dtype=dtype, device=device,
         #                      requires_grad=True)
         args = Arguments()
-        args.sample_count_limit = 0
+        args.sample_count_limit = 2048
         args.min_batch_size = 128
         args.test_batch_size = args.min_batch_size
         args.network_type = NetworkType.ResNet18
@@ -456,7 +456,8 @@ class TestBenchmarkConv2d(unittest.TestCase):
         # print("outputs standard: ", outputs_standard)
 
         args.conv_type = ConvType.FFT2D
-        args.conv_exec_type = ConvExecType.CUDA
+        args.conv_exec_type = ConvExecType.CUDA_SHARED_LOG
+        # args.conv_exec_type = ConvExecType.CUDA
         model = resnet18(args=args)
         model.to(device)
         model.eval()
@@ -465,15 +466,31 @@ class TestBenchmarkConv2d(unittest.TestCase):
             for inputs, _ in train_loader:
                 inputs = inputs.to(device)
                 outputs_fft = model(inputs)
-        fft_time = time.time() - start_eval
-        print("total time with FFT based conv2D: ", fft_time)
+        fft_time1 = time.time() - start_eval
+        print("total time with cuda shared log based conv2D: ", fft_time1)
+
+        args.conv_type = ConvType.FFT2D
+        args.conv_exec_type = ConvExecType.CUDA
+        # args.conv_exec_type = ConvExecType.CUDA
+        model = resnet18(args=args)
+        model.to(device)
+        model.eval()
+        start_eval = time.time()
+        for _ in range(repetition):
+            for inputs, _ in train_loader:
+                inputs = inputs.to(device)
+                outputs_fft = model(inputs)
+        fft_time2 = time.time() - start_eval
+        print("total time with cuda stride no permute based conv2D: ", fft_time2)
         # layer1_fft = model.global_layer1_time
         # print("fft layer1 cumulative time: ", layer1_fft)
 
         # print("outputs fft: ", outputs_fft)
 
-        print("pytorch speedup over cFFT for testing ResNet-18: ",
-              fft_time / standard_time)
+        print("pytorch speedup over cuda shared log for testing ResNet-18: ",
+              fft_time1 / standard_time)
+        print("pytorch speedup over cuda stride no permute for testing ResNet-18: ",
+              fft_time2 / standard_time)
         # print("pytorch speedup over fft for layer 1: ",
         #       layer1_fft / layer1_standard)
 
