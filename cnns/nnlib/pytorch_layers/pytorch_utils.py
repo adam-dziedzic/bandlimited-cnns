@@ -25,10 +25,12 @@ import time
 import os
 import socket
 
-if socket.gethostname() == "skr-compute1":
+if socket.gethostname() == "skr-compute1" or socket.gethostname() == "adam-gpu2":
     from complex_mul_cpp import complex_mul as complex_mul_cpp
     from complex_mul_cuda import complex_mul as complex_mul_cuda
     from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
+    from complex_mul_cuda import \
+        complex_mul_shared_log as complex_mul_shared_log_cuda
 
 logger = get_logger(name=__name__)
 logger.setLevel(logging.DEBUG)

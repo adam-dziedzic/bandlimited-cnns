@@ -301,49 +301,49 @@ nvidia
 nvcc -I/local/ady/anaconda3/lib/python3.6/site-packages/torch/lib/include -I/local/ady/anaconda3/lib/python3.6/site-packages/torch/lib/include/torch/csrc/api/include -I/local/ady/anaconda3/lib/python3.6/site-packages/torch/lib/include/TH -I/local/ady/anaconda3/lib/python3.6/site-packages/torch/lib/include/THC -I/usr/local/cuda/include -I/local/ady/anaconda3/include/python3.6m complex_mul_kernel_stride_no_permute.cu -o complex_mul_kernel_stride_no_permute.out -std=c++11
 Segmentation fault
 */
-int main(void)
-{
-    int N = 1;
-    int F = 1;
-    int C = 4;
-    int H = 16;
-    int W = 8;
-    int size_input = N * C * H * W * 2;
-    int size_filter = F * C * H * W * 2;
-    int size_output = N * F * H * W * 2;
-    int cuda_block_threads = 32;
-
-    // auto dims = {128, 32, 16, 8, 2};
-    //    at::Tensor x = at::randn({128, 32, 16, 8, 2});
-    //    at::Tensor y = at::randn({128, 32, 16, 8, 2});
-    //    at::Tensor out = at::zeros({128, 32, 16, 8, 2});
-    float *x, *y, * out;
-
-    // Allocate unified memory - accessible from cpu or gpu
-    cudaMallocManaged(&x, size_input*sizeof(float));
-    cudaMallocManaged(&y, size_filter*sizeof(float));
-    cudaMallocManaged(&out, size_output*sizeof(float));
-
-    for (int i=0; i < size_input-1; i+=2) {
-        x[i] = -8;
-        x[i+1] = -1;
-        y[i] = -1;
-        y[i+1] = -2;
-        out[i] = 0.0f;
-        out[i+1] = 0.0f;
-    }
-
-    const dim3 blocks(N, F);
-
-    // for(int i=0; i<32; ++i)
-    complex_mul_cuda_kernel<float><<<blocks, cuda_block_threads>>>(
-        x, y, out, N, F, C, H, W);
-
-    cudaFree(x);
-    cudaFree(y);
-    cudaFree(out);
-
-    printf("finished computation\n");
-
-    return 0;
-}
+//int main(void)
+//{
+//    int N = 1;
+//    int F = 1;
+//    int C = 4;
+//    int H = 16;
+//    int W = 8;
+//    int size_input = N * C * H * W * 2;
+//    int size_filter = F * C * H * W * 2;
+//    int size_output = N * F * H * W * 2;
+//    int cuda_block_threads = 32;
+//
+//    // auto dims = {128, 32, 16, 8, 2};
+//    //    at::Tensor x = at::randn({128, 32, 16, 8, 2});
+//    //    at::Tensor y = at::randn({128, 32, 16, 8, 2});
+//    //    at::Tensor out = at::zeros({128, 32, 16, 8, 2});
+//    float *x, *y, * out;
+//
+//    // Allocate unified memory - accessible from cpu or gpu
+//    cudaMallocManaged(&x, size_input*sizeof(float));
+//    cudaMallocManaged(&y, size_filter*sizeof(float));
+//    cudaMallocManaged(&out, size_output*sizeof(float));
+//
+//    for (int i=0; i < size_input-1; i+=2) {
+//        x[i] = -8;
+//        x[i+1] = -1;
+//        y[i] = -1;
+//        y[i+1] = -2;
+//        out[i] = 0.0f;
+//        out[i+1] = 0.0f;
+//    }
+//
+//    const dim3 blocks(N, F);
+//
+//    // for(int i=0; i<32; ++i)
+//    complex_mul_cuda_kernel<float><<<blocks, cuda_block_threads>>>(
+//        x, y, out, N, F, C, H, W);
+//
+//    cudaFree(x);
+//    cudaFree(y);
+//    cudaFree(out);
+//
+//    printf("finished computation\n");
+//
+//    return 0;
+//}

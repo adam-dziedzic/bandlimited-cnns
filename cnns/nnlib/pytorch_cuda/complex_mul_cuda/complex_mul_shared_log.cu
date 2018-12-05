@@ -1,4 +1,15 @@
-// #include <ATen/ATen.h>
+/**
+CUDA based complex multiplication of tensors with summation over the input
+channels fused into the multiplication.
+
+Author: Adam Dziedzic, ady@uchicago.edu
+
+To compile with nvcc and run the tests, just uncomment the ATen library with the
+include line below, and the declaration of the function that is used by PyTorch,
+namely: complex_mul_shared_log_cuda.
+
+*/
+#include <ATen/ATen.h>  // this to be uncommented to compile the file with nvcc
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -10,6 +21,42 @@
 #include <cassert>
 
 namespace {
+
+/**
+Cache is with complex numbers. Sum the complex channels for a given pixel.
+
+:param cache: an array of complex values to be summed for C consecutive complex
+elements.
+:param cache_index: the position of the thread in the cache.
+:param C: number of channels.
+*/
+template <typename scalar_t>
+__device__ __forceinline__ void sum_channels(
+    scalar_t* cache, int cache_index, int C) {
+    const int I = 2;  // complex number representation as 2 float numbers
+    int c = C;  // C - number of all channels, c - still to be summed channels
+    while (c != 0) {
+        bool is_write = false;  // should we sum the values up with this thread?
+        if (c % 2 == 0 || c == 1) {
+            c /= 2;
+            if (cache_index % C < c) {
+                is_write = true;
+            }
+        } else {
+            c = (c+1)/2;
+            if (cache_index % C < c - 1) {
+                is_write = true;
+            }
+        }
+        if (is_write) {
+            const int cache_index_I = cache_index*I;
+            const int c_I = c*I;
+            cache[cache_index_I] += cache[cache_index_I + c_I];
+            cache[cache_index_I + 1] += cache[cache_index_I + c_I + 1];
+        }
+        __syncthreads();
+    }
+}
 
 /**
 Complex multiplication of tensors using shared memory with barrier
@@ -183,43 +230,7 @@ __device__ __forceinline__ void single_add(
     *out_im += x_im + y_im;
 }
 
-/**
-Cache is with complex numbers. Sum the complex channels for a given pixel.
 
-:param cache: an array of complex values to be summed for C consecutive complex
-elements.
-:param cache_index: the position of the thread in the cache.
-:param C: number of channels.
-*/
-template <typename scalar_t>
-__device__ __forceinline__
-void sum_channels(scalar_t* cache, int cache_index, int C) {
-    const int I = 2;  // complex number representation as 2 float numbers
-    int c = C;  // C - number of all channels, c - still to be summed channels
-    while (c != 0) {
-//        printf("cache_index:%d, c:%d\n", cache_index, c);
-        bool is_write = false;  // should we sum the values up with this thread?
-        if (c % 2 == 0 || c == 1) {
-            c /= 2;
-            if (cache_index % C < c) {
-                is_write = true;
-            }
-        } else {
-            c = (c+1)/2;
-            if (cache_index % C < c - 1) {
-                is_write = true;
-            }
-        }
-        if (is_write) {
-            const int cache_index_I = cache_index*I;
-            const int c_I = c*I;
-            cache[cache_index_I] += cache[cache_index_I + c_I];
-            cache[cache_index_I + 1] += cache[cache_index_I + c_I + 1];
-        }
-        __syncthreads();
-        // printf("%d: %d, %d\n", cache_index, cache[cache_index*I], cache[cache_index*I+1]);
-    }
-}
 
 template <typename scalar_t>
 __global__ void test_sum_channels_device(scalar_t* cache, int C) {
@@ -513,33 +524,6 @@ void test_complex_multiply_host(int H, int W, int C) {
     printf("Finished test multiplication.\n");
 }
 
-} // namespace
-
-//void complex_mul_shared_log_cuda(
-//    at::Tensor x,
-//    at::Tensor y,
-//    at::Tensor out) {
-//
-//    const auto N = x.size(0);  // batch_size
-//    const auto F = y.size(0);  // filter_bank_size
-//    const auto H = x.size(1);  // height of the matrix
-//    const auto W = x.size(2);  // width of the matrix
-//    const auto C = x.size(3);  // number of channels
-//
-//    const dim3 blocks(N, F);
-//
-//    const int threads = min(int(1024/C) * C, H*W*C);
-//
-//    cudaMemset(out, 0, N*F*H*W*sizeof(scalar_t));
-//
-//    AT_DISPATCH_FLOATING_TYPES(x.type(), "complex_mul_cuda",
-//    ([&] {
-//        complex_mul_cuda_kernel<scalar_t><<<blocks, threads, 2*threads*sizeof(scalar_t)>>>(
-//        x.data<scalar_t>(), y.data<scalar_t>(), out.data<scalar_t>(),
-//        N, F, C, H, W);
-//    }));
-//}
-
 /**
 Uncomment the pytorch related stuff.
 
@@ -705,10 +689,45 @@ void test_multiply_suit() {
     test_complex_multiply_host(/*H=*/8, /*W=*/5, /*C=*/512);
 }
 
-int main(void)
-{
-    test_sum_channels_suit();
-    test_multiply_suit();
-    printf("All tests finished successfully.\n");
-    return 0;
+} // namespace
+
+/**
+:param: The out tensor has to be zero-initialized.
+
+This to be uncommented to compile the file with nvcc.
+*/
+void complex_mul_shared_log_cuda(
+    at::Tensor x,
+    at::Tensor y,
+    at::Tensor out) {
+
+    const auto N = x.size(0);  // batch_size
+    const auto F = y.size(0);  // filter_bank_size
+    const auto H = x.size(1);  // height of the matrix
+    const auto W = x.size(2);  // width of the matrix
+    const auto C = x.size(3);  // number of channels
+
+    const dim3 blocks(N, F);
+
+    // Number of threads is either a max multiply of channels that is less than
+    // 1024 or just the size of the plane with the filters.
+    const int threads = min(int(1024/C) * C, H*W*C);
+
+    // cudaMemset(out, 0, N*F*H*W*sizeof(scalar_t));
+
+    AT_DISPATCH_FLOATING_TYPES(x.type(), "complex_mul_cuda",
+    ([&] {
+        complex_mul_cuda_kernel<scalar_t><<<blocks, threads, 2*threads*sizeof(scalar_t)>>>(
+        x.data<scalar_t>(), y.data<scalar_t>(), out.data<scalar_t>(),
+        N, F, C, H, W);
+    }));
 }
+
+// Uncomment main function for tests.
+//int main(void)
+//{
+//    test_sum_channels_suit();
+//    test_multiply_suit();
+//    printf("All tests finished successfully.\n");
+//    return 0;
+//}

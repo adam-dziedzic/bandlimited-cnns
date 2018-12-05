@@ -119,6 +119,7 @@ class ConvExecType(EnumWithNames):
     SERIAL = 1
     BATCH= 2
     CUDA = 3
+    CUDA_SHARED_LOG = 4
 
 
 class TensorType(EnumWithNames):

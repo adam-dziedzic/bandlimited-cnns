@@ -30,12 +30,14 @@ from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
 from cnns.nnlib.utils.arguments import Arguments
 
 import socket
-if socket.gethostname() == "skr-compute1":
+if socket.gethostname() == "skr-compute1" or socket.gethostname() == "adam-gpu2":
     from complex_mul_cpp import complex_mul as complex_mul_cpp
     from complex_mul_cuda import complex_mul as complex_mul_cuda
     from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
     from complex_mul_cuda import \
         complex_mul_stride_no_permute as complex_mul_stride_no_permute_cuda
+    from complex_mul_cuda import \
+        complex_mul_shared_log as complex_mul_shared_log_cuda
 
 """
 Results:
@@ -415,7 +417,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
         # inputs = torch.randn(N, C, H, W, dtype=dtype, device=device,
         #                      requires_grad=True)
         args = Arguments()
-        args.sample_count_limit = 128
+        args.sample_count_limit = 0
         args.min_batch_size = 128
         args.test_batch_size = args.min_batch_size
         args.network_type = NetworkType.ResNet18
@@ -428,13 +430,13 @@ class TestBenchmarkConv2d(unittest.TestCase):
         # args.conv_type = "FFT2D"
         args.conv_type = ConvType.STANDARD2D
         args.index_back = None
-        args.preserve_energy = 90
+        args.preserve_energy = 95
         args.is_debug = False
         args.next_power2 = True
         args.compress_type = CompressType.STANDARD
         args.tensor_type = TensorType.FLOAT32
         args.num_classes = 10
-        args.min_batch_size = 128
+        args.min_batch_size = 0
         args.test_batch_size = args.min_batch_size
         args.in_channels = C
 

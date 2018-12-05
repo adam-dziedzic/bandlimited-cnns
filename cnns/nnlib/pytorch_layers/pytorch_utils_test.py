@@ -14,6 +14,8 @@ if socket.gethostname() == "skr-compute1":
     from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
     from complex_mul_cuda import \
         complex_mul_stride_no_permute as complex_mul_stride_no_permute_cuda
+    from complex_mul_cuda import \
+        complex_mul_shared_log as complex_mul_shared_log_cuda
 
 
 class TestPytorchUtils(unittest.TestCase):
@@ -373,32 +375,48 @@ class TestPytorchUtils(unittest.TestCase):
     def test_cuda_multiply_simple(self):
         if torch.cuda.is_available():
             device = torch.device("cuda")
+            dtype = torch.float
+            x = torch.tensor([[[[[3, -2]]]]], device=device, dtype=dtype)
+            y = torch.tensor([[[[[5, 4]]]]], device=device, dtype=dtype)
+            expect = torch.tensor([[[[[23, 2]]]]])
+            out = torch.zeros_like(expect, device=device, dtype=dtype)
+            complex_mul_cuda(x, y, out)
+            np.testing.assert_allclose(
+                actual=out.cpu().numpy(), desired=expect.cpu().numpy(),
+                err_msg="actual out different from desired expected")
         else:
-            device = torch.device("cpu")
-        dtype = torch.float
-        x = torch.tensor([[[[[3, -2]]]]], device=device, dtype=dtype)
-        y = torch.tensor([[[[[5, 4]]]]], device=device, dtype=dtype)
-        expect = torch.tensor([[[[[23, 2]]]]])
-        out = torch.zeros_like(expect, device=device, dtype=dtype)
-        complex_mul_cuda(x, y, out)
-        np.testing.assert_allclose(
-            actual=out.cpu().numpy(), desired=expect.cpu().numpy(),
-            err_msg="actual out different from desired expected")
+            print("CUDA device is not available.")
+
+    def test_cuda_multiply_simple_shared_log1(self):
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+            print("Available device: ", device)
+            dtype = torch.float
+            x = torch.tensor([[[[[3, -2]]]]], device=device, dtype=dtype)
+            y = torch.tensor([[[[[5, 4]]]]], device=device, dtype=dtype)
+            expect = torch.tensor([[[[[23, 2]]]]])
+            out = torch.zeros_like(expect, device=device, dtype=dtype)
+            complex_mul_shared_log_cuda(x, y, out)
+            np.testing.assert_allclose(
+                actual=out.cpu().numpy(), desired=expect.cpu().numpy(),
+                err_msg="actual out different from desired expected")
+        else:
+            print("CUDA device is not available.")
 
     def test_cuda_multiply_simple2(self):
         if torch.cuda.is_available():
             device = torch.device("cuda")
+            dtype = torch.float
+            x = torch.tensor([[[[[3, -2], [2, 5]]]]], device=device, dtype=dtype)
+            y = torch.tensor([[[[[5, 4], [-1, 3]]]]], device=device, dtype=dtype)
+            expect = torch.tensor([[[[[23, 2], [-17, 1]]]]])
+            out = torch.zeros_like(expect, device=device, dtype=dtype)
+            complex_mul_cuda(x, y, out)
+            np.testing.assert_allclose(
+                actual=out.cpu().numpy(), desired=expect.cpu().numpy(),
+                err_msg="actual out different from desired expected")
         else:
-            device = torch.device("cpu")
-        dtype = torch.float
-        x = torch.tensor([[[[[3, -2], [2, 5]]]]], device=device, dtype=dtype)
-        y = torch.tensor([[[[[5, 4], [-1, 3]]]]], device=device, dtype=dtype)
-        expect = torch.tensor([[[[[23, 2], [-17, 1]]]]])
-        out = torch.zeros_like(expect, device=device, dtype=dtype)
-        complex_mul_cuda(x, y, out)
-        np.testing.assert_allclose(
-            actual=out.cpu().numpy(), desired=expect.cpu().numpy(),
-            err_msg="actual out different from desired expected")
+            print("CUDA device is not available.")
 
     def test_cuda_multiply_simple3(self):
         if not torch.cuda.is_available():
@@ -622,6 +640,35 @@ class TestPytorchUtils(unittest.TestCase):
         np.testing.assert_allclose(
             actual=out.cpu().numpy(), desired=expect.cpu().numpy(), rtol=1e-4,
             err_msg="actual out different from desired expected")
+
+    def test_cuda_shared_log_multiply_2(self):
+        N, C, H, W, I = 2, 3, 5, 3, 2
+        F = 4
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+            dtype = torch.float
+            x = torch.randn(N, C, H, W, I, device=device, dtype=dtype)
+            y = torch.randn(F, C, H, W, I, device=device, dtype=dtype)
+            out = torch.zeros(N, F, H, W, I, device=device, dtype=dtype)
+
+            # Move the channels to the last but one dimension.
+            # We want for xfft: N, H, W, C, I.
+            x_clone = x.permute(0, 2, 3, 1, 4).contiguous()
+            # We want for yfft: F, H, W, C, I.
+            y_clone = y.permute(0, 2, 3, 1, 4).contiguous()
+            complex_mul_shared_log_cuda(x_clone, y_clone, out)
+
+            print("out.size(): ", out.size())
+
+            x = x.unsqueeze(dim=1)
+            expect = complex_mul(x, y)
+            expect = expect.sum(dim=2)
+
+            np.testing.assert_allclose(
+                actual=out.cpu().numpy(), desired=expect.cpu().numpy(), rtol=1e-4,
+                err_msg="actual out different from desired expected")
+        else:
+            print("CUDA device is not available.")
 
     def test_cuda_stride_no_permute_multiply_big(self):
         N, C, H, W, I = 8, 3, 16, 8, 2
