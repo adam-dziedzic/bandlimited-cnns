@@ -727,7 +727,7 @@ class TestPytorchUtils(unittest.TestCase):
             err_msg="actual out different from desired expected")
 
     def test_cuda_shared_log_multiply_big2(self):
-        N, C, H, W, I = 16, 128, 8, 4, 2
+        N, C, H, W, I = 32, 128, 8, 4, 2
         F = 64
         if not torch.cuda.is_available():
             print("No cuda device is available!")
@@ -737,14 +737,20 @@ class TestPytorchUtils(unittest.TestCase):
         y = torch.randn(F, C, H, W, I, device=device, dtype=dtype)
         out = torch.zeros(N, F, H, W, I, device=device, dtype=dtype)
 
-        start = time.time()
+
         # Move the channels to the last but one dimension.
         # We want for xfft: N, H, W, C, I.
         x_clone = x.permute(0, 2, 3, 1, 4).contiguous()
         # We want for yfft: F, H, W, C, I.
         y_clone = y.permute(0, 2, 3, 1, 4).contiguous()
+
+        start = time.time()
         complex_mul_shared_log_cuda(x_clone, y_clone, out)
-        print("\ncuda mul time: ", time.time() - start)
+        print("\ncuda shared log mul time: ", time.time() - start)
+
+        start = time.time()
+        complex_mul_stride_no_permute_cuda(x, y, out, 1024)
+        print("\ncuda stride no permute mul time: ", time.time() - start)
 
         x = x.unsqueeze(dim=1)
         start = time.time()

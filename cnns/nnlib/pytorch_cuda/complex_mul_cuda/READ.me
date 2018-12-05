@@ -1,0 +1,4 @@
+The main implementations:
+
+1. complex_mul_kernel_stride_no_permute.cu - no permutation required, stride over XY plane and for each pixel sum up channels, no synchronization, no cache
+2. complex_mul_shared_log.cu - read consecutive channel values in each thread, sum up the values in the log fashion, use cache and synchronize threads

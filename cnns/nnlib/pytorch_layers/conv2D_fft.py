@@ -122,6 +122,7 @@ class Conv2dfftFunction(torch.autograd.Function):
 
         :return: the result of convolution.
         """
+        # print("input size: ", input.size())
         Conv2dfftFunction.mark_dirty(input)
         if args is not None:
             index_back = args.index_back
@@ -354,14 +355,15 @@ class Conv2dfftFunction(torch.autograd.Function):
             elif args.conv_exec_type is ConvExecType.CUDA:
                 if torch.cuda.is_available():
                     # print("complex cuda multiplication")
+                    print("xfft size: ", xfft.size())
+                    # start_complex_time = time.time()
                     outfft = torch.zeros([N, F, half_fft_compressed_H,
                                           half_fft_compressed_W, 2],
                                          dtype=dtype, device=device)
                     # complex_mul_cuda(xfft, yfft, outfft)
-                    # start_complex_time = time.time()
                     complex_mul_stride_no_permute_cuda(xfft, yfft, outfft,
                                                        cuda_block_threads)
-                    torch.cuda.synchronize()
+                    # torch.cuda.synchronize()
                     # global global_complex_time
                     # global_complex_time += time.time() - start_complex_time
                     # print("complex multiply time: ", global_complex_time)
@@ -390,7 +392,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                 outfft = complex_mul(xfft, yfft)
                 # outfft = complex_mul_cpp(xfft, yfft)
                 outfft = outfft.sum(dim=2)
-
+                # torch.cuda.synchronize()
                 xfft = xfft.squeeze(dim=1)
 
             else:

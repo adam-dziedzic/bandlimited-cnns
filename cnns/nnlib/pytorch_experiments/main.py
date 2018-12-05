@@ -735,7 +735,9 @@ if __name__ == '__main__':
     elif args.dataset == "mnist":
         flist = ["mnist"]
     elif args.dataset == "debug":
-        flist = ["50words"]
+        # flist = ["50words"]
+        # flist = ["yoga"]
+        flist = ["uWaveGestureLibrary_Z"]
         # flist = ["cifar10"]
         # flist = ["mnist"]
         # flist = ["zTest"]
