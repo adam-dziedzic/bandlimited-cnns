@@ -3,6 +3,8 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <cstdio>
+#include <ctime>
+#include <cstdlib>
 #include <cmath>
 #include <iostream>
 #include <cassert>
@@ -81,16 +83,12 @@ __global__ void complex_mul_cuda_kernel(
     int base_O_idx = no_idx + fo_idx;
 
     // Cache (c) index;
-    int thread_cidx = thread_nr * I;
+    int thread_cidx = threadIdx.x * I;
 
-    printf("N_idx:%d, last_block_idx:%d, last_N_idx:%d\n", N_idx, last_block_idx, last_N_idx);
+    // printf("N_idx:%d, last_block_idx:%d, last_N_idx:%d\n", N_idx, last_block_idx, last_N_idx);
 
     while (N_idx < last_block_idx)  {
-
-        // Zero out caches.
-        cache[thread_cidx] = 0;
-        cache[thread_cidx + 1] = 0;
-
+        // Check if N_idx is still within the bound for the plane of size: H*W*C
         if (N_idx < last_N_idx - 1) {
             scalar_t out_re = 0;
             scalar_t out_im = 0;
@@ -103,6 +101,7 @@ __global__ void complex_mul_cuda_kernel(
 
             cache[thread_cidx] = out_re;
             cache[thread_cidx + 1] = out_im;
+            // printf("thread_idx:%d, N_idx:%d, last_N_idx:%d, out_re:%d, out_im:%d\n", threadIdx.x, N_idx, last_N_idx, cache[thread_cidx], cache[thread_cidx + 1]);
         }
 
         __syncthreads();  // Make the results visible to all threads.
@@ -112,22 +111,25 @@ __global__ void complex_mul_cuda_kernel(
         // map we add the computed pixels summed across channels.
         // This goes through all the channels present in the cache.
 
-        sum_channels(cache, threadIdx.x, C);
+        sum_channels(/*cache=*/cache, /*cache_index=*/threadIdx.x, /*C=*/C);
 
-        __syncthreads();
+        // printf("thread_idx:%d, C:%d, N_idx:%d, last_N_idx:%d, cache_re:%d, cache_im:%d\n", threadIdx.x, C, N_idx, last_N_idx, cache[thread_cidx], cache[thread_cidx + 1]);
         // Write the output for the pixels summed (across channels).
-        if (threadIdx.x % C == 0) {
+        // printf("thread_idx:%d", threadIdx.x);
+        if (threadIdx.x % C == 0 && N_idx < last_N_idx - 1) {
             // Running index through the current XY plane in the output.
             // Assume 8 threads. Plane size HxW = 3x2 = 6 and 3 channels.
             // There are 6*3=18 complex multiplications for the output f-th plane.
             // The 0th, 1st, and 2nd threads should return 0 index in the output.
             // 3rd,4th,5th threads should return 1st index in the output.
             // The 20th index should return
-            int run_O_idx = (thread_nr % (plane_size * C)) / C;
+            int run_O_idx = thread_nr / C;
 
             const int O_idx = base_O_idx + run_O_idx*I;
+
+            // printf("N_idx:%d, last_N_idx:%d, cache_re:%d, cache_im:%d\n", N_idx, last_N_idx, cache[thread_cidx], cache[thread_cidx + 1]);
             out[O_idx] += cache[thread_cidx];
-            out[O_idx + 1] = cache[thread_cidx + 1];
+            out[O_idx + 1] += cache[thread_cidx + 1];
         }
 
         N_idx += stride;
@@ -153,6 +155,19 @@ __device__ __forceinline__ void single_mul(
     scalar_t uavc = x_re * (y_re + y_im);
     *out_re += uavc - (x_re + x_im) * y_im;
     *out_im += (x_im - x_re) * y_re + uavc;
+}
+
+template <typename scalar_t>
+void single_mul_simple(
+    scalar_t x_re,
+    scalar_t x_im,
+    scalar_t y_re,
+    scalar_t y_im,
+    scalar_t* out_re,
+    scalar_t* out_im) {
+
+    *out_re += x_re * y_re - x_im * y_im;
+    *out_im += x_re * y_im + x_im * y_re;
 }
 
 template <typename scalar_t>
@@ -182,7 +197,7 @@ void sum_channels(scalar_t* cache, int cache_index, int C) {
     const int I = 2;  // complex number representation as 2 float numbers
     int c = C;  // C - number of all channels, c - still to be summed channels
     while (c != 0) {
-        // printf("cache_index:%d, c:%d\n", cache_index, c);
+//        printf("cache_index:%d, c:%d\n", cache_index, c);
         bool is_write = false;  // should we sum the values up with this thread?
         if (c % 2 == 0 || c == 1) {
             c /= 2;
@@ -362,6 +377,141 @@ void test_sum_channels_host_big(int C, int W) {
     printf("finished test sum channels\n");
 }
 
+void test_complex_multiply_host(int H, int W, int C) {
+    const int I = 2;
+
+    int size_input = H*W*C*I;
+    int size_output = H*W*I;
+
+    long long *x = new long long[size_input];
+    long long *y = new long long[size_input];
+    long long *out = new long long[size_output];
+    long long *expect = new long long[size_output];
+
+    std::size_t type_size = sizeof(long long);
+    int raw_size_input = size_input * type_size;
+    int raw_size_output = size_output * type_size;
+
+    // Allocate unified memory - accessible from cpu or gpu
+    // cudaMallocManaged(&x, size_input*sizeof(int));
+    long long *d_x, *d_y, *d_out;  // memory on the device
+    cudaMalloc(&d_x, raw_size_input);
+    cudaMalloc(&d_y, raw_size_input);
+    cudaMalloc(&d_out, raw_size_output);
+
+    // set values for the input
+//    for (int i = 0; i < size_input; ++i) {
+//        x[i] = i;
+//        y[i] = i;
+//    }
+
+    // Simple numbers 1 for the tests.
+//    for (int i=0; i < size_input; i+=2) {
+//        x[i] = 1;
+//        x[i+1] = 0;
+//        y[i] = 1;
+//        y[i+1] = 0;
+//    }
+
+    // Random numbers for the tests.
+    /* initialize random seed: */
+    srand (time(NULL));
+    /* generate numbers between 0 and 10: */
+    int range = 11;
+    for (int i=0; i < size_input; i+=2) {
+        x[i] = rand() % range;
+        x[i+1] = rand() % range;
+        y[i] = rand() % range;
+        y[i+1] = rand() % range;
+    }
+
+    // zero out output
+    for (int i = 0; i < size_output; ++i) {
+        out[i] = 0;
+        expect[i] = 0;
+    }
+
+    printf("Initial numbers:\n");
+    for (int h=0; h<H; ++h) {
+        int h_idx = h*W*C*I;
+        for (int w=0; w<W; ++w) {
+            int w_idx = w*C*I;
+            for (int c=0; c<C; ++c) {
+               int c_idx = c*I;
+               printf("(h:%d, w:%d, c:%d): %lld + %lld \n", h, w, c,
+                   x[h_idx + w_idx + c_idx], x[h_idx + w_idx + c_idx + 1]);
+            }
+        }
+    }
+
+    cudaMemcpy(d_x, x, raw_size_input, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_y, y, raw_size_input, cudaMemcpyHostToDevice);
+    // cudaMemcpy(d_out, out, size_output*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemset(d_out, 0, raw_size_output);
+
+    const dim3 blocks(1);
+    const int block_threads = min(int(1024/C) * C, H*W*C);
+    // const int block_threads = 9;
+    printf("block threads: %d\n", block_threads);
+
+    complex_mul_cuda_kernel<long long><<<blocks, block_threads,
+        block_threads*2*type_size>>>(
+        d_x, d_y, d_out, /*N=*/1, /*F*=*/1, /*H=*/H, /*W=*/W, /*C=*/C);
+
+    // Wait for GPU to finish before accessing on host.
+    cudaDeviceSynchronize();
+
+    cudaMemcpy(out, d_out, raw_size_output, cudaMemcpyDeviceToHost);
+
+    printf("Expected numbers for the output map (after summing up channels):\n");
+    // Generate the expected output y - only for each channel.
+    for (int h=0; h<H; ++h) {
+        int h_idx = h*W*C*I;
+        int out_h_idx = h*W*I;
+        for (int w=0; w<W; ++w) {
+            int w_idx = w*C*I;   // channels are on the last but one dimension
+            int out_w_idx = w*I;
+            for (int c = 0; c < C; ++c) {
+                int c_idx = c*I;
+                int x_re = x[h_idx + w_idx + c_idx];
+                int x_im = x[h_idx + w_idx + c_idx + 1];
+                int y_re = y[h_idx + w_idx + c_idx];
+                int y_im = y[h_idx + w_idx + c_idx + 1];
+                int out_re = 0;
+                int out_im = 0;
+                single_mul_simple(x_re, x_im, y_re, y_im, &out_re, &out_im);
+
+//                printf("x: (h: %d, w:%d, c:%d): %d + %dj\n", h, w, c,
+//                   x[h_idx + w_idx + c_idx], x[h_idx + w_idx + c_idx + 1]);
+//                printf("y: (h: %d, w:%d, c:%d): %d + %dj\n", h, w, c,
+//                   y[h_idx + w_idx + c_idx], y[h_idx + w_idx + c_idx + 1]);
+//                printf("out: (h: %d, w:%d, c:%d): %d + %dj\n", h, w, c,
+//                   out_re, out_im);
+
+                expect[out_h_idx + out_w_idx] += out_re;
+                expect[out_h_idx + out_w_idx + 1] += out_im;
+            }
+            printf("expected: (h:%d, w:%d): %lld + %lld\n", h, w, expect[out_h_idx + out_w_idx], expect[out_h_idx + out_w_idx + 1]);
+            printf("obtained: (h:%d, w:%d): %lld + %lld\n", h, w, out[out_h_idx + out_w_idx], out[out_h_idx + out_w_idx + 1]);
+            assert (expect[out_h_idx + out_w_idx] == out[out_h_idx + out_w_idx]);
+            assert (expect[out_h_idx + out_w_idx + 1] == out[out_h_idx + out_w_idx + 1]);
+        }
+    }
+
+    cudaFree(d_x);
+    cudaFree(d_y);
+    cudaFree(d_out);
+
+    cudaDeviceSynchronize();
+
+    delete [] x;
+    delete [] y;
+    delete [] out;
+    delete [] expect;
+
+    printf("Finished test multiplication.\n");
+}
+
 } // namespace
 
 //void complex_mul_shared_log_cuda(
@@ -379,37 +529,16 @@ void test_sum_channels_host_big(int C, int W) {
 //    const auto y_blocks = F;
 //    const dim3 blocks(x_blocks, y_blocks);
 //
-//    const int threads = int(1024/C) * C;
+//    const int threads = min(int(1024/C) * C, H*W*C);
+//
+//    cudaMemset(out, 0, N*F*H*W*sizeof(scalar_t));
 //
 //    AT_DISPATCH_FLOATING_TYPES(x.type(), "complex_mul_cuda",
 //    ([&] {
-//        complex_mul_cuda_kernel<scalar_t><<<blocks, threads>>>(
+//        complex_mul_cuda_kernel<scalar_t><<<blocks, threads, 2*threads*sizeof(scalar_t)>>>(
 //        x.data<scalar_t>(), y.data<scalar_t>(), out.data<scalar_t>(),
 //        N, F, C, H, W);
 //    }));
-//}
-
-//template <typename scalar_t>
-//void complex_mul_stride_no_permute_cuda_pure(
-//    at::Tensor x,
-//    at::Tensor y,
-//    at::Tensor out,
-//    int threads = 1024) {
-//
-//    const auto N = x.size(0);  // batch_size
-//    const auto F = y.size(0);  // filter_bank_size
-//    const auto C = x.size(1);  // number of channels
-//    const auto H = x.size(2);  // height of the matrix
-//    const auto W = x.size(3);  // width of the matrix
-//
-//    const auto x_blocks = N;
-//    const auto y_blocks = F;
-//    const dim3 blocks(x_blocks, y_blocks);
-//
-//    // Run kernel on the GPU
-//    complex_mul_cuda_kernel<scalar_t><<<blocks, 1024>>>(
-//        x.data<scalar_t>(), y.data<scalar_t>(), out.data<scalar_t>(),
-//        N, F, C, H, W);
 //}
 
 /**
@@ -478,25 +607,37 @@ void test_multiply() {
     cudaFree(y);
     cudaFree(out);
 
-    printf("finished computation\n");
+    printf("Finished multiplication test.\n");
 }
 
 void test_sum_channels_suit() {
-    test_sum_channels_host();
-    test_sum_channels_host_big(/*C=*/1, /*W=*/7);
-    test_sum_channels_host_big(/*C=*/1, /*W=*/1024);
-    test_sum_channels_host_big(/*C=*/3, /*W=*/300);
-    test_sum_channels_host_big(/*C=*/1, /*W=*/19);
-    test_sum_channels_host_big(/*C=*/4, /*W=*/4);
-    test_sum_channels_host_big(/*C=*/16, /*W=*/6);
-    test_sum_channels_host_big(/*C=*/32, /*W=*/32);
-    test_sum_channels_host_big(/*C=*/3, /*W=*/300);
+//    test_sum_channels_host();
+//    test_sum_channels_host_big(/*C=*/64, /*W=*/1);
+    test_sum_channels_host_big(/*C=*/3, /*W=*/341);
+//    test_sum_channels_host_big(/*C=*/1, /*W=*/7);
+//    test_sum_channels_host_big(/*C=*/1, /*W=*/1024);
+//    test_sum_channels_host_big(/*C=*/3, /*W=*/300);
+//    test_sum_channels_host_big(/*C=*/1, /*W=*/19);
+//    test_sum_channels_host_big(/*C=*/4, /*W=*/4);
+//    test_sum_channels_host_big(/*C=*/16, /*W=*/6);
+//    test_sum_channels_host_big(/*C=*/32, /*W=*/32);
+//    test_sum_channels_host_big(/*C=*/3, /*W=*/300);
+}
+
+void test_multiply_suit() {
+//    test_complex_multiply_host(/*H=*/3, /*W=*/2, /*C=*/1);
+//    test_complex_multiply_host(/*H=*/3, /*W=*/2, /*C=*/3);
+//    test_complex_multiply_host(/*H=*/16, /*W=*/8, /*C=*/4);
+//    test_complex_multiply_host(/*H=*/1, /*W=*/1, /*C=*/64);
+//    test_complex_multiply_host(/*H=*/2, /*W=*/1, /*C=*/512);
+//    test_complex_multiply_host(/*H=*/2, /*W=*/2, /*C=*/512);
+    test_complex_multiply_host(/*H=*/32, /*W=*/32, /*C=*/3);
 }
 
 int main(void)
 {
-    test_sum_channels_suit();
-    // test_multiply();
-
+    // test_sum_channels_suit();
+    test_multiply_suit();
+    printf("All tests finished successfully.\n");
     return 0;
 }
