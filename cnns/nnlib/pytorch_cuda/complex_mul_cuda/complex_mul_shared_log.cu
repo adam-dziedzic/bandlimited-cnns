@@ -719,7 +719,7 @@ void complex_mul_shared_log_cuda(
     ([&] {
         complex_mul_cuda_kernel<scalar_t><<<blocks, threads, 2*threads*sizeof(scalar_t)>>>(
         x.data<scalar_t>(), y.data<scalar_t>(), out.data<scalar_t>(),
-        N, F, C, H, W);
+        N, F, H, W, C);
     }));
 }
 

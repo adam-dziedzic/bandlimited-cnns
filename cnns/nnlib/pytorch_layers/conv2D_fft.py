@@ -361,6 +361,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                     # start_complex_time = time.time()
                     complex_mul_stride_no_permute_cuda(xfft, yfft, outfft,
                                                        cuda_block_threads)
+                    torch.cuda.synchronize()
                     # global global_complex_time
                     # global_complex_time += time.time() - start_complex_time
                     # print("complex multiply time: ", global_complex_time)
@@ -598,6 +599,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                         yfft = yfft.permute(1, 0, 2, 3, 4).contiguous()
                         # Set the channels of doutfft permute as the last but
                         # one dimension.
+                        # N,F,H,W,I -> N, H, W, F, I
                         doutfft = doutfft.permute(0, 2, 3, 1, 4).contiguous()
                         # global_permute_time += time.time() - start_permute
                         # print("permute time: ", global_permute_time)
@@ -714,10 +716,18 @@ class Conv2dfftFunction(torch.autograd.Function):
                     if torch.cuda.is_available():
                         # Set the F channels as the last but one dimension in
                         # both the fft-ed gradient and xfft.
-                        # size of doutfft: N,F,H,W,I -> F,H,W,N,I
-                        doutfft = doutfft.permute(1, 2, 3, 0, 4).contiguous()
+                        # size of doutfft: N, H, W, F, I -> F,H,W,N,I
+                        # print("N,F,half_fft_compressed_H,half_fft_compressed_W,C:", N, F, half_fft_compressed_H, half_fft_compressed_W, C)
+                        # print("doutfft size before permute: ", doutfft.size())
+                        if need_input_grad:
+                            doutfft = doutfft.permute(3, 1, 2, 0, 4).contiguous()
+                        else:
+                            # N, F, H, W, I -> F,H,W,N,I
+                            doutfft = doutfft.permute(1, 2, 3, 0, 4).contiguous()
+                        # print("doutfft size after permute: ", doutfft.size())
                         # xfft: N,H,W,C,I -> C,H,W,N,I
                         xfft = xfft.permute(3, 1, 2, 0, 4).contiguous()
+                        # print("xfft size: ", xfft.size())
                         complex_mul_shared_log_cuda(doutfft, xfft, dwfft)
                     else:
                         raise Exception(
