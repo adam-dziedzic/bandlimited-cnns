@@ -428,7 +428,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
         # args.conv_type = "FFT2D"
         args.conv_type = ConvType.STANDARD2D
         args.index_back = None
-        args.preserve_energy = 95
+        args.preserve_energy = 90
         args.is_debug = False
         args.next_power2 = True
         args.compress_type = CompressType.STANDARD

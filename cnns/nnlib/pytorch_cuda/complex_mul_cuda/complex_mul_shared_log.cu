@@ -631,6 +631,7 @@ void test_multiply_suit() {
     test_complex_multiply_host(/*H=*/2, /*W=*/1, /*C=*/512);
     test_complex_multiply_host(/*H=*/2, /*W=*/2, /*C=*/512);
     test_complex_multiply_host(/*H=*/32, /*W=*/32, /*C=*/3);
+
     // ResNet sizes: 100% energy preserved.
     test_complex_multiply_host(/*H=*/128, /*W=*/65, /*C=*/3);
     test_complex_multiply_host(/*H=*/64, /*W=*/33, /*C=*/64);
@@ -638,6 +639,70 @@ void test_multiply_suit() {
     test_complex_multiply_host(/*H=*/16, /*W=*/9, /*C=*/256);
     test_complex_multiply_host(/*H=*/8, /*W=*/5, /*C=*/512);
 
+    // ResNet sizes: 95% energy preserved.
+    test_complex_multiply_host(/*H=*/85, /*W=*/43, /*C=*/3);
+    test_complex_multiply_host(/*H=*/43, /*W=*/22, /*C=*/64);
+    test_complex_multiply_host(/*H=*/21, /*W=*/11, /*C=*/128);
+    test_complex_multiply_host(/*H=*/15, /*W=*/8, /*C=*/256);
+    test_complex_multiply_host(/*H=*/8, /*W=*/5, /*C=*/512);
+
+    // ResNet-18 sizes: 99% energy preserved.
+    // xfft size:  torch.Size([128, 3, 119, 60, 2])
+    // xfft size:  torch.Size([128, 64, 61, 31, 2])
+    // xfft size:  torch.Size([128, 64, 59, 30, 2])
+    // xfft size:  torch.Size([128, 64, 59, 30, 2])
+    // xfft size:  torch.Size([128, 64, 57, 29, 2])
+    // xfft size:  torch.Size([128, 64, 57, 29, 2])
+    // xfft size:  torch.Size([128, 128, 32, 17, 2])
+    // xfft size:  torch.Size([128, 128, 31, 16, 2])
+    // xfft size:  torch.Size([128, 128, 31, 16, 2])
+    // xfft size:  torch.Size([128, 128, 31, 16, 2])
+    // xfft size:  torch.Size([128, 256, 16, 9, 2])
+    // xfft size:  torch.Size([128, 256, 16, 9, 2])
+    // xfft size:  torch.Size([128, 256, 16, 9, 2])
+    // xfft size:  torch.Size([128, 256, 16, 9, 2])
+    // xfft size:  torch.Size([128, 512, 8, 5, 2])
+    // xfft size:  torch.Size([128, 512, 8, 5, 2])
+    // xfft size:  torch.Size([128, 512, 8, 5, 2])
+    test_complex_multiply_host(/*H=*/119, /*W=*/60, /*C=*/3);
+    test_complex_multiply_host(/*H=*/61, /*W=*/31, /*C=*/64);
+    test_complex_multiply_host(/*H=*/59, /*W=*/30, /*C=*/64);
+    test_complex_multiply_host(/*H=*/57, /*W=*/29, /*C=*/64);
+    test_complex_multiply_host(/*H=*/32, /*W=*/17, /*C=*/128);
+    test_complex_multiply_host(/*H=*/31, /*W=*/16, /*C=*/128);
+    test_complex_multiply_host(/*H=*/21, /*W=*/11, /*C=*/128);
+    test_complex_multiply_host(/*H=*/16, /*W=*/9, /*C=*/256);
+    test_complex_multiply_host(/*H=*/8, /*W=*/5, /*C=*/512);
+
+    // ResNet-18 sizes: 90// % energy preserved.
+    // xfft size:  torch.Size([128, 3, 59, 30, 2])
+    // xfft size:  torch.Size([128, 64, 29, 15, 2])
+    // xfft size:  torch.Size([128, 64, 21, 11, 2])
+    // xfft size:  torch.Size([128, 64, 21, 11, 2])
+    // xfft size:  torch.Size([128, 64, 15, 8, 2])
+    // xfft size:  torch.Size([128, 64, 13, 7, 2])
+    // xfft size:  torch.Size([128, 128, 11, 6, 2])
+    // xfft size:  torch.Size([128, 128, 11, 6, 2])
+    // xfft size:  torch.Size([128, 128, 9, 5, 2])
+    // xfft size:  torch.Size([128, 128, 9, 5, 2])
+    // xfft size:  torch.Size([128, 256, 7, 4, 2])
+    // xfft size:  torch.Size([128, 256, 9, 5, 2])
+    // xfft size:  torch.Size([128, 256, 9, 5, 2])
+    // xfft size:  torch.Size([128, 256, 9, 5, 2])
+    // xfft size:  torch.Size([128, 512, 8, 5, 2])
+    // xfft size:  torch.Size([128, 512, 7, 4, 2])
+    // xfft size:  torch.Size([128, 512, 8, 5, 2])
+    test_complex_multiply_host(/*H=*/59, /*W=*/30, /*C=*/3);
+    test_complex_multiply_host(/*H=*/29, /*W=*/15, /*C=*/64);
+    test_complex_multiply_host(/*H=*/21, /*W=*/11, /*C=*/64);
+    test_complex_multiply_host(/*H=*/15, /*W=*/8, /*C=*/64);
+    test_complex_multiply_host(/*H=*/13, /*W=*/7, /*C=*/64);
+    test_complex_multiply_host(/*H=*/11, /*W=*/8, /*C=*/128);
+    test_complex_multiply_host(/*H=*/9, /*W=*/5, /*C=*/128);
+    test_complex_multiply_host(/*H=*/7, /*W=*/4, /*C=*/256);
+    test_complex_multiply_host(/*H=*/9, /*W=*/5, /*C=*/256);
+    test_complex_multiply_host(/*H=*/7, /*W=*/4, /*C=*/512);
+    test_complex_multiply_host(/*H=*/8, /*W=*/5, /*C=*/512);
 }
 
 int main(void)
