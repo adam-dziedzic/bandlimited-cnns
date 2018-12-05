@@ -41,6 +41,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
 # from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul_cpp
 from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import CompressType
+from cnns.nnlib.utils.general_utils import ConvExecType
 from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.general_utils import plot_signal_freq
 from cnns.nnlib.utils.general_utils import plot_signal_time
@@ -437,7 +438,7 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         output = torch.zeros([N, F, out_W], dtype=dtype, device=device)
 
-        if args.is_serial_conv:
+        if args.conv_exec_type is ConvExecType.SERIAL:
             # Serially convolve each input map with all filters.
             for nn in range(N):  # For each time-series in the batch.
                 # Take one time series and un-squeeze it for broadcasting with
@@ -518,7 +519,6 @@ class Conv1dfftFunction(torch.autograd.Function):
                                   to_tensor(is_debug),
                                   to_tensor(preserve_energy),
                                   to_tensor(index_back_fft),
-                                  to_tensor(args.is_serial_conv),
                                   to_tensor(args.memory_size))
 
         # print("context type: ", type(ctx))
@@ -554,7 +554,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         :return: gradients for input map x, filter w and bias b
         """
         # print("manual backward pass")
-        xfft, yfft, W, WW, fft_size, is_manual, conv_index, compress_type, is_debug, preserve_energy, index_back_fft, is_serial_conv, memory_size = ctx.saved_tensors
+        xfft, yfft, W, WW, fft_size, is_manual, conv_index, compress_type, is_debug, preserve_energy, index_back_fft, memory_size = ctx.saved_tensors
         need_input_grad = ctx.needs_input_grad[0]
         need_filter_grad = ctx.needs_input_grad[1]
         need_bias_grad = ctx.needs_input_grad[2]
@@ -596,8 +596,6 @@ class Conv1dfftFunction(torch.autograd.Function):
         compress_type = CompressType(from_tensor(compress_type))
         preserve_energy = from_tensor(preserve_energy)
         index_back_fft = from_tensor(index_back_fft)
-        is_serial_conv = from_tensor(is_serial_conv)
-        is_serial_conv = True if is_serial_conv == 1 else False
         memory_size = from_tensor(memory_size)
 
         if is_debug:
@@ -743,7 +741,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             dx = torch.zeros([N, C, W], dtype=dtype, device=device)
             conjugate_yfft = pytorch_conjugate(yfft)
             del yfft
-            if is_serial_conv:
+            if args.conv_exec_type is ConvExecType.SERIAL:
                 # Serially convolve each input map with all filters.
                 for nn in range(N):
                     # Take one time series and unsqueeze it for broadcast with
@@ -827,7 +825,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             flowing back gradient dout and the input x:
             gradient L / gradient w = [x1, x2, x3, x4] * [dx1, dx2, dx3]
             """
-            if is_serial_conv:
+            if args.conv_exec_type is ConvExecType.SERIAL:
                 for ff in range(F):
                     # Gather all the contributions to the output that were caused
                     # by a given filter.
