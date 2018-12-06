@@ -357,7 +357,7 @@ class Conv2dfftFunction(torch.autograd.Function):
             elif args.conv_exec_type is ConvExecType.CUDA:
                 if torch.cuda.is_available():
                     # print("complex cuda multiplication")
-                    print("xfft size: ", xfft.size())
+                    # print("xfft size: ", xfft.size())
                     # start_complex_time = time.time()
                     outfft = torch.zeros([N, F, half_fft_compressed_H,
                                           half_fft_compressed_W, 2],
