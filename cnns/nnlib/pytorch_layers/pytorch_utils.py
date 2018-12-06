@@ -25,7 +25,7 @@ import time
 import os
 import socket
 
-cuda_machines = ["skr-compute1", "adam-gpu2", "adam-gpu3", "gpu3", "adam-gpu5"]
+cuda_machines = ["skr-compute1", "adam-gpu2", "adam-gpu3", "adam-gpu5"]
 
 if socket.gethostname() in cuda_machines:
     # from complex_mul_cpp import complex_mul as complex_mul_cpp
