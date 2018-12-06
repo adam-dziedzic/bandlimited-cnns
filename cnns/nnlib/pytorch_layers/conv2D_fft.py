@@ -41,9 +41,10 @@ from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import ConvExecType
 from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.arguments import Arguments
+from cnns.nnlib.pytorch_layers.pytorch_utils import cuda_machines
 import socket
 
-if socket.gethostname() == "skr-compute1" or socket.gethostname() == "adam-gpu2":
+if socket.gethostname() in cuda_machines:
     # from complex_mul_cpp import complex_mul as complex_mul_cpp
     # from complex_mul_cuda import complex_mul as complex_mul_cuda
     # from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
@@ -346,6 +347,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                     yfft = yfft.permute(0, 2, 3, 1, 4).contiguous()
                     # start_complex_time = time.time()
                     complex_mul_shared_log_cuda(xfft, yfft, outfft)
+                    torch.cuda.synchronize()
                     # global global_complex_time
                     # global_complex_time += time.time() - start_complex_time
                     # print("complex multiply time: ", global_complex_time)
@@ -363,7 +365,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                     # complex_mul_cuda(xfft, yfft, outfft)
                     complex_mul_stride_no_permute_cuda(xfft, yfft, outfft,
                                                        cuda_block_threads)
-                    # torch.cuda.synchronize()
+                    torch.cuda.synchronize()
                     # global global_complex_time
                     # global_complex_time += time.time() - start_complex_time
                     # print("complex multiply time: ", global_complex_time)
@@ -608,6 +610,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                         # global global_complex_dxfft
                         # start_complex = time.time()
                         complex_mul_shared_log_cuda(doutfft, yfft, dxfft)
+                        torch.cuda.synchronize()
                         # global_complex_dxfft += time.time() - start_complex
                         # print("complex dxfft: ", global_complex_dxfft)
                     else:
@@ -625,6 +628,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                         # start_complex = time.time()
                         complex_mul_stride_no_permute_cuda(doutfft, yfft, dxfft,
                                                            cuda_block_threads)
+                        torch.cuda.synchronize()
                         # global_complex_dxfft += time.time() - start_complex
                         # print("complex dxfft: ", global_complex_dxfft)
                     else:
@@ -731,6 +735,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                         xfft = xfft.permute(3, 1, 2, 0, 4).contiguous()
                         # print("xfft size: ", xfft.size())
                         complex_mul_shared_log_cuda(doutfft, xfft, dwfft)
+                        torch.cuda.synchronize()
                     else:
                         raise Exception(
                             "Selected CUDA conv execution but no cuda "
@@ -741,6 +746,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                         xfft = xfft.permute(1, 0, 2, 3, 4).contiguous()
                         complex_mul_stride_no_permute_cuda(doutfft, xfft, dwfft,
                                                            cuda_block_threads)
+                        torch.cuda.synchronize()
                     else:
                         raise Exception(
                             "Selected CUDA conv execution but no cuda "

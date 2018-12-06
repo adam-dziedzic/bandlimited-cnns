@@ -25,17 +25,28 @@ import time
 import os
 import socket
 
-if socket.gethostname() == "skr-compute1" or socket.gethostname() == "adam-gpu2":
+cuda_machines = ["skr-compute1", "adam-gpu2", "adam-gpu3"]
+
+if socket.gethostname() in cuda_machines:
     # from complex_mul_cpp import complex_mul as complex_mul_cpp
     # from complex_mul_cuda import complex_mul as complex_mul_cuda
     from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
     from complex_mul_cuda import \
+        complex_mul_stride_no_permute as complex_mul_stride_no_permute_cuda
+    from complex_mul_cuda import \
         complex_mul_shared_log as complex_mul_shared_log_cuda
+
 
 logger = get_logger(name=__name__)
 logger.setLevel(logging.DEBUG)
 logger.info("Set up test")
 
+# Interface to complex multiplication in CUDA.
+def complex_mul_shared_log(x, y, out):
+    return complex_mul_shared_log_cuda(x, y, out)
+
+def complex_mul_stride_no_permute(x, y, out, num_threads=1024):
+    return complex_mul_stride_no_permute_cuda(x, y, out, num_threads)
 
 class MockContext(object):
     """

@@ -737,7 +737,8 @@ if __name__ == '__main__':
     elif args.dataset == "debug":
         # flist = ["50words"]
         # flist = ["yoga"]
-        flist = ["uWaveGestureLibrary_Z"]
+        flist = ["Two_Patterns"]
+        # flist = ["uWaveGestureLibrary_Z"]
         # flist = ["cifar10"]
         # flist = ["mnist"]
         # flist = ["zTest"]
@@ -1083,11 +1084,13 @@ if __name__ == '__main__':
             print("Dataset: ", dataset_name)
             print("preserve energy: ", preserve_energy)
             args.preserve_energy = preserve_energy
+            start_training = time.time()
             try:
                 main(args=args)
             except RuntimeError as err:
                 print(f"ERROR: {dataset_name}. "
                       "Details: " + str(err))
                 traceback.print_tb(err.__traceback__)
+            print("training time (sec): ", time.time() - start_training)
 
-            print("total elapsed time (sec): ", time.time() - start_time)
+    print("total elapsed time (sec): ", time.time() - start_time)
