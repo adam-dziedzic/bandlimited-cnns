@@ -52,6 +52,8 @@ if socket.gethostname() in cuda_machines:
         complex_mul_stride_no_permute as complex_mul_stride_no_permute_cuda
     from complex_mul_cuda import \
         complex_mul_shared_log as complex_mul_shared_log_cuda
+    from complex_mul_cuda import \
+        complex_mul_deep as complex_mul_deep_cuda
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -354,6 +356,26 @@ class Conv2dfftFunction(torch.autograd.Function):
                 else:
                     raise Exception("Selected CUDA conv execution but no cuda "
                                     "device is available.")
+            elif args.conv_exec_type is ConvExecType.CUDA_DEEP:
+                if torch.cuda.is_available():
+                    # print("complex cuda multiplication")
+                    outfft = torch.empty([N, F, half_fft_compressed_H,
+                                          half_fft_compressed_W, 2],
+                                         dtype=dtype, device=device)
+                    # Move the channels to the last but one dimension.
+                    # We want for xfft: N, H, W, C, I.
+                    xfft = xfft.permute(0, 2, 3, 1, 4).contiguous()
+                    # We want for yfft: F, H, W, C, I.
+                    yfft = yfft.permute(0, 2, 3, 1, 4).contiguous()
+                    # start_complex_time = time.time()
+                    complex_mul_deep_cuda(xfft, yfft, outfft)
+                    torch.cuda.synchronize()
+                    # global global_complex_time
+                    # global_complex_time += time.time() - start_complex_time
+                    # print("complex multiply time: ", global_complex_time)
+                else:
+                    raise Exception("Selected CUDA conv execution but no cuda "
+                                    "device is available.")
             elif args.conv_exec_type is ConvExecType.CUDA:
                 if torch.cuda.is_available():
                     # print("complex cuda multiplication")
@@ -617,6 +639,27 @@ class Conv2dfftFunction(torch.autograd.Function):
                         raise Exception(
                             "Selected CUDA conv execution but no cuda "
                             "device is available.")
+                elif args.conv_exec_type is ConvExecType.CUDA_DEEP:
+                    if torch.cuda.is_available():
+                        # global global_permute_time
+                        # start_permute = time.time()
+                        yfft = yfft.permute(1, 0, 2, 3, 4).contiguous()
+                        # Set the channels of doutfft permute as the last but
+                        # one dimension.
+                        # N,F,H,W,I -> N, H, W, F, I
+                        doutfft = doutfft.permute(0, 2, 3, 1, 4).contiguous()
+                        # global_permute_time += time.time() - start_permute
+                        # print("permute time: ", global_permute_time)
+                        # global global_complex_dxfft
+                        # start_complex = time.time()
+                        complex_mul_deep_cuda(doutfft, yfft, dxfft)
+                        torch.cuda.synchronize()
+                        # global_complex_dxfft += time.time() - start_complex
+                        # print("complex dxfft: ", global_complex_dxfft)
+                    else:
+                        raise Exception(
+                            "Selected CUDA conv execution but no cuda "
+                            "device is available.")
                 elif args.conv_exec_type is ConvExecType.CUDA:
                     if torch.cuda.is_available():
                         # global global_permute_time
@@ -735,6 +778,28 @@ class Conv2dfftFunction(torch.autograd.Function):
                         xfft = xfft.permute(3, 1, 2, 0, 4).contiguous()
                         # print("xfft size: ", xfft.size())
                         complex_mul_shared_log_cuda(doutfft, xfft, dwfft)
+                        torch.cuda.synchronize()
+                    else:
+                        raise Exception(
+                            "Selected CUDA conv execution but no cuda "
+                            "device is available.")
+                elif args.conv_exec_type is ConvExecType.CUDA_DEEP:
+                    if torch.cuda.is_available():
+                        # Set the F channels as the last but one dimension in
+                        # both the fft-ed gradient and xfft.
+                        # size of doutfft: N, H, W, F, I -> F,H,W,N,I
+                        # print("N,F,half_fft_compressed_H,half_fft_compressed_W,C:", N, F, half_fft_compressed_H, half_fft_compressed_W, C)
+                        # print("doutfft size before permute: ", doutfft.size())
+                        if need_input_grad:
+                            doutfft = doutfft.permute(3, 1, 2, 0, 4).contiguous()
+                        else:
+                            # N, F, H, W, I -> F,H,W,N,I
+                            doutfft = doutfft.permute(1, 2, 3, 0, 4).contiguous()
+                        # print("doutfft size after permute: ", doutfft.size())
+                        # xfft: N,H,W,C,I -> C,H,W,N,I
+                        xfft = xfft.permute(3, 1, 2, 0, 4).contiguous()
+                        # print("xfft size: ", xfft.size())
+                        complex_mul_deep_cuda(doutfft, xfft, dwfft)
                         torch.cuda.synchronize()
                     else:
                         raise Exception(

@@ -257,7 +257,8 @@ class TestBenchmarkConv2d(unittest.TestCase):
         for repeat in range(repetitions):
             convFFT = conv.forward(ctx=None, input=x, filter=y, stride=1,
                                    args=Arguments(
-                                       stride_type=StrideType.STANDARD))
+                                       stride_type=StrideType.STANDARD,
+                                       conv_exec_type=ConvExecType.CUDA_DEEP))
         convFFTtime = time.time() - start
         print("convFFT time: ", convFFTtime)
         speedup = convFFTtime / convStandardTime

@@ -120,6 +120,7 @@ class ConvExecType(EnumWithNames):
     BATCH= 2
     CUDA = 3
     CUDA_SHARED_LOG = 4
+    CUDA_DEEP = 5
 
 
 class TensorType(EnumWithNames):

@@ -10,6 +10,7 @@ setup(
             'complex_mul_kernel_stride.cu',
             'complex_mul_kernel_stride_no_permute.cu',
             'complex_mul_shared_log.cu',
+            'complex_mul_deep.cu',
         ]),
     ],
     cmdclass={
