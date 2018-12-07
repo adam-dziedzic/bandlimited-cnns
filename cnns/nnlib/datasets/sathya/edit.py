@@ -1,9 +1,8 @@
 import pandas as pd
 import numpy as np
-from sklearn import preprocessing
-import seaborn as sns
+# from sklearn import preprocessing
+# import seaborn as sns
 
-main
 # type = "_small"  # nothing i.e. "" normal or "_small" for small files
 type = ""
 sample_size = 1000 # 500 for small data # how many values in a single sample collected
