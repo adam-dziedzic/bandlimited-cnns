@@ -52,7 +52,7 @@ class UCRDataset(Dataset):
         """
         if ucr_path is None:
             dir_path = os.path.dirname(os.path.realpath(__file__))
-            ucr_path = os.path.join(dir_path, os.pardir, os.pardir,
+            ucr_path = os.path.join(dir_path, os.pardir, os.pardir, os.pardir,
                                     "TimeSeriesDatasets")
         if train is True:
             suffix = "_TRAIN"

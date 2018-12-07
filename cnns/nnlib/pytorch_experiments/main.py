@@ -71,7 +71,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 
 ucr_data_folder = "TimeSeriesDatasets"
 # ucr_path = os.path.join(dir_path, os.pardir, data_folder)
-ucr_path = os.path.join(os.pardir, ucr_data_folder)
+ucr_path = os.path.join(os.pardir, os.pardir, ucr_data_folder)
 
 results_folder_name = "results"
 results_dir = os.path.join(os.curdir, results_folder_name)
