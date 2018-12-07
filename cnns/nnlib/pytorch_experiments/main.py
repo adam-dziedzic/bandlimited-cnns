@@ -556,7 +556,7 @@ def main(args):
             torch.load(os.path.join(models_dir, args.model_path),
                        map_location=device))
         msg = "loaded model: " + args.model_path
-        logger.info(msg)
+        # logger.info(msg)
         print(msg)
     if dtype is torch.float16:
         # model.half()  # convert to half precision

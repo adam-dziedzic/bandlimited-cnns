@@ -282,10 +282,8 @@ class Conv1dfftFunction(torch.autograd.Function):
             if compress_type is CompressType.STANDARD:
                 half_fft_compressed_size = init_half_fft_size - index_back_fft
 
-        full_energy = None
         if is_debug is True:
             full_energy, squared = get_full_energy_simple(xfft)
-
             cuda_mem_show(info="get full energy")
 
             del squared
@@ -386,6 +384,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             del squared
             # The xfft can be only with zeros thus the full energy is zero.
             percent_preserved_energy = 0.0
+
             if full_energy > 0.0:
                 percent_preserved_energy = preserved_energy / full_energy * 100
             msg = "conv_name," + "conv" + str(
@@ -400,7 +399,8 @@ class Conv1dfftFunction(torch.autograd.Function):
                       ",percent of retained signal,") + str(
                 percent_retained_signal) + ",fft_size_filter," + str(
                 fft_size_filter) + ",half_filter_fft_size," + str(
-                yfft.shape[-2]) + ",new-line"
+                yfft.shape[-2]) + ",preserve_energy," + str(
+                preserve_energy) + ",new-line"
             print(msg)
             with open(additional_log_file, "a") as file:
                 file.write(msg + "\n")

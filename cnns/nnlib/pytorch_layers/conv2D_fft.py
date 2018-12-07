@@ -15,6 +15,7 @@ from torch import tensor
 from torch.nn import Module
 from torch.nn.functional import pad as torch_pad
 from torch.nn.parameter import Parameter
+from torch.nn import init
 
 from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_fft_signals2D
 from cnns.nnlib.pytorch_layers.pytorch_utils import from_tensor
@@ -969,6 +970,14 @@ class Conv2dfft(Module):
         self.reset_parameters()
 
     def reset_parameters(self):
+        n = self.in_channels
+        init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+        if self.bias is not None:
+            fan_in, _ = init._calculate_fan_in_and_fan_out(self.weight)
+            bound = 1 / math.sqrt(fan_in)
+            init.uniform_(self.bias, -bound, bound)
+
+    def reset_parameters_old(self):
         n = self.in_channels
         n *= self.kernel_height * self.kernel_width
         stdv = 1. / math.sqrt(n)
