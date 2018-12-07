@@ -59,7 +59,7 @@ class UCRDataset(Dataset):
         else:
             suffix = "_TEST"
         csv_path = os.path.join(ucr_path, dataset_name, dataset_name + suffix)
-        self.data = pd.read_csv(csv_path, header=None)
+        self.data = pd.read_csv(csv_path, header=None).astype(int)
         self.labels = np.asarray(self.data.iloc[:, 0])
         self.num_classes = len(np.unique(self.labels))
         self.labels = self.__transform_labels(labels=self.labels,

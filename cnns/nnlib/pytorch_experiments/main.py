@@ -67,7 +67,7 @@ from apex.fp16_utils import *
 from apex.fp16_utils import network_to_half
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-print("current working directory: ", dir_path)
+# print("current working directory: ", dir_path)
 
 ucr_data_folder = "TimeSeriesDatasets"
 # ucr_path = os.path.join(dir_path, os.pardir, data_folder)
@@ -735,9 +735,10 @@ if __name__ == '__main__':
     elif args.dataset == "mnist":
         flist = ["mnist"]
     elif args.dataset == "debug":
+        flist = ["WIFI"]
         # flist = ["50words"]
         # flist = ["yoga"]
-        flist = ["Two_Patterns"]
+        # flist = ["Two_Patterns"]
         # flist = ["uWaveGestureLibrary_Z"]
         # flist = ["cifar10"]
         # flist = ["mnist"]
