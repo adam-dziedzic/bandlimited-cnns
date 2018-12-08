@@ -1093,7 +1093,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         result_torch.backward(dout.clone())
         assert is_manual[0] == 1
 
-        dx_expect = input_torch.grad.cpu().detach().numpy()
+        # dx_expect = input_torch.grad.cpu().detach().numpy()
         dy_expect = conv_torch.weight.grad.cpu().numpy()
         db_expect = conv_torch.bias.grad.cpu().numpy()
 
@@ -1598,9 +1598,12 @@ class TestPyTorchConv2d(unittest.TestCase):
     def testConvStrideForwardBackward(self):
         if torch.cuda.is_available():
             device = torch.device('cuda')
+            print("cuda is available")
         else:
             device = torch.device('cpu')
+            print("no cuda device is available")
         dtype = torch.float
+
         x = tensor(
             [[[
                 [1.0, 2.0, 0.0, 4.0, 0.0, 5.0, 1.0],
@@ -1627,10 +1630,10 @@ class TestPyTorchConv2d(unittest.TestCase):
         b = b.to(device)
         b_expect = b_expect.to(device)
 
-        convStandard = torch.nn.functional.conv2d(
+        conv_torch = torch.nn.functional.conv2d(
             input=x_expect, weight=y_expect, bias=b_expect, stride=2)
-        convStandard = convStandard.to(device)
-        print("convStandard: ", convStandard)
+        conv_torch = conv_torch.to(device)
+        #print("convStandard: ", conv_torch)
 
         is_manual = tensor([0])
         conv = Conv2dfft(weight_value=y, bias_value=b, stride=2,
@@ -1649,7 +1652,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         dout_fft = dout_fft.to(device)
 
         # get the expected result from the backward pass
-        convStandard.backward(dout_torch)
+        conv_torch.backward(dout_torch)
         convFFT.backward(dout_fft)
 
         print("is_manual: ", is_manual[0])
@@ -1658,7 +1661,7 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         print("convFFT: ", convFFT)
         np.testing.assert_array_almost_equal(
-            x=convStandard.cpu().detach().numpy(),
+            x=conv_torch.cpu().detach().numpy(),
             y=convFFT.cpu().detach().numpy(), decimal=5,
             err_msg="The expected array x and computed y are not almost equal.")
 
