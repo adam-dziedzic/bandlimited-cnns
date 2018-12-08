@@ -970,9 +970,9 @@ class Conv2dfft(Module):
         self.reset_parameters()
 
     def reset_parameters(self):
-        n = self.in_channels
-        init.kaiming_uniform_(self.weight, a=math.sqrt(5))
-        if self.bias is not None:
+        if self.is_weight_value is not None and self.is_weight_value is False:
+            init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+        if self.bias is not None and self.is_bias_value is False:
             fan_in, _ = init._calculate_fan_in_and_fan_out(self.weight)
             bound = 1 / math.sqrt(fan_in)
             init.uniform_(self.bias, -bound, bound)
@@ -1006,7 +1006,9 @@ class Conv2dfftAutograd(Conv2dfft):
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
                  stride=1, padding=0, dilation=None, groups=None, bias=True,
                  weight_value=None, bias_value=None, is_manual=tensor([0]),
-                 conv_index=None, args=Arguments(), out_size=None):
+                 conv_index=None,
+                 args=Arguments(conv_exec_type=ConvExecType.BATCH),
+                 out_size=None):
         """
         2D convolution using FFT with backward pass executed via PyTorch's
         autograd.

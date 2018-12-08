@@ -597,7 +597,7 @@ def main(args):
         raise Exception(f"Unknown scheduler type: {scheduler_type}")
 
     if loss_reduction is LossReduction.ELEMENTWISE_MEAN:
-        reduction_function = "elementwise_mean"
+        reduction_function = "mean"
     elif loss_reduction is LossReduction.SUM:
         reduction_function = "sum"
     else:

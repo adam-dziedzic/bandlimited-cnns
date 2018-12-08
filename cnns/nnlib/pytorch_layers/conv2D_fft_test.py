@@ -20,6 +20,9 @@ from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.arguments import Arguments
 
+ERR_MESSAGE_ALL_CLOSE = "The expected array desired and computed actual are" \
+                        " not almost equal."
+
 
 class TestPyTorchConv2d(unittest.TestCase):
 
@@ -86,9 +89,10 @@ class TestPyTorchConv2d(unittest.TestCase):
         result = convManual.forward(input=x)
         print("result of manual convolution: ", result)
         expect = np.array([[[[22.0, 22.0], [18., 14.]]]])
-        np.testing.assert_array_almost_equal(
-            x=expect, y=result.detach().numpy(),
-            err_msg="The expected array x and computed y are not almost equal.")
+
+        np.testing.assert_allclose(
+            desired=expect, actual=result.cpu().detach().numpy(),
+            rtol=1e-6, err_msg=ERR_MESSAGE_ALL_CLOSE)
 
     def test_FunctionForwardNoCompression(self):
         if torch.cuda.is_available():
@@ -112,9 +116,9 @@ class TestPyTorchConv2d(unittest.TestCase):
         print("Result of conv function: ", result)
 
         expect = np.array([[[[22.0, 22.0], [18., 14.]]]])
-        np.testing.assert_array_almost_equal(
-            x=expect, y=result,
-            err_msg="The expected array x and computed y are not almost equal.")
+        np.testing.assert_allclose(
+            desired=expect, actual=result.cpu().detach().numpy(), rtol=1e-6,
+            err_msg=ERR_MESSAGE_ALL_CLOSE)
 
     def test_2_channels_2_filters(self):
         if torch.cuda.is_available():
@@ -137,9 +141,9 @@ class TestPyTorchConv2d(unittest.TestCase):
                               args=Arguments())
         expect = np.array([[[[23.0, 32.0], [30., 4.]], [[11.0, 12.0],
                                                         [13.0, -11.0]]]])
-        np.testing.assert_array_almost_equal(
-            x=expect, y=result, decimal=5,
-            err_msg="The expected array x and computed y are not almost equal.")
+        np.testing.assert_allclose(
+            desired=expect, actual=result.cpu().detach().numpy(), rtol=1e-6,
+            err_msg=ERR_MESSAGE_ALL_CLOSE)
 
     def test_bias(self):
         # A single 2D input map.
@@ -318,25 +322,37 @@ class TestPyTorchConv2d(unittest.TestCase):
         b = np.random.rand(num_filters)
         # get the expected result
         conv_param = {'pad': 0, 'stride': 1}
-        expected_result, _ = conv_forward_naive(x, y, b, conv_param)
-        self.logger.debug("expected result: " + str(expected_result))
+        expect, _ = conv_forward_naive(x, y, b, conv_param)
+        self.logger.debug("expected result: " + str(expect))
+
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+            print("cuda is available")
+        else:
+            device = torch.device("cpu")
+            print("cuda is not available")
+        dtype = torch.float
+
+        x_torch = tensor(x, device=device, dtype=dtype)
+        y_torch = tensor(y, device=device, dtype=dtype)
+        b_torch = tensor(b, device=device, dtype=dtype)
 
         conv = Conv2dfftFunction()
-        result = conv.forward(ctx=None, input=torch.from_numpy(x),
-                              filter=torch.from_numpy(y),
-                              bias=torch.from_numpy(b))
+        result = conv.forward(ctx=None, input=x_torch, filter=y_torch,
+                              bias=b_torch)
         self.logger.debug("obtained result: " + str(result))
-        np.testing.assert_array_almost_equal(
-            result, np.array(expected_result))
+        np.testing.assert_allclose(
+            desired=expect, actual=result.cpu().detach().numpy(), rtol=1e-6,
+            err_msg=ERR_MESSAGE_ALL_CLOSE)
 
-    def test_FunctionForwardRandom(self):
+    def test_FunctionForwardRandomWithPytorch(self):
         num_channels = 3
-        num_data_points = 11
-        input_H = 21
-        input_W = 21
-        filter_H = 5
-        filter_W = 5
-        num_filters = 3
+        num_data_points = 32
+        input_H = 32
+        input_W = 32
+        filter_H = 3
+        filter_W = 3
+        num_filters = 64
         # Input signal: 5 data points, 3 channels, 10 values.
         x = np.random.rand(num_data_points, num_channels, input_H,
                            input_W)
@@ -344,17 +360,33 @@ class TestPyTorchConv2d(unittest.TestCase):
         y = np.random.rand(num_filters, num_channels, filter_H, filter_W)
         # Bias: one for each filter
         b = np.random.rand(num_filters)
-        # get the expected result
-        conv_param = {'pad': 0, 'stride': 1}
-        expected_result, _ = conv_forward_naive(x, y, b, conv_param)
-        self.logger.debug("expected result: " + str(expected_result))
 
-        conv = Conv2dfft(weight_value=torch.from_numpy(y),
-                         bias_value=torch.from_numpy(b))
-        result = conv.forward(input=torch.from_numpy(x))
-        self.logger.debug("obtained result: " + str(result))
-        np.testing.assert_array_almost_equal(
-            result.detach().numpy(), np.array(expected_result))
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+            print("cuda is available")
+        else:
+            device = torch.device("cpu")
+            print("cuda is not available")
+        dtype = torch.float
+
+        x_torch = tensor(x, device=device, dtype=dtype)
+        y_torch = tensor(y, device=device, dtype=dtype)
+        b_torch = tensor(b, device=device, dtype=dtype)
+
+        conv = Conv2dfftFunction()
+        result = conv.forward(ctx=None, input=x_torch, filter=y_torch,
+                              bias=b_torch)
+        # self.logger.debug("obtained result: " + str(result))
+
+        expect = torch.nn.functional.conv2d(input=x_torch, weight=y_torch,
+                                                  bias=b_torch)
+        # print("expect result from convStandard: ", expect)
+
+        np.testing.assert_allclose(
+            desired=expect.cpu().detach().numpy(),
+            actual=result.cpu().detach().numpy(), rtol=1e-6,
+            err_msg=ERR_MESSAGE_ALL_CLOSE)
+
 
     def test_FunctionForwardSpectralPooling(self):
         x = np.array([[[[1., 2., 3., 4., 5.],
@@ -1009,13 +1041,22 @@ class TestPyTorchConv2d(unittest.TestCase):
             x=expected_db, y=db.cpu().detach().numpy(), decimal=4,
             err_msg="Expected x is different from computed y.")
 
-    def test_ForwardNoCompressionForConv2dfftPreserveEenrgy(self):
+    def test_ForwardCompressionForConv2dfftPreserveEenrgy(self):
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+            print("cuda is available")
+        else:
+            device = torch.device("cpu")
+            print("cuda is not available")
+        dtype=torch.float
+
         # Don't use next power of 2.
         # A single input map.
-        x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]])
+        x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]],
+                   device=device, dtype=dtype)
         # A single filter.
-        y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
-        b = tensor([0.0])
+        y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]], device=device, dtype=dtype)
+        b = tensor([0.0], device=device, dtype=dtype)
         convManual = Conv2dfft(weight_value=y, bias=b,
                                args=Arguments(index_back=0,
                                               next_power2=True,
@@ -1028,9 +1069,11 @@ class TestPyTorchConv2d(unittest.TestCase):
         # expect_approximate = np.array([[[[20.75, 22.25], [18.25, 12.75]]]])
         expect_approximate = np.array([[[[21.7500, 21.7500],
                                          [18.7500, 13.7500]]]])
-        np.testing.assert_array_almost_equal(
-            x=expect_approximate, y=result.detach().numpy(),
-            err_msg="The expected array x and computed y are not almost equal.")
+
+        np.testing.assert_allclose(
+            desired=expect_approximate, actual=result.cpu().detach().numpy(),
+            rtol=1e-6, err_msg=ERR_MESSAGE_ALL_CLOSE)
+
 
     def test_rfft_symmetry(self):
         x = tensor([[1.0, 2.0, 3.0],
@@ -1433,6 +1476,11 @@ class TestPyTorchConv2d(unittest.TestCase):
               f"relative error (%),{relative_error}")
 
     def testConvStride(self):
+        if torch.cuda.is_available():
+            device = torch.device('cuda')
+        else:
+            device = torch.device('cpu')
+        dtype=torch.float
         x = tensor(
             [[[
                 [1.0, 2.0, 0.0, 4.0, 0.0, 5.0, 1.0],
@@ -1442,12 +1490,12 @@ class TestPyTorchConv2d(unittest.TestCase):
                 [0.0, 2.0, 2.0, 2.0, 0.0, 2.0, 0.0],
                 [0.0, 2.0, -1.0, 1.0, 1.0, 1.0, 0.0],
                 [2.0, 0.0, 1.0, 2.0, 2.0, 0.0, 8.0]
-            ]]])
+            ]]], device=device, dtype=dtype)
         y = tensor([[
             [[1.0, 2.0, 3.0],
              [-1.0, -1.0, 5.0],
-             [1.0, -2.0, 4.0]]]])
-        b = tensor([0.0])
+             [1.0, -2.0, 4.0]]]], device=device, dtype=dtype)
+        b = tensor([0.0], device=device, dtype=dtype)
 
         convStandard = torch.nn.functional.conv2d(input=x, weight=y, stride=2)
         print("convStandard: ", convStandard)
@@ -1463,9 +1511,10 @@ class TestPyTorchConv2d(unittest.TestCase):
             args=Arguments(stride_type=StrideType.SPECTRAL))
         print("convFFTSpectral: ", convFFTSpectral)
 
-        np.testing.assert_array_almost_equal(
-            x=convStandard, y=convFFT, decimal=5,
-            err_msg="The expected array x and computed y are not almost equal.")
+        np.testing.assert_allclose(
+            desired=convStandard.cpu().detach().numpy(),
+            actual=convFFT.cpu().detach().numpy(),
+            rtol=1e-6, err_msg=ERR_MESSAGE_ALL_CLOSE)
 
     def testConvStrideForwardBackward(self):
         dtype = torch.float

@@ -30,6 +30,7 @@ from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
 from cnns.nnlib.utils.arguments import Arguments
 
 import socket
+
 if socket.gethostname() == "skr-compute1" or socket.gethostname() == "adam-gpu2":
     from complex_mul_cpp import complex_mul as complex_mul_cpp
     # from complex_mul_cuda import complex_mul as complex_mul_cuda
@@ -405,10 +406,11 @@ class TestBenchmarkConv2d(unittest.TestCase):
                                              decimal=3)
 
     def test_forward_pass_resnet18(self):
-        if torch.cuda.is_available():
-            device = torch.device("cuda")
-        else:
-            device = torch.device("cpu")
+        if not torch.cuda.is_available():
+            print("CUDA device is not available.")
+            return
+
+        device = torch.device("cuda")
         print("\ndevice used: ", str(device))
 
         C = 3
@@ -419,8 +421,8 @@ class TestBenchmarkConv2d(unittest.TestCase):
         #                      requires_grad=True)
         args = Arguments()
         torch.manual_seed(args.seed)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed_all(args.seed)
+        torch.cuda.manual_seed_all(args.seed)
+
         args.sample_count_limit = 128
         args.min_batch_size = 128
         args.test_batch_size = args.min_batch_size
@@ -430,9 +432,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
 
         repetition = 1
 
-        args.in_channels = 3
-        # args.conv_type = "FFT2D"
-        args.conv_type = ConvType.STANDARD2D
+        args.in_channels = C
         args.index_back = None
         args.preserve_energy = 100
         args.is_debug = False
@@ -440,63 +440,29 @@ class TestBenchmarkConv2d(unittest.TestCase):
         args.compress_type = CompressType.STANDARD
         args.tensor_type = TensorType.FLOAT32
         args.num_classes = 10
-        args.min_batch_size = 0
+        args.min_batch_size = 128
         args.test_batch_size = args.min_batch_size
         args.in_channels = C
 
-        model = resnet18(args=args)
-        model.to(device)
-        model.eval()
-        start_eval = time.time()
-        for _ in range(repetition):
-            for inputs, _ in train_loader:
-                inputs = inputs.to(device)
-                outputs_standard = model(inputs)
-        standard_time = time.time() - start_eval
-        print("total time with pytorch conv2D: ", standard_time)
-        # layer1_standard = model.global_layer1_time
-        # print("standard layer1 cumulative time: ", layer1_standard)
-
-        # print("outputs standard: ", outputs_standard)
-
-        args.conv_type = ConvType.FFT2D
-        args.conv_exec_type = ConvExecType.CUDA_SHARED_LOG
-        # args.conv_exec_type = ConvExecType.CUDA
-        model = resnet18(args=args)
-        model.to(device)
-        model.eval()
-        start_eval = time.time()
-        for _ in range(repetition):
-            for inputs, _ in train_loader:
-                inputs = inputs.to(device)
-                outputs_fft = model(inputs)
-        fft_time1 = time.time() - start_eval
-        print("total time with cuda shared log based conv2D: ", fft_time1)
-
-        args.conv_type = ConvType.FFT2D
-        args.conv_exec_type = ConvExecType.CUDA
-        # args.conv_exec_type = ConvExecType.CUDA
-        model = resnet18(args=args)
-        model.to(device)
-        model.eval()
-        start_eval = time.time()
-        for _ in range(repetition):
-            for inputs, _ in train_loader:
-                inputs = inputs.to(device)
-                outputs_fft = model(inputs)
-        fft_time2 = time.time() - start_eval
-        print("total time with cuda stride no permute based conv2D: ", fft_time2)
-        # layer1_fft = model.global_layer1_time
-        # print("fft layer1 cumulative time: ", layer1_fft)
-
-        # print("outputs fft: ", outputs_fft)
-
-        print("pytorch speedup over cuda shared log for testing ResNet-18: ",
-              fft_time1 / standard_time)
-        print("pytorch speedup over cuda stride no permute for testing ResNet-18: ",
-              fft_time2 / standard_time)
-        # print("pytorch speedup over fft for layer 1: ",
-        #       layer1_fft / layer1_standard)
+        conv_exec_types = [(ConvType.STANDARD2D, ConvExecType.SERIAL),
+                           # (ConvType.FFT2D, ConvExecType.BATCH),
+                           (ConvType.FFT2D, ConvExecType.CUDA),
+                           (ConvType.FFT2D, ConvExecType.CUDA_SHARED_LOG),
+                           (ConvType.FFT2D, ConvExecType.CUDA_DEEP), ]
+        for conv_type, conv_exec_type in conv_exec_types:
+            args.conv_type = conv_type
+            args.conv_exec_type = conv_exec_type
+            model = resnet18(args=args)
+            model.to(device)
+            model.eval()
+            start_eval = time.time()
+            for _ in range(repetition):
+                for inputs, _ in train_loader:
+                    inputs = inputs.to(device)
+                    outputs_standard = model(inputs)
+            standard_time = time.time() - start_eval
+            print(f"total time for ({conv_type},{conv_exec_type}):"
+                  f" {standard_time}")
 
     def test_complex_mul(self):
         N, C, H, W, I = 512, 64, 2, 2, 2
@@ -525,7 +491,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
         pytorch_time = time.time() - start_mul_time
         print("pytorch multiply time: ", pytorch_time)
 
-        print("cuda speedup is: ", pytorch_time/cuda_time)
+        print("cuda speedup is: ", pytorch_time / cuda_time)
 
     def test_complex_mul_torch_vs_numpy(self):
         N, C, H, W, I = 128, 3, 32, 32, 2
