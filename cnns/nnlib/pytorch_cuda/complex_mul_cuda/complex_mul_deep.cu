@@ -120,7 +120,7 @@ __global__ void complex_mul_cuda_kernel(
     const int I = 2; // the last dimension for the complex number
         // The x index changes most rapidly.
     const int l = blockIdx.x; // the index in the output, position in the input map
-    const int L = gridDim.x; // number of input maps, Think of L as HxW.
+    const int L = gridDim.x; // number of cells/pixels in the input map, Think of L as HxW.
 
     const int f = blockIdx.y; // current index of a filter from the filter bank
     const int F = gridDim.y; // number of filters in the filter bank
@@ -537,11 +537,18 @@ void complex_mul_deep_cuda(
 
     const auto N = x.size(0);  // batch_size
     const auto F = y.size(0);  // filter_bank_size
-    const auto H = x.size(1);  // height of the matrix
-    const auto W = x.size(2);  // width of the matrix
-    const auto C = x.size(3);  // number of channels
 
-    const dim3 blocks(/*L=*/H*W, F, N);
+    if (x.sizes().size() == 4) { // 2D data
+        const auto H = x.size(1);  // height of the matrix
+        const auto W = x.size(2);  // width of the matrix
+        const auto C = x.size(3);  // number of channels
+        const auto L = H*W;
+    } else {  // 1D data
+        const auto L = x.size(1);  // height of the matrix
+        const auto C = x.size(2);  // number of channels
+    }
+
+    const dim3 blocks(/*L=*/L, F, N);
     const int block_threads = min(1024L, C);
 
     AT_DISPATCH_FLOATING_TYPES(x.type(), "complex_mul_cuda",

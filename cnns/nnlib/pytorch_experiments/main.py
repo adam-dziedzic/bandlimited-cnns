@@ -951,15 +951,12 @@ if __name__ == '__main__':
     elif args.dataset == "debug8":
         flist = ["SwedishLeaf"]
     elif args.dataset == "debug9conv1-100":
-        flist = ['FordB',
-                 'Gun_Point',
+        flist = [
                  'HandOutlines',
                  'Haptics',
-                 'Herring',
                  'InlineSkate',
                  'Phoneme',
                  'ProximalPhalanxOutlineAgeGroup',
-                 'RefrigerationDevices',
                  'ScreenType',
                  'ShapeletSim',
                  'ShapesAll',
@@ -969,15 +966,12 @@ if __name__ == '__main__':
                  'uWaveGestureLibrary_Z',
                  ]
     elif args.dataset == "debug9conv1-100-reverse":
-        flist = ['FordB',
-                 'Gun_Point',
+        flist = [
                  'HandOutlines',
                  'Haptics',
-                 'Herring',
                  'InlineSkate',
                  'Phoneme',
                  'ProximalPhalanxOutlineAgeGroup',
-                 'RefrigerationDevices',
                  'ScreenType',
                  'ShapeletSim',
                  'ShapesAll',

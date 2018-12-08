@@ -469,7 +469,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                     # Bias has to be unsqueezed to the dimension of the
                     # out to properly sum up the values.
                     output[nn] += bias.unsqueeze(1)
-        else:
+        elif args.conve_exec_type is ConvExecType.BATCH:
             # Convolve some part of the input batch with all filters.
             start = 0
             # step = get_step_estimate(xfft, yfft, args.memory_size)
@@ -498,6 +498,8 @@ class Conv1dfftFunction(torch.autograd.Function):
                     # to the dimension of the output to properly sum up the
                     # values).
                     output[start:stop] += unsqueezed_bias
+
+
 
         if is_debug:
             cuda_mem_show(info="compute output")
