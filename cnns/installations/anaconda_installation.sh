@@ -4,7 +4,8 @@
 #source ~/.bashrc
 
 curl -O https://repo.continuum.io/archive/Anaconda3-5.2.0-Linux-x86_64.sh
-bash Anaconda3-5.2.0-Linux-x86_64.sh -b -p /home/\$\{USER\}/anaconda3/ -u
+bash Anaconda3-5.2.0-Linux-x86_64.sh -b -p /local/\$\{USER\}/anaconda3/ -u
+ln -s /local/\$\{USER\}/anaconda3/ /home/\$\{USER\}/anaconda3/
 echo 'export PATH="~/anaconda3/bin:$PATH"' >> ~/.bashrc
 export PATH=~/anaconda3/bin:$PATH
 cd
