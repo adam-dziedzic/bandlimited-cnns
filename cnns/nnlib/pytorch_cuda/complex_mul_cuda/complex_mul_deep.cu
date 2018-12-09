@@ -537,9 +537,8 @@ void complex_mul_deep_cuda(
 
     const auto N = x.size(0);  // batch_size
     const auto F = y.size(0);  // filter_bank_size
-
-    int L;  // the width/size of the input data
-    int C;  // number of channels
+    long L;  // the width/size of the input data
+    long C;  // number of channels
     if (x.sizes().size() == 4) { // 2D data
         const auto H = x.size(1);  // height of the matrix
         const auto W = x.size(2);  // width of the matrix
