@@ -443,7 +443,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         result = conv.forward(ctx=None, input=x_torch, filter=weight, bias=None)
 
         np.testing.assert_allclose(
-            desired=get_numpy(expect), actual=get_numpy(result), rtol=1e-3,
+            desired=get_numpy(expect), actual=get_numpy(result), rtol=1e-5,
             err_msg=ERR_MESSAGE_ALL_CLOSE)
 
     def test_FunctionForwardRandomWithPytorchWeightsCifar10Image(self):
@@ -497,7 +497,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         result = conv.forward(ctx=None, input=x_torch, filter=weight, bias=None)
 
         np.testing.assert_allclose(
-            desired=get_numpy(expect), actual=get_numpy(result), rtol=1e-3,
+            desired=get_numpy(expect), actual=get_numpy(result), rtol=1e-5,
             err_msg=ERR_MESSAGE_ALL_CLOSE)
 
     def test_FunctionForwardSpectralPooling(self):
@@ -1639,6 +1639,8 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         ctx.needs_input_grad = [True, True, True]
         start = time.time()
+        # Zero the gradients before running the backward pass.
+        expected_result_tensor.zero_grad()
         for _ in range(repeat):
             expected_result_tensor.backward(dout, retain_graph=True)
         print("pytorch Conv2d backward (sec): ", time.time() - start)
@@ -1672,7 +1674,9 @@ class TestPyTorchConv2d(unittest.TestCase):
             print("CUDA device is not available")
         dtype = torch.float
 
-        N, F, C, H, W, HH, WW = 32, 64, 16, 8, 8, 3, 3
+        # N, F, C, H, W, HH, WW = 32, 64, 16, 8, 8, 3, 3
+        # N, F, C, H, W, HH, WW = 1, 1, 1, 8, 8, 3, 3
+        N, F, C, H, W, HH, WW = 1, 4, 1, 3, 3, 3, 3
 
         num_data_points = N
         num_channels = C
@@ -1694,7 +1698,8 @@ class TestPyTorchConv2d(unittest.TestCase):
             # b = np.random.rand(num_filters)
             b = np.zeros(num_filters)
 
-            x = tensor(x, device=device, dtype=dtype)
+            x = tensor(x, device=device, dtype=dtype, requires_grad=True)
+            x_clone = tensor(x, device=device, dtype=dtype, requires_grad=True)
             y = tensor(y, device=device, dtype=dtype)
             b = tensor(b, device=device, dtype=dtype)
 
@@ -1702,6 +1707,7 @@ class TestPyTorchConv2d(unittest.TestCase):
             # Initialization in torch.
             x = torch.randn(N, C, H, W, requires_grad=True, device=device,
                             dtype=dtype)
+            x_clone = x.clone()
             print("shape of the input image: ", x.size())
             y = torch.randn(F, C, HH, WW, requires_grad=True, device=device,
                             dtype=dtype)
@@ -1725,7 +1731,7 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         start = time.time()
         for _ in range(repeat):
-            expected_result_tensor = convTorch(input=x)
+            expected_result_tensor = convTorch(input=x_clone)
         print("pytorch Conv2d forward (sec): ", time.time() - start)
 
         preserve_energy = 100.0
@@ -1751,7 +1757,7 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         start = time.time()
         for _ in range(repeat):
-            Conv2dfftFunction.backward(ctx, dout)
+            dx, dw, db, _, _, _, _, _, _ = Conv2dfftFunction.backward(ctx, dout)
             # result.backward(dout, retain_graph=True)
         print("Conv2dfft backward (sec): ", time.time() - start)
 
@@ -1767,12 +1773,49 @@ class TestPyTorchConv2d(unittest.TestCase):
               f",absolute error,{abs_error},"
               f"relative error (%),{relative_error}")
 
+        dx_expect = x_clone.grad
+        dw_expect = convTorch.weight.grad
+
+        torch.set_printoptions(threshold=5000, precision=6)
+
+        print("expected dx: ", dx_expect)
+        print("computed dx: ", dx)
+
+        print("expected dw: ", dw_expect)
+        print("computed dw: ", dw)
+
+        torch.set_printoptions(threshold=1000)
+
+        # move the tensors to numpy arrays on cpu
+        dx_expect = get_numpy(dx_expect)
+        dx = get_numpy(dx)
+
+        dw_expect = get_numpy(dw_expect)
+        dw = get_numpy(dw)
+
         expect = get_numpy(expected_result_tensor)
         result = get_numpy(result)
 
-        np.testing.assert_allclose(
-            desired=expect, actual=result,
-            rtol=1e-5, err_msg=ERR_MESSAGE_ALL_CLOSE)
+        try:
+            np.testing.assert_allclose(
+                desired=expect, actual=result,
+                rtol=1e-6, err_msg=ERR_MESSAGE_ALL_CLOSE)
+        except AssertionError as ex:
+            print("Error for the forward result of convolution: ", ex)
+
+        try:
+            np.testing.assert_allclose(
+                desired=dx_expect, actual=dx,
+                rtol=1e-6, err_msg=ERR_MESSAGE_ALL_CLOSE)
+        except AssertionError as ex:
+            print("\nError for the gradients for the input: ", ex)
+
+        try:
+            np.testing.assert_allclose(
+                desired=dw_expect, actual=dw,
+                rtol=1e-6, err_msg=ERR_MESSAGE_ALL_CLOSE)
+        except AssertionError as ex:
+            print("\nError for the gradients for the weights: ", ex)
 
     def testConvStride(self):
         if torch.cuda.is_available():

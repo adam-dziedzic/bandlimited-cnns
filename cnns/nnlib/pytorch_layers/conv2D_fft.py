@@ -827,7 +827,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                         doutfft.unsqueeze_(dim=2)
                     doutfft = doutfft.permute(1, 0, 2, 3, 4, 5)
                     for start in range(start, F, step):
-                        stop = min(start + step, N)
+                        stop = min(start + step, F)
                         doutfft_nn = doutfft[start:stop]
                         dwfft[start:stop] = complex_mul(xfft, doutfft_nn).sum(dim=1)
                 else:
