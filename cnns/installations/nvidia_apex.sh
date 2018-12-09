@@ -15,6 +15,7 @@ cd /home/${USER}/Downloads
 git clone --recursive https://github.com/NVIDIA/apex
 
 cd apex
-python setup.py install
+~/anaconda3/bin/python setup.py install
+
 
 cd ${saved_dir}
