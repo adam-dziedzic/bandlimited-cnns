@@ -18,6 +18,7 @@ from cnns.nnlib.pytorch_layers.test_data.cifar10_lenet_filter import \
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.general_utils import ConvType
+from cnns.nnlib.utils.general_utils import ConvExecType
 from cnns.nnlib.utils.arguments import Arguments
 
 ERR_MESSAGE_ALL_CLOSE = "The expected array desired and computed actual are" \
@@ -1674,9 +1675,9 @@ class TestPyTorchConv2d(unittest.TestCase):
             print("CUDA device is not available")
         dtype = torch.float
 
-        # N, F, C, H, W, HH, WW = 32, 64, 16, 8, 8, 3, 3
+        N, F, C, H, W, HH, WW = 32, 64, 16, 8, 8, 3, 3
         # N, F, C, H, W, HH, WW = 1, 1, 1, 8, 8, 3, 3
-        N, F, C, H, W, HH, WW = 1, 4, 1, 3, 3, 3, 3
+        # N, F, C, H, W, HH, WW = 1, 4, 1, 3, 3, 3, 3
 
         num_data_points = N
         num_channels = C
@@ -1979,6 +1980,162 @@ class TestPyTorchConv2d(unittest.TestCase):
         result = conv.forward(torch.randn(8, 3, 32, 32))
         result.backward(torch.ones_like(result))
         assert conv.is_manual[0] == 1
+
+    def test_correctness_forward_backward_pass_for_all_conv_modes(self):
+        print("\n")
+        if torch.cuda.is_available():
+            device = torch.device('cuda')
+            print("CUDA device is available")
+        else:
+            device = torch.device('cpu')
+            print("CUDA device is not available")
+        dtype = torch.float
+
+        # N, F, C, H, W, HH, WW = 32, 64, 16, 8, 8, 3, 3
+        # N, F, C, H, W, HH, WW = 1, 1, 1, 8, 8, 3, 3
+        N, F, C, H, W, HH, WW = 1, 4, 1, 3, 3, 3, 3
+
+        num_data_points = N
+        num_channels = C
+        input_H = H
+        input_W = W
+        num_filters = F
+        filter_H = HH
+        filter_W = WW
+
+        conv_exec_types = [ConvExecType.BATCH, ConvExecType.CUDA_SHARED_LOG,
+                           ConvExecType.CUDA, ConvExecType.CUDA_DEEP,
+                           ConvExecType.SERIAL]
+
+        for conv_exec_type in conv_exec_types:
+
+            print("conv exec type: ", conv_exec_type.name)
+
+            is_numpy_initialize = True
+
+            if is_numpy_initialize:
+                np.random.seed(31)
+                # Input signal: 5 data points, 3 channels, 10 values.
+                x = np.random.rand(num_data_points, num_channels, input_H,
+                                   input_W)
+                # Filters: 3 filters, 3 channels, 4 values.
+                y = np.random.rand(num_filters, num_channels, filter_H, filter_W)
+                # Bias: one for each filter
+                # b = np.random.rand(num_filters)
+                b = np.zeros(num_filters)
+
+                x = tensor(x, device=device, dtype=dtype, requires_grad=True)
+                x_clone = tensor(x, device=device, dtype=dtype, requires_grad=True)
+                y = tensor(y, device=device, dtype=dtype)
+                b = tensor(b, device=device, dtype=dtype)
+
+            else:
+                # Initialization in torch.
+                x = torch.randn(N, C, H, W, requires_grad=True, device=device,
+                                dtype=dtype)
+                x_clone = x.clone()
+                print("shape of the input image: ", x.size())
+                y = torch.randn(F, C, HH, WW, requires_grad=True, device=device,
+                                dtype=dtype)
+                print("shape of the filter: ", y.size())
+
+            # get the expected results from numpy correlate
+            # print("expected_result_numpy: ", expected_result_numpy)
+            # preserved_energies = [1.0]
+            # indexes_back = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+
+            repeat = 1
+            convTorch = torch.nn.Conv2d(in_channels=y.shape[1],
+                                        out_channels=y.shape[0],
+                                        kernel_size=(y.shape[2], y.shape[3]),
+                                        bias=False)
+
+            weight = convTorch.weight.clone()
+            weight = weight.requires_grad_(True)
+
+            convTorch.to(device)
+
+            start = time.time()
+            for _ in range(repeat):
+                expected_result_tensor = convTorch(input=x_clone)
+            print("pytorch Conv2d forward (sec): ", time.time() - start)
+
+            preserve_energy = 100.0
+            convFFT = Conv2dfft(weight_value=weight, bias=False,
+                                args=Arguments(preserve_energy=preserve_energy,
+                                               is_debug=False, next_power2=True,
+                                               conv_exec_type=conv_exec_type))
+            convFFT.to(device)
+            ctx = MockContext()
+            start = time.time()
+            for _ in range(repeat):
+                # result = convFFT.forward(input=x)
+                result = Conv2dfftFunction.forward(ctx, x, weight.to(device), None)
+            print("Conv2dfft forward (sec): ", time.time() - start)
+
+            dout = torch.randn(result.shape[0], result.shape[1], result.shape[2],
+                               result.shape[3], device=device, dtype=dtype)
+
+            ctx.needs_input_grad = [True, True, True]
+            start = time.time()
+            for _ in range(repeat):
+                expected_result_tensor.backward(dout, retain_graph=True)
+            print("pytorch Conv2d backward (sec): ", time.time() - start)
+
+            start = time.time()
+            for _ in range(repeat):
+                dx, dw, db, _, _, _, _, _, _ = Conv2dfftFunction.backward(ctx, dout)
+                # result.backward(dout, retain_graph=True)
+            print("Conv2dfft backward (sec): ", time.time() - start)
+
+            # print("actual result: ", result)
+
+            abs_error = torch.sum(
+                torch.abs(result - expected_result_tensor)).item()
+            expected_total = torch.sum(
+                torch.abs(expected_result_tensor) + torch.abs(result))
+            relative_error = 100.0 * abs_error / expected_total
+            # relative_error = torch.mean(torch.abs(result) / torch.abs(expected_result_tensor) * 100)
+            print(f"absolute divergence for preserved energy,{preserve_energy}"
+                  f",absolute error,{abs_error},"
+                  f"relative error (%),{relative_error}")
+
+            dx_expect = x_clone.grad
+            dw_expect = convTorch.weight.grad
+
+            # torch.set_printoptions(threshold=5000, precision=6)
+            #
+            # print("expected dx: ", dx_expect)
+            # print("computed dx: ", dx)
+            #
+            # print("expected dw: ", dw_expect)
+            # print("computed dw: ", dw)
+            #
+            # torch.set_printoptions(threshold=1000)
+
+            # move the tensors to numpy arrays on cpu
+            dx_expect = get_numpy(dx_expect)
+            dx = get_numpy(dx)
+
+            dw_expect = get_numpy(dw_expect)
+            dw = get_numpy(dw)
+
+            expect = get_numpy(expected_result_tensor)
+            result = get_numpy(result)
+
+            rtol=1e-5
+
+            np.testing.assert_allclose(
+                desired=expect, actual=result,
+                rtol=rtol, err_msg=ERR_MESSAGE_ALL_CLOSE)
+
+            np.testing.assert_allclose(
+                desired=dx_expect, actual=dx,
+                rtol=rtol, err_msg=ERR_MESSAGE_ALL_CLOSE)
+
+            np.testing.assert_allclose(
+                desired=dw_expect, actual=dw,
+                rtol=rtol, err_msg=ERR_MESSAGE_ALL_CLOSE)
 
 
 if __name__ == '__main__':

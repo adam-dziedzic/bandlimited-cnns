@@ -623,7 +623,8 @@ class Conv2dfftFunction(torch.autograd.Function):
                     if torch.cuda.is_available():
                         # global global_permute_time
                         # start_permute = time.time()
-                        yfft = yfft.permute(1, 0, 2, 3, 4).contiguous()
+                        # yfft is F, H, W, C -> C, H, W, F
+                        yfft = yfft.permute(3, 1, 2, 0, 4).contiguous()
                         # Set the channels of doutfft permute as the last but
                         # one dimension.
                         # N,F,H,W,I -> N, H, W, F, I
@@ -644,7 +645,8 @@ class Conv2dfftFunction(torch.autograd.Function):
                     if torch.cuda.is_available():
                         # global global_permute_time
                         # start_permute = time.time()
-                        yfft = yfft.permute(1, 0, 2, 3, 4).contiguous()
+                        # yfft is F, H, W, C -> C, H, W, F
+                        yfft = yfft.permute(3, 1, 2, 0, 4).contiguous()
                         # Set the channels of doutfft permute as the last but
                         # one dimension.
                         # N,F,H,W,I -> N, H, W, F, I

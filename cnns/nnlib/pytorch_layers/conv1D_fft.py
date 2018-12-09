@@ -775,7 +775,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                 doutfft = doutfft.unsqueeze(dim=2)
                 # For each slice of time-series in the batch.
                 for start in range(start, N, step):
-                    stop = min(start + step, N)
+                    stop = min(start + step, F)
                     doutfft_nn = doutfft[start:stop]
                     # print("doutfft_nn size: ", doutfft_nn.size())
                     # print("conjugateyfft size: ", conjugate_yfft.size())

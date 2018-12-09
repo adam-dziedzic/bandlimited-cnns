@@ -94,7 +94,7 @@ class Arguments(object):
                  # conv_exec_type=ConvExecType.CUDA,
                  # conv_exec_type=ConvExecType.CUDA_DEEP,
                  # conv_exec_type=ConvExecType.CUDA_SHARED_LOG,
-                 conv_exec_type=ConvExecType.BATCH,
+                 # conv_exec_type=ConvExecType.BATCH,
                  # conv_exec_type=ConvExecType.SERIAL,
                  visualize=False,
                  static_loss_scale=1,
