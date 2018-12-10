@@ -24,6 +24,14 @@ from cnns.nnlib.utils.arguments import Arguments
 ERR_MESSAGE_ALL_CLOSE = "The expected array desired and computed actual are" \
                         " not almost equal."
 
+if torch.cuda.is_available():
+    device = torch.device('cuda')
+    print("cuda is available")
+else:
+    device = torch.device('cpu')
+    print("no cuda device is available")
+dtype = torch.float
+
 
 def get_numpy(x):
     """
@@ -1629,6 +1637,10 @@ class TestPyTorchConv2d(unittest.TestCase):
                                            is_debug=False, next_power2=True))
         convFFT.to(device)
         ctx = MockContext()
+
+        # Zero the gradients before running the backward pass.
+        convFFT.zero_grad()  # set gradients of all model params to zero
+
         start = time.time()
         for _ in range(repeat):
             # result = convFFT.forward(input=x)
@@ -1640,8 +1652,7 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         ctx.needs_input_grad = [True, True, True]
         start = time.time()
-        # Zero the gradients before running the backward pass.
-        expected_result_tensor.zero_grad()
+
         for _ in range(repeat):
             expected_result_tensor.backward(dout, retain_graph=True)
         print("pytorch Conv2d backward (sec): ", time.time() - start)
@@ -1675,7 +1686,8 @@ class TestPyTorchConv2d(unittest.TestCase):
             print("CUDA device is not available")
         dtype = torch.float
 
-        N, F, C, H, W, HH, WW = 32, 64, 16, 8, 8, 3, 3
+        # N, F, C, H, W, HH, WW = 32, 64, 16, 8, 8, 3, 3
+        N, F, C, H, W, HH, WW = 32, 64, 3, 32, 32, 3, 3
         # N, F, C, H, W, HH, WW = 1, 1, 1, 8, 8, 3, 3
         # N, F, C, H, W, HH, WW = 1, 4, 1, 3, 3, 3, 3
 
@@ -1860,14 +1872,6 @@ class TestPyTorchConv2d(unittest.TestCase):
             rtol=1e-6, err_msg=ERR_MESSAGE_ALL_CLOSE)
 
     def testConvStrideForwardBackward(self):
-        if torch.cuda.is_available():
-            device = torch.device('cuda')
-            print("cuda is available")
-        else:
-            device = torch.device('cpu')
-            print("no cuda device is available")
-        dtype = torch.float
-
         x = tensor(
             [[[
                 [1.0, 2.0, 0.0, 4.0, 0.0, 5.0, 1.0],
@@ -1909,7 +1913,7 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         dout_torch = tensor([[[[0.1, -0.2, 0.3],
                               [-0.1, 0.1, 0.2],
-                              [-0.2, 1.1, -1.2]]]], dtype=dtype)
+                              [-0.2, 1.1, -1.2]]]], dtype=dtype, device=device)
         dout_fft = dout_torch.clone()
 
         dout_torch = dout_torch.to(device)

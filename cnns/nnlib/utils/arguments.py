@@ -91,7 +91,7 @@ class Arguments(object):
                  # conv_type=ConvType.STANDARD2D,
                  # conv_type=ConvType.FFT1D,
                  # conv_type=ConvType.STANDARD,
-                 # conv_exec_type=ConvExecType.CUDA,
+                 conv_exec_type=ConvExecType.CUDA,
                  # conv_exec_type=ConvExecType.CUDA_DEEP,
                  # conv_exec_type=ConvExecType.CUDA_SHARED_LOG,
                  # conv_exec_type=ConvExecType.BATCH,
