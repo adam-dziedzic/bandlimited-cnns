@@ -1,4 +1,5 @@
-#include <torch/torch.h>
+//#include <torch/torch.h>
+#include <torch/extension.h>
 
 void complex_mul_cuda(at::Tensor x, at::Tensor y, at::Tensor out);
 void complex_mul_stride_cuda(at::Tensor x, at::Tensor y, at::Tensor out);
@@ -11,9 +12,9 @@ void complex_mul_shared_log_cuda(at::Tensor x, at::Tensor y, at::Tensor out);
 
 void complex_mul_deep_cuda(at::Tensor x, at::Tensor y, at::Tensor out);
 
-// for profiling
-void complex_mul_stride_no_permute_cuda_pure(
-    at::Tensor x, at::Tensor y, at::Tensor out, int threads = 1024);
+//// for profiling
+//void complex_mul_stride_no_permute_cuda_pure(
+//    at::Tensor x, at::Tensor y, at::Tensor out, int threads = 1024);
 
 // C++ interface
 

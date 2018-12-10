@@ -539,14 +539,20 @@ void complex_mul_deep_cuda(
     const auto F = y.size(0);  // filter_bank_size
     long L;  // the width/size of the input data
     long C;  // number of channels
-    if (x.sizes().size() == 4) { // 2D data
+
+    const size_t dim_size = x.sizes().size();
+    if (dim_size == 5) { // 2D data
+        // 5 dimensions: N, H, W, C, I
         const auto H = x.size(1);  // height of the matrix
         const auto W = x.size(2);  // width of the matrix
         C = x.size(3);
         L = H*W;  // the size of the flattened 2D plane
-    } else {  // 1D data
+    } else if (dim_size == 4) {  // 1D data
+        // 4 dimensions: N, L, C, I
         L = x.size(1);  // the width of the 1D signal
         C = x.size(2);
+    } else {
+         throw "Unexpected number of dimensions: " + std::to_string(dim_size);
     }
 
     const dim3 blocks(/*L=*/L, F, N);

@@ -4,6 +4,7 @@
 #include <cuda_runtime.h>
 #include <cstdio>
 #include <cmath>
+#include <string>
 
 namespace {
 
@@ -137,10 +138,9 @@ __global__ void complex_mul_cuda_kernel(
     const scalar_t* __restrict__ x,
     const scalar_t* __restrict__ y,
     scalar_t* __restrict__ out,
-    const int N, const int F, const int C, const int H, const int W) {
+    const int N, const int F, const int C, const int plane_size) {
 
     const int I = 2; // the last dimension for the complex number
-    const int plane_size = H * W;
     const int channel_size = plane_size * I;
     const int image_size = C * channel_size;  // size of the image from the batch
 
@@ -250,8 +250,20 @@ void complex_mul_stride_no_permute_cuda(
     const auto N = x.size(0);  // batch_size
     const auto F = y.size(0);  // filter_bank_size
     const auto C = x.size(1);  // number of channels
-    const auto H = x.size(2);  // height of the matrix
-    const auto W = x.size(3);  // width of the matrix
+
+    int plane_size;
+    const size_t dim_size = x.sizes().size();
+    if (dim_size == 5) { // 2D data
+        // dimensions: N, C, H, W, I
+        const auto H = x.size(2);  // height of the matrix
+        const auto W = x.size(3);  // width of the matrix
+        plane_size = H * W;
+    } else if (dim_size == 4) {
+        // dimensions: N, C, L, I
+        plane_size = x.size(2);
+    } else {
+         throw "Unexpected number of dimensions: " + std::to_string(dim_size);
+    }
 
     const auto x_blocks = N;
     const auto y_blocks = F;
@@ -261,7 +273,7 @@ void complex_mul_stride_no_permute_cuda(
     ([&] {
         complex_mul_cuda_kernel<scalar_t><<<blocks, threads>>>(
         x.data<scalar_t>(), y.data<scalar_t>(), out.data<scalar_t>(),
-        N, F, C, H, W);
+        N, F, C, plane_size);
     }));
 }
 
