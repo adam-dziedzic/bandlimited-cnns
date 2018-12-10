@@ -10,6 +10,7 @@ from cnns.nnlib.pytorch_layers.conv2D_fft \
     import Conv2dfftAutograd, Conv2dfftFunction, Conv2dfft
 from cnns.nnlib.pytorch_layers.pytorch_utils import MockContext
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_numpy
 from cnns.nnlib.utils.log_utils import get_logger
 from cnns.nnlib.utils.log_utils import set_up_logging
 from cnns.nnlib.pytorch_layers.test_data.cifar10_image import cifar10_image
@@ -22,14 +23,6 @@ from cnns.nnlib.utils.general_utils import ConvExecType
 from cnns.nnlib.utils.arguments import Arguments
 
 
-def get_numpy(x):
-    """
-    :param x: a tensor from Torch
-    :return: a number representation on CPU
-    """
-    return x.cpu().detach().numpy()
-
-
 class TestPyTorchConv2d(unittest.TestCase):
 
     def setUp(self):
@@ -39,32 +32,28 @@ class TestPyTorchConv2d(unittest.TestCase):
         self.logger = get_logger(name=__name__)
         self.logger.setLevel(logging.DEBUG)
         self.logger.info("Set up test")
+        seed = 31
         if torch.cuda.is_available():
-            self.device = torch.device('cuda')
+            self.device = torch.device("cuda")
             print("cuda is available")
+            torch.cuda.manual_seed_all(seed)
         else:
-            self.device = torch.device('cpu')
-            print("no cuda device is available")
+            self.device = torch.device("cpu")
+            print("cuda is not available")
+            torch.manual_seed(seed)
+        dtype = torch.float
         self.dtype = torch.float
         self.ERR_MESSAGE_ALL_CLOSE = "The expected array desired and " \
                                      "computed actual are not almost equal."
 
-
     def testAutogradForwardNoCompression(self):
-        print("\nDon't use next power of 2.")
-        if torch.cuda.is_available():
-            device = torch.device("cuda")
-            print("cuda is available")
-        else:
-            device = torch.device("cpu")
-            print("cuda is not available")
-        dtype = torch.float
 
         # A single input map.
         x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]],
                    device=self.device, dtype=self.dtype)
         # A single filter.
-        y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]], device=self.device, dtype=self.dtype)
+        y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]], device=self.device,
+                   dtype=self.dtype)
         b = tensor([0.0], device=self.device, dtype=self.dtype)
 
         convManual = Conv2dfft(weight_value=y, bias_value=b)
@@ -99,7 +88,8 @@ class TestPyTorchConv2d(unittest.TestCase):
         x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]],
                    device=self.device, dtype=self.dtype)
         # A single filter.
-        y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]], device=self.device, dtype=self.dtype)
+        y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]], device=self.device,
+                   dtype=self.dtype)
         b = tensor([0.0], device=self.device, dtype=self.dtype)
         convManual = Conv2dfft(weight_value=y, bias_value=b)
         result = convManual.forward(input=x)
@@ -123,7 +113,8 @@ class TestPyTorchConv2d(unittest.TestCase):
         x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]],
                    device=self.device, dtype=self.dtype)
         # A single filter.
-        y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]], device=self.device, dtype=self.dtype)
+        y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]], device=self.device,
+                   dtype=self.dtype)
         b = tensor([0.0], device=self.device, dtype=self.dtype)
         conv = Conv2dfftFunction()
 
@@ -163,21 +154,6 @@ class TestPyTorchConv2d(unittest.TestCase):
         conv = Conv2dfftFunction()
         result = conv.forward(ctx=None, input=x, filter=y, bias=b)
         expect = np.array([[[[21.0, 21.0], [17., 13.]]]])
-        np.testing.assert_array_almost_equal(
-            x=expect, y=result,
-            err_msg="The expected array x and computed y are not almost equal.")
-
-    def test_FunctionForwardCompression(self):
-        # A single 2D input map.
-        x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]])
-        # A single filter.
-        y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
-        b = tensor([0.0])
-        conv = Conv2dfftFunction()
-        result = conv.forward(ctx=None, input=x, filter=y, bias=b,
-                              args=Arguments(index_back=1, preserve_energy=100))
-        # expect = np.array([[[[21.5, 22.0], [17.5, 13.]]]])
-        expect = np.array([[[[21.75, 21.75], [18.75, 13.75]]]])
         np.testing.assert_array_almost_equal(
             x=expect, y=result,
             err_msg="The expected array x and computed y are not almost equal.")
@@ -275,7 +251,7 @@ class TestPyTorchConv2d(unittest.TestCase):
                 [0.0, 0.0, 2.0, 0.0, 0.0],
                 [1.0, 2.0, 2.0, 0.0, 2.0],
                 [0.0, 2.0, 2.0, 0.0, 0.0],
-            ]]])
+            ]]], device=self.device, dtype=self.dtype)
         y = tensor([[
             [[1.0, 0.0, 0.0],
              [-1.0, -1.0, 0.0],
@@ -296,8 +272,8 @@ class TestPyTorchConv2d(unittest.TestCase):
                 [[1.0, -1.0, 1.0],
                  [0.0, -1.0, -1.0],
                  [1.0, 1.0, -1.0]]],
-        ])
-        b = tensor([1.0, 0.0])
+        ], device=self.device, dtype=self.dtype)
+        b = tensor([1.0, 0.0], device=self.device, dtype=self.dtype)
         conv = Conv2dfftFunction()
         result = conv.forward(ctx=None, input=x, filter=y, bias=b,
                               padding=(1, 1), stride=(2, 2),
@@ -311,7 +287,7 @@ class TestPyTorchConv2d(unittest.TestCase):
             [-6.0, -1.0, -8.0]],
         ]])
         np.testing.assert_array_almost_equal(
-            x=expect, y=result, decimal=5,
+            x=expect, y=get_numpy(result), decimal=5,
             err_msg="The expected array x and computed y are not almost equal")
 
     def test_FunctionForwardRandom(self):
@@ -406,7 +382,6 @@ class TestPyTorchConv2d(unittest.TestCase):
         filter_W = 3
         num_filters = 64
 
-
         # Input signal: 5 data points, 3 channels, 10 values.
         x = np.random.rand(num_data_points, num_channels, input_H,
                            input_W)
@@ -428,9 +403,9 @@ class TestPyTorchConv2d(unittest.TestCase):
         # weight taken from torch's Conv2d
         weight = convTorch.weight.clone()
         weight = weight.requires_grad_(True)
-        weight = weight.to(device)
+        weight = weight.to(self.device)
 
-        convTorch.to(device)
+        convTorch.to(self.device)
         expect = convTorch(input=x_torch_clone)
 
         conv = Conv2dfftFunction()
@@ -451,7 +426,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         # repeat the data point num_data_points times
         repetition = num_data_points
         while repetition > 1:
-            x = torch.cat((x,x))
+            x = torch.cat((x, x))
             repetition /= 2
         print("shape of the input batch: ", x.size())
 
@@ -494,52 +469,18 @@ class TestPyTorchConv2d(unittest.TestCase):
             desired=get_numpy(expect), actual=get_numpy(result), rtol=1e-5,
             err_msg=self.ERR_MESSAGE_ALL_CLOSE)
 
-    def test_FunctionForwardSpectralPooling(self):
-        x = np.array([[[[1., 2., 3., 4., 5.],
-                        [6., 7., 8., 1., 2.],
-                        [2., 3., 1., 0., 1.],
-                        [1., 2., 3., -1., -2.],
-                        [0., 1., 3., 1., 2.]
-                        ]]])
-        y = np.array([[[[2., 1.], [-1.0, 2.0]]]])
-        b = np.array([0.0])
-
-        # Full result.
-        conv_param = {'pad': 0, 'stride': 1}
-        full_expected_result, _ = conv_forward_naive(x=x, w=y, b=b,
-                                                     conv_param=conv_param)
-        print()
-        print("full expected result: ", full_expected_result)
-
-        # get the expected results from numpy correlate
-        # expected_result = np.array([[[[10.103396, 12.630585, 11.697527],
-        #                               [12.558281, 13.923859, 11.561422],
-        #                               [11.473415, 11.409614, 8.187342]]]])
-        # expected_result = np.array([[[[11.2787, 14.2694, 12.6907],
-        #                               [14.0552, 15.6585, 12.3298],
-        #                               [12.0275, 11.8809, 7.7573]]]])
-        expected_result = np.array([[[[12.2992, 13.6678, 10.92],
-                                      [15.9293, 16.679, 11.7282],
-                                      [13.3441, 13.755, 8.7778]]]])
-        conv = Conv2dfftFunction()
-        result = conv.forward(ctx=None, input=torch.from_numpy(x),
-                              filter=torch.from_numpy(y),
-                              bias=torch.from_numpy(b),
-                              out_size=3)
-        np.testing.assert_array_almost_equal(
-            x=np.array(expected_result), y=result, decimal=4,
-            err_msg="Expected x is different from computed y.")
-
     def test_FunctionBackwardNoCompressionWithBias(self):
         x = np.array([[[[1.0, 2.0, 3.0],
                         [4.0, 5.0, 1.0],
                         [1.0, -1.0, -2.0]]]])
         y = np.array([[[[2.0, 1.0], [-1.0, 2.0]]]])
         b = np.array([2.0])
-        dtype = torch.float
-        x_torch = tensor(x, requires_grad=True, dtype=self.dtype)
-        y_torch = tensor(y, requires_grad=True, dtype=self.dtype)
-        b_torch = tensor(b, requires_grad=True, dtype=self.dtype)
+        x_torch = tensor(x, requires_grad=True, dtype=self.dtype,
+                         device=self.device)
+        y_torch = tensor(y, requires_grad=True, dtype=self.dtype,
+                         device=self.device)
+        b_torch = tensor(b, requires_grad=True, dtype=self.dtype,
+                         device=self.device)
 
         conv_param = {'pad': 0, 'stride': 1}
         expected_result, cache = conv_forward_naive(x=x, w=y, b=b,
@@ -553,7 +494,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         result_torch = Conv2dfftFunction.forward(
             ctx, input=x_torch, filter=y_torch, bias=b_torch, args=Arguments(),
             is_manual=is_manual)
-        result = result_torch.detach().numpy()
+        result = get_numpy(result_torch)
         np.testing.assert_array_almost_equal(result, np.array(expected_result))
 
         dout = tensor([[[[0.1, -0.2], [0.3, -0.1]]]], dtype=self.dtype)
@@ -569,11 +510,11 @@ class TestPyTorchConv2d(unittest.TestCase):
         assert is_manual[0] == 1
 
         # are the gradients correct
-        np.testing.assert_array_almost_equal(dx.detach().numpy(),
+        np.testing.assert_array_almost_equal(get_numpy(dx),
                                              expected_dx)
-        np.testing.assert_array_almost_equal(dw.detach().numpy(),
+        np.testing.assert_array_almost_equal(get_numpy(dw),
                                              expected_dw)
-        np.testing.assert_array_almost_equal(db.detach().numpy(),
+        np.testing.assert_array_almost_equal(get_numpy(db),
                                              expected_db)
 
     def test_FunctionBackwardNoCompressionNoBias(self):
@@ -582,10 +523,12 @@ class TestPyTorchConv2d(unittest.TestCase):
                         [1.0, -1.0, -2.0]]]])
         y = np.array([[[[2.0, 1.0], [-1.0, 2.0]]]])
         b = np.array([0.0])
-        dtype = torch.float
-        x_torch = tensor(x, requires_grad=True, dtype=self.dtype)
-        y_torch = tensor(y, requires_grad=True, dtype=self.dtype)
-        b_torch = tensor(b, requires_grad=True, dtype=self.dtype)
+        x_torch = tensor(x, requires_grad=True, dtype=self.dtype,
+                         device=self.device)
+        y_torch = tensor(y, requires_grad=True, dtype=self.dtype,
+                         device=self.device)
+        b_torch = tensor(b, requires_grad=True, dtype=self.dtype,
+                         device=self.device)
 
         conv_param = {'pad': 0, 'stride': 1}
         expected_result, cache = conv_forward_naive(x=x, w=y, b=b,
@@ -600,7 +543,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         result_torch = Conv2dfftFunction.forward(
             ctx, input=x_torch, filter=y_torch, bias=b_torch,
             is_manual=is_manual, args=Arguments())
-        result = result_torch.detach().numpy()
+        result = get_numpy(result_torch)
         print("actual result: ", result)
         np.testing.assert_array_almost_equal(result, np.array(expected_result))
 
@@ -624,11 +567,11 @@ class TestPyTorchConv2d(unittest.TestCase):
         self.logger.debug("\ncomputed dx: " + str(dx))
 
         # are the gradients correct
-        np.testing.assert_array_almost_equal(dx.detach().numpy(),
+        np.testing.assert_array_almost_equal(get_numpy(dx),
                                              expected_dx)
-        np.testing.assert_array_almost_equal(dw.detach().numpy(),
+        np.testing.assert_array_almost_equal(get_numpy(dw),
                                              expected_dw)
-        np.testing.assert_array_almost_equal(db.detach().numpy(),
+        np.testing.assert_array_almost_equal(get_numpy(db),
                                              expected_db)
 
     def test_FunctionBackwardNoCompressionConv2dfft(self):
@@ -644,16 +587,20 @@ class TestPyTorchConv2d(unittest.TestCase):
             device = torch.device("cpu")
             print("cuda is not available")
         dtype = torch.float
-        x_torch = tensor(x, requires_grad=True, dtype=self.dtype, device=self.device)
-        y_torch = tensor(y, requires_grad=True, dtype=self.dtype, device=self.device)
-        b_torch = tensor(b, requires_grad=True, dtype=self.dtype, device=self.device)
+        x_torch = tensor(x, requires_grad=True, dtype=self.dtype,
+                         device=self.device)
+        y_torch = tensor(y, requires_grad=True, dtype=self.dtype,
+                         device=self.device)
+        b_torch = tensor(b, requires_grad=True, dtype=self.dtype,
+                         device=self.device)
 
         conv = Conv2dfft(weight_value=y_torch, bias_value=b_torch)
         # conv = Conv2dfft()
 
         result_torch = conv.forward(input=x_torch)
         dout = torch.autograd.Variable(
-            tensor([[[[0.1, -0.2], [0.3, -0.1]]]], dtype=self.dtype, device=self.device))
+            tensor([[[[0.1, -0.2], [0.3, -0.1]]]], dtype=self.dtype,
+                   device=self.device))
         result_torch.backward(dout)
         assert conv.is_manual[0] == 1
 
@@ -713,11 +660,14 @@ class TestPyTorchConv2d(unittest.TestCase):
             device = torch.device("cpu")
             print("cuda is not available")
         dtype = torch.float
-        x_torch = tensor(x, requires_grad=True, dtype=self.dtype, device=self.device)
+        x_torch = tensor(x, requires_grad=True, dtype=self.dtype,
+                         device=self.device)
         print("x size: ", x_torch.size())
-        y_torch = tensor(y, requires_grad=True, dtype=self.dtype, device=self.device)
+        y_torch = tensor(y, requires_grad=True, dtype=self.dtype,
+                         device=self.device)
         print("y size: ", y_torch.size())
-        b_torch = tensor(b, requires_grad=True, dtype=self.dtype, device=self.device)
+        b_torch = tensor(b, requires_grad=True, dtype=self.dtype,
+                         device=self.device)
 
         conv_param = {'pad': 0, 'stride': 1}
         expected_result, cache = conv_forward_naive(x=x, w=y, b=b,
@@ -775,9 +725,12 @@ class TestPyTorchConv2d(unittest.TestCase):
             device = torch.device("cpu")
             print("cuda is not available")
         dtype = torch.float
-        x_torch = tensor(x, requires_grad=True, dtype=self.dtype, device=self.device)
-        y_torch = tensor(y, requires_grad=True, dtype=self.dtype, device=self.device)
-        b_torch = tensor(b, requires_grad=True, dtype=self.dtype, device=self.device)
+        x_torch = tensor(x, requires_grad=True, dtype=self.dtype,
+                         device=self.device)
+        y_torch = tensor(y, requires_grad=True, dtype=self.dtype,
+                         device=self.device)
+        b_torch = tensor(b, requires_grad=True, dtype=self.dtype,
+                         device=self.device)
 
         conv_param = {'pad': 0, 'stride': 1}
         expected_result, cache = conv_forward_naive(x=x, w=y, b=b,
@@ -789,7 +742,8 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         result_torch = conv.forward(input=x_torch)
         dout = torch.autograd.Variable(
-            tensor([[[[0.3, -0.1], [0.03, 0.1]]]], dtype=self.dtype, device=self.device))
+            tensor([[[[0.3, -0.1], [0.03, 0.1]]]], dtype=self.dtype,
+                   device=self.device))
 
         result_torch.backward(dout)
         assert conv.is_manual[0] == 1
@@ -836,11 +790,13 @@ class TestPyTorchConv2d(unittest.TestCase):
                       ])
         y = np.array([[[[2.0, 1.0], [-1.0, 2.0]]]])
         b = np.array([1.0])
-        dtype = torch.float
-        x_torch = tensor(x, requires_grad=True, dtype=self.dtype)
+        x_torch = tensor(x, requires_grad=True, dtype=self.dtype,
+                         device=self.device)
         print("size of x: ", x_torch.size())
-        y_torch = tensor(y, requires_grad=True, dtype=self.dtype)
-        b_torch = tensor(b, requires_grad=True, dtype=self.dtype)
+        y_torch = tensor(y, requires_grad=True, dtype=self.dtype,
+                         device=self.device)
+        b_torch = tensor(b, requires_grad=True, dtype=self.dtype,
+                         device=self.device)
 
         conv_param = {'pad': 0, 'stride': 1}
         expected_result, cache = conv_forward_naive(x=x, w=y, b=b,
@@ -850,45 +806,48 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         conv = Conv2dfft(weight_value=y_torch, bias_value=b_torch,
                          args=Arguments())
+        conv.to(self.device)
+
         result_torch = conv.forward(input=x_torch)
         dout = torch.autograd.Variable(tensor(
             [[[[0.1, -0.2], [0.01, 0.2]]], [[[0.3, -0.1], [0.03, 0.1]]]],
-            dtype=self.dtype))
+            dtype=self.dtype, device=self.device))
         result_torch.backward(dout)
+
+        # ctx.needs_input_grad = [True, True, True]
+        # Conv2dfftFunction.backward(ctx, dout)
+        assert conv.is_manual[0] == 1
         # ctx = MockContext()
         # Conv2dfftFunction.forward(ctx, input=x_torch, filter=y_torch, bias=None)
 
-        result = result_torch.detach().numpy()
+        result = get_numpy(result_torch)
         print("actual result: ", result)
         np.testing.assert_array_almost_equal(result, np.array(expected_result))
 
         # get the expected result from the backward pass
         expected_dx, expected_dw, expected_db = \
-            conv_backward_naive(dout.numpy(), cache)
+            conv_backward_naive(get_numpy(dout), cache)
 
         print("expected dx: ", expected_dx)
         print("expected dw: ", expected_dw)
         print("expected db: ", expected_db)
-
-        # ctx.needs_input_grad = [True, True, True]
-        # Conv2dfftFunction.backward(ctx, dout)
-        assert conv.is_manual[0] == 1
 
         # Are the gradients correct?
 
         self.logger.debug("expected dx: " + str(expected_dx))
         self.logger.debug("computed dx: " + str(x_torch.grad))
 
-        np.testing.assert_array_almost_equal(x_torch.grad.detach().numpy(),
-                                             expected_dx)
+        x_torch_grad = get_numpy(x_torch.grad)
+        np.testing.assert_array_almost_equal(x_torch_grad, expected_dx)
 
         self.logger.debug("expected dw: " + str(expected_dw))
         self.logger.debug("computed dw: " + str(y_torch.grad))
 
-        np.testing.assert_array_almost_equal(y_torch.grad.detach().numpy(),
-                                             expected_dw)
-        np.testing.assert_array_almost_equal(b_torch.grad.detach().numpy(),
-                                             expected_db)
+        y_torch_grad = get_numpy(y_torch.grad)
+        np.testing.assert_array_almost_equal(y_torch_grad, expected_dw)
+
+        b_torch_grad = get_numpy(b_torch.grad)
+        np.testing.assert_array_almost_equal(b_torch_grad, expected_db)
 
     def _check_delta2D(self, actual_result, accurate_expected_result, delta):
         """
@@ -912,131 +871,6 @@ class TestPyTorchConv2d(unittest.TestCase):
                     msg="The approximate result is not within delta={} of the "
                         "accurate result!".format(delta))
 
-    def test_FunctionBackwardWithPooling(self):
-        x = np.array([[[[1., 2., 3., 4., 5.],
-                        [6., 7., 8., 1., 2.],
-                        [2., 3., 1., 0., 1.],
-                        [1., 2., 3., -1., -2.],
-                        [0., 1., 3., 1., 2.]
-                        ]]])
-        y = np.array([[[[2., 1.], [-1.0, 2.0]]]])
-        b = np.array([0.0])
-
-        # Full result.
-        conv_param = {'pad': 0, 'stride': 1}
-        full_expected_result, cache = conv_forward_naive(x=x, w=y, b=b,
-                                                         conv_param=conv_param)
-        print()
-        print("full expected result: ", full_expected_result)
-
-        # get the expected results from numpy correlate
-        # expected_result = np.array([[[[10.103396, 12.630585, 11.697527],
-        #                               [12.558281, 13.923859, 11.561422],
-        #                               [11.473415, 11.409614, 8.187342]]]])
-        # expected_result = np.array([[[[11.2787, 14.2694, 12.6907],
-        #                               [14.0552, 15.6585, 12.3298],
-        #                               [12.0275, 11.8809, 7.7573]]]])
-        expected_result = np.array([[[[12.2992, 13.6678, 10.92],
-                                      [15.9293, 16.679, 11.7282],
-                                      [13.3441, 13.755, 8.7778]]]])
-        conv = Conv2dfftFunction()
-
-        x_torch = torch.tensor(data=x, requires_grad=True)
-        y_torch = torch.tensor(data=y, requires_grad=True)
-        b_torch = torch.tensor(data=b, requires_grad=True)
-
-        out_size = 3
-
-        result_torch = conv.forward(ctx=None, input=x_torch, filter=y_torch,
-                                    bias=b_torch, out_size=out_size,
-                                    args=Arguments())
-        result = result_torch.detach().numpy()
-        np.testing.assert_array_almost_equal(
-            x=np.array(expected_result), y=result, decimal=4,
-            err_msg="Manual: Expected x is different from computed y.")
-
-        # Prevent any interference/overlap of variables in manual and auto
-        # differentiation.
-        x_torch_auto = torch.tensor(data=x, requires_grad=True)
-        y_torch_auto = torch.tensor(data=y, requires_grad=True)
-        b_torch_auto = torch.tensor(data=b, requires_grad=True)
-
-        convAuto = Conv2dfftAutograd(weight_value=y_torch_auto,
-                                     bias=b_torch_auto,
-                                     out_size=out_size)
-        resultAuto = convAuto.forward(input=x_torch_auto)
-        np.testing.assert_array_almost_equal(
-            x=np.array(expected_result), y=resultAuto.cpu().detach().numpy(),
-            decimal=4,
-            err_msg="Auto: Expected x is different from computed y.")
-
-        dout_np = np.array([[[[0.1, -0.2, 0.3],
-                              [-0.1, 0.1, 0.2],
-                              [-0.2, 1.1, -1.2]]]])
-        dout = tensor(dout_np)
-
-        resultAuto.backward(dout)
-        print("x auto grad: ", x_torch_auto.grad)
-        print("y auto grad: ", y_torch_auto.grad)
-        print("b auto grad: ", b_torch_auto.grad)
-
-        # get the expected result from the backward pass
-        expected_dx, expected_dw, expected_db = \
-            conv_backward_naive(dout.numpy(), cache)
-
-        result_torch.backward(dout)
-
-        # approximate_expected_dx = np.array(
-        #     [[[[0.0306, 0.1016, 0.1293, 0.0976, 0.0249],
-        #        [0.0815, 0.1438, 0.1321, 0.0534, -0.0463],
-        #        [0.1171, 0.1399, 0.0813, -0.0245, -0.1154],
-        #        [0.1164, 0.0923, 0.0066, -0.0904, -0.1420],
-        #        [0.0799, 0.0287, -0.0482, -0.1058, -0.1104]]]])
-
-        # approximate_expected_dx = np.array(
-        #     [[[[0.0004, 0.1056, 0.1608, 0.1246, 0.0241],
-        #        [0.0604, 0.1825, 0.1858, 0.0676, -0.0829],
-        #        [0.1250, 0.1951, 0.1164, -0.0518, -0.1829],
-        #        [0.1456, 0.1338, 0.0051, -0.1437, -0.2005],
-        #        [0.1066, 0.0448, -0.0645, -0.1389, -0.1225]]]])
-
-        approximate_expected_dx = np.array([[[
-            [-0.0148, 0.0503, 0.1306, 0.1655, 0.1288],
-            [0.1054, 0.1526, 0.1158, 0.0227, -0.0567],
-            [0.1963, 0.2130, 0.0595, -0.1488, -0.2549],
-            [0.1895, 0.1861, 0.0040, -0.2197, -0.3165],
-            [0.0901, 0.0920, -0.0089, -0.1367, -0.1952]]]])
-
-        print("manual torch grad: ", x_torch.grad)
-
-        # Are the gradients correct?
-        np.testing.assert_array_almost_equal(
-            x=approximate_expected_dx, y=x_torch.grad, decimal=4,
-            err_msg="Expected x is different from computed y.")
-
-        self._check_delta2D(actual_result=x_torch.grad,
-                            accurate_expected_result=expected_dx, delta=5.4)
-
-        print("Expected fully correct dw: ", expected_dw)
-        print("actual result for dw from y_torch.grad: ", y_torch.grad)
-
-        # approximate_expected_dw = np.array([[[[0.844089, 1.41447],
-        #                                       [1.221608, 1.32085]]]])
-        # approximate_expected_dw = np.array([[[[1.1816, 1.8317],
-        #                                       [1.5589, 1.4568]]]])
-        approximate_expected_dw = np.array([[[[1.2042, 2.0410],
-                                              [1.6021, 1.6371]]]])
-
-        np.testing.assert_array_almost_equal(
-            x=approximate_expected_dw, y=y_torch.grad, decimal=4,
-            err_msg="Expected x is different from computed y.")
-
-        self._check_delta2D(actual_result=y_torch.grad,
-                            accurate_expected_result=expected_dw, delta=4.0)
-
-        np.testing.assert_array_almost_equal(b_torch.grad,
-                                             expected_db)
-
     def test_AutogradForwardNoCompression(self):
         # A single input map.
         x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]])
@@ -1049,23 +883,6 @@ class TestPyTorchConv2d(unittest.TestCase):
         np.testing.assert_array_almost_equal(
             x=expect, y=result.detach().numpy(),
             err_msg="The expected array x and computed y are not almost equal.")
-
-    def test_AutogradForwardWithCompression(self):
-        # A single input 2D map.
-        x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]])
-        # A single filter.
-        y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
-        b = tensor([0.0])
-        conv = Conv2dfftAutograd(weight_value=y, bias=b,
-                                 args=Arguments(index_back=1,
-                                                next_power2=False,
-                                                preserve_energy=100))
-        result = conv.forward(input=x)
-        # expect = np.array([[[[21.5, 22.0], [17.5, 13.]]]])
-        expect = np.array([[[[21.75, 21.75], [18.75, 13.75]]]])
-        np.testing.assert_array_almost_equal(
-            x=expect, y=result.detach().numpy(),
-            err_msg="The expected array x and computed y are not almost equal")
 
     def test_FunctionForwardBackwardRandom(self):
         num_channels = 3
@@ -1097,9 +914,12 @@ class TestPyTorchConv2d(unittest.TestCase):
         self.logger.debug("expected result: " + str(expected_result))
 
         dtype = torch.float
-        x_torch = tensor(x, requires_grad=True, dtype=self.dtype, device=self.device)
-        y_torch = tensor(y, requires_grad=True, dtype=self.dtype, device=self.device)
-        b_torch = tensor(b, requires_grad=True, dtype=self.dtype, device=self.device)
+        x_torch = tensor(x, requires_grad=True, dtype=self.dtype,
+                         device=self.device)
+        y_torch = tensor(y, requires_grad=True, dtype=self.dtype,
+                         device=self.device)
+        b_torch = tensor(b, requires_grad=True, dtype=self.dtype,
+                         device=self.device)
         conv = Conv2dfftFunction()
         preserve_energy = 100.0
         is_manual = tensor([0])
@@ -1152,25 +972,16 @@ class TestPyTorchConv2d(unittest.TestCase):
 
     def test_FunctionForwardBackwardRandomCompareToPytorch(self):
         print("\nstart test:")
-        seed = 31
-        if torch.cuda.is_available():
-            device = torch.device("cuda")
-            print("cuda is available")
-            torch.cuda.manual_seed_all(seed)
-        else:
-            device = torch.device("cpu")
-            print("cuda is not available")
-            torch.manual_seed(seed)
-        dtype = torch.float
 
         C = 3  # nr of channels
-        F = 64 # nr or filters
+        F = 64  # nr or filters
         K = 3  # kernel size
-        N = 32 # nr of input maps
-        H = 32 # height
-        W = 32 # width
+        N = 32  # nr of input maps
+        H = 32  # height
+        W = 32  # width
 
-        input_fft = torch.randn(N,C,H,W, dtype=self.dtype, device=self.device,
+        input_fft = torch.randn(N, C, H, W, dtype=self.dtype,
+                                device=self.device,
                                 requires_grad=True)
         input_torch = input_fft.clone()
 
@@ -1180,19 +991,20 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         is_manual = tensor([0])
         conv_fft = Conv2dfft(weight_value=conv_torch.weight.clone(),
-                         bias_value=conv_torch.bias.clone(),
-                         is_manual=is_manual)
+                             bias_value=conv_torch.bias.clone(),
+                             is_manual=is_manual)
 
         result_torch = conv_torch.forward(input=input_torch)
         result_fft = conv_fft.forward(input=input_fft)
 
-        dout = torch.randn(result_fft.shape, dtype=self.dtype, device=self.device)
+        dout = torch.randn(result_fft.shape, dtype=self.dtype,
+                           device=self.device)
 
         result_fft.backward(dout)
         result_torch.backward(dout.clone())
         assert is_manual[0] == 1
 
-        # dx_expect = input_torch.grad.cpu().detach().numpy()
+        dx_expect = input_torch.grad.cpu().detach().numpy()
         dy_expect = conv_torch.weight.grad.cpu().numpy()
         db_expect = conv_torch.bias.grad.cpu().numpy()
 
@@ -1234,7 +1046,8 @@ class TestPyTorchConv2d(unittest.TestCase):
         x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]],
                    device=self.device, dtype=self.dtype)
         # A single filter.
-        y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]], device=self.device, dtype=self.dtype)
+        y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]], device=self.device,
+                   dtype=self.dtype)
         b = tensor([0.0], device=self.device, dtype=self.dtype)
         convManual = Conv2dfft(weight_value=y, bias=b,
                                args=Arguments(index_back=0,
@@ -1379,94 +1192,6 @@ class TestPyTorchConv2d(unittest.TestCase):
         print("xfft spectrum: ", get_spectrum(xfft))
         print("xfft_one spectrum: ", get_spectrum(xfft_one))
 
-    def test_FunctionForwardCompressionConvFFTPreserveEnergyCifar10LeNet1stLayer(
-            self):
-        print("\n")
-        x = cifar10_image
-        print("shape of the input image: ", x.size())
-        y = cifar10_lenet_filter
-        print("shape of the filter: ", y.size())
-        b = torch.tensor([0.0])
-        # get the expected results from numpy correlate
-
-        # print("expected_result_numpy: ", expected_result_numpy)
-
-        preserved_energies = [100., 99., 98.5, 98., 97., 96., 95., 94., 93.,
-                              92., 91., 90., 89., 87., 85., 80., 70., 60., 50.,
-                              40., 10., 5., 1.]
-        # preserved_energies = [1.0]
-        # indexes_back = [1, 2, 4, 8, 16, 32, 64, 128, 256]
-
-        expected_result_tensor = F.conv2d(input=x, weight=y, bias=b)
-
-        for preserve_energy in preserved_energies:
-            conv = Conv2dfft(weight_value=y,
-                             bias_value=b,
-                             args=Arguments(
-                                 preserve_energy=preserve_energy,
-                                 index_back=0,
-                                 is_debug=True,
-                                 next_power2=True,
-                                 compress_type=CompressType.STANDARD))
-            result = conv.forward(input=x)
-            # print("actual result: ", result)
-
-            result = result.float()
-            abs_error = torch.sum(
-                torch.abs(result - expected_result_tensor)).item()
-            expected_total = torch.sum(torch.abs(expected_result_tensor))
-            relative_error = abs_error / expected_total * 100.0
-            # relative_error = torch.mean(torch.abs(result) / torch.abs(expected_result_tensor) * 100)
-            print(f"absolute divergence for preserved energy,{preserve_energy}"
-                  f",absolute error,{abs_error},"
-                  f"relative error (%),{relative_error}")
-
-    def test_FunctionForwardCompressionConvFFTIndexBackCifar10LeNet1stLayer(
-            self):
-        start = time.time()
-        x = cifar10_image
-        print("shape of the input image: ", x.size())
-        y = cifar10_lenet_filter
-        print("shape of the filter: ", y.size())
-        b = torch.tensor([0.0])
-        # get the expected results from numpy correlate
-
-        expected_result_tensor = F.conv2d(input=x, weight=y, bias=b)
-        N, C, H, W = x.size()
-        K, C, HH, WW = y.size()
-        out_size = H - HH + 1
-        fft_size = H + out_size - 1
-        half_fft_size = fft_size // 2 + 1
-        fft_numel = half_fft_size * fft_size * C
-
-        # for index_back in range(1, fft_numel, 10):
-        for index_back in range(1, 2):
-            print("index back: ", index_back)
-            conv = Conv2dfft(weight_value=y,
-                             bias_value=b,
-                             args=Arguments(
-                                 index_back=index_back,
-                                 preserve_energy=100,
-                                 is_debug=True,
-                                 next_power2=False,
-                                 compress_type=CompressType.STANDARD))
-            result = conv.forward(input=x)
-            # print("actual result: ", result)
-
-            result = result.float()
-            abs_error = torch.sum(
-                torch.abs(result - expected_result_tensor)).item()
-            print("abs error: ", abs_error)
-            expected_total = torch.sum(
-                torch.abs(expected_result_tensor) + torch.abs(result))
-            relative_error = 100.0 * abs_error / expected_total
-            print("relative error: ", relative_error)
-            # relative_error = torch.mean(torch.abs(result) / torch.abs(expected_result_tensor) * 100)
-            print(f"absolute divergence for index back,{index_back},"
-                  f"absolute error,{abs_error},"
-                  f"relative error (%),{relative_error}")
-        print("elapsed: ", time.time() - start)
-
     def test_profile_forward_pass(self):
         """
         100 reps wtih/wihtout n parts of input xfft:
@@ -1537,7 +1262,8 @@ class TestPyTorchConv2d(unittest.TestCase):
         print("Conv2dfft forward (sec): ", time.time() - start)
 
         dout = torch.randn(result.shape[0], result.shape[1], result.shape[2],
-                           result.shape[3], device=self.device, dtype=self.dtype)
+                           result.shape[3], device=self.device,
+                           dtype=self.dtype)
 
         start = time.time()
         for _ in range(repeat):
@@ -1696,8 +1422,10 @@ class TestPyTorchConv2d(unittest.TestCase):
             # b = np.random.rand(num_filters)
             b = np.zeros(num_filters)
 
-            x = tensor(x, device=self.device, dtype=self.dtype, requires_grad=True)
-            x_clone = tensor(x, device=self.device, dtype=self.dtype, requires_grad=True)
+            x = tensor(x, device=self.device, dtype=self.dtype,
+                       requires_grad=True)
+            x_clone = tensor(x, device=self.device, dtype=self.dtype,
+                             requires_grad=True)
             y = tensor(y, device=self.device, dtype=self.dtype)
             b = tensor(b, device=self.device, dtype=self.dtype)
 
@@ -1707,7 +1435,8 @@ class TestPyTorchConv2d(unittest.TestCase):
                             dtype=self.dtype)
             x_clone = x.clone()
             print("shape of the input image: ", x.size())
-            y = torch.randn(F, C, HH, WW, requires_grad=True, device=self.device,
+            y = torch.randn(F, C, HH, WW, requires_grad=True,
+                            device=self.device,
                             dtype=self.dtype)
             print("shape of the filter: ", y.size())
 
@@ -1745,7 +1474,8 @@ class TestPyTorchConv2d(unittest.TestCase):
         print("Conv2dfft forward (sec): ", time.time() - start)
 
         dout = torch.randn(result.shape[0], result.shape[1], result.shape[2],
-                           result.shape[3], device=self.device, dtype=self.dtype)
+                           result.shape[3], device=self.device,
+                           dtype=self.dtype)
 
         ctx.needs_input_grad = [True, True, True]
         start = time.time()
@@ -1876,33 +1606,34 @@ class TestPyTorchConv2d(unittest.TestCase):
         b = tensor([1.0], requires_grad=True, dtype=self.dtype)
         b_expect = b.clone()
 
-        x = x.to(device)
-        x_expect = x_expect.to(device)
-        y = y.to(device)
-        y_expect = y_expect.to(device)
-        b = b.to(device)
-        b_expect = b_expect.to(device)
+        x = x.to(self.device)
+        x_expect = x_expect.to(self.device)
+        y = y.to(self.device)
+        y_expect = y_expect.to(self.device)
+        b = b.to(self.device)
+        b_expect = b_expect.to(self.device)
 
         conv_torch = torch.nn.functional.conv2d(
             input=x_expect, weight=y_expect, bias=b_expect, stride=2)
-        conv_torch = conv_torch.to(device)
-        #print("convStandard: ", conv_torch)
+        conv_torch = conv_torch.to(self.device)
+        # print("convStandard: ", conv_torch)
 
         is_manual = tensor([0])
         conv = Conv2dfft(weight_value=y, bias_value=b, stride=2,
                          is_manual=is_manual,
                          args=Arguments(stride_type=StrideType.STANDARD))
-        conv = conv.to(device)
+        conv = conv.to(self.device)
 
         convFFT = conv.forward(input=x)
 
         dout_torch = tensor([[[[0.1, -0.2, 0.3],
-                              [-0.1, 0.1, 0.2],
-                              [-0.2, 1.1, -1.2]]]], dtype=self.dtype, device=self.device)
+                               [-0.1, 0.1, 0.2],
+                               [-0.2, 1.1, -1.2]]]], dtype=self.dtype,
+                            device=self.device)
         dout_fft = dout_torch.clone()
 
-        dout_torch = dout_torch.to(device)
-        dout_fft = dout_fft.to(device)
+        dout_torch = dout_torch.to(self.device)
+        dout_fft = dout_fft.to(self.device)
 
         # get the expected result from the backward pass
         conv_torch.backward(dout_torch)
@@ -1966,19 +1697,15 @@ class TestPyTorchConv2d(unittest.TestCase):
         conv = Conv(kernel_sizes=[3], in_channels=in_planes,
                     out_channels=[out_planes], strides=[stride],
                     padding=[1], args=args, is_bias=False).get_conv()
-        result = conv.forward(torch.randn(8, 3, 32, 32))
-        result.backward(torch.ones_like(result))
+        conv.to(self.device)
+        result = conv.forward(
+            torch.randn(8, 3, 32, 32, device=self.device, dtype=self.dtype))
+        result.backward(torch.ones_like(result, device=self.device,
+                                        dtype=self.dtype))
         assert conv.is_manual[0] == 1
 
     def test_correctness_forward_backward_pass_for_all_conv_modes(self):
         print("\n")
-        if torch.cuda.is_available():
-            device = torch.device('cuda')
-            print("CUDA device is available")
-        else:
-            device = torch.device('cpu')
-            print("CUDA device is not available")
-        dtype = torch.float
 
         # N, F, C, H, W, HH, WW = 32, 64, 16, 8, 8, 3, 3
         # N, F, C, H, W, HH, WW = 1, 1, 1, 8, 8, 3, 3
@@ -2008,23 +1735,28 @@ class TestPyTorchConv2d(unittest.TestCase):
                 x = np.random.rand(num_data_points, num_channels, input_H,
                                    input_W)
                 # Filters: 3 filters, 3 channels, 4 values.
-                y = np.random.rand(num_filters, num_channels, filter_H, filter_W)
+                y = np.random.rand(num_filters, num_channels, filter_H,
+                                   filter_W)
                 # Bias: one for each filter
                 # b = np.random.rand(num_filters)
                 b = np.zeros(num_filters)
 
-                x = tensor(x, device=self.device, dtype=self.dtype, requires_grad=True)
-                x_clone = tensor(x, device=self.device, dtype=self.dtype, requires_grad=True)
+                x = tensor(x, device=self.device, dtype=self.dtype,
+                           requires_grad=True)
+                x_clone = tensor(x, device=self.device, dtype=self.dtype,
+                                 requires_grad=True)
                 y = tensor(y, device=self.device, dtype=self.dtype)
                 b = tensor(b, device=self.device, dtype=self.dtype)
 
             else:
                 # Initialization in torch.
-                x = torch.randn(N, C, H, W, requires_grad=True, device=self.device,
+                x = torch.randn(N, C, H, W, requires_grad=True,
+                                device=self.device,
                                 dtype=self.dtype)
                 x_clone = x.clone()
                 print("shape of the input image: ", x.size())
-                y = torch.randn(F, C, HH, WW, requires_grad=True, device=self.device,
+                y = torch.randn(F, C, HH, WW, requires_grad=True,
+                                device=self.device,
                                 dtype=self.dtype)
                 print("shape of the filter: ", y.size())
 
@@ -2042,7 +1774,7 @@ class TestPyTorchConv2d(unittest.TestCase):
             weight = convTorch.weight.clone()
             weight = weight.requires_grad_(True)
 
-            convTorch.to(device)
+            convTorch.to(self.device)
 
             start = time.time()
             for _ in range(repeat):
@@ -2054,16 +1786,19 @@ class TestPyTorchConv2d(unittest.TestCase):
                                 args=Arguments(preserve_energy=preserve_energy,
                                                is_debug=False, next_power2=True,
                                                conv_exec_type=conv_exec_type))
-            convFFT.to(device)
+            convFFT.to(self.device)
             ctx = MockContext()
             start = time.time()
             for _ in range(repeat):
                 # result = convFFT.forward(input=x)
-                result = Conv2dfftFunction.forward(ctx, x, weight.to(device), None)
+                result = Conv2dfftFunction.forward(ctx, x, weight.to(self.device),
+                                                   None)
             print("Conv2dfft forward (sec): ", time.time() - start)
 
-            dout = torch.randn(result.shape[0], result.shape[1], result.shape[2],
-                               result.shape[3], device=self.device, dtype=self.dtype)
+            dout = torch.randn(result.shape[0], result.shape[1],
+                               result.shape[2],
+                               result.shape[3], device=self.device,
+                               dtype=self.dtype)
 
             ctx.needs_input_grad = [True, True, True]
             start = time.time()
@@ -2073,7 +1808,8 @@ class TestPyTorchConv2d(unittest.TestCase):
 
             start = time.time()
             for _ in range(repeat):
-                dx, dw, db, _, _, _, _, _, _ = Conv2dfftFunction.backward(ctx, dout)
+                dx, dw, db, _, _, _, _, _, _ = Conv2dfftFunction.backward(ctx,
+                                                                          dout)
                 # result.backward(dout, retain_graph=True)
             print("Conv2dfft backward (sec): ", time.time() - start)
 
@@ -2112,7 +1848,7 @@ class TestPyTorchConv2d(unittest.TestCase):
             expect = get_numpy(expected_result_tensor)
             result = get_numpy(result)
 
-            rtol=1e-5
+            rtol = 1e-5
 
             np.testing.assert_allclose(
                 desired=expect, actual=result,

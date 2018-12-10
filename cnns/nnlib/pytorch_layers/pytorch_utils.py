@@ -46,6 +46,13 @@ def complex_mul_shared_log(x, y, out):
 def complex_mul_stride_no_permute(x, y, out, num_threads=1024):
     return complex_mul_stride_no_permute_cuda(x, y, out, num_threads)
 
+def get_numpy(x):
+    """
+    :param x: a tensor from Torch
+    :return: a number representation on CPU
+    """
+    return x.cpu().detach().numpy()
+
 class MockContext(object):
     """
     Mock context class for 1D and 2D convolution. We use it to pass intermediate
