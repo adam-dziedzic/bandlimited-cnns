@@ -45,7 +45,7 @@ from cnns.nnlib.utils.arguments import Arguments
 from cnns.nnlib.pytorch_layers.pytorch_utils import cuda_machines
 import socket
 
-if socket.gethostname() in cuda_machines:
+if torch.cuda.is_available():
     # from complex_mul_cpp import complex_mul as complex_mul_cpp
     # from complex_mul_cuda import complex_mul as complex_mul_cuda
     # from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
@@ -63,7 +63,6 @@ logger.addHandler(consoleLog)
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
 
-
 global_preserve_energy_time = 0.0
 global_correlation_time = 0.0
 global_fft_time = 0.0
@@ -71,6 +70,7 @@ global_irfft_time = 0.0
 global_complex_time = 0.0
 global_permute_time = 0.0
 global_complex_dxfft = 0.0
+
 
 class Conv2dfftFunction(torch.autograd.Function):
     """
@@ -772,10 +772,12 @@ class Conv2dfftFunction(torch.autograd.Function):
                         # print("N,F,half_fft_compressed_H,half_fft_compressed_W,C:", N, F, half_fft_compressed_H, half_fft_compressed_W, C)
                         # print("doutfft size before permute: ", doutfft.size())
                         if need_input_grad:
-                            doutfft = doutfft.permute(3, 1, 2, 0, 4).contiguous()
+                            doutfft = doutfft.permute(3, 1, 2, 0,
+                                                      4).contiguous()
                         else:
                             # N, F, H, W, I -> F,H,W,N,I
-                            doutfft = doutfft.permute(1, 2, 3, 0, 4).contiguous()
+                            doutfft = doutfft.permute(1, 2, 3, 0,
+                                                      4).contiguous()
                         # print("doutfft size after permute: ", doutfft.size())
                         # xfft: N,H,W,C,I -> C,H,W,N,I
                         xfft = xfft.permute(3, 1, 2, 0, 4).contiguous()
@@ -794,10 +796,12 @@ class Conv2dfftFunction(torch.autograd.Function):
                         # print("N,F,half_fft_compressed_H,half_fft_compressed_W,C:", N, F, half_fft_compressed_H, half_fft_compressed_W, C)
                         # print("doutfft size before permute: ", doutfft.size())
                         if need_input_grad:
-                            doutfft = doutfft.permute(3, 1, 2, 0, 4).contiguous()
+                            doutfft = doutfft.permute(3, 1, 2, 0,
+                                                      4).contiguous()
                         else:
                             # N, F, H, W, I -> F,H,W,N,I
-                            doutfft = doutfft.permute(1, 2, 3, 0, 4).contiguous()
+                            doutfft = doutfft.permute(1, 2, 3, 0,
+                                                      4).contiguous()
                         # print("doutfft size after permute: ", doutfft.size())
                         # xfft: N,H,W,C,I -> C,H,W,N,I
                         xfft = xfft.permute(3, 1, 2, 0, 4).contiguous()
@@ -825,13 +829,15 @@ class Conv2dfftFunction(torch.autograd.Function):
                     # step = get_step_estimate(xfft, doutfft, memory_size=memory_size,
                     #                          scale=4)
                     step = args.min_batch_size
-                    if len(doutfft.shape) == 5:  # we did not need grad for input
+                    if len(
+                            doutfft.shape) == 5:  # we did not need grad for input
                         doutfft.unsqueeze_(dim=2)
                     doutfft = doutfft.permute(1, 0, 2, 3, 4, 5)
                     for start in range(start, F, step):
                         stop = min(start + step, F)
                         doutfft_nn = doutfft[start:stop]
-                        dwfft[start:stop] = complex_mul(xfft, doutfft_nn).sum(dim=1)
+                        dwfft[start:stop] = complex_mul(xfft, doutfft_nn).sum(
+                            dim=1)
                 else:
                     raise Exception(f"Unknown conv exec "
                                     f"type: {args.conv_exec_type.name}.")

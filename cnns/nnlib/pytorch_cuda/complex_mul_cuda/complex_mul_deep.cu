@@ -19,6 +19,7 @@ namely: complex_mul_shared_log_cuda.
 #include <cmath>
 #include <iostream>
 #include <cassert>
+#include <string>
 
 namespace {
 

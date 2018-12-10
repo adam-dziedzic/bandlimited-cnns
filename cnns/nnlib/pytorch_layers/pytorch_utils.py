@@ -25,9 +25,7 @@ import time
 import os
 import socket
 
-cuda_machines = ["skr-compute1", "adam-gpu2", "adam-gpu3", "adam-gpu5"]
-
-if socket.gethostname() in cuda_machines:
+if torch.cuda.is_available():
     # from complex_mul_cpp import complex_mul as complex_mul_cpp
     # from complex_mul_cuda import complex_mul as complex_mul_cuda
     # from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
