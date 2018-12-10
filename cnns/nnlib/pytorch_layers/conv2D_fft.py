@@ -124,7 +124,8 @@ class Conv2dfftFunction(torch.autograd.Function):
 
         :return: the result of convolution.
         """
-        # print("input size: ", input.size())
+        # print("input size: ", input.size(), ", filter size:", filter.size())
+
         Conv2dfftFunction.mark_dirty(input)
         if args is not None:
             index_back = args.index_back
@@ -315,8 +316,11 @@ class Conv2dfftFunction(torch.autograd.Function):
         if bias is not None:
             unsqueezed_bias = bias.unsqueeze(-1).unsqueeze(-1)
 
+        # C, H, W = xfft.size(1), xfft.size(2), xfft.size(3)
+        # print(f"C,{C},H,{H},W,{W},C*H*W,{C*H*W}")
+
         yfft = pytorch_conjugate(yfft)
-        start_correlation = time.time()
+        # start_correlation = time.time()
         if args.conv_exec_type is ConvExecType.SERIAL:
             # Serially convolve each input map with all filters.
             out = torch.empty([N, F, out_H, out_W], dtype=dtype, device=device)
@@ -856,6 +860,11 @@ class Conv2dfftFunction(torch.autograd.Function):
                 dw = dw[..., :HH, :WW]
         del doutfft
         del xfft
+
+        # if dx is not None:
+        #     print("dx size: ", dx.size(), ", dw size: ", dw.size())
+        # else:
+        #     print("dw size: ", dw.size())
 
         return dx, dw, db, None, None, None, None, None, None
 

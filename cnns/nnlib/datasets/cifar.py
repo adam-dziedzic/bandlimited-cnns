@@ -1,4 +1,5 @@
 from torchvision import transforms
+from torchvision import datasets
 import torchvision
 import torch
 from cnns.nnlib.datasets.transformations.dtype_transformation import \
@@ -37,7 +38,7 @@ def get_transform_test(dtype=torch.float32, signal_dimension=2):
     return transform_test
 
 
-def get_cifar10(args):
+def get_cifar(args, dataset_name):
     """
     Get the MNIST dataset.
 
@@ -46,6 +47,15 @@ def get_cifar10(args):
     :return: main train and test loaders, as well as other params, such as
     number of classes.
     """
+    if dataset_name is "cifar10":
+        args.num_classes = 10
+        dataset_loader = datasets.CIFAR10
+    elif dataset_name is "cifar100":
+        args.num_classes = 100
+        dataset_loader = datasets.CIFAR100
+    else:
+        raise Exception(f"Uknown dataset: {dataset_name}")
+
     sample_count = args.sample_count_limit
     use_cuda = args.use_cuda
     num_workers = args.workers
@@ -56,7 +66,6 @@ def get_cifar10(args):
         kwargs = {'num_workers': num_workers, 'pin_memory': pin_memory}
     else:
         kwargs = {'num_workers': num_workers}
-    args.num_classes = 10
     args.width = 32 * 32
     # The size of the flat vector after the conv layers in LeNet.
     args.flat_size = 500
@@ -68,13 +77,15 @@ def get_cifar10(args):
         args.signal_dimension = 2
     elif args.network_type is NetworkType.ResNet18:
         args.signal_dimension = 2
+    elif args.network_type is NetworkType.DenseNetCifar:
+        args.signal_dimension = 2
     else:
-        raise Exception(f"Uknown network type: {args.network_type}")
-    train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True,
-                                                 download=True,
-                                                 transform=get_transform_train(
-                                                     dtype=torch.float,
-                                                     signal_dimension=args.signal_dimension))
+        raise Exception(f"Uknown network type: {args.network_type.name}")
+    train_dataset = dataset_loader(root='./data', train=True,
+                                   download=True,
+                                   transform=get_transform_train(
+                                       dtype=torch.float,
+                                       signal_dimension=args.signal_dimension))
     if sample_count > 0:
         train_dataset.data = train_dataset.data[:sample_count]
         train_dataset.targets = train_dataset.targets[:sample_count]
@@ -84,11 +95,11 @@ def get_cifar10(args):
                                                shuffle=True,
                                                **kwargs)
 
-    test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False,
-                                                download=True,
-                                                transform=get_transform_test(
-                                                    dtype=torch.float,
-                                                    signal_dimension=args.signal_dimension))
+    test_dataset = dataset_loader(root='./data', train=False,
+                                  download=True,
+                                  transform=get_transform_test(
+                                      dtype=torch.float,
+                                      signal_dimension=args.signal_dimension))
     if sample_count > 0:
         test_dataset.data = test_dataset.data[:sample_count]
         test_dataset.targets = test_dataset.targets[:sample_count]

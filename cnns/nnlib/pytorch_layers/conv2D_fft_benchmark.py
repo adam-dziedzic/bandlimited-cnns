@@ -427,8 +427,8 @@ class TestBenchmarkConv2d(unittest.TestCase):
         args.min_batch_size = 128
         args.test_batch_size = args.min_batch_size
         args.network_type = NetworkType.ResNet18
-        from cnns.nnlib.datasets.cifar10 import get_cifar10
-        train_loader, test_loader = get_cifar10(args)
+        from cnns.nnlib.datasets.cifar import get_cifar
+        train_loader, test_loader = get_cifar(args)
 
         repetition = 1
 

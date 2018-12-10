@@ -31,12 +31,12 @@ def conv3x3(in_planes, out_planes, stride=1, args=None):
 
 def conv1x1(in_planes, out_planes, stride=1, args=None):
     """1x1 convolution"""
-    return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride,
-                     bias=False)
-    # It is unnecessary to use fft convolution for kernels of size 1x1.
-    # return Conv(kernel_sizes=[1], in_channels=in_planes,
-    #             out_channels=[out_planes], strides=[stride],
-    #             padding=[0], args=args, is_bias=False).get_conv()
+    # return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride,
+    #                  bias=False)
+    # It is rather unnecessary to use fft convolution for kernels of size 1x1.
+    return Conv(kernel_sizes=[1], in_channels=in_planes,
+                out_channels=[out_planes], strides=[stride],
+                padding=[0], args=args, is_bias=False).get_conv()
 
 # global_block_conv1_time = 0.0
 class BasicBlock(nn.Module):
@@ -123,9 +123,6 @@ class ResNet(nn.Module):
         super(ResNet, self).__init__()
         # self.global_layer1_time = 0.0
         self.inplanes = 64
-        # self.conv1 = nn.Conv2d(args.in_channels, 64, kernel_size=7, stride=2,
-        #                        padding=3,
-        #                        bias=False)
         self.conv1 = Conv(kernel_sizes=[3], in_channels=args.in_channels,
                           out_channels=[64], strides=[1], padding=[1],
                           args=args, is_bias=False).get_conv()

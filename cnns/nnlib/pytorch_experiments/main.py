@@ -24,6 +24,7 @@ from torch.optim.lr_scheduler import MultiStepLR
 from cnns.nnlib.pytorch_layers.AdamFloat16 import AdamFloat16
 from cnns.nnlib.pytorch_architecture.le_net import LeNet
 from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
+from cnns.nnlib.pytorch_architecture.densenet import densenet_cifar
 from cnns.nnlib.pytorch_architecture.fcnn import FCNNPytorch
 from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.general_utils import ConvExecType
@@ -41,7 +42,7 @@ from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import mem_log_file
 from cnns.nnlib.utils.general_utils import get_log_time
 from cnns.nnlib.datasets.mnist import get_mnist
-from cnns.nnlib.datasets.cifar10 import get_cifar10
+from cnns.nnlib.datasets.cifar import get_cifar
 from cnns.nnlib.datasets.ucr.ucr import get_ucr
 from cnns.nnlib.utils.arguments import Arguments
 from cnns.nnlib.pytorch_experiments.utils.progress_bar import progress_bar
@@ -298,6 +299,8 @@ def getModelPyTorch(args=args):
         return FCNNPytorch(args=args)
     elif network_type == NetworkType.ResNet18:
         return resnet18(args=args)
+    elif network_type == NetworkType.DenseNetCifar:
+        return densenet_cifar(args=args)
     else:
         raise Exception("Unknown network_type: ", network_type)
 
@@ -537,8 +540,8 @@ def main(args):
     args.dtype = dtype
 
     train_loader, dev_loader, test_loader = None, None, None
-    if dataset_name is "cifar10":
-        train_loader, test_loader = get_cifar10(args)
+    if dataset_name is "cifar10" or dataset_name is "cifar100":
+        train_loader, test_loader = get_cifar(args, dataset_name)
     elif dataset_name is "mnist":
         train_loader, test_loader = get_mnist(args)
     elif dataset_name in os.listdir(ucr_path):  # dataset from UCR archive
@@ -732,6 +735,8 @@ if __name__ == '__main__':
         flist = os.listdir(ucr_path)
     elif args.dataset == "cifar10":
         flist = ["cifar10"]
+    elif args.dataset == "cifar100":
+        flist = ["cifar100"]
     elif args.dataset == "mnist":
         flist = ["mnist"]
     elif args.dataset == "debug":
