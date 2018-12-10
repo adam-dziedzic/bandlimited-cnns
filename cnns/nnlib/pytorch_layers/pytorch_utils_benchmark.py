@@ -13,10 +13,7 @@ from torch import tensor
 import socket
 import time
 
-if socket.gethostname() == "skr-compute1":
-    from complex_mul_cpp import complex_mul as complex_mul_cpp
-    from complex_mul_cuda import complex_mul as complex_mul_cuda
-    from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
+if torch.cuda.is_available():
     from complex_mul_cuda import \
         complex_mul_stride_no_permute as complex_mul_stride_no_permute_cuda
     from complex_mul_cuda import \

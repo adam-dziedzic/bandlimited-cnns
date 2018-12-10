@@ -42,8 +42,6 @@ from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import ConvExecType
 from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.arguments import Arguments
-from cnns.nnlib.pytorch_layers.pytorch_utils import cuda_machines
-import socket
 
 if torch.cuda.is_available():
     # from complex_mul_cpp import complex_mul as complex_mul_cpp
