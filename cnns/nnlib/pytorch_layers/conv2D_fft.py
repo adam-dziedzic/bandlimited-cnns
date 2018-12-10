@@ -456,6 +456,9 @@ class Conv2dfftFunction(torch.autograd.Function):
             # for dw size
             ctx.W = W
             ctx.WW = WW
+            # for padding
+            ctx.pad_H = pad_H
+            ctx.pad_W = pad_W
             # for standard stride
             ctx.out_H = out_H
             ctx.out_W = out_W
@@ -505,6 +508,8 @@ class Conv2dfftFunction(torch.autograd.Function):
         HH = ctx.HH
         W = ctx.W
         WW = ctx.WW
+        pad_H = ctx.pad_H
+        pad_W = ctx.pad_W
         out_H = ctx.out_H
         out_W = ctx.out_W
         stride_H = ctx.stride_H
@@ -702,7 +707,8 @@ class Conv2dfftFunction(torch.autograd.Function):
                                  signal_sizes=(init_H_fft, init_W_fft),
                                  onesided=True)
                 del dxfft
-                dx = dx[..., :H, :W]
+                # print("full dx: ", dx)
+                dx = dx[..., pad_H:H + pad_H, pad_W:W + pad_W]
             del yfft
 
         if need_filter_grad:

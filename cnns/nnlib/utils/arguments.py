@@ -51,7 +51,7 @@ class Arguments(object):
                  index_back=None,
                  #weight_decay=5e-4,
                  weight_decay=0,
-                 epochs=2,
+                 epochs=10,
                  min_batch_size=32,
                  test_batch_size=32,
                  learning_rate=0.001,
