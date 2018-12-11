@@ -740,7 +740,10 @@ if __name__ == '__main__':
     elif args.dataset == "mnist":
         flist = ["mnist"]
     elif args.dataset == "debug":
-        flist = ["WIFI"]
+        flist = ['50words', 'Adiac', 'ArrowHead', 'Beef', 'BeetleFly',
+                 'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
+                 'CinC_ECG_torso', 'Coffee', 'Computers']
+        # flist = ["WIFI"]
         # flist = ["50words"]
         # flist = ["yoga"]
         # flist = ["Two_Patterns"]
