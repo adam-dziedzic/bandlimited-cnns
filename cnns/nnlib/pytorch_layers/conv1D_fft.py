@@ -105,6 +105,8 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         :return: the result of convolution.
         """
+        Conv1dfftFunction.mark_dirty(input)
+
         # if is_debug:
         #     gpu_profile(frame=sys._getframe(), event='line', arg=None)
 
@@ -469,7 +471,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                     # Bias has to be unsqueezed to the dimension of the
                     # out to properly sum up the values.
                     output[nn] += bias.unsqueeze(1)
-        elif args.conve_exec_type is ConvExecType.BATCH:
+        elif args.conv_exec_type is ConvExecType.BATCH:
             # Convolve some part of the input batch with all filters.
             start = 0
             # step = get_step_estimate(xfft, yfft, args.memory_size)
@@ -498,7 +500,8 @@ class Conv1dfftFunction(torch.autograd.Function):
                     # to the dimension of the output to properly sum up the
                     # values).
                     output[start:stop] += unsqueezed_bias
-
+        else:
+            raise Exception(f"Unknown conv exec type: {args.conv_exec_type.name}")
 
 
         if is_debug:
@@ -530,7 +533,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         if is_debug:
             cuda_mem_show(info="forward end")
 
-        return output
+        return output.clone()
 
     @staticmethod
     # @profile
@@ -766,7 +769,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                     out = torch.sum(out, dim=0)
                     out = torch.unsqueeze(input=out, dim=0)
                     dx[nn] = out
-            else:
+            elif args.conv_exec_type is ConvExecType.BATCH:
                 # Convolve some part of the dout batch with all filters.
                 start = 0
                 # step = 16

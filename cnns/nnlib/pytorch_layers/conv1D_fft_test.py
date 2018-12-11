@@ -109,6 +109,20 @@ class TestPyTorchConv1d(unittest.TestCase):
             np.testing.assert_array_almost_equal(
                 result, np.array([[expected_result]]))
 
+    def test_FunctionForwardNoCompression(self):
+        x = np.array([[[1., 2., 3.]]])
+        y = np.array([[[2., 1.]]])
+        b = np.array([0.0])
+        # get the expected results from numpy correlate
+        expected_result = np.correlate(x[0, 0, :], y[0, 0, :], mode="valid")
+        for convType in convTypes:
+            print("Conv type: ", convType)
+            conv = convType(filter_value=torch.from_numpy(y),
+                            bias_value=torch.from_numpy(b))
+            result = conv.forward(input=torch.from_numpy(x))
+            np.testing.assert_array_almost_equal(
+                result, np.array([[expected_result]]))
+
     def test_FunctionForwardNoCompressionFFTForCompressSignalOnly(self):
         x = np.array([[[1., 2., 3.]]])
         y = np.array([[[2., 1.]]])
@@ -1078,7 +1092,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         print("expected_dw: ", expected_dw)
         print("expected_db: ", expected_db)
 
-        dx, dw, db, _, _, _, _, _, _  = Conv1dfftFunction.backward(
+        dx, dw, db, _, _, _, _, _, _ = Conv1dfftFunction.backward(
             ctx,
             dout)
 
@@ -1219,8 +1233,8 @@ class TestPyTorchConv1d(unittest.TestCase):
         #     [[[0.052956, 0.120672, 0.161284, 0.150332, 0.089258,
         #        0.005318, -0.063087, -0.087266, -0.063311, -0.012829]]])
         approximate_expected_dx = np.array(
-            [[[0.086085,  0.11464 ,  0.122151,  0.105543,  0.069081,  0.023023,
-              -0.019728, -0.047839, -0.055165, -0.042567]]])
+            [[[0.086085, 0.11464, 0.122151, 0.105543, 0.069081, 0.023023,
+               -0.019728, -0.047839, -0.055165, -0.042567]]])
 
         # are the gradients correct
         np.testing.assert_array_almost_equal(
@@ -1340,11 +1354,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         conv_param = {'pad': 0, 'stride': 1}
         expected_result, cache = conv_forward_naive_1D(x=x, w=y, b=b,
                                                        conv_param=conv_param)
-
         result_torch = Conv1dfftFunction.apply(x_torch, y_torch, b_torch)
-        result = result_torch.detach().numpy()
-        np.testing.assert_array_almost_equal(
-            result, np.array(expected_result))
 
         dout = tensor([[[0.1, -0.2]]], dtype=dtype)
         # get the expected result from the backward pass
@@ -1352,6 +1362,58 @@ class TestPyTorchConv1d(unittest.TestCase):
             conv_backward_naive_1D(dout.numpy(), cache)
 
         result_torch.backward(dout)
+
+        result = result_torch.detach().numpy()
+        np.testing.assert_array_almost_equal(
+            result, np.array(expected_result))
+
+        print()
+        print("expected dx: " + str(expected_dx))
+        print("computed dx: {}".format(x_torch.grad))
+
+        print("expected dw: {}".format(expected_dw))
+        print("computed dw: {}".format(y_torch.grad))
+
+        # self.logger.debug("expected db: ", expected_db)
+        # self.logger.debug("computed db: ", b_torch.grad)
+
+        # Are the gradients correct?
+        np.testing.assert_array_almost_equal(x=expected_dx, y=x_torch.grad,
+                                             err_msg=ERR_MSG)
+        np.testing.assert_array_almost_equal(x=expected_dw, y=y_torch.grad,
+                                             err_msg=ERR_MSG)
+        np.testing.assert_array_almost_equal(x=expected_db, y=b_torch.grad,
+                                             err_msg=ERR_MSG)
+
+    def test_FunctionBackwardNoCompression2ChannelsWithPadding(self):
+        x = np.array([[[1.0, 2.0, 3.0], [-1.0, -3.0, 2.0]]])
+        y = np.array([[[2.0, 1.0], [-2.0, 3.0]]])
+        # still it is only a single filter but with 2 channels
+        b = np.array([0.0])
+        dtype = torch.float
+        x_torch = tensor(x, requires_grad=True, dtype=dtype)
+        y_torch = tensor(y, requires_grad=True, dtype=dtype)
+        b_torch = tensor(b, requires_grad=True, dtype=dtype)
+
+        padding = 1
+
+        conv_param = {'pad': padding, 'stride': 1}
+        expected_result, cache = conv_forward_naive_1D(x=x, w=y, b=b,
+                                                       conv_param=conv_param)
+
+        result_torch = Conv1dfftFunction.apply(x_torch, y_torch, b_torch,
+                                               padding)
+
+        dout = tensor([[[0.1, -0.2]]], dtype=dtype)
+        # get the expected result from the backward pass
+        expected_dx, expected_dw, expected_db = \
+            conv_backward_naive_1D(dout.numpy(), cache)
+
+        result_torch.backward(dout)
+
+        result = result_torch.detach().numpy()
+        np.testing.assert_array_almost_equal(
+            result, np.array(expected_result))
 
         print()
         print("expected dx: " + str(expected_dx))
@@ -1513,7 +1575,8 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         result = result_torch.cpu().detach().numpy()
         # self.logger.debug("obtained result: " + str(result))
-        np.testing.assert_array_almost_equal(result, np.array(expected_result))
+        np.testing.assert_array_almost_equal(
+            np.array(expected_result), result, decimal=5)
 
         conv_param = {'pad': 0, 'stride': 1}
         expected_result, cache = conv_forward_naive_1D(x, y, b, conv_param)
