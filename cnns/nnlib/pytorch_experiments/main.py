@@ -990,10 +990,10 @@ if __name__ == '__main__':
                  ]
         flist = reversed(flist)
     elif args.dataset == "debug10conv1-99":
-        flist = ['HandOutlines',
-                 'Haptics',
+        flist = ['Haptics',
                  'Herring',
                  'InlineSkate',
+                 'InsectWingbeatSound',
                  'LargeKitchenAppliances',
                  'Lighting2',
                  'MALLAT',
@@ -1015,7 +1015,6 @@ if __name__ == '__main__':
     elif args.dataset == "debug10conv1-99-reverse":
         flist = ['HandOutlines',
                  'Haptics',
-                 'Herring',
                  'InlineSkate',
                  'LargeKitchenAppliances',
                  'Lighting2',
