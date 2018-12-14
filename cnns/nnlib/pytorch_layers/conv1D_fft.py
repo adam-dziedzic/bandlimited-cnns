@@ -517,6 +517,7 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         if ctx:
             ctx.run_args = args
+            ctx.padding = padding
             ctx.save_for_backward(xfft, yfft, to_tensor(W), to_tensor(WW),
                                   to_tensor(fft_size), is_manual,
                                   to_tensor(conv_index),
@@ -567,6 +568,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             del tensor_obj
         omit_objs = [id(ctx)]
         args = ctx.run_args
+        padding = ctx.padding
         conv_index = from_tensor(conv_index)  # for the debug/test purposes
 
         is_debug = from_tensor(is_debug)
@@ -762,7 +764,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                     out = correlate_fft_signals(
                         xfft=doutfft_nn, yfft=conjugate_yfft,
                         fft_size=fft_size)
-                    start_index = 2 * filter_pad
+                    start_index = 2 * filter_pad + padding
                     # print("start index: ", start_index)
                     out = out[:, :, start_index: start_index + W]
                     # Sum over all the Filters (F).
@@ -785,9 +787,9 @@ class Conv1dfftFunction(torch.autograd.Function):
                     out = correlate_fft_signals(
                         xfft=doutfft_nn, yfft=conjugate_yfft,
                         fft_size=fft_size)
-                    start_index = 2 * filter_pad
+                    start_index = filter_pad + padding
                     # print("start index: ", start_index)
-                    out = out[..., start_index: start_index + W]
+                    out = out[..., start_index: W + start_index]
                     # print("out size: ", out.size())
                     # Sum over all the Filters (F).
                     out = torch.sum(out, dim=1)

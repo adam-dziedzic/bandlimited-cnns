@@ -986,7 +986,6 @@ if __name__ == '__main__':
                  'SonyAIBORobotSurface',
                  'StarLightCurves',
                  'Strawberry',
-                 'uWaveGestureLibrary_Z',
                  ]
         flist = reversed(flist)
     elif args.dataset == "debug10conv1-99":

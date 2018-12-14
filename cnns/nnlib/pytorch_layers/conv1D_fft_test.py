@@ -1404,7 +1404,9 @@ class TestPyTorchConv1d(unittest.TestCase):
         result_torch = Conv1dfftFunction.apply(x_torch, y_torch, b_torch,
                                                padding)
 
-        dout = tensor([[[0.1, -0.2]]], dtype=dtype)
+        # out_W = W + 2 * pad - WW + 1
+
+        dout = tensor([[[0.1, -0.2, 0.3, -0.1]]], dtype=dtype)
         # get the expected result from the backward pass
         expected_dx, expected_dw, expected_db = \
             conv_backward_naive_1D(dout.numpy(), cache)
