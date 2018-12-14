@@ -206,15 +206,27 @@ class Conv1dfftFunction(torch.autograd.Function):
         and also have to account for the convolution with flowing back gradient:
         [WW-1][W][WW-1][WWW-1]
         
-        Final padding:
+        Full padding to take into account the convolutions between the filters 
+        and the input as well as the flowing back gradient.
         W: [WW-1][W][WW-1][WWW-1]
         WW: [WW-1][WW][WW-1][W+WW-1-WW]
         WWW: [WW-1][WWW][WW-1][W-1]
+        
+        Minimized padding for the max length of the filter of the flowing back
+        gradient:
+        Let's denote: maxW = max(WW, WWW)
+        
+        W: [W][maxW][fft_pad]
+        WW: align to the size of W
+        WWW: align to the size of W
         """
         filter_pad = WW - 1  # padding from the filter
         # padding from the flowing back gradient fft-ed map
         dout_pad = out_W - 1
-        init_fft_size = W + 2 * padding_count + 2 * filter_pad + dout_pad
+        # conv_pad = filter_pad + dout_pad
+        conv_pad = max(filter_pad, dout_pad)
+        init_fft_size = W + 2 * padding_count + 2 * conv_pad
+
         if use_next_power2:
             fft_size = next_power2(init_fft_size)
         else:
@@ -229,8 +241,11 @@ class Conv1dfftFunction(torch.autograd.Function):
         # on both sides with (filter_size - 1) to cater for the backward pass
         # where the required form of the dout is [WW-1][WWW][WW-1].
 
-        left_x_pad = filter_pad + padding_count
-        right_x_pad = padding_count + filter_pad + dout_pad + fft_padding_x
+        # left_x_pad = filter_pad + padding_count
+        left_x_pad = padding_count
+        # right_x_pad = padding_count + filter_pad + dout_pad + fft_padding_x
+        # right_x_pad = padding_count + conv_pad + fft_padding_x
+        right_x_pad = fft_padding_x - W - padding_count
         input = torch_pad(input, (left_x_pad, right_x_pad), 'constant', 0)
         if is_debug:
             cuda_mem_show(info="input pad")
@@ -316,12 +331,15 @@ class Conv1dfftFunction(torch.autograd.Function):
             # At least 1 coefficient in the filter.
             fft_size_filter = max(1, (half_fft_compressed_size - 1) * 2)
 
-        fft_padding_filter = fft_size_filter - (WW + 2 * filter_pad)
+        # fft_padding_filter = fft_size_filter - (WW + 2 * filter_pad)
+        fft_padding_filter = fft_size_filter - WW
         # We have to pad the filter (at least the filter size - 1).
-        # fft_padding_filter can be negative number if
-        right_filter_pad = max(filter_pad, filter_pad + fft_padding_filter)
-        filter = torch_pad(filter, (filter_pad, right_filter_pad),
-                           'constant', 0)
+        # fft_padding_filter can be a negative number
+        # right_filter_pad = max(filter_pad, filter_pad + fft_padding_filter)
+        right_filter_pad = fft_padding_filter
+        # filter = torch_pad(filter, (filter_pad, right_filter_pad),
+        #                    'constant', 0)
+        filter = torch_pad(filter, (0, right_filter_pad), 'constant', 0)
 
         if is_debug:
             cuda_mem_show(info="filter pad")
@@ -647,11 +665,13 @@ class Conv1dfftFunction(torch.autograd.Function):
         # We pad both sides of the dout gradient. The left side is padded by
         # (WW-1), the right side is padded also by (WW-1) and the additional
         # zeros that are required to fill in the init_fft_size.
-        filter_pad = WW - 1
-        left_pad = filter_pad
+        # filter_pad = WW - 1
+        # left_pad = filter_pad
+        left_pad = 0
         # out_W is the length of dout as well.
-        fft_pad = fft_size_grad - (filter_pad + out_W + filter_pad)
-        right_pad = filter_pad + fft_pad
+        # fft_pad = fft_size_grad - (filter_pad + out_W + filter_pad)
+        # right_pad = filter_pad + fft_pad
+        right_pad = fft_pad - out_W
         dout = torch_pad(dout, (left_pad, right_pad), 'constant', 0)
 
         if is_debug:
