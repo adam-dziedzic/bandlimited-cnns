@@ -1415,7 +1415,7 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         result = result_torch.detach().numpy()
         np.testing.assert_array_almost_equal(
-            result, np.array(expected_result))
+            x=np.array(expected_result), y=result, )
 
         print()
         print("expected dx: " + str(expected_dx))

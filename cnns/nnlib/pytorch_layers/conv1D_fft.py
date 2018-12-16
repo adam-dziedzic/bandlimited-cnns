@@ -226,6 +226,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         # conv_pad = filter_pad + dout_pad
         conv_pad = max(filter_pad, dout_pad)
         init_fft_size = W + 2 * padding_count + 2 * conv_pad
+        # init_fft_size = W + 2 * conv_pad
 
         if use_next_power2:
             fft_size = next_power2(init_fft_size)
@@ -243,9 +244,11 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         # left_x_pad = filter_pad + padding_count
         left_x_pad = padding_count
+        # left_x_pad = 0
         # right_x_pad = padding_count + filter_pad + dout_pad + fft_padding_x
         # right_x_pad = padding_count + conv_pad + fft_padding_x
         right_x_pad = fft_size - W - padding_count  # one padding is applied to the left side
+        # right_x_pad = fft_size - W
         input = torch_pad(input, (left_x_pad, right_x_pad), 'constant', 0)
         if is_debug:
             cuda_mem_show(info="input pad")
@@ -785,7 +788,8 @@ class Conv1dfftFunction(torch.autograd.Function):
                         xfft=doutfft_nn, yfft=conjugate_yfft,
                         fft_size=fft_size)
                     # start_index = 2 * filter_pad + padding
-                    start_index = padding
+                    # start_index = padding
+                    start_index = 0
                     # print("start index: ", start_index)
                     out = out[:, :, start_index: start_index + W]
                     # Sum over all the Filters (F).
@@ -801,14 +805,16 @@ class Conv1dfftFunction(torch.autograd.Function):
                 doutfft = doutfft.unsqueeze(dim=2)
                 # For each slice of time-series in the batch.
                 for start in range(start, N, step):
-                    stop = min(start + step, F)
+                    # the last range has to have the stop < N
+                    stop = min(start + step, N)
                     doutfft_nn = doutfft[start:stop]
                     # print("doutfft_nn size: ", doutfft_nn.size())
                     # print("conjugateyfft size: ", conjugate_yfft.size())
                     out = correlate_fft_signals(
                         xfft=doutfft_nn, yfft=conjugate_yfft,
                         fft_size=fft_size)
-                    start_index = filter_pad + padding
+                    start_index = padding
+                    # start_index = 0
                     # print("start index: ", start_index)
                     out = out[..., start_index: W + start_index]
                     # print("out size: ", out.size())
