@@ -234,7 +234,7 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         # How many padded (zero) values there are because of going to the next
         # power of 2?
-        fft_padding_x = fft_size - init_fft_size
+        # fft_padding_x = fft_size - init_fft_size
 
         # Pad only the dimensions for the time-series - the width dimension
         # (and neither data points nor the channels). We pad the input signal
@@ -245,7 +245,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         left_x_pad = padding_count
         # right_x_pad = padding_count + filter_pad + dout_pad + fft_padding_x
         # right_x_pad = padding_count + conv_pad + fft_padding_x
-        right_x_pad = fft_padding_x - W - padding_count
+        right_x_pad = fft_size - W - padding_count  # one padding is applied to the left side
         input = torch_pad(input, (left_x_pad, right_x_pad), 'constant', 0)
         if is_debug:
             cuda_mem_show(info="input pad")
@@ -671,7 +671,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         # out_W is the length of dout as well.
         # fft_pad = fft_size_grad - (filter_pad + out_W + filter_pad)
         # right_pad = filter_pad + fft_pad
-        right_pad = fft_pad - out_W
+        right_pad = fft_size_grad - out_W
         dout = torch_pad(dout, (left_pad, right_pad), 'constant', 0)
 
         if is_debug:
@@ -784,7 +784,8 @@ class Conv1dfftFunction(torch.autograd.Function):
                     out = correlate_fft_signals(
                         xfft=doutfft_nn, yfft=conjugate_yfft,
                         fft_size=fft_size)
-                    start_index = 2 * filter_pad + padding
+                    # start_index = 2 * filter_pad + padding
+                    start_index = padding
                     # print("start index: ", start_index)
                     out = out[:, :, start_index: start_index + W]
                     # Sum over all the Filters (F).
