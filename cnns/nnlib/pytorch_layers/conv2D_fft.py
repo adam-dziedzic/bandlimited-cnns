@@ -132,14 +132,12 @@ class Conv2dfftFunction(torch.autograd.Function):
             preserve_energy = args.preserve_energy
             use_next_power2 = args.next_power2
             is_debug = args.is_debug
-            compress_type = args.compress_type
             stride_type = args.stride_type
         else:
             index_back = None
             preserve_energy = None
             use_next_power2 = False
             is_debug = False
-            compress_type = CompressType.STANDARD
             stride_type = StrideType.STANDARD
 
         dtype = input.dtype
