@@ -252,6 +252,10 @@ def next_power2(x):
     >>> np.testing.assert_equal(result, 16)
     >>> result = next_power2(16)
     >>> np.testing.assert_equal(result, 16)
+    >>> result = next_power2(64)
+    >>> np.testing.assert_equal(result, 64)
+    >>> result = next_power2(63)
+    >>> np.testing.assert_equal(result, 64)
     """
     # return math.pow(2, math.ceil(math.log2(x)))
     return int(2 ** np.ceil(np.log2(x)))
