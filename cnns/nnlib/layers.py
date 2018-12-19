@@ -1086,6 +1086,7 @@ def conv_forward_fft_1D(x, w, b, conv_param):
     # pad only the dimensions for the time-series (and neither data points nor the channels)
     padded_x = (np.pad(x, ((0, 0), (0, 0), (pad, pad)), 'constant'))
     out_W = W + 2 * pad - WW + 1
+
     out = np.zeros([N, F, out_W])
     for nn in range(N):  # For each time-series in the input batch.
         for ff in range(F):  # For each filter in w
