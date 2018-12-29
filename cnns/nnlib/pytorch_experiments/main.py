@@ -376,6 +376,8 @@ def train(model, device, train_loader, optimizer, loss_function, epoch, args):
             device=device)
         optimizer.zero_grad()
         output = model(data)
+        with open(additional_log_file, "a") as file:
+            file.write("\n")
         loss = loss_function(output, target)
 
         # The cross entropy loss combines `log_softmax` and `nll_loss` in

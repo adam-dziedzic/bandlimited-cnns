@@ -104,7 +104,44 @@ _progress_bar='FALSE' --learning_rate=0.01 --loss_reduction='ELEMENTWISE_MEAN' -
 1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --worker
 s=6  >> 2018-12-14-15-00-cifar100-fft2d-energy95-pytorch-adam-gpu3.txt 2>&1 &
 
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --conv_type='FFT2D' --conv_exec_type=CUDA --dataset='cifar100' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=350 --index_back=0 --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.01 --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='STANDARD' --min_batch_size=32 --model_path='2018-12-19-20-41-18-699435-dataset-cifar100-preserve-energy-95.0-test-accuracy-61.5.model' --momentum=0.9 --network_type='DenseNetCifar' --next_power2='TRUE' --optimizer_type='MOMENTUM' --preserve_energies=95 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=6  >> 2018-12-19-23-00-cifar100-fft2d-energy95-pytorch-adam-gpu3.txt 2>&1 &
+
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --conv_type='FFT2D' --conv_exec_type=CUDA --dataset='cifar100' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=350 --index_back=0 --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.01 --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='STANDARD' --min_batch_size=32 --model_path='2018-12-19-20-49-06-599729-dataset-cifar100-preserve-energy-99.0-test-accuracy-72.71.model' --momentum=0.9 --network_type='DenseNetCifar' --next_power2='TRUE' --optimizer_type='MOMENTUM' --preserve_energies=99 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=6  >> 2018-12-19-23-00-cifar100-fft2d-energy99-pytorch-adam-gpu3.txt 2>&1 &
+
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --conv_type='FFT2D' --conv_exec_type=CUDA --dataset='cifar100' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=350 --index_back=0 --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.01 --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='STANDARD' --min_batch_size=32 --model_path='2018-12-19-17-45-59-022669-dataset-cifar100-preserve-energy-98.0-test-accuracy-69.22.model' --momentum=0.9 --network_type='DenseNetCifar' --next_power2='TRUE' --optimizer_type='MOMENTUM' --preserve_energies=98 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=6  >> 2018-12-19-23-00-cifar100-fft2d-energy98-pytorch-adam-gpu3.txt 2>&1 &
+
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --conv_type='FFT2D' --conv_exec_type=CUDA --dataset='cifar100' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=350 --index_back=0 --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.01 --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='STANDARD' --min_batch_size=32 --model_path='2018-12-19-19-35-14-502498-dataset-cifar100-preserve-energy-99.5-test-accuracy-74.41.model' --momentum=0.9 --network_type='DenseNetCifar' --next_power2='TRUE' --optimizer_type='MOMENTUM' --preserve_energies=99.5 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=6  >> 2018-12-19-23-00-cifar100-fft2d-energy99.5-pytorch-adam-gpu3.txt 2>&1 &
+
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3
+/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --conv_type='FFT2D' --conv_exec_type=CUDA --dataset='cifar10' --dev_per
+cent=0 --dynamic_loss_scale='TRUE' --epochs=350 --index_back=0 --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --i
+s_progress_bar='FALSE' --learning_rate=0.06 --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size
+=25 --memory_type='STANDARD' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='ResNet18' --next_power2='TRUE' --opt
+imizer_type='MOMENTUM' --preserve_energies 92 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --
+stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=6
+ >> 2018-12-19-22-43-cifar10-fft2d-energy92-pytorch-adam-gpu6-lr:0.06,decay:0.0001-adam.txt 2>&1 &
+
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3
+/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --conv_type='FFT2D' --conv_exec_type=CUDA --dataset='cifar10' --dev_per
+cent=0 --dynamic_loss_scale='TRUE' --epochs=350 --index_back=0 --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --i
+s_progress_bar='FALSE' --learning_rate=0.03 --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size
+=25 --memory_type='STANDARD' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='ResNet18' --next_power2='TRUE' --opt
+imizer_type='MOMENTUM' --preserve_energies 99 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --
+stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=6
+ >> 2018-12-19-22-43-cifar10-fft2d-energy99-pytorch-adam-gpu6-lr:0.06,decay:0.0001-adam.txt 2>&1 &
+
+
+
+CUDA_VISIBLE_DEVICES=3 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3
+/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --conv_type='FFT2D' --conv_exec_type=CUDA --dataset='cifar10' --dev_per
+cent=0 --dynamic_loss_scale='TRUE' --epochs=350 --index_back=0 --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --i
+s_progress_bar='FALSE' --learning_rate=0.09 --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size
+=25 --memory_type='STANDARD' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='ResNet18' --next_power2='TRUE' --opt
+imizer_type='MOMENTUM' --preserve_energies 92 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --
+stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=6
+ >> 2018-12-19-22-43-cifar10-fft2d-energy92-pytorch-adam-gpu11-lr:0.05,decay:0.0001.txt 2>&1 &
 
 
 
 
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --conv_type='FFT2D' --conv_exec_type=CUDA --dataset='cifar100' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=350 --index_back=0 --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.01 --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='STANDARD' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='DenseNetCifar' --next_power2='TRUE' --optimizer_type='MOMENTUM' --preserve_energies=90 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=6  >> 2018-12-26-23-00-cifar100-fft2d-energy90-pytorch-adam-gpu3.txt 2>&1 &
