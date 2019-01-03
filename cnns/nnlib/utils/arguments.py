@@ -50,7 +50,7 @@ class Arguments(object):
                  dtype=torch.float,
                  use_cuda=True,
                  compress_type=CompressType.STANDARD,
-                 index_back=50,
+                 index_back=0,
                  #weight_decay=5e-4,
                  weight_decay=0,
                  epochs=2,
