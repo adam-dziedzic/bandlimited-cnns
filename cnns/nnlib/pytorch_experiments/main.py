@@ -477,10 +477,12 @@ def main(args):
     is_debug = args.is_debug
     dataset_name = args.dataset_name
     preserve_energy = args.preserve_energy
+    index_back = args.index_back
 
     dataset_log_file = os.path.join(
         results_folder_name, get_log_time() + "-dataset-" + str(dataset_name) + \
                              "-preserve-energy-" + str(preserve_energy) + \
+                              "-index-back-" + str(index_back) + \
                              ".log")
     DATASET_HEADER = HEADER + ",dataset," + str(dataset_name) + \
                      "-current-preserve-energy-" + str(preserve_energy) + "\n"
