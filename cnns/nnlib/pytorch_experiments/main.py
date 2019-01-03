@@ -446,6 +446,8 @@ def test(model, device, test_loader, loss_function, args, epoch=None):
             data, target = data.to(device=device, dtype=args.dtype), target.to(
                 device)
             output = model(data)
+            with open(additional_log_file, "a") as file:
+                file.write("\n")
             test_loss += loss_function(output,
                                        target).item()  # sum up batch loss
             # get the index of the max log-probability
