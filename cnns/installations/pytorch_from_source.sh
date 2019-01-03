@@ -65,6 +65,12 @@ fi
 /home/${USER}/anaconda3/bin/python setup.py install
 
 python -c "import torch; print('torch version: ', torch.__version__)"
+
+cd ~/Downloads/
+git clone --recursive https://github.com/pytorch/vision.git
+cd vision
+/home/${USER}/anaconda3/bin/python setup.py install
+
 python -c "import torch; print('conv1D_cuda version: ', torch.version.conv1D_cuda)"
 
 

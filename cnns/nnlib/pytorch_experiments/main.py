@@ -260,7 +260,6 @@ parser.add_argument("--adam_beta2", default=args.adam_beta2,
 parser.add_argument("--cuda_block_threads", default=args.cuda_block_threads,
                     type=int, help="Max number of threads for a cuda block.")
 
-
 parsed_args = parser.parse_args()
 args.set_parsed_args(parsed_args=parsed_args)
 
@@ -278,7 +277,6 @@ else:
 def getModelPyTorch(args=args):
     """
     Get the PyTorch version of the FCNN model.
-
     :param input_size: the length (width) of the time series.
     :param num_classes: number of output classes.
     :param in_channels: number of channels in the input data for a convolution.
@@ -466,7 +464,6 @@ def test(model, device, test_loader, loss_function, args, epoch=None):
         test_loss /= total
         accuracy = 100. * correct / total
         return test_loss, accuracy
-
 
 # @profile
 def main(args):
@@ -962,33 +959,33 @@ if __name__ == '__main__':
         flist = ["SwedishLeaf"]
     elif args.dataset == "debug9conv1-100":
         flist = [
-                 'HandOutlines',
-                 'Haptics',
-                 'InlineSkate',
-                 'Phoneme',
-                 'ProximalPhalanxOutlineAgeGroup',
-                 'ScreenType',
-                 'ShapeletSim',
-                 'ShapesAll',
-                 'SonyAIBORobotSurface',
-                 'StarLightCurves',
-                 'Strawberry',
-                 'uWaveGestureLibrary_Z',
-                 ]
+            'HandOutlines',
+            'Haptics',
+            'InlineSkate',
+            'Phoneme',
+            'ProximalPhalanxOutlineAgeGroup',
+            'ScreenType',
+            'ShapeletSim',
+            'ShapesAll',
+            'SonyAIBORobotSurface',
+            'StarLightCurves',
+            'Strawberry',
+            'uWaveGestureLibrary_Z',
+        ]
     elif args.dataset == "debug9conv1-100-reverse":
         flist = [
-                 'HandOutlines',
-                 'Haptics',
-                 'InlineSkate',
-                 'Phoneme',
-                 'ProximalPhalanxOutlineAgeGroup',
-                 'ScreenType',
-                 'ShapeletSim',
-                 'ShapesAll',
-                 'SonyAIBORobotSurface',
-                 'StarLightCurves',
-                 'Strawberry',
-                 ]
+            'HandOutlines',
+            'Haptics',
+            'InlineSkate',
+            'Phoneme',
+            'ProximalPhalanxOutlineAgeGroup',
+            'ScreenType',
+            'ShapeletSim',
+            'ShapesAll',
+            'SonyAIBORobotSurface',
+            'StarLightCurves',
+            'Strawberry',
+        ]
         flist = reversed(flist)
     elif args.dataset == "debug10conv1-99":
         flist = ['Haptics',
@@ -1010,7 +1007,7 @@ if __name__ == '__main__':
                  'StarLightCurves',
                  'UWaveGestureLibraryAll',
                  'Worms',
-                 'WormsTwoClass', # start from almost the beginning
+                 'WormsTwoClass',  # start from almost the beginning
                  'Earthquakes'
                  ]
     elif args.dataset == "debug10conv1-99-reverse":
@@ -1032,7 +1029,7 @@ if __name__ == '__main__':
                  'StarLightCurves',
                  'UWaveGestureLibraryAll',
                  'Worms',
-                 'WormsTwoClass', # start from almost the beginning
+                 'WormsTwoClass',  # start from almost the beginning
                  'Earthquakes'
                  ]
         flist = reversed(flist)
@@ -1040,7 +1037,10 @@ if __name__ == '__main__':
         raise AttributeError("Unknown dataset: ", args.dataset)
 
     if torch.cuda.is_available():
+        print("CUDA is available")
         torch.cuda.empty_cache()
+    else:
+        print("CUDA is not available")
 
     # flist = sorted(flist, key=lambda s: s.lower())
     # flist = flist[3:]  # start from Beef
