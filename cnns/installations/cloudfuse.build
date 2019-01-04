@@ -1,0 +1,10 @@
+-1. install:
+pip install python-openstackclient
+pip install python-swiftclient
+0. source code/time-series-ml/cnns/installations/CH-818214-openrc.sh
+1. create the ~/.cloudfuse file
+2. change the password in the ~/.cloudfuse file
+3. create a folder: adam-results
+4. mount: cloudfuse adam-results
+5. create the symbolic link: ln -s ~/adam-results/adam-store/results ~/code/time-series-ml/cnns/nnlib/pytorch_experiments/results-store
+6. unmount: fusermount -u adam-results

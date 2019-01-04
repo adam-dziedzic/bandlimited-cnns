@@ -1,0 +1,5 @@
+username=ady
+password=<password>
+tenant=CH-818214
+region=CHI@TACC
+authurl=https://chi.tacc.chameleoncloud.org:5000/v2.0
