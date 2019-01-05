@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 rm -rf complex_mul_cuda.egg-info/
 rm -rf build/
 rm -rf dist/
