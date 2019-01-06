@@ -152,7 +152,12 @@ parser.add_argument("--model_path",
                     help="The path to a saved model.")
 parser.add_argument("--dataset", default=args.dataset,
                     help="the type of datasets: all, debug, cifar10, mnist.")
-parser.add_argument("--index_back", default=args.index_back, type=float,
+# parser.add_argument("--index_back", default=args.index_back, type=float,
+#                     help="Percentage of indexes (values) from the back of the "
+#                          "frequency representation that should be discarded. "
+#                          "This is the compression in the FFT domain.")
+parser.add_argument('--indexes_back', nargs="+", type=float,
+                    default=args.indexes_back,
                     help="Percentage of indexes (values) from the back of the "
                          "frequency representation that should be discarded. "
                          "This is the compression in the FFT domain.")
@@ -374,8 +379,8 @@ def train(model, device, train_loader, optimizer, loss_function, epoch, args):
             device=device)
         optimizer.zero_grad()
         output = model(data)
-        with open(additional_log_file, "a") as file:
-            file.write("\n")
+        # with open(additional_log_file, "a") as file:
+        #     file.write("\n")
         loss = loss_function(output, target)
 
         # The cross entropy loss combines `log_softmax` and `nll_loss` in
@@ -446,8 +451,6 @@ def test(model, device, test_loader, loss_function, args, epoch=None):
             data, target = data.to(device=device, dtype=args.dtype), target.to(
                 device)
             output = model(data)
-            with open(additional_log_file, "a") as file:
-                file.write("\n")
             test_loss += loss_function(output,
                                        target).item()  # sum up batch loss
             # get the index of the max log-probability
@@ -638,10 +641,12 @@ def main(args):
     dev_loss = dev_accuracy = None
     for epoch in range(1, args.epochs + 1):
         epoch_start_time = time.time()
-        print("\ntrain:")
+        # print("\ntrain:")
         train_loss, train_accuracy = train(
             model=model, device=device, train_loader=train_loader, args=args,
             optimizer=optimizer, loss_function=loss_function, epoch=epoch)
+        with open(additional_log_file, "a") as file:
+            file.write("\n")
         if args.is_dev_dataset:
             if dev_loader is None:
                 raise Exception("The dev_loader was not set! Check methods to"
@@ -649,10 +654,12 @@ def main(args):
             dev_loss, dev_accuracy = test(
                 model=model, device=device, test_loader=dev_loader,
                 loss_function=loss_function, args=args)
-        print("\ntest:")
+        # print("\ntest:")
         test_loss, test_accuracy = test(
             model=model, device=device, test_loader=test_loader,
             loss_function=loss_function, args=args)
+        with open(additional_log_file, "a") as file:
+            file.write("\n")
         # Scheduler step is based only on the train data, we do not use the
         # test data to schedule the decrease in the learning rate.
         scheduler.step(train_loss)
@@ -721,18 +728,17 @@ if __name__ == '__main__':
         file.write(HEADER + "\n")
     with open(global_log_file, "a") as file:
         # Write the metadata.
-        file.write(HEADER + "\n")
+        file.write(HEADER + ",")
         file.write(
             "preserve energies: " +
             ",".join(
                 [str(energy) for energy in args.preserve_energies]) +
-            "\n")
+            ",")
         file.write(
-            "dataset,"
-            "min_train_loss,max_train_accuracy,"
-            "min_dev_loss,max_dev_accuracy,"
-            "min_test_loss,max_test_accuracy,"
-            "execution_time\n")
+            "indexes back: " +
+            ",".join(
+                [str(index_back) for index_back in args.indexes_back]) +
+            "\n")
 
     if args.dataset == "all" or args.dataset == "ucr":
         flist = os.listdir(ucr_path)
@@ -1050,20 +1056,33 @@ if __name__ == '__main__':
     # flist = flist[3:]  # start from Beef
     # reversed(flist)
     print("flist: ", flist)
-    preserve_energies = args.preserve_energies
     for dataset_name in flist:
         args.dataset_name = dataset_name
-        for preserve_energy in preserve_energies:
-            print("Dataset: ", dataset_name)
-            print("preserve energy: ", preserve_energy)
-            args.preserve_energy = preserve_energy
-            start_training = time.time()
-            try:
-                main(args=args)
-            except RuntimeError as err:
-                print(f"ERROR: {dataset_name}. "
-                      "Details: " + str(err))
-                traceback.print_tb(err.__traceback__)
-            print("training time (sec): ", time.time() - start_training)
+        for preserve_energy in args.preserve_energies:
+            for index_back in args.indexes_back:
+                print("Dataset: ", dataset_name)
+                print("preserve energy: ", preserve_energy)
+                print("index back: ", index_back)
+                args.preserve_energy = preserve_energy
+                args.index_back = index_back
+                with open(global_log_file, "a") as file:
+                    file.write(
+                        "preserve energy," + str(preserve_energy) + ",")
+                    file.write(
+                        "indexes back," + str(index_back) + "\n")
+                    file.write(
+                        "dataset,"
+                        "min_train_loss,max_train_accuracy,"
+                        "min_dev_loss,max_dev_accuracy,"
+                        "min_test_loss,max_test_accuracy,"
+                        "execution_time\n")
+                start_training = time.time()
+                try:
+                    main(args=args)
+                except RuntimeError as err:
+                    print(f"ERROR: {dataset_name}. "
+                          "Details: " + str(err))
+                    traceback.print_tb(err.__traceback__)
+                print("training time (sec): ", time.time() - start_training)
 
     print("total elapsed time (sec): ", time.time() - start_time)

@@ -39,24 +39,25 @@ class Arguments(object):
                  network_type=NetworkType.ResNet18,
                  # network_type=NetworkType.DenseNetCifar,
                  # network_type=NetworkType.FCNN_STANDARD,
-                 preserve_energy=100,
                  # preserved_energies=[100],
                  # preserved_energies=range(100,49,-1),
                  # preserved_energies=range(85, 75, -1),
                  # preserved_energies=[95, 90, 98],
                  # preserved_energies=[100, 99.9, 99.5, 99, 98, 97, 96, 95, 90, 80, 70, 60, 50, 10],
                  preserved_energies=[100],
-                 # tensor_type=TensorType.FLOAT32,
-                 tensor_type=TensorType.FLOAT16,
-                 # dtype=torch.float32,
-                 dtype=torch.float16,
+                 tensor_type=TensorType.FLOAT32,
+                 # tensor_type=TensorType.FLOAT16,
+                 dtype=torch.float32,
+                 # dtype=torch.float16,
                  use_cuda=True,
                  compress_type=CompressType.STANDARD,
-                 index_back=0,
+                 #index_back=5,
+                 # ndexes_back=[5,15,25,35,45],
+                 indexes_back=[0, 5],
                  # weight_decay=5e-4,
                  # weight_decay=0,
                  weight_decay=0.0005,
-                 epochs=100,
+                 epochs=1,
                  min_batch_size=32,
                  test_batch_size=32,
                  learning_rate=0.01,
@@ -92,8 +93,8 @@ class Arguments(object):
                  # dataset="ucr",
                  mem_test=False,
                  is_data_augmentation=True,
-                 # sample_count_limit=256,
-                 sample_count_limit=0,
+                 sample_count_limit=3200,
+                 # sample_count_limit=0,
                  conv_type=ConvType.FFT2D,
                  # conv_type=ConvType.STANDARD2D,
                  # conv_type=ConvType.FFT1D,
@@ -159,9 +160,6 @@ class Arguments(object):
         self.network_type = network_type
         self.__idx_network_type = self.__next_counter()
 
-        self.preserve_energy = preserve_energy
-        self.__idx_preserve_energy = self.__next_counter()
-
         self.dtype = dtype
         self.__idx_dtype = self.__next_counter()
 
@@ -174,14 +172,12 @@ class Arguments(object):
         self.compress_type = compress_type
         self.__idx_compress_type = self.__next_counter()
 
-        self.index_back = index_back
-        self.__idx_index_back = self.__next_counter()
-
         self.weight_decay = weight_decay
         self.__idx_weight_decay = self.__next_counter()
 
         # Object's variable that are not convertible to an element of a tensor.
         self.preserve_energies = preserved_energies
+        self.indexes_back = indexes_back
         self.epochs = epochs
         self.min_batch_size = min_batch_size
         self.test_batch_size = test_batch_size
