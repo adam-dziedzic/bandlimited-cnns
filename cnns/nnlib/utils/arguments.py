@@ -45,18 +45,18 @@ class Arguments(object):
                  # preserved_energies=[95, 90, 98],
                  # preserved_energies=[100, 99.9, 99.5, 99, 98, 97, 96, 95, 90, 80, 70, 60, 50, 10],
                  preserved_energies=[100],
-                 tensor_type=TensorType.FLOAT32,
-                 # tensor_type=TensorType.FLOAT16,
+                 # tensor_type=TensorType.FLOAT32,
+                 tensor_type=TensorType.FLOAT16,
                  dtype=torch.float32,
                  # dtype=torch.float16,
                  use_cuda=True,
                  compress_type=CompressType.STANDARD,
                  #index_back=5,
                  # ndexes_back=[5,15,25,35,45],
-                 indexes_back=[0, 5],
+                 indexes_back=[0],
                  # weight_decay=5e-4,
-                 # weight_decay=0,
-                 weight_decay=0.0005,
+                 weight_decay=0,
+                 # weight_decay=0.0005,
                  epochs=1,
                  min_batch_size=32,
                  test_batch_size=32,
@@ -93,10 +93,10 @@ class Arguments(object):
                  # dataset="ucr",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=3200,
+                 sample_count_limit=32,
                  # sample_count_limit=0,
-                 conv_type=ConvType.FFT2D,
-                 # conv_type=ConvType.STANDARD2D,
+                 # conv_type=ConvType.FFT2D,
+                 conv_type=ConvType.STANDARD2D,
                  # conv_type=ConvType.FFT1D,
                  # conv_type=ConvType.STANDARD,
                  conv_exec_type=ConvExecType.CUDA,
@@ -118,6 +118,8 @@ class Arguments(object):
                  adam_beta1=0.9,
                  adam_beta2=0.999,
                  cuda_block_threads=1024,
+                 resume="",
+                 gpu=0,
                  ):
         """
         The default parameters for the execution of the program.
@@ -212,6 +214,9 @@ class Arguments(object):
         self.adam_beta1 = adam_beta1
         self.adam_beta2 = adam_beta2
         self.cuda_block_threads = cuda_block_threads
+        self.resume = resume
+        self.gpu = gpu
+
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False

@@ -15,6 +15,7 @@ import argparse
 import numpy as np
 import socket
 import time
+import shutil
 import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import \
@@ -56,16 +57,23 @@ logger.addHandler(consoleLog)
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
 
+"""
+sources:
+https://devblogs.nvidia.com/apex-pytorch-easy-mixed-precision-training/
+
+"""
 try:
     import apex
 except ImportError:
     raise ImportError("""Please install apex from 
     https://www.github.com/nvidia/apex to run this code.""")
 
-from apex import amp
-from apex.parallel import DistributedDataParallel as DDP
-from apex.fp16_utils import *
+# from apex import amp
+# amp_handle = amp.init()
+# from apex.parallel import DistributedDataParallel as DDP
+# from apex.fp16_utils import input_to_half
 from apex.fp16_utils import network_to_half
+from apex.fp16_utils import FP16_Optimizer
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 # print("current working directory: ", dir_path)
@@ -264,6 +272,9 @@ parser.add_argument("--adam_beta2", default=args.adam_beta2,
                          "{args.adam_beta1}")
 parser.add_argument("--cuda_block_threads", default=args.cuda_block_threads,
                     type=int, help="Max number of threads for a cuda block.")
+parser.add_argument('--resume', default=args.resume, type=str, metavar='PATH',
+                    help='path to the latest checkpoint (default: none '
+                         'expressed as an empty string)')
 
 parsed_args = parser.parse_args()
 args.set_parsed_args(parsed_args=parsed_args)
@@ -356,25 +367,13 @@ def train(model, device, train_loader, optimizer, loss_function, epoch, args):
     :param
     """
 
-    if args.dtype is torch.float16:
-        """
-        amp_handle: tells it where backpropagation occurs so that it can 
-        properly scale the loss and clear internal per-iteration state.
-        """
-        # amp_handle = amp.init()
-        # optimizer = amp_handle.wrap_optimizer(optimizer)
-
-        optimizer = FP16_Optimizer(optimizer,
-                                   static_loss_scale=args.static_loss_scale,
-                                   dynamic_loss_scale=args.dynamic_loss_scale,
-                                   verbose=True)
-
     model.train()
     train_loss = 0
     correct = 0
     total = 0
 
     for batch_idx, (data, target) in enumerate(train_loader):
+        # fp16 (apex) - the data is cast explicitely to fp16 via data.to() method.
         data, target = data.to(device=device, dtype=args.dtype), target.to(
             device=device)
         optimizer.zero_grad()
@@ -470,6 +469,13 @@ def test(model, device, test_loader, loss_function, args, epoch=None):
         accuracy = 100. * correct / total
         return test_loss, accuracy
 
+
+def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
+    torch.save(state, filename)
+    if is_best:
+        shutil.copyfile(filename, 'model_best.pth.tar')
+
+
 # @profile
 def main(args):
     """
@@ -485,7 +491,7 @@ def main(args):
     dataset_log_file = os.path.join(
         results_folder_name, get_log_time() + "-dataset-" + str(dataset_name) + \
                              "-preserve-energy-" + str(preserve_energy) + \
-                              "-index-back-" + str(index_back) + \
+                             "-index-back-" + str(index_back) + \
                              ".log")
     DATASET_HEADER = HEADER + ",dataset," + str(dataset_name) + \
                      "-current-preserve-energy-" + str(preserve_energy) + "\n"
@@ -495,7 +501,7 @@ def main(args):
         # Write the header with the names of the columns.
         file.write(
             "epoch,train_loss,train_accuracy,dev_loss,dev_accuracy,test_loss,"
-            "test_accuracy,epoch_time\n")
+            "test_accuracy,epoch_time,learning_rate\n")
 
     with open(os.path.join(results_dir, additional_log_file), "a") as file:
         # Write the metadata.
@@ -557,7 +563,7 @@ def main(args):
 
     model = getModelPyTorch(args=args)
     model.to(device)
-    model = torch.nn.DataParallel(model)
+    # model = torch.nn.DataParallel(model)
 
     # https://pytorch.org/docs/master/notes/serialization.html
     if args.model_path != "no_model":
@@ -605,6 +611,47 @@ def main(args):
     else:
         raise Exception(f"Unknown scheduler type: {scheduler_type}")
 
+    if args.dtype is torch.float16:
+        """
+        amp_handle: tells it where back-propagation occurs so that it can 
+        properly scale the loss and clear internal per-iteration state.
+        """
+        # amp_handle = amp.init()
+        # optimizer = amp_handle.wrap_optimizer(optimizer)
+
+        # The optimizer supported by apex.
+        optimizer = FP16_Optimizer(optimizer,
+                                   static_loss_scale=args.static_loss_scale,
+                                   dynamic_loss_scale=args.dynamic_loss_scale,
+                                   verbose=True)
+
+    # max = choose the best model.
+    min_train_loss = min_test_loss = min_dev_loss = sys.float_info.max
+    max_train_accuracy = max_test_accuracy = max_dev_accuracy = 0.0
+
+    # Optionally resume from a checkpoint.
+    if args.resume:
+        # Use a local scope to avoid dangling references.
+        def resume():
+            if os.path.isfile(args.resume):
+                print("=> loading checkpoint '{}'".format(args.resume))
+                checkpoint = torch.load(args.resume,
+                                        map_location=lambda storage,
+                                                            loc: storage.cuda(
+                                            args.gpu))
+                args.start_epoch = checkpoint['epoch']
+                max_train_accuracy = checkpoint['max_train_accuracy']
+                model.load_state_dict(checkpoint['state_dict'])
+                # An FP16_Optimizer instance's state dict internally stashes the master params.
+                optimizer.load_state_dict(checkpoint['optimizer'])
+                print("=> loaded checkpoint '{}' (epoch {})"
+                      .format(args.resume, checkpoint['epoch']))
+                return max_train_accuracy
+            else:
+                print("=> no checkpoint found at '{}'".format(args.resume))
+                return 0.0
+        max_train_accuracy = resume()
+
     if loss_reduction is LossReduction.ELEMENTWISE_MEAN:
         reduction_function = "mean"
     elif loss_reduction is LossReduction.SUM:
@@ -618,11 +665,6 @@ def main(args):
         loss_function = torch.nn.NLLLoss(reduction=reduction_function)
     else:
         raise Exception(f"Unknown loss type: {loss_type}")
-
-    train_loss = train_accuracy = test_loss = test_accuracy = 0.0
-    # max = choose the best model.
-    min_train_loss = min_test_loss = min_dev_loss = sys.float_info.max
-    max_train_accuracy = max_test_accuracy = max_dev_accuracy = 0.0
 
     if args.visulize is True:
         start_visualize_time = time.time()
@@ -664,14 +706,22 @@ def main(args):
         # test data to schedule the decrease in the learning rate.
         scheduler.step(train_loss)
 
+        raw_optimizer = optimizer
+        if args.dtype is torch.float16:
+            raw_optimizer = optimizer.optimizer
+        lr = f"unknown (started with: {args.learning_rate})"
+        if len(raw_optimizer.param_groups) > 0:
+            lr = raw_optimizer.param_groups[0]['lr']
+
         with open(dataset_log_file, "a") as file:
             file.write(str(epoch) + "," + str(train_loss) + "," + str(
                 train_accuracy) + "," + str(dev_loss) + "," + str(
                 dev_accuracy) + "," + str(test_loss) + "," + str(
                 test_accuracy) + "," + str(
-                time.time() - epoch_start_time) + "\n")
+                time.time() - epoch_start_time) + "," + str(lr) + "\n")
 
         # Metric: select the best model based on the best train loss (minimal).
+        is_best = False
         if args.is_dev_dataset:
             if dev_accuracy > max_dev_accuracy:
                 min_train_loss = train_loss
@@ -680,7 +730,7 @@ def main(args):
                 max_dev_accuracy = dev_accuracy
                 min_test_loss = test_loss
                 max_test_accuracy = test_accuracy
-
+                is_best = True
                 model_path = os.path.join(models_dir,
                                           get_log_time() + "-dataset-" + str(
                                               dataset_name) + \
@@ -697,7 +747,7 @@ def main(args):
                 max_dev_accuracy = dev_accuracy
                 min_test_loss = test_loss
                 max_test_accuracy = test_accuracy
-
+                is_best = True
                 model_path = os.path.join(models_dir,
                                           get_log_time() + "-dataset-" + str(
                                               dataset_name) + \
@@ -706,6 +756,15 @@ def main(args):
                                           "-test-accuracy-" + str(
                                               test_accuracy) + ".model")
                 torch.save(model.state_dict(), model_path)
+
+        # Save the checkpoint (to resume training).
+        save_checkpoint({
+            'epoch': epoch + 1,
+            'arch': args.arch,
+            'state_dict': model.state_dict(),
+            'max_train_accuracy': max_train_accuracy,
+            'optimizer': optimizer.state_dict(),
+        }, is_best)
 
     with open(global_log_file, "a") as file:
         file.write(dataset_name + "," + str(min_train_loss) + "," + str(
