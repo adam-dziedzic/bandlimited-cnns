@@ -65,6 +65,7 @@ class SchedulerType(EnumWithNames):
     StepLR = 5
     LambdaLR = 6
 
+
 class LossType(EnumWithNames):
     NLL = 1  # Negative Log Likelihood
     CROSS_ENTROPY = 2
@@ -95,6 +96,12 @@ class ModelType(EnumWithNames):
     DENSE_NET = 1
 
 
+class PrecisionType(EnumWithNames):
+    AMP = 0  # Automatic Mixed Precision
+    FP16 = 1
+    FP32 = 2
+
+
 DEFAULT_OPTIMIZER = OptimizerType.ADAM
 DEFAULT_RUN_TYPE = RunType.TEST
 DEFAULT_MODEL_TYPE = ModelType.DENSE_NET
@@ -117,7 +124,7 @@ class ConvType(EnumWithNames):
 
 class ConvExecType(EnumWithNames):
     SERIAL = 1
-    BATCH= 2
+    BATCH = 2
     CUDA = 3
     CUDA_SHARED_LOG = 4
     CUDA_DEEP = 5

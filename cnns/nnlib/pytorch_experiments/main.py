@@ -38,6 +38,7 @@ from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import TensorType
 from cnns.nnlib.utils.general_utils import StrideType
+from cnns.nnlib.utils.general_utils import PrecisionType
 from cnns.nnlib.utils.general_utils import Bool
 from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import mem_log_file
@@ -68,8 +69,7 @@ except ImportError:
     raise ImportError("""Please install apex from 
     https://www.github.com/nvidia/apex to run this code.""")
 
-# from apex import amp
-# amp_handle = amp.init()
+amp_handle = None
 # from apex.parallel import DistributedDataParallel as DDP
 # from apex.fp16_utils import input_to_half
 from apex.fp16_utils import network_to_half
@@ -275,6 +275,13 @@ parser.add_argument("--cuda_block_threads", default=args.cuda_block_threads,
 parser.add_argument('--resume', default=args.resume, type=str, metavar='PATH',
                     help='path to the latest checkpoint (default: none '
                          'expressed as an empty string)')
+parser.add_argument('--start_epoch', type=int, default=args.start_epoch,
+                    help=f"the epoch number from which to start the training"
+                    f"(default: {args.start_epoch})")
+parser.add_argument("--precision_type", default=args.precision_type.name,
+                    # "FLOAT32", "FLOAT16", "DOUBLE", "INT"
+                    help="the precision type: " + ",".join(
+                        PrecisionType.get_names()))
 
 parsed_args = parser.parse_args()
 args.set_parsed_args(parsed_args=parsed_args)
@@ -386,23 +393,27 @@ def train(model, device, train_loader, optimizer, loss_function, epoch, args):
         # a single function.
         # loss = F.cross_entropy(output, target)
 
-        if args.dtype is torch.float16:
+        if args.precision_type is PrecisionType.AMP:
             """
             https://github.com/NVIDIA/apex/tree/master/apex/amp
             
-            Not used: at each optimization step in the training loop, perform 
-            the following:
-            Cast gradients to FP32. If a loss was scaled, descale the gradients.
-            Apply updates in FP32 precision and copy the updated parameters to 
-            the model, casting them to FP16.
+            Not used: at each optimization step in the training loop, 
+            perform the following:
+            Cast gradients to FP32. If a loss was scaled, descale the 
+            gradients. Apply updates in FP32 precision and copy the updated 
+            parameters to the model, casting them to FP16.
             """
-
-            # with amp_handle.scale_loss(loss, optimizer) as scaled_loss:
-            #     scaled_loss.backward()
+            with amp_handle.scale_loss(loss, optimizer) as scaled_loss:
+                scaled_loss.backward()
             # loss = optimizer.scale_loss(loss)
+
+        elif args.precision_type is PrecisionType.FP16:
             optimizer.backward(loss)
-        else:
+        elif args.precision_type is PrecisionType.FP32:
             loss.backward()
+        else:
+            raise Exception(
+                f"Unsupported precision type for float16: {args.precision_type}")
 
         optimizer.step()
 
@@ -501,7 +512,7 @@ def main(args):
         # Write the header with the names of the columns.
         file.write(
             "epoch,train_loss,train_accuracy,dev_loss,dev_accuracy,test_loss,"
-            "test_accuracy,epoch_time,learning_rate\n")
+            "test_accuracy,epoch_time,learning_rate,train_time,test_time\n")
 
     with open(os.path.join(results_dir, additional_log_file), "a") as file:
         # Write the metadata.
@@ -543,7 +554,7 @@ def main(args):
 
     if tensor_type is TensorType.FLOAT32:
         dtype = torch.float32
-    elif tensor_type is TensorType.FLOAT16:
+    elif tensor_type is TensorType.FLOAT16 or args.precision_type is PrecisionType.FP16:
         dtype = torch.float16
     elif tensor_type is TensorType.DOUBLE:
         dtype = torch.double
@@ -573,7 +584,7 @@ def main(args):
         msg = "loaded model: " + args.model_path
         # logger.info(msg)
         print(msg)
-    if dtype is torch.float16:
+    if args.precision_type is PrecisionType.FP16:
         # model.half()  # convert to half precision
         model = network_to_half(model)
     """
@@ -611,7 +622,7 @@ def main(args):
     else:
         raise Exception(f"Unknown scheduler type: {scheduler_type}")
 
-    if args.dtype is torch.float16:
+    if args.precision_type is PrecisionType.FP16:
         """
         amp_handle: tells it where back-propagation occurs so that it can 
         properly scale the loss and clear internal per-iteration state.
@@ -650,6 +661,7 @@ def main(args):
             else:
                 print("=> no checkpoint found at '{}'".format(args.resume))
                 return 0.0
+
         max_train_accuracy = resume()
 
     if loss_reduction is LossReduction.ELEMENTWISE_MEAN:
@@ -681,14 +693,14 @@ def main(args):
 
     dataset_start_time = time.time()
     dev_loss = dev_accuracy = None
-    for epoch in range(1, args.epochs + 1):
+    for epoch in range(args.start_epoch, args.epochs + 1):
         epoch_start_time = time.time()
         # print("\ntrain:")
+        train_start_time = time.time()
         train_loss, train_accuracy = train(
             model=model, device=device, train_loader=train_loader, args=args,
             optimizer=optimizer, loss_function=loss_function, epoch=epoch)
-        with open(additional_log_file, "a") as file:
-            file.write("\n")
+        train_time = time.time() - train_start_time
         if args.is_dev_dataset:
             if dev_loader is None:
                 raise Exception("The dev_loader was not set! Check methods to"
@@ -697,17 +709,22 @@ def main(args):
                 model=model, device=device, test_loader=dev_loader,
                 loss_function=loss_function, args=args)
         # print("\ntest:")
+        test_start_time = time.time()
         test_loss, test_accuracy = test(
             model=model, device=device, test_loader=test_loader,
             loss_function=loss_function, args=args)
-        with open(additional_log_file, "a") as file:
-            file.write("\n")
+        test_time = time.time() - test_start_time
         # Scheduler step is based only on the train data, we do not use the
         # test data to schedule the decrease in the learning rate.
         scheduler.step(train_loss)
 
+        epoch_time = time.time() - epoch_start_time
+
+        with open(additional_log_file, "a") as file:
+            file.write("\n")
+
         raw_optimizer = optimizer
-        if args.dtype is torch.float16:
+        if args.precision_type is PrecisionType.FP16:
             raw_optimizer = optimizer.optimizer
         lr = f"unknown (started with: {args.learning_rate})"
         if len(raw_optimizer.param_groups) > 0:
@@ -717,8 +734,7 @@ def main(args):
             file.write(str(epoch) + "," + str(train_loss) + "," + str(
                 train_accuracy) + "," + str(dev_loss) + "," + str(
                 dev_accuracy) + "," + str(test_loss) + "," + str(
-                test_accuracy) + "," + str(
-                time.time() - epoch_start_time) + "," + str(lr) + "\n")
+                test_accuracy) + "," + str(epoch_time) + "," + str(lr) + "\n")
 
         # Metric: select the best model based on the best train loss (minimal).
         is_best = False
@@ -760,7 +776,6 @@ def main(args):
         # Save the checkpoint (to resume training).
         save_checkpoint({
             'epoch': epoch + 1,
-            'arch': args.arch,
             'state_dict': model.state_dict(),
             'max_train_accuracy': max_train_accuracy,
             'optimizer': optimizer.state_dict(),
@@ -798,6 +813,11 @@ if __name__ == '__main__':
             ",".join(
                 [str(index_back) for index_back in args.indexes_back]) +
             "\n")
+
+    if args.precision_type is PrecisionType.AMP:
+        from apex import amp
+
+        amp_handle = amp.init(enabled=True)
 
     if args.dataset == "all" or args.dataset == "ucr":
         flist = os.listdir(ucr_path)

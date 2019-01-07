@@ -91,7 +91,7 @@ class Conv(object):
                                      stride=self.strides[index],
                                      kernel_size=self.kernel_sizes[index],
                                      padding=self.padding[index],
-                                     index_back=self.index_back,
+                                     index_back=index_back,
                                      bias=self.is_bias)
         elif self.conv_type is ConvType.AUTOGRAD2D:
             return Conv2dfftAutograd(in_channels=in_channels,
@@ -107,7 +107,7 @@ class Conv(object):
                                    stride=self.strides[index],
                                    kernel_size=self.kernel_sizes[index],
                                    padding=self.padding[index],
-                                   index_back=self.index_back,
+                                   index_back=index_back,
                                    bias=self.is_bias)
         elif self.conv_type is ConvType.SIMPLE_FFT_FOR_LOOP:
             return Conv1dfftSimpleForLoop(in_channels=in_channels,
@@ -115,7 +115,7 @@ class Conv(object):
                                           stride=self.strides[index],
                                           kernel_size=self.kernel_sizes[index],
                                           padding=self.padding[index],
-                                          index_back=self.index_back,
+                                          index_back=index_back,
                                           bias=self.is_bias)
         elif self.conv_type is ConvType.COMPRESS_INPUT_ONLY:
             return Conv1dfftCompressSignalOnly(
@@ -123,7 +123,7 @@ class Conv(object):
                 stride=self.strides[index],
                 kernel_size=self.kernel_sizes[index],
                 padding=self.padding[index],
-                index_back=self.index_back,
+                index_back=index_back,
                 preserve_energy=self.preserve_energy,
                 bias=self.is_bias)
         else:

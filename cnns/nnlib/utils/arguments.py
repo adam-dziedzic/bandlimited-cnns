@@ -12,6 +12,7 @@ from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import TensorType
 from cnns.nnlib.utils.general_utils import Bool
 from cnns.nnlib.utils.general_utils import StrideType
+from cnns.nnlib.utils.general_utils import PrecisionType
 
 """
 cFFT cuda_multiply: total elapsed time (sec):  15.602577447891235
@@ -47,8 +48,7 @@ class Arguments(object):
                  preserved_energies=[100],
                  # tensor_type=TensorType.FLOAT32,
                  tensor_type=TensorType.FLOAT16,
-                 dtype=torch.float32,
-                 # dtype=torch.float16,
+                 precision_type=PrecisionType.AMP,
                  use_cuda=True,
                  compress_type=CompressType.STANDARD,
                  #index_back=5,
@@ -120,6 +120,7 @@ class Arguments(object):
                  cuda_block_threads=1024,
                  resume="",
                  gpu=0,
+                 start_epoch=1,
                  ):
         """
         The default parameters for the execution of the program.
@@ -128,7 +129,6 @@ class Arguments(object):
         :param network_type: the type of network architecture
         :param preserve_energy: how much energy in the input should be preserved
         after compression
-        :param dtype: the type of the tensors
         :param use_cuda: should use gpu or not
         :param compress_type: the type of FFT compression, NO_FILTER - do not
         compress the filter. BIG_COEF: preserve only the largest coefficients
@@ -161,9 +161,6 @@ class Arguments(object):
 
         self.network_type = network_type
         self.__idx_network_type = self.__next_counter()
-
-        self.dtype = dtype
-        self.__idx_dtype = self.__next_counter()
 
         if use_cuda is None:
             self.use_cuda = True if torch.cuda.is_available() else False
@@ -216,6 +213,8 @@ class Arguments(object):
         self.cuda_block_threads = cuda_block_threads
         self.resume = resume
         self.gpu = gpu
+        self.start_epoch = start_epoch
+        self.precision_type = precision_type
 
 
     def get_bool(self, arg):
@@ -240,6 +239,7 @@ class Arguments(object):
         self.memory_type = MemoryType[parsed_args.memory_type]
         self.tensor_type = TensorType[parsed_args.tensor_type]
         self.stride_type = StrideType[parsed_args.stride_type]
+        self.precision_type = PrecisionType[parsed_args.precision_type]
 
         # Bools:
         self.is_debug = self.get_bool(parsed_args.is_debug)
