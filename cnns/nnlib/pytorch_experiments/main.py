@@ -174,8 +174,7 @@ parser.add_argument('--preserve_energies', nargs="+", type=float,
                     help="How much energy should be preserved in the "
                          "frequency representation of the signal? This "
                          "is the compression in the FFT domain.")
-parser.add_argument("--mem_test",
-                    default="TRUE" if args.mem_test else "FALSE",
+parser.add_argument("--mem_test",                    default="TRUE" if args.mem_test else "FALSE",
                     help="is it the memory test; options: " + ",".join(
                         Bool.get_names()))
 parser.add_argument("--is_data_augmentation",
@@ -279,7 +278,7 @@ parser.add_argument('--start_epoch', type=int, default=args.start_epoch,
                     help=f"the epoch number from which to start the training"
                     f"(default: {args.start_epoch})")
 parser.add_argument("--precision_type", default=args.precision_type.name,
-                    # "FLOAT32", "FLOAT16", "DOUBLE", "INT"
+                    # "FP16", "FP32", "AMP"
                     help="the precision type: " + ",".join(
                         PrecisionType.get_names()))
 

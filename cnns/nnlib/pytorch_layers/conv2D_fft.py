@@ -308,13 +308,13 @@ class Conv2dfftFunction(torch.autograd.Function):
                 yfft = compress_2D_odd_index_back(yfft, index_back_W_fft)
 
         _, _, half_fft_compressed_H, half_fft_compressed_W, _ = xfft.size()
-        # with open(additional_log_file, "a") as file:
+        with open(additional_log_file, "a") as file:
             # file.write(str(half_fft_compressed_H) + "," + str(
             #     half_fft_compressed_W) + ",")
             # file.write(str(conv_index) + "," + str(
             #     half_fft_compressed_H * half_fft_compressed_W * C) + ",")
-            # file.write(
-            #     str(half_fft_compressed_H * half_fft_compressed_W * C) + ",")
+            file.write(
+                str(half_fft_compressed_H * half_fft_compressed_W * C) + ",")
             # file.write("C:" + str(C) + "," + "H:" + str(
             #     half_fft_compressed_H) + "," + "W:" + str(
             #     half_fft_compressed_W) + ",")
