@@ -30,8 +30,8 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul4
 from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul5
 from cnns.nnlib.pytorch_layers.pytorch_utils import to_tensor
 from cnns.nnlib.pytorch_layers.pytorch_utils import cuda_mem_show
-from cnns.nnlib.pytorch_layers.pytorch_utils import compress_2D_odd
-from cnns.nnlib.pytorch_layers.pytorch_utils import compress_2D_odd_index_back
+from cnns.nnlib.pytorch_layers.pytorch_utils import compress_2D_index_forward
+from cnns.nnlib.pytorch_layers.pytorch_utils import compress_2D_index_back
 from cnns.nnlib.pytorch_layers.pytorch_utils import zero_out_min
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_elem_size
@@ -100,9 +100,9 @@ class Conv2dfftFunction(torch.autograd.Function):
         when convolving the input map with the filter, implicitly we do not
         apply the stride (move one pixel at a time).
         Default: None (no padding).
-        :param index_back: how many of the last height and width elements in the
+        :param compress_rate: how many of the last height and width elements in the
         fft-ed map to discard. It Can be a single number or a tuple
-        (index_back_H, index_back_W). Default: None (no compression).
+        (compress_rate_H, compress_rate_W). Default: None (no compression).
         :param preserve_energy: how much energy of the input images should be
         preserved.
         :param out_size: what is the expected output size - one can discard
@@ -129,13 +129,13 @@ class Conv2dfftFunction(torch.autograd.Function):
 
         Conv2dfftFunction.mark_dirty(input)
         if args is not None:
-            index_back = args.index_back
+            compress_rate = args.compress_rate
             preserve_energy = args.preserve_energy
             use_next_power2 = args.next_power2
             is_debug = args.is_debug
             stride_type = args.stride_type
         else:
-            index_back = None
+            compress_rate = None
             preserve_energy = None
             use_next_power2 = False
             is_debug = False
@@ -147,11 +147,12 @@ class Conv2dfftFunction(torch.autograd.Function):
         if is_debug:
             pass
 
-        INPUT_ERROR = "Specify only one of: index_back, out_size, or " \
+        INPUT_ERROR = "Specify only one of: compress_rate, out_size, or " \
                       "preserve_energy"
-        if (index_back is not None and index_back > 0) and out_size is not None:
+        if (
+                compress_rate is not None and compress_rate > 0) and out_size is not None:
             raise TypeError(INPUT_ERROR)
-        if (index_back is not None and index_back > 0) and (
+        if (compress_rate is not None and compress_rate > 0) and (
                 preserve_energy is not None and preserve_energy < 100):
             raise TypeError(INPUT_ERROR)
         if out_size is not None and (
@@ -170,10 +171,10 @@ class Conv2dfftFunction(torch.autograd.Function):
         # WW - the width of the filter (its length).
         F, C, HH, WW = filter.size()
 
-        index_back_H, index_back_W = get_pair(value=index_back,
-                                              val_1_default=None,
-                                              val2_default=None)
-        if index_back_H != index_back_W:
+        compress_rate_H, compress_rate_W = get_pair(value=compress_rate,
+                                                    val_1_default=None,
+                                                    val2_default=None)
+        if compress_rate_H != compress_rate_W:
             raise Exception(
                 "We only support a symmetric compression in the frequency domain.")
 
@@ -278,11 +279,10 @@ class Conv2dfftFunction(torch.autograd.Function):
             # be out size, thus the representation in the spectral domain is
             # twice smaller than the one in the spatial domain.
             half_fft_W = out_W // 2 + 1
-            xfft = compress_2D_odd(xfft, half_fft_W)
-            yfft = compress_2D_odd(yfft, half_fft_W)
+            xfft = compress_2D_index_forward(xfft, half_fft_W)
+            yfft = compress_2D_index_forward(yfft, half_fft_W)
 
         # Compression.
-        index_back_H_fft, index_back_W_fft = None, None
         if preserve_energy is not None and preserve_energy < 100.0:
             # start_energy = time.time()
             xfft, yfft = preserve_energy2D_symmetry(
@@ -292,20 +292,23 @@ class Conv2dfftFunction(torch.autograd.Function):
             # global_preserve_energy_time += time.time() - start_energy
             # print("preserve energy time: ", global_preserve_energy_time)
 
-        elif index_back_W is not None and index_back_W > 0:
+        elif compress_rate_W is not None and compress_rate_W > 0:
             is_fine_grained_sparsification = False  # this is for tests
             if is_fine_grained_sparsification:
                 xfft_spectrum = get_spectrum(xfft)
                 yfft_spectrum = get_spectrum(yfft)
-                for _ in range(index_back_W):
+                for _ in range(compress_rate_W):
                     xfft, xfft_spectrum = zero_out_min(xfft, xfft_spectrum)
                     yfft, yfft_spectrum = zero_out_min(yfft, yfft_spectrum)
             else:
+                retain_rate_W = 100 - compress_rate_W
+                retain_ratio = math.sqrt(retain_rate_W/100)
+                index_forward_W_fft = int(init_half_W_fft * retain_ratio)
                 # At least one coefficient is removed.
-                index_back_W_fft = int(
-                    init_half_W_fft * (index_back_W / 100)) + 1
-                xfft = compress_2D_odd_index_back(xfft, index_back_W_fft)
-                yfft = compress_2D_odd_index_back(yfft, index_back_W_fft)
+                index_forward_W_fft = min(index_forward_W_fft,
+                                          init_half_W_fft - 1)
+                xfft = compress_2D_index_forward(xfft, index_forward_W_fft)
+                yfft = compress_2D_index_forward(yfft, index_forward_W_fft)
 
         _, _, half_fft_compressed_H, half_fft_compressed_W, _ = xfft.size()
         with open(additional_log_file, "a") as file:
@@ -607,7 +610,7 @@ class Conv2dfftFunction(torch.autograd.Function):
         N, F, init_half_H_fft, init_half_W_fft, _ = doutfft.shape
 
         if half_fft_compressed_W < init_half_W_fft:
-            doutfft = compress_2D_odd(doutfft, half_fft_compressed_W)
+            doutfft = compress_2D_index_forward(doutfft, half_fft_compressed_W)
 
         if need_input_grad:
             yfft = pytorch_conjugate(yfft)
@@ -901,7 +904,7 @@ class Conv2dfft(Module):
         :param groups: (int) – Number of blocked connections from input channels
         to output channels. Default: 1
         :param bias: (bool) - add bias or not
-        :param index_back: how many frequency coefficients should be
+        :param compress_rate: how many frequency coefficients should be
         discarded
         :param preserve_energy: how much energy should be preserved in the input
         image.
@@ -984,14 +987,14 @@ class Conv2dfft(Module):
         self.out_size = out_size
 
         if args is None:
-            self.index_back = None
+            self.compress_rate = None
             self.preserve_energy = None
             self.is_debug = False
             self.next_power2 = False
             self.is_debug = False
             self.compress_type = CompressType.STANDARD
         else:
-            self.index_back = args.index_back
+            self.compress_rate = args.compress_rate
             self.preserve_energy = args.preserve_energy
             self.next_power2 = args.next_power2
             self.is_debug = args.is_debug
@@ -1210,7 +1213,7 @@ class Conv2dfftAutograd(Conv2dfft):
         >>> # A single filter.
         >>> y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
         >>> b = tensor([0.0])
-        >>> conv = Conv2dfftAutograd(weight_value=y, bias_value=b, args=Arguments(index_back=1, preserve_energy=100))
+        >>> conv = Conv2dfftAutograd(weight_value=y, bias_value=b, args=Arguments(compress_rate=1, preserve_energy=100))
         >>> result = conv.forward(input=x)
         >>> # expect = np.array([[[[21.5, 22.0], [17.5, 13.]]]])
         >>> expect = np.array([[[[21.75, 21.75], [18.75, 13.75]]]])

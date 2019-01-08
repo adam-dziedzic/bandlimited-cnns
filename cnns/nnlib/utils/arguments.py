@@ -46,14 +46,15 @@ class Arguments(object):
                  # preserved_energies=[95, 90, 98],
                  # preserved_energies=[100, 99.9, 99.5, 99, 98, 97, 96, 95, 90, 80, 70, 60, 50, 10],
                  preserved_energies=[100],
-                 # tensor_type=TensorType.FLOAT32,
-                 tensor_type=TensorType.FLOAT16,
-                 precision_type=PrecisionType.AMP,
+                 tensor_type=TensorType.FLOAT32,
+                 # tensor_type=TensorType.FLOAT16,
+                 # precision_type=PrecisionType.AMP,
+                 precision_type=PrecisionType.FP32,
                  use_cuda=True,
                  compress_type=CompressType.STANDARD,
-                 #index_back=5,
+                 #compress_rate=5,
                  # ndexes_back=[5,15,25,35,45],
-                 indexes_back=[0],
+                 compress_rates=[5,10,20,30],
                  # weight_decay=5e-4,
                  weight_decay=0,
                  # weight_decay=0.0005,
@@ -95,8 +96,8 @@ class Arguments(object):
                  is_data_augmentation=True,
                  sample_count_limit=32,
                  # sample_count_limit=0,
-                 # conv_type=ConvType.FFT2D,
-                 conv_type=ConvType.STANDARD2D,
+                 conv_type=ConvType.FFT2D,
+                 # conv_type=ConvType.STANDARD2D,
                  # conv_type=ConvType.FFT1D,
                  # conv_type=ConvType.STANDARD,
                  conv_exec_type=ConvExecType.CUDA,
@@ -133,7 +134,7 @@ class Arguments(object):
         :param compress_type: the type of FFT compression, NO_FILTER - do not
         compress the filter. BIG_COEF: preserve only the largest coefficients
         in the frequency domain.
-        :param index_back: how much compress based on discarded coefficients
+        :param compress_rate: how much compress based on discarded coefficients
         in the frequency domain.
         :param weight_decay: weight decay for optimizer parameters
         :param epochs: number of epochs for training
@@ -176,7 +177,7 @@ class Arguments(object):
 
         # Object's variable that are not convertible to an element of a tensor.
         self.preserve_energies = preserved_energies
-        self.indexes_back = indexes_back
+        self.compress_rates = compress_rates
         self.epochs = epochs
         self.min_batch_size = min_batch_size
         self.test_batch_size = test_batch_size
@@ -305,7 +306,7 @@ class Arguments(object):
         t[self.__idx_compress_type] = self.compress_type.value
         t[self.__idx_preserve_energy] = self.from_float_arg(
             self.preserve_energy)
-        t[self.__idx_index_back] = self.from_float_arg(self.index_back)
+        t[self.__idx_index_back] = self.from_float_arg(self.compress_rate)
 
     def from_tensor(self, t):
         self.network_type = NetworkType(t[int(self.__idx_nework_type)])
@@ -313,4 +314,4 @@ class Arguments(object):
         self.use_cuda = self.to_bool_arg(t[self.__idx_use_cuda])
         self.compress_type = CompressType(t[int(self.__idx_compress_type)])
         self.preserve_energy = self.to_float_arg(t[self.__idx_preserve_energy])
-        self.index_back = self.to_float_arg(t[self.__idx_index_back])
+        self.compress_rate = self.to_float_arg(t[self.__idx_index_back])

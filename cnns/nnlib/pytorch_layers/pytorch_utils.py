@@ -1139,7 +1139,7 @@ def preserve_energy_index(xfft, energy_rate=None, index_back=None):
     To which index should we preserve the xfft signal (and discard
     the remaining coefficients). This is based on the provided
     energy_rate, or if the energy_rate is not provided, then
-    index_back is applied.
+    compress_rate is applied.
 
     :param xfft: the input signal to be truncated
     :param energy_rate: how much energy should we preserve in the xfft signal
@@ -1158,7 +1158,7 @@ def preserve_energy_index(xfft, energy_rate=None, index_back=None):
     >>> np.testing.assert_equal(result, 2)
 
     >>> xfft = [[1., 2.], [3., 4.], [5., 6.]]
-    >>> result = preserve_energy_index(xfft, index_back=1)
+    >>> result = preserve_energy_index(xfft, compress_rate=1)
     >>> np.testing.assert_equal(result, 2)
 
     >>> xfft = torch.tensor([[1., 2.], [3., 4.], [0.1, 0.1]])
@@ -1208,7 +1208,7 @@ def preserve_energy_index(xfft, energy_rate=None, index_back=None):
 def preserve_energy_index_back(xfft, preserve_energy_rate=None,
                                is_reversed=False):
     """
-    Give index_back for the given energy rate.
+    Give compress_rate for the given energy rate.
 
     :param xfft: the input fft-ed signal
     :param energy_rate: how much energy of xfft should be preserved?
@@ -1218,8 +1218,8 @@ def preserve_energy_index_back(xfft, preserve_energy_rate=None,
     >>> xfft = torch.tensor([[
     ... [[5, 6], [3, 4], [1, 2]], [[0, 1], [1, 0], [2, 2]]],
     ... [[[-1, 3], [1, 0], [0, 2]], [[1, 1], [1, -2], [3, 2]]]])
-    >>> index_back = preserve_energy_index_back(xfft, 50)
-    >>> np.testing.assert_equal(index_back, 2)
+    >>> compress_rate = preserve_energy_index_back(xfft, 50)
+    >>> np.testing.assert_equal(compress_rate, 2)
 
     >>> xfft = torch.tensor([
     ... [ # first signal
@@ -1231,8 +1231,8 @@ def preserve_energy_index_back(xfft, preserve_energy_rate=None,
     ... [[1, 1], [1, -2], [3, 2]]  # second channel
     ... ]
     ... ])
-    >>> index_back = preserve_energy_index_back(xfft, 50)
-    >>> np.testing.assert_equal(index_back, 2)
+    >>> compress_rate = preserve_energy_index_back(xfft, 50)
+    >>> np.testing.assert_equal(compress_rate, 2)
     """
     # The second dimension from the end is the length because this is a complex
     # signal.
@@ -1908,8 +1908,8 @@ def preserve_energy2D_symmetry(xfft, yfft, preserve_energy_rate=None,
             low = index + 1
             index = low + (high - low) // 2
 
-    cxfft = compress_2D_odd(xfft, index)
-    cyfft = compress_2D_odd(yfft, index)
+    cxfft = compress_2D_index_forward(xfft, index)
+    cyfft = compress_2D_index_forward(yfft, index)
 
     if is_debug:
         xfft_numel = xfft.numel()
@@ -1940,7 +1940,7 @@ def compress_2D_energy(xfft, index_forward):
     ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0]]]])
     >>> xfft = torch.rfft(x, signal_ndim=2, onesided=True)
     >>> index_forward = 3
-    >>> xfft_compressed = compress_2D_odd(xfft, index_forward = index_forward)
+    >>> xfft_compressed = compress_2D_index_forward(xfft, index_forward = index_forward)
     >>> _, _, H, W, _ = xfft_compressed.size()
     >>> # print("xfft: ", xfft)
     >>> # print(xfft_compressed.size())
@@ -1962,13 +1962,13 @@ def compress_2D_energy(xfft, index_forward):
         return energy_top_left
 
 
-def compress_2D_odd_index_back(xfft, index_back):
+def compress_2D_index_back(xfft, index_back):
     half_W_fft = xfft.shape[-2]
     index_forward = get_index_forward(half_W_fft, index_back)
-    return compress_2D_odd(xfft, index_forward)
+    return compress_2D_index_forward(xfft, index_forward)
 
 
-def compress_2D_odd(xfft, index_forward):
+def compress_2D_index_forward(xfft, index_forward):
     """
     Compress xfft to index_forward coefficients with odd index_forward param.
 
@@ -1986,7 +1986,7 @@ def compress_2D_odd(xfft, index_forward):
     ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0]]]])
     >>> xfft = torch.rfft(x, signal_ndim=2, onesided=True)
     >>> # print("xfft: ", xfft)
-    >>> xfft_compressed = compress_2D_odd(xfft, index_forward = 3)
+    >>> xfft_compressed = compress_2D_index_forward(xfft, index_forward = 3)
     >>> # print("xfft compressed: ", xfft_compressed)
     >>> _, _, H, W, _ = xfft_compressed.size()
     >>> # print(xfft_compressed.size())
@@ -2001,7 +2001,7 @@ def compress_2D_odd(xfft, index_forward):
     ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0]]]])
     >>> xfft = torch.rfft(x, signal_ndim=2, onesided=True)
     >>> # print("xfft: ", xfft)
-    >>> xfft_compressed = compress_2D_odd(xfft, index_forward = 4)
+    >>> xfft_compressed = compress_2D_index_forward(xfft, index_forward = 4)
     >>> # print("xfft compressed: ", xfft_compressed)
     >>> _, _, H, W, _ = xfft_compressed.size()
     >>> # print(xfft_compressed.size())
@@ -2020,7 +2020,13 @@ def compress_2D_odd(xfft, index_forward):
         return top_left
 
 
-def compress_2D_odd_full(xfft, index_forward):
+def compress_2D_index_back_full(xfft, index_back):
+    W_fft = xfft.shape[-2]
+    index_forward = get_index_forward_full(W_fft, index_back)
+    return compress_2D_index_forward_full(xfft, index_forward)
+
+
+def compress_2D_index_forward_full(xfft, index_forward):
     """
     Compress xfft to index_forward coefficients with odd index_forward param.
 
@@ -2037,7 +2043,7 @@ def compress_2D_odd_full(xfft, index_forward):
     ... [3.0, 0.0, 1.0, -1.0, 0.0  , 5.0],
     ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0]]]])
     >>> xfft = torch.rfft(x, signal_ndim=2, onesided=False)
-    >>> xfft_compressed = compress_2D_odd_full(xfft, index_forward = 2)
+    >>> xfft_compressed = compress_2D_index_forward_full(xfft, index_forward = 2)
     >>> _, _, H, W, _ = xfft_compressed.size()
     >>> # print(xfft_compressed.size())
     >>> assert H == 3
@@ -2050,7 +2056,7 @@ def compress_2D_odd_full(xfft, index_forward):
     ... [3.0, 0.0, 1.0, -1.0, 0.0  , 5.0],
     ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0]]]])
     >>> xfft = torch.rfft(x, signal_ndim=2, onesided=False)
-    >>> xfft_compressed = compress_2D_odd_full(xfft, index_forward = 3)
+    >>> xfft_compressed = compress_2D_index_forward_full(xfft, index_forward = 3)
     >>> _, _, H, W, _ = xfft_compressed.size()
     >>> # print(xfft_compressed.size())
     >>> assert H == 5
@@ -2063,7 +2069,7 @@ def compress_2D_odd_full(xfft, index_forward):
     ... [3.0, 0.0, 1.0, -1.0, 0.0  , 5.0],
     ... [1.0, 2.0, 1.0, 1.0, 0.0   , 5.0]]]])
     >>> xfft = torch.rfft(x, signal_ndim=2, onesided=False)
-    >>> xfft_compressed = compress_2D_odd_full(xfft, index_forward = 4)
+    >>> xfft_compressed = compress_2D_index_forward_full(xfft, index_forward = 4)
     >>> _, _, H, W, _ = xfft_compressed.size()
     >>> # print(xfft_compressed.size())
     >>> assert H == 6
@@ -2091,14 +2097,6 @@ def compress_2D_odd_full(xfft, index_forward):
         return top_left
 
 
-def compress_2D_even_full(xfft, index_forward):
-    return compress_2D_odd_full(xfft, index_forward)
-
-
-def compress_2D_even(xfft, index_forward):
-    return compress_2D_odd(xfft, index_forward)
-
-
 def get_index_forward(W, index_back):
     return W - index_back
 
@@ -2113,19 +2111,6 @@ def get_index_forward_full(W, index_back):
 
 def get_index_back_full(W, index_forward):
     return (W // 2 + 1) - index_forward
-
-
-def compress_2D(xfft, index_back=0):
-    N, C, H, W, _ = xfft.size()
-    # We assume xfft is onesided.
-    assert W == (H // 2 + 1)
-    assert index_back < W
-    assert index_back >= 0
-    index_forward = get_index_back(W, index_back)
-    if index_forward % 2 == 0:
-        return compress_2D_even(xfft, index_forward)
-    else:
-        return compress_2D_odd(xfft, index_forward)
 
 
 def restore_size_2D_batch(xfft, init_H_fft, init_half_W_fft):
@@ -2147,7 +2132,7 @@ def restore_size_2D_batch(xfft, init_H_fft, init_half_W_fft):
     >>> xfft = torch.rfft(x, signal_ndim=2, onesided=True)
     >>> N, K, C, init_H_fft, init_half_W_fft, _ = xfft.size()
     >>> index_forward = 3
-    >>> xfft_compressed = compress_2D_odd(xfft, index_forward)
+    >>> xfft_compressed = compress_2D_index_forward(xfft, index_forward)
     >>> _, _, _, H, W, _ = xfft_compressed.size()
     >>> # print(xfft_compressed.size())
     >>> assert H == 5
@@ -2202,7 +2187,7 @@ def restore_size_2D(xfft, init_H_fft, init_half_W_fft):
     >>> xfft = torch.rfft(x, signal_ndim=2, onesided=True)
     >>> N, C, init_H_fft, init_half_W_fft, _ = xfft.size()
     >>> index_forward = 3
-    >>> xfft_compressed = compress_2D_odd(xfft, index_forward)
+    >>> xfft_compressed = compress_2D_index_forward(xfft, index_forward)
     >>> _, _, H, W, _ = xfft_compressed.size()
     >>> # print(xfft_compressed.size())
     >>> assert H == 5
@@ -2260,7 +2245,7 @@ def restore_size_2D_full(xfft, init_H_fft, init_W_fft):
     >>> N, C, initH, initW, _ = xfft.size()
     >>> assert initH == initW
     >>> index_forward = 3
-    >>> xfft_compressed = compress_2D_odd_full(xfft, index_forward)
+    >>> xfft_compressed = compress_2D_index_forward_full(xfft, index_forward)
     >>> _, _, H, W, _ = xfft_compressed.size()
     >>> # print(xfft_compressed.size())
     >>> assert H == 5
@@ -2280,7 +2265,7 @@ def restore_size_2D_full(xfft, init_H_fft, init_W_fft):
     >>> N, C, initH, initW, _ = xfft.size()
     >>> assert initH == initW
     >>> index_forward = 2
-    >>> xfft_compressed = compress_2D_odd_full(xfft, index_forward)
+    >>> xfft_compressed = compress_2D_index_forward_full(xfft, index_forward)
     >>> _, _, H, W, _ = xfft_compressed.size()
     >>> # print(xfft_compressed.size())
     >>> assert H == 3
@@ -2318,18 +2303,6 @@ def restore_size_2D_full(xfft, init_H_fft, init_W_fft):
         return result
 
 
-def compress_2D_full(xfft, index_back=0):
-    _, _, H, W, _ = xfft.size()
-    # We assume xfft is onesided.
-    assert W == H
-    assert index_back < W
-    index_forward = get_index_forward_full(W, index_back=index_back)
-    if index_forward % 2 == 0:
-        return compress_2D_even_full(xfft, index_forward)
-    else:
-        return compress_2D_odd_full(xfft, index_forward)
-
-
 def compress_2D_half_test(x, index_back=0):
     """
     Return a compressed version of x, after its compression in the frequency
@@ -2343,7 +2316,7 @@ def compress_2D_half_test(x, index_back=0):
     N, C, H, W = x.size()
     xfft = torch.rfft(x, signal_ndim=2, onesided=True)
     N, C, init_H_fft, init_half_W_fft, _ = xfft.size()
-    cxfft = compress_2D(xfft, index_back)
+    cxfft = compress_2D_index_back(xfft, index_back)
     cxfft_zeros = restore_size_2D(cxfft, init_H_fft=init_H_fft,
                                   init_half_W_fft=init_half_W_fft)
     cx = torch.irfft(cxfft_zeros, signal_ndim=2, signal_sizes=(H, W),
@@ -2362,7 +2335,7 @@ def show2D_spectra_test(x, index_back=0):
     """
     xfft = torch.rfft(x, signal_ndim=2, onesided=False)
     N, C, init_H_fft, init_W_fft, _ = xfft.size()
-    cxfft = compress_2D_full(xfft, index_back)
+    cxfft = compress_2D_in(xfft, index_back)
     cxfft_zeros = restore_size_2D_full(cxfft, init_H_fft=init_H_fft,
                                        init_W_fft=init_W_fft)
     return cxfft_zeros
@@ -2487,7 +2460,7 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None,
                                            index_back)
         index = max(index_xfft, index_yfft)
         # with open(log_file, "a+") as f:
-        #     f.write("index: " + str(index_back) +
+        #     f.write("index: " + str(compress_rate) +
         # ";preserved energy input: " + str(
         #         compute_energy(xfft[:index]) / compute_energy(
         # xfft[:fft_size // 2 + 1])) +
@@ -3127,7 +3100,7 @@ def fast_jmul(input, filter):
 def retain_low_coef(xfft, preserve_energy=None, index_back=None):
     """
     Retain the low coefficients to either to reach the required
-    preserve_energy or after removing index_back coefficients. Only one of them
+    preserve_energy or after removing compress_rate coefficients. Only one of them
     should be chosen. The coefficients with the highest frequencies are
     discarded (they usually represent noise for naturla signals and images).
 
@@ -3138,9 +3111,9 @@ def retain_low_coef(xfft, preserve_energy=None, index_back=None):
     smallest one).
     :return: the zeroed-out small coefficients
 
-    >>> # Simple index_back.
+    >>> # Simple compress_rate.
     >>> xfft = torch.tensor([[[[1., 2.], [3., 4.], [0.1, 0.1]]]])
-    >>> result = retain_low_coef(xfft, index_back=1)
+    >>> result = retain_low_coef(xfft, compress_rate=1)
     >>> expected = torch.tensor([[[[1., 2.], [3., 4.], [0.0, 0.0]]]])
     >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
 
@@ -3161,7 +3134,7 @@ def retain_low_coef(xfft, preserve_energy=None, index_back=None):
     >>> # Simple index back.
     >>> xfft = torch.tensor([[[[1.1, 2.1], [30., 40.], [0.1, 0.1], [0.1, -0.8],
     ... [0.0, -1.0]]]])
-    >>> result = retain_low_coef(xfft, index_back=3)
+    >>> result = retain_low_coef(xfft, compress_rate=3)
     >>> expected = torch.tensor([[[[1.1, 2.1], [30., 40.], [0.0, 0.0],
     ... [0.0, 0.0], [0.0, 0.0]]]])
     >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
@@ -3193,14 +3166,14 @@ def retain_low_coef(xfft, preserve_energy=None, index_back=None):
     >>> # Check 2 data points for index back.
     >>> xfft = torch.tensor([[[[1., 2.], [3., 4.], [0.1, 0.1]]],
     ... [[[0.0, 0.1], [2.0, -6.0], [0.01, 0.002]]]])
-    >>> result = retain_low_coef(xfft, index_back=1)
+    >>> result = retain_low_coef(xfft, compress_rate=1)
     >>> expected = torch.tensor([[[[1., 2.], [3., 4.], [0.0, 0.0]]],
     ... [[[0.0, 0.1], [2.0, -6.0], [0.0, 0.0]]]])
     >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
     >>> del xfft
     >>> del expected
     """
-    INPUT_ERROR = "Specify only one of: index_back, preserve_energy"
+    INPUT_ERROR = "Specify only one of: compress_rate, preserve_energy"
     if (index_back is not None and index_back > 0) and (
             preserve_energy is not None and preserve_energy < 100):
         raise TypeError(INPUT_ERROR)
@@ -3236,7 +3209,7 @@ def retain_low_coef(xfft, preserve_energy=None, index_back=None):
 def retain_big_coef(xfft, preserve_energy=None, index_back=None):
     """
     Retain the largest coefficients to either to reach the required
-    preserve_energy or after removing index_back coefficients. Only one of them
+    preserve_energy or after removing compress_rate coefficients. Only one of them
     should be chosen.
 
     :param xfft: the input signal (4 dimensions: batch size, channel, signal,
@@ -3246,9 +3219,9 @@ def retain_big_coef(xfft, preserve_energy=None, index_back=None):
     smallest one).
     :return: the zeroed-out small coefficients
 
-    >>> # Simple index_back.
+    >>> # Simple compress_rate.
     >>> xfft = torch.tensor([[[[1., 2.], [3., 4.], [0.1, 0.1]]]])
-    >>> result = retain_big_coef(xfft, index_back=1)
+    >>> result = retain_big_coef(xfft, compress_rate=1)
     >>> expected = torch.tensor([[[[1., 2.], [3., 4.], [0.0, 0.0]]]])
     >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
 
@@ -3269,7 +3242,7 @@ def retain_big_coef(xfft, preserve_energy=None, index_back=None):
     >>> # Simple index back.
     >>> xfft = torch.tensor([[[[0.1, 0.1], [30., 40.], [1.1, 2.1], [0.1, -0.8],
     ... [0.0, -1.0]]]])
-    >>> result = retain_big_coef(xfft, index_back=3)
+    >>> result = retain_big_coef(xfft, compress_rate=3)
     >>> expected = torch.tensor([[[[0.0, 0.0], [30., 40.], [1.1, 2.1],
     ... [0.0, 0.0], [0.0, 0.0]]]])
     >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
@@ -3301,14 +3274,14 @@ def retain_big_coef(xfft, preserve_energy=None, index_back=None):
     >>> # Check 2 data points for index back.
     >>> xfft = torch.tensor([[[[1., 2.], [3., 4.], [0.1, 0.1]]],
     ... [[[0.01, 0.002], [2.0, -6.0], [0.0, 0.1]]]])
-    >>> result = retain_big_coef(xfft, index_back=1)
+    >>> result = retain_big_coef(xfft, compress_rate=1)
     >>> expected = torch.tensor([[[[1., 2.], [3., 4.], [0.0, 0.0]]],
     ... [[[0.0, 0.0], [2.0, -6.0], [0.0, 0.1]]]])
     >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
     >>> del xfft
     >>> del expected
     """
-    INPUT_ERROR = "Specify only one of: index_back, preserve_energy"
+    INPUT_ERROR = "Specify only one of: compress_rate, preserve_energy"
     if (index_back is not None and index_back > 0) and (
             preserve_energy is not None and preserve_energy < 100):
         raise TypeError(INPUT_ERROR)
@@ -3353,7 +3326,7 @@ def retain_big_coef(xfft, preserve_energy=None, index_back=None):
 def retain_big_coef_bulk(xfft, preserve_energy=None, index_back=None):
     """
     Retain the largest coefficients to either to reach the required
-    preserve_energy or after removing index_back coefficients. Only one of them
+    preserve_energy or after removing compress_rate coefficients. Only one of them
     should be chosen.
 
     :param xfft: the input signal (4 dimensions: batch size, channel, signal,
@@ -3363,9 +3336,9 @@ def retain_big_coef_bulk(xfft, preserve_energy=None, index_back=None):
     smallest one).
     :return: the zeroed-out small coefficients
 
-    >>> # Simple index_back.
+    >>> # Simple compress_rate.
     >>> xfft = torch.tensor([[[[1., 2.], [3., 4.], [0.1, 0.1]]]])
-    >>> result = retain_big_coef_bulk(xfft, index_back=1)
+    >>> result = retain_big_coef_bulk(xfft, compress_rate=1)
     >>> expected = torch.tensor([[[[1., 2.], [3., 4.], [0.0, 0.0]]]])
     >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
 
@@ -3386,7 +3359,7 @@ def retain_big_coef_bulk(xfft, preserve_energy=None, index_back=None):
     >>> # Simple index back.
     >>> xfft = torch.tensor([[[[0.1, 0.1], [30., 40.], [1.1, 2.1], [0.1, -0.8],
     ... [0.0, -1.0]]]])
-    >>> result = retain_big_coef_bulk(xfft, index_back=3)
+    >>> result = retain_big_coef_bulk(xfft, compress_rate=3)
     >>> expected = torch.tensor([[[[0.0, 0.0], [30., 40.], [1.1, 2.1],
     ... [0.0, 0.0], [0.0, 0.0]]]])
     >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
@@ -3418,14 +3391,14 @@ def retain_big_coef_bulk(xfft, preserve_energy=None, index_back=None):
     >>> # Check 2 data points for index back.
     >>> xfft = torch.tensor([[[[1., 2.], [3., 4.], [0.1, 0.1]]],
     ... [[[0.01, 0.002], [2.0, -6.0], [0.0, 0.1]]]])
-    >>> result = retain_big_coef_bulk(xfft, index_back=1)
+    >>> result = retain_big_coef_bulk(xfft, compress_rate=1)
     >>> expected = torch.tensor([[[[1., 2.], [3., 4.], [0.0, 0.0]]],
     ... [[[0.0, 0.0], [2.0, -6.0], [0.0, 0.1]]]])
     >>> np.testing.assert_equal(actual=result.numpy(), desired=expected.numpy())
     >>> del xfft
     >>> del expected
     """
-    INPUT_ERROR = "Specify only one of: index_back, preserve_energy"
+    INPUT_ERROR = "Specify only one of: compress_rate, preserve_energy"
     if (index_back is not None and index_back > 0) and (
             preserve_energy is not None and preserve_energy < 100):
         raise TypeError(INPUT_ERROR)

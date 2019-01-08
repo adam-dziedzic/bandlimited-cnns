@@ -265,7 +265,7 @@ if __name__ == "__main__":
     args.in_channels = 3
     # args.conv_type = "FFT2D"
     args.conv_type = ConvType.STANDARD2D
-    args.index_back = None
+    args.compress_rate = None
     args.preserve_energy = None
     args.is_debug = False
     args.next_power2 = True

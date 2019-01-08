@@ -85,7 +85,7 @@ class PyTorchConv1dFunction(torch.autograd.Function):
             out_W = out_size
             if index_back is not None:
                 logger.error(
-                    "index_back cannot be set when out_size is used")
+                    "compress_rate cannot be set when out_size is used")
                 sys.exit(1)
             index_back = len(input) - out_W
 

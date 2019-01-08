@@ -433,7 +433,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
         repetition = 1
 
         args.in_channels = C
-        args.index_back = None
+        args.compress_rate = None
         args.preserve_energy = 100
         args.is_debug = False
         args.next_power2 = True

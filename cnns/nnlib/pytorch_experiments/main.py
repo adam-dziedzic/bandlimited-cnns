@@ -160,15 +160,15 @@ parser.add_argument("--model_path",
                     help="The path to a saved model.")
 parser.add_argument("--dataset", default=args.dataset,
                     help="the type of datasets: all, debug, cifar10, mnist.")
-# parser.add_argument("--index_back", default=args.index_back, type=float,
+# parser.add_argument("--compress_rate", default=args.compress_rate, type=float,
 #                     help="Percentage of indexes (values) from the back of the "
 #                          "frequency representation that should be discarded. "
 #                          "This is the compression in the FFT domain.")
-parser.add_argument('--indexes_back', nargs="+", type=float,
-                    default=args.indexes_back,
-                    help="Percentage of indexes (values) from the back of the "
-                         "frequency representation that should be discarded. "
-                         "This is the compression in the FFT domain.")
+parser.add_argument('--compress_rates', nargs="+", type=float,
+                    default=args.compress_rates,
+                    help="Percentage of the high frequency coefficients that "
+                         "should be discarded. This is the compression in the "
+                         "FFT domain.")
 parser.add_argument('--preserve_energies', nargs="+", type=float,
                     default=args.preserve_energies,
                     help="How much energy should be preserved in the "
@@ -496,12 +496,12 @@ def main(args):
     is_debug = args.is_debug
     dataset_name = args.dataset_name
     preserve_energy = args.preserve_energy
-    index_back = args.index_back
+    compress_rate = args.compress_rate
 
     dataset_log_file = os.path.join(
         results_folder_name, get_log_time() + "-dataset-" + str(dataset_name) + \
                              "-preserve-energy-" + str(preserve_energy) + \
-                             "-index-back-" + str(index_back) + \
+                             "-index-back-" + str(compress_rate) + \
                              ".log")
     DATASET_HEADER = HEADER + ",dataset," + str(dataset_name) + \
                      "-current-preserve-energy-" + str(preserve_energy) + "\n"
@@ -803,14 +803,14 @@ if __name__ == '__main__':
         # Write the metadata.
         file.write(HEADER + ",")
         file.write(
-            "preserve energies: " +
+            "preserve_energies: " +
             ",".join(
                 [str(energy) for energy in args.preserve_energies]) +
             ",")
         file.write(
-            "indexes back: " +
+            "compress_rates: " +
             ",".join(
-                [str(index_back) for index_back in args.indexes_back]) +
+                [str(compress_rate) for compress_rate in args.compress_rates]) +
             "\n")
 
     if args.precision_type is PrecisionType.AMP:
@@ -1137,17 +1137,17 @@ if __name__ == '__main__':
     for dataset_name in flist:
         args.dataset_name = dataset_name
         for preserve_energy in args.preserve_energies:
-            for index_back in args.indexes_back:
+            for compress_rate in args.compress_rates:
                 print("Dataset: ", dataset_name)
                 print("preserve energy: ", preserve_energy)
-                print("index back: ", index_back)
+                print("index back: ", compress_rate)
                 args.preserve_energy = preserve_energy
-                args.index_back = index_back
+                args.compress_rate = compress_rate
                 with open(global_log_file, "a") as file:
                     file.write(
-                        "preserve energy," + str(preserve_energy) + ",")
+                        "preserve_energy," + str(preserve_energy) + ",")
                     file.write(
-                        "indexes back," + str(index_back) + "\n")
+                        "compress_rate," + str(compress_rate) + "\n")
                     file.write(
                         "dataset,"
                         "min_train_loss,max_train_accuracy,"

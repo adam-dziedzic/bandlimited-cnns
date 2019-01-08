@@ -776,7 +776,7 @@ def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None,
         index_yfft = half_preserve_energy_index(yfft, preserve_energy_rate,
                                                 index_back)
         # with open(log_file, "a+") as f:
-        #     f.write("index: " + str(index_back) + ";preserved energy input: " + str(
+        #     f.write("index: " + str(compress_rate) + ";preserved energy input: " + str(
         #         compute_energy(xfft[:index]) / compute_energy(xfft[:fft_size // 2 + 1])) +
         #             ";preserved energy filter: " + str(
         #         compute_energy(yfft[:index]) / compute_energy(yfft[:fft_size // 2 + 1])) + "\n")
@@ -844,7 +844,7 @@ def half_preserve_energy_index(xfft, energy_rate=None, index_back=None):
 def preserve_energy_index(xfft, energy_rate=None, index_back=None):
     """
     To which index should we preserve the xfft signal (and discard the remaining coefficients). This is based on the
-    provided energy_rate, or if the energy_rate is not provided, then index_back is applied. If none of the params are
+    provided energy_rate, or if the energy_rate is not provided, then compress_rate is applied. If none of the params are
     provided, we
 
     :param xfft: the input signal to be truncated
@@ -877,7 +877,7 @@ def preserve_energy_index(xfft, energy_rate=None, index_back=None):
     >>> np.testing.assert_equal(result, 2)
 
     >>> xfft = [1.+2.j, 3. + 4.j, 5.+6.j]
-    >>> result = preserve_energy_index(xfft, index_back=1)
+    >>> result = preserve_energy_index(xfft, compress_rate=1)
     >>> np.testing.assert_equal(result, 2)
 
     >>> xfft = np.array([1.+2.j, 3.+4.j, 0.1+0.1j])
@@ -1073,7 +1073,7 @@ def conv_forward_fft_1D(x, w, b, conv_param):
     >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
     """
     preserve_energy_rate = conv_param.get('preserve_energy_rate', None)
-    index_back = conv_param.get('index_back', None)
+    index_back = conv_param.get('compress_rate', None)
     pad = conv_param.get('pad')
     stride = conv_param.get('stride')
     if stride != 1:
@@ -1139,7 +1139,7 @@ def conv_backward_fft_1D(dout, cache):
     """
     x, w, b, conv_param, fftsize = cache
     preserve_energy_rate = conv_param.get('preserve_energy_rate', None)
-    index_back = conv_param.get('index_back', None)
+    index_back = conv_param.get('compress_rate', None)
     pad = conv_param.get('pad')
     stride = conv_param.get('stride')
     if stride != 1:
@@ -1204,7 +1204,7 @@ def conv_backward_fft_1D(dout, cache):
                 # print("w[ff, cc]: ", w[ff, cc])
                 # print("w[ff, cc] shape: ", w[ff, cc].shape)
                 # dx[nn, cc] += correlate_signals(padded_dout[nn, ff], np.flip(w[ff, cc], axis=0), fftsize, W,
-                #                                 preserve_energy_rate=preserve_energy_rate, index_back=index_back)
+                #                                 preserve_energy_rate=preserve_energy_rate, compress_rate=compress_rate)
                 dx[nn, cc] += correlate_signals(padded_dout[nn, ff],
                                                 np.flip(w[ff, cc], axis=0),
                                                 fftsize, W,
