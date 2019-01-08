@@ -54,7 +54,7 @@ class Arguments(object):
                  compress_type=CompressType.STANDARD,
                  #compress_rate=5,
                  # ndexes_back=[5,15,25,35,45],
-                 compress_rates=[5,10,20,30],
+                 compress_rates=[30],
                  # weight_decay=5e-4,
                  weight_decay=0,
                  # weight_decay=0.0005,

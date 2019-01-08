@@ -304,9 +304,9 @@ class Conv2dfftFunction(torch.autograd.Function):
                 retain_rate_W = 100 - compress_rate_W
                 retain_ratio = math.sqrt(retain_rate_W/100)
                 index_forward_W_fft = int(init_half_W_fft * retain_ratio)
-                # At least one coefficient is removed.
-                index_forward_W_fft = min(index_forward_W_fft,
-                                          init_half_W_fft - 1)
+                # # At least one coefficient is removed.
+                # index_forward_W_fft = min(index_forward_W_fft,
+                #                           init_half_W_fft - 1)
                 xfft = compress_2D_index_forward(xfft, index_forward_W_fft)
                 yfft = compress_2D_index_forward(yfft, index_forward_W_fft)
 
