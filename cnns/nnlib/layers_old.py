@@ -940,7 +940,7 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, index_back=10, fft_back=0)
                 # print("first xfft: ", xfft)
                 # xfft = xfft[:len(xfft) // 2]
                 if index_back != None:
-                    # index = len(xfft) // 2 - index_back
+                    # index = len(xfft) // 2 - compress_rate
                     xfft = xfft[0:len(xfft) // 2]
                     xfft = np.concatenate((xfft[0:-index_back], np.zeros(index_back)))
                     # xfft = xfft[0: index + 1]
@@ -978,7 +978,7 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, index_back=10, fft_back=0)
                 # filterfft = filterfft[:filterfft.shape[-1] // 2]
                 # print("filterfft: ", filterfft)
                 # filterfft = np.conj(filterfft)
-                # if index_back != None:
+                # if compress_rate != None:
                 #     xfft = np.concatenate((xfft, np.conj(np.flip(xfft[1:-1], axis=0))))
                 #     filterfft = np.concatenate((filterfft, np.conj(np.flip(filterfft[1:-1], axis=0))))
                 #     print("size of reconstructed xfft: ", len(xfft))
@@ -1000,7 +1000,7 @@ def conv_forward_fft_1D_compress(x, w, b, conv_param, index_back=10, fft_back=0)
                 # filterfft = filterfft / norm(filterfft)
 
                 outfft = xfft * filterfft
-                # if index_back != 0:
+                # if compress_rate != 0:
                 #     outfft = np.concatenate((outfft, np.conj(np.flip(outfft, axis=0))))
                 # take the inverse of the output from the frequency domain and return the modules of the complex numbers
                 # outfft = np.concatenate((outfft, np.zeros(init_size // 2)))

@@ -42,16 +42,16 @@ class Conv(object):
         self.args = args
         self.dtype = args.dtype
         self.next_power2 = args.next_power2
-        self.index_back = args.index_back
+        self.compress_rate = args.compress_rate
 
-    def get_conv(self, index=0, index_back=None):
+    def get_conv(self, index=0, compress_rate=None):
         if index == 0:
             in_channels = self.in_channels
         else:
             in_channels = self.out_channels[index - 1]
 
-        if index_back is None:
-            index_back = self.index_back
+        if compress_rate is None:
+            compress_rate = self.compress_rate
 
         if self.conv_type is ConvType.STANDARD:
             return nn.Conv1d(in_channels=in_channels,
@@ -91,7 +91,7 @@ class Conv(object):
                                      stride=self.strides[index],
                                      kernel_size=self.kernel_sizes[index],
                                      padding=self.padding[index],
-                                     index_back=self.index_back,
+                                     index_back=compress_rate,
                                      bias=self.is_bias)
         elif self.conv_type is ConvType.AUTOGRAD2D:
             return Conv2dfftAutograd(in_channels=in_channels,
@@ -107,7 +107,7 @@ class Conv(object):
                                    stride=self.strides[index],
                                    kernel_size=self.kernel_sizes[index],
                                    padding=self.padding[index],
-                                   index_back=self.index_back,
+                                   index_back=compress_rate,
                                    bias=self.is_bias)
         elif self.conv_type is ConvType.SIMPLE_FFT_FOR_LOOP:
             return Conv1dfftSimpleForLoop(in_channels=in_channels,
@@ -115,7 +115,7 @@ class Conv(object):
                                           stride=self.strides[index],
                                           kernel_size=self.kernel_sizes[index],
                                           padding=self.padding[index],
-                                          index_back=self.index_back,
+                                          index_back=compress_rate,
                                           bias=self.is_bias)
         elif self.conv_type is ConvType.COMPRESS_INPUT_ONLY:
             return Conv1dfftCompressSignalOnly(
@@ -123,7 +123,7 @@ class Conv(object):
                 stride=self.strides[index],
                 kernel_size=self.kernel_sizes[index],
                 padding=self.padding[index],
-                index_back=self.index_back,
+                index_back=compress_rate,
                 preserve_energy=self.preserve_energy,
                 bias=self.is_bias)
         else:

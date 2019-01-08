@@ -12,6 +12,7 @@ from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import TensorType
 from cnns.nnlib.utils.general_utils import Bool
 from cnns.nnlib.utils.general_utils import StrideType
+from cnns.nnlib.utils.general_utils import PrecisionType
 
 """
 cFFT cuda_multiply: total elapsed time (sec):  15.602577447891235
@@ -39,24 +40,25 @@ class Arguments(object):
                  network_type=NetworkType.ResNet18,
                  # network_type=NetworkType.DenseNetCifar,
                  # network_type=NetworkType.FCNN_STANDARD,
-                 preserve_energy=100,
                  # preserved_energies=[100],
                  # preserved_energies=range(100,49,-1),
                  # preserved_energies=range(85, 75, -1),
                  # preserved_energies=[95, 90, 98],
                  # preserved_energies=[100, 99.9, 99.5, 99, 98, 97, 96, 95, 90, 80, 70, 60, 50, 10],
                  preserved_energies=[100],
-                 # tensor_type=TensorType.FLOAT32,
-                 tensor_type=TensorType.FLOAT16,
-                 # dtype=torch.float32,
-                 dtype=torch.float16,
+                 tensor_type=TensorType.FLOAT32,
+                 # tensor_type=TensorType.FLOAT16,
+                 # precision_type=PrecisionType.AMP,
+                 precision_type=PrecisionType.FP32,
                  use_cuda=True,
                  compress_type=CompressType.STANDARD,
-                 index_back=0,
+                 #compress_rate=5,
+                 # ndexes_back=[5,15,25,35,45],
+                 compress_rates=[x/2 for x in range(28,111,1)],
                  # weight_decay=5e-4,
-                 # weight_decay=0,
-                 weight_decay=0.0005,
-                 epochs=100,
+                 weight_decay=0,
+                 # weight_decay=0.0005,
+                 epochs=1,
                  min_batch_size=32,
                  test_batch_size=32,
                  learning_rate=0.01,
@@ -92,8 +94,8 @@ class Arguments(object):
                  # dataset="ucr",
                  mem_test=False,
                  is_data_augmentation=True,
-                 # sample_count_limit=256,
-                 sample_count_limit=0,
+                 sample_count_limit=32,
+                 # sample_count_limit=0,
                  conv_type=ConvType.FFT2D,
                  # conv_type=ConvType.STANDARD2D,
                  # conv_type=ConvType.FFT1D,
@@ -117,6 +119,9 @@ class Arguments(object):
                  adam_beta1=0.9,
                  adam_beta2=0.999,
                  cuda_block_threads=1024,
+                 resume="",
+                 gpu=0,
+                 start_epoch=1,
                  ):
         """
         The default parameters for the execution of the program.
@@ -125,12 +130,11 @@ class Arguments(object):
         :param network_type: the type of network architecture
         :param preserve_energy: how much energy in the input should be preserved
         after compression
-        :param dtype: the type of the tensors
         :param use_cuda: should use gpu or not
         :param compress_type: the type of FFT compression, NO_FILTER - do not
         compress the filter. BIG_COEF: preserve only the largest coefficients
         in the frequency domain.
-        :param index_back: how much compress based on discarded coefficients
+        :param compress_rate: how much compress based on discarded coefficients
         in the frequency domain.
         :param weight_decay: weight decay for optimizer parameters
         :param epochs: number of epochs for training
@@ -159,12 +163,6 @@ class Arguments(object):
         self.network_type = network_type
         self.__idx_network_type = self.__next_counter()
 
-        self.preserve_energy = preserve_energy
-        self.__idx_preserve_energy = self.__next_counter()
-
-        self.dtype = dtype
-        self.__idx_dtype = self.__next_counter()
-
         if use_cuda is None:
             self.use_cuda = True if torch.cuda.is_available() else False
         else:
@@ -174,14 +172,12 @@ class Arguments(object):
         self.compress_type = compress_type
         self.__idx_compress_type = self.__next_counter()
 
-        self.index_back = index_back
-        self.__idx_index_back = self.__next_counter()
-
         self.weight_decay = weight_decay
         self.__idx_weight_decay = self.__next_counter()
 
         # Object's variable that are not convertible to an element of a tensor.
         self.preserve_energies = preserved_energies
+        self.compress_rates = compress_rates
         self.epochs = epochs
         self.min_batch_size = min_batch_size
         self.test_batch_size = test_batch_size
@@ -216,6 +212,11 @@ class Arguments(object):
         self.adam_beta1 = adam_beta1
         self.adam_beta2 = adam_beta2
         self.cuda_block_threads = cuda_block_threads
+        self.resume = resume
+        self.gpu = gpu
+        self.start_epoch = start_epoch
+        self.precision_type = precision_type
+
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False
@@ -239,6 +240,7 @@ class Arguments(object):
         self.memory_type = MemoryType[parsed_args.memory_type]
         self.tensor_type = TensorType[parsed_args.tensor_type]
         self.stride_type = StrideType[parsed_args.stride_type]
+        self.precision_type = PrecisionType[parsed_args.precision_type]
 
         # Bools:
         self.is_debug = self.get_bool(parsed_args.is_debug)
@@ -304,7 +306,7 @@ class Arguments(object):
         t[self.__idx_compress_type] = self.compress_type.value
         t[self.__idx_preserve_energy] = self.from_float_arg(
             self.preserve_energy)
-        t[self.__idx_index_back] = self.from_float_arg(self.index_back)
+        t[self.__idx_index_back] = self.from_float_arg(self.compress_rate)
 
     def from_tensor(self, t):
         self.network_type = NetworkType(t[int(self.__idx_nework_type)])
@@ -312,4 +314,4 @@ class Arguments(object):
         self.use_cuda = self.to_bool_arg(t[self.__idx_use_cuda])
         self.compress_type = CompressType(t[int(self.__idx_compress_type)])
         self.preserve_energy = self.to_float_arg(t[self.__idx_preserve_energy])
-        self.index_back = self.to_float_arg(t[self.__idx_index_back])
+        self.compress_rate = self.to_float_arg(t[self.__idx_index_back])
