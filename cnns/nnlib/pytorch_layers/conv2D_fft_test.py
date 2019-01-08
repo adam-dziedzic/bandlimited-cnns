@@ -1222,7 +1222,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         # get the expected results from numpy correlate
         # print("expected_result_numpy: ", expected_result_numpy)
         # preserved_energies = [1.0]
-        # indexes_back = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+        # compress_rates = [1, 2, 4, 8, 16, 32, 64, 128, 256]
         if torch.cuda.is_available():
             device = torch.device("cuda")
         else:
@@ -1327,7 +1327,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         # get the expected results from numpy correlate
         # print("expected_result_numpy: ", expected_result_numpy)
         # preserved_energies = [1.0]
-        # indexes_back = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+        # compress_rates = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
         repeat = 1
         convTorch = torch.nn.Conv2d(in_channels=y.shape[1],
@@ -1476,7 +1476,7 @@ class TestPyTorchConv2d(unittest.TestCase):
             # get the expected results from numpy correlate
             # print("expected_result_numpy: ", expected_result_numpy)
             # preserved_energies = [1.0]
-            # indexes_back = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+            # compress_rates = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
             repeat = 1
             convTorch = torch.nn.Conv2d(in_channels=y.shape[1],
@@ -1804,7 +1804,7 @@ class TestPyTorchConv2d(unittest.TestCase):
             # get the expected results from numpy correlate
             # print("expected_result_numpy: ", expected_result_numpy)
             # preserved_energies = [1.0]
-            # indexes_back = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+            # compress_rates = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
             repeat = 1
             convTorch = torch.nn.Conv2d(in_channels=y.shape[1],

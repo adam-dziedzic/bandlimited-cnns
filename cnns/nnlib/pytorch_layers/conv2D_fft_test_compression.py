@@ -112,7 +112,7 @@ class TestPyTorchConv2dCompression(unittest.TestCase):
                               50.,
                               40., 10., 5., 1.]
         # preserved_energies = [1.0]
-        # indexes_back = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+        # compress_rates = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
         expected_result_tensor = F.conv2d(input=x, weight=y, bias=b)
 
@@ -157,7 +157,7 @@ class TestPyTorchConv2dCompression(unittest.TestCase):
         half_fft_size = fft_size // 2 + 1
         fft_numel = half_fft_size * fft_size * C
 
-        # for index_back in range(1, fft_numel, 10):
+        # for compress_rate in range(1, fft_numel, 10):
         for index_back in range(1, 2):
             print("index back: ", index_back)
             conv = Conv2dfft(weight_value=y,

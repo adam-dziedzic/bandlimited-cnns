@@ -199,7 +199,7 @@ for energy_rate in [None]:
     for index_back in range(0, fft_size // 2 + 2):
         returned_signal = correlate_signals(x, y, out_W, energy_rate=None, index_back=index_back)
         print("index back,", index_back, ", preserved energy of cross-correlation,", compute_energy(returned_signal) / compute_energy(numpy_result))
-        # print("index_back, ", index_back,
+        # print("compress_rate, ", compress_rate,
         #       ",abs error between expected signal and fft cross-correlated signal (for type float64), ",
         #       abs_error(np.array(numpy_result, dtype=np.float64),
         #                 np.array(returned_signal,

@@ -519,7 +519,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         # preserved_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 85.,
         #                       80., 70., 60., 50., 40., 10.]
         preserved_energies = [95.]
-        # indexes_back = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+        # compress_rates = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
         for preserve_energy in preserved_energies:
             conv = Conv1dfft(filter_value=torch.from_numpy(y),
@@ -558,7 +558,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         # preserved_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 85.,
         #                      80., 70., 60., 50., 40., 10.]
         preserved_energies = [95.]
-        # indexes_back = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+        # compress_rates = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
         for preserve_energy in preserved_energies:
             conv = Conv1dfft(filter_value=torch.from_numpy(y),
@@ -595,7 +595,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         # preserved_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 85.,
         #                        80., 70., 60., 50., 40., 10.]
         # preserved_energies = [95.]
-        # indexes_back = [1, 2, 4, 8, 16, 32, 64, 100]  # percent
+        # compress_rates = [1, 2, 4, 8, 16, 32, 64, 100]  # percent
         indexes_back = [8]  # percent
 
         for index_back in indexes_back:
@@ -635,7 +635,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         # preserved_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 85.,
         #                        80., 70., 60., 50., 40., 10.]
         # preserved_energies = [95.]
-        # indexes_back = [1, 2, 4, 8, 16, 32, 64, 100]  # percent
+        # compress_rates = [1, 2, 4, 8, 16, 32, 64, 100]  # percent
         indexes_back = [8]
 
         for index_back in indexes_back:

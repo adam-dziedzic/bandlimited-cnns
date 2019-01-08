@@ -280,7 +280,7 @@ with open("results/conv_timimg" + time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime
                                                        number=exec_number, repetition=repetitions)
         # conv_compress_time, (result_compress, _) = timeitrep(
         #     wrapper(conv_forward_fft_1D_compress_perf, reshaped_x, reshaped_filters, b, conv_param,
-        #             index_back=100),
+        #             compress_rate=100),
         #     number=exec_number, repetition=repetitions)
 
         conv_compress_time, (result_compress, _) = timeitrep(

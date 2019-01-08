@@ -200,7 +200,7 @@ for filter_size in filter_sizes:
 
     # conv_compressed, (result_compressed, _) = timeitrep(
     #     wrapper(conv_forward_fft_1D_compress_perf, reshape_3d_rest(x), reshape_3d_rest(filters), b, conv_param,
-    #             index_back=100),
+    #             compress_rate=100),
     #     number=exec_number, repetition=repetitions)
 
     conv_naive_time, (result_naive, _) = timeitrep(
@@ -253,7 +253,7 @@ for filter_size in filter_sizes:
         wrapper(conv_forward_fft_1D_compress, reshaped_x, reshaped_filters, b, conv_param,
                 fft_back=fft_back, index_back=None),
         number=exec_number, repetition=repetitions)
-    print("index_back: ", fft_back, "error: ", abs_error(result_naive, result_fft_compressed))
+    print("compress_rate: ", fft_back, "error: ", abs_error(result_naive, result_fft_compressed))
 
     conv_kshape, result_kshape = timeitrep(
         wrapper(cross_correlate_test, x, filters), number=exec_number, repetition=repetitions)

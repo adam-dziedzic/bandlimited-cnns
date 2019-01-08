@@ -83,7 +83,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         :param padding: how much pad each end of the input signal.
         :param stride: what is the stride for the convolution (the pattern for
         omitted values).
-        :param index_back: how many last elements in the fft-ed signal to
+        :param compress_rate: how many last elements in the fft-ed signal to
         discard.
         :param preserve_energy: how much energy of the input should be
         preserved.
@@ -155,7 +155,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                              xlabel="Time")
             cuda_mem_show(info="forward start")
 
-        INPUT_ERROR = "Specify only one of: index_back, out_size, or " \
+        INPUT_ERROR = "Specify only one of: compress_rate, out_size, or " \
                       "preserve_energy"
         if (index_back is not None and index_back > 0) and out_size is not None:
             raise TypeError(INPUT_ERROR)
@@ -940,7 +940,7 @@ class Conv1dfft(Module):
         :param groups: (int) – Number of blocked connections from input channels
         to output channels. Default: 1
         :param bias: (bool) - add bias or not
-        :param index_back: how many frequency coefficients should be
+        :param compress_rate: how many frequency coefficients should be
         discarded
         :param preserve_energy: how much energy should be preserved in the input
         signal.
@@ -987,7 +987,7 @@ class Conv1dfft(Module):
             self.is_debug = False
             self.compress_type = CompressType.STANDARD
         else:
-            self.index_back = args.index_back
+            self.index_back = args.compress_rate
             self.preserve_energy = args.preserve_energy
             self.next_power2 = args.next_power2
             self.is_debug = args.is_debug
@@ -1118,7 +1118,7 @@ class Conv1dfftAutograd(Conv1dfft):
         >>> # the 1 index back does not change the result in this case
         >>> expected_result = [3.666667, 7.333333]
         >>> conv = Conv1dfftAutograd(filter_value=torch.from_numpy(y),
-        ... bias_value=torch.from_numpy(b), index_back=1)
+        ... bias_value=torch.from_numpy(b), compress_rate=1)
         >>> result = conv.forward(input=torch.from_numpy(x))
         >>> np.testing.assert_array_almost_equal(result,
         ... np.array([[expected_result]]))
@@ -1259,7 +1259,7 @@ class Conv1dfftSimpleForLoop(Conv1dfftAutograd):
         of the size of the input signal. This percentage of the input signal is
         the size - number of frequencies that will be discarded in the frequency
         domain. Calculations:
-        index_back = int(input_size * (self.index_back / 100) // 2) + 1
+        compress_rate = int(input_size * (self.compress_rate / 100) // 2) + 1
         """
         super(Conv1dfftSimpleForLoop, self).__init__(
             in_channels=in_channels, out_channels=out_channels,
@@ -1313,7 +1313,7 @@ class Conv1dfftSimpleForLoop(Conv1dfftAutograd):
         if self.index_back is not None and self.index_back > 0:
             if self.preserve_energy is not None and self.preserve_energy < 100:
                 raise AttributeError(
-                    "Choose either preserve_energy or index_back or output size.")
+                    "Choose either preserve_energy or compress_rate or output size.")
             self.index_back = int(input.shape[-2] * (self.index_back / 100)) + 1
 
         if self.preserve_energy is not None and self.preserve_energy < 100:
@@ -1335,7 +1335,7 @@ class Conv1dfftSimpleForLoop(Conv1dfftAutograd):
                                               init_half_fft_size - self.index_back) / init_half_fft_size * 100
             percent_preserved_energy = preserved_energy / full_energy * 100
             msg = "conv_name," + "conv" + str(
-                self.conv_index) + ",index_back," + str(
+                self.conv_index) + ",compress_rate," + str(
                 self.index_back) + ",init_fft_size," + str(
                 init_fft_size) + ",raw signal length," + str(
                 input_size) + ",init_half_fft_size," + str(
@@ -1460,7 +1460,7 @@ class Conv1dfftCompressSignalOnly(Conv1dfftAutograd):
         if self.index_back is not None and self.index_back > 0:
             if self.preserve_energy is not None and self.preserve_energy < 100:
                 raise AttributeError(
-                    "Choose either preserve_energy or index_back")
+                    "Choose either preserve_energy or compress_rate")
             # The index back has to be at least one coefficient removed
             # (thus: + 1)
             self.index_back = int(
@@ -1489,7 +1489,7 @@ class Conv1dfftCompressSignalOnly(Conv1dfftAutograd):
                     init_half_fft_size - self.index_back) / init_half_fft_size
             percent_preserved_energy = preserved_energy / full_energy * 100
             msg = "conv_name," + "conv" + str(
-                self.conv_index) + ",index_back," + str(
+                self.conv_index) + ",compress_rate," + str(
                 self.index_back) + ",fft_size," + str(
                 fft_size) + ",raw signal length," + str(
                 input_size) + ",init_half_fft_size," + str(

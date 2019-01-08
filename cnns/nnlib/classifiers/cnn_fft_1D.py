@@ -87,7 +87,7 @@ class ThreeLayerConvNetFFT1D(object):
 
         conv_param = {'stride': self.stride_convolution, 'pad': self.pad_convolution,
                       'preserve_energy_rate': self.energy_rate_convolution,
-                      'index_back': self.index_back}
+                      'compress_rate': self.index_back}
         pool_param = {'pool_width': self.pool_width, 'stride': self.pool_stride}
 
         ############################################################################
