@@ -172,7 +172,7 @@ parser.add_argument('--preserve_energies', nargs="+", type=float,
                     help="How much energy should be preserved in the "
                          "frequency representation of the signal? This "
                          "is the compression in the FFT domain.")
-parser.add_argument("--mem_test",                    default="TRUE" if args.mem_test else "FALSE",
+parser.add_argument("--mem_test", default="TRUE" if args.mem_test else "FALSE",
                     help="is it the memory test; options: " + ",".join(
                         Bool.get_names()))
 parser.add_argument("--is_data_augmentation",
@@ -280,7 +280,7 @@ parser.add_argument("--precision_type", default=args.precision_type.name,
                     help="the precision type: " + ",".join(
                         PrecisionType.get_names()))
 parser.add_argument('--compress_rate', type=float,
-                    default=args.index_back,
+                    default=args.compress_rate,
                     help="""Percentage of discarded coefficients (old param).""")
 
 parsed_args = parser.parse_args()
@@ -502,7 +502,7 @@ def main(args):
     dataset_log_file = os.path.join(
         results_folder_name, get_log_time() + "-dataset-" + str(dataset_name) + \
                              "-preserve-energy-" + str(preserve_energy) + \
-                             "-index-back-" + str(compress_rate) + \
+                             "-compress-rate-" + str(compress_rate) + \
                              ".log")
     DATASET_HEADER = HEADER + ",dataset," + str(dataset_name) + \
                      "-current-preserve-energy-" + str(preserve_energy) + "\n"
@@ -688,7 +688,9 @@ def main(args):
             file.write(
                 dataset_name + ",None,None,None,None," + str(
                     test_loss) + "," + str(test_accuracy) + "," + str(
-                    elapsed_time) + ",visualize" + "\n")
+                    elapsed_time) + ",visualize," + str(
+                    args.preserve_energy) + "," + str(
+                    args.compress_rate) + "\n")
         return
 
     dataset_start_time = time.time()
@@ -735,7 +737,7 @@ def main(args):
                 train_accuracy) + "," + str(dev_loss) + "," + str(
                 dev_accuracy) + "," + str(test_loss) + "," + str(
                 test_accuracy) + "," + str(epoch_time) + "," + str(
-                lr) + "," + str(train_time) + "," + str(test_time) +"\n")
+                lr) + "," + str(train_time) + "," + str(test_time) + "\n")
 
         # Metric: select the best model based on the best train loss (minimal).
         is_best = False
@@ -783,7 +785,8 @@ def main(args):
             'max_train_accuracy': max_train_accuracy,
             'optimizer': optimizer.state_dict(),
         }, is_best,
-            filename=dataset_name + "-" + str(max_train_accuracy) + "checkpoint.tar")
+            filename=dataset_name + "-" + str(
+                max_train_accuracy) + "checkpoint.tar")
 
     with open(global_log_file, "a") as file:
         file.write(dataset_name + "," + str(min_train_loss) + "," + str(
@@ -817,6 +820,12 @@ if __name__ == '__main__':
             ",".join(
                 [str(compress_rate) for compress_rate in args.compress_rates]) +
             "\n")
+        file.write(
+            "dataset,"
+            "min_train_loss,max_train_accuracy,"
+            "min_dev_loss,max_dev_accuracy,"
+            "min_test_loss,max_test_accuracy,"
+            "execution_time,additional_info\n")
 
     if args.precision_type is PrecisionType.AMP:
         from apex import amp
@@ -833,7 +842,10 @@ if __name__ == '__main__':
         flist = ["mnist"]
     elif args.dataset == "debug":
         # flist = ['ItalyPowerDemand']
-        flist = ['Lighting7']
+        # flist = ['Lighting7']
+        # flist = ['Trace']
+        # flist = ["ToeSegmentation1"]
+        flist = ["Plane"]
         #         'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
         #         'CinC_ECG_torso', 'Coffee', 'Computers', 'Cricket_X',
         #         'Cricket_Y', 'Cricket_Z', 'DiatomSizeReduction',
@@ -1144,13 +1156,16 @@ if __name__ == '__main__':
     elif args.dataset == "debug13":
         flist = ['Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass']
     elif args.dataset == "debug14":
-        flist = ['MALLAT', 'Meat', 'MedicalImages', 'MiddlePhalanxOutlineAgeGroup']
+        flist = ['MALLAT', 'Meat', 'MedicalImages',
+                 'MiddlePhalanxOutlineAgeGroup']
     elif args.dataset == "debug15":
         flist = ['Coffee', 'Computers', 'Phoneme', 'Plane', 'Car', 'Strawberry']
     elif args.dataset == "debug16":
-        flist = ['Lighting7', 'FISH', 'FaceFour', 'ProximalPhalanxOutlineCorrect']
+        flist = ['Lighting7', 'FISH', 'FaceFour',
+                 'ProximalPhalanxOutlineCorrect']
     elif args.dataset == "debug17":
-        flist = ['MoteStrain', 'ECGFiveDays', 'DistalPhalanxOutlineAgeGroup', 'ProximalPhalanxTW']
+        flist = ['MoteStrain', 'ECGFiveDays', 'DistalPhalanxOutlineAgeGroup',
+                 'ProximalPhalanxTW']
     elif args.dataset == "debug18":
         flist = ["Cricket_X", "Cricket_Y", "Cricket_Z"]
     elif args.dataset == "debug19":
@@ -1163,6 +1178,8 @@ if __name__ == '__main__':
                  'Worms',
                  'WormsTwoClass',  # start from almost the beginning
                  'Earthquakes']
+    elif args.dataset == 'debug20':
+        flist = ["Coffee", "Car", "ArrowHead"]
     else:
         raise AttributeError("Unknown dataset: ", args.dataset)
 
@@ -1182,20 +1199,9 @@ if __name__ == '__main__':
             for compress_rate in args.compress_rates:
                 print("Dataset: ", dataset_name)
                 print("preserve energy: ", preserve_energy)
-                print("index back: ", compress_rate)
+                print("compress rate: ", compress_rate)
                 args.preserve_energy = preserve_energy
                 args.compress_rate = compress_rate
-                with open(global_log_file, "a") as file:
-                    file.write(
-                        "preserve_energy," + str(preserve_energy) + ",")
-                    file.write(
-                        "compress_rate," + str(compress_rate) + "\n")
-                    file.write(
-                        "dataset,"
-                        "min_train_loss,max_train_accuracy,"
-                        "min_dev_loss,max_dev_accuracy,"
-                        "min_test_loss,max_test_accuracy,"
-                        "execution_time\n")
                 start_training = time.time()
                 try:
                     main(args=args)

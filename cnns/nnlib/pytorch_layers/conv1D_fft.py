@@ -157,7 +157,8 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         INPUT_ERROR = "Specify only one of: compress_rate, out_size, or " \
                       "preserve_energy"
-        if (compress_rate is not None and compress_rate > 0) and out_size is not None:
+        if (
+                compress_rate is not None and compress_rate > 0) and out_size is not None:
             raise TypeError(INPUT_ERROR)
         if (compress_rate is not None and compress_rate > 0) and (
                 preserve_energy is not None and preserve_energy < 100):
@@ -522,8 +523,8 @@ class Conv1dfftFunction(torch.autograd.Function):
                     # values).
                     output[start:stop] += unsqueezed_bias
         else:
-            raise Exception(f"Unknown conv exec type: {args.conv_exec_type.name}")
-
+            raise Exception(
+                f"Unknown conv exec type: {args.conv_exec_type.name}")
 
         if is_debug:
             cuda_mem_show(info="compute output")
@@ -877,7 +878,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                     #     "conv"+str(conv_index), out.size(), dw.size(), str(N),
                     #     str(C), str(F)))
                     dw[ff] = out
-            else:
+            elif args.conv_exec_type is ConvExecType.BATCH:
                 # Convolve some part of the dout batch with all input maps.
                 start = 0
                 # step = 16
@@ -903,6 +904,8 @@ class Conv1dfftFunction(torch.autograd.Function):
                     # to all the input maps.
                     out = out.sum(dim=1)
                     dw[start:stop] = out
+            else:
+                raise Exception(f"Unknown conv_exec_type: {args.conv_exec_type}")
             del xfft
 
             if is_debug:
