@@ -37,15 +37,15 @@ class Arguments(object):
 
     def __init__(self,
                  is_debug=False,
-                 network_type=NetworkType.ResNet18,
+                 # network_type=NetworkType.ResNet18,
                  # network_type=NetworkType.DenseNetCifar,
-                 # network_type=NetworkType.FCNN_STANDARD,
+                 network_type=NetworkType.FCNN_STANDARD,
                  # preserved_energies=[100],
                  # preserved_energies=range(100,49,-1),
                  # preserved_energies=range(85, 75, -1),
                  # preserved_energies=[95, 90, 98],
                  # preserved_energies=[100, 99.9, 99.5, 99, 98, 97, 96, 95, 90, 80, 70, 60, 50, 10],
-                 preserved_energies=[100],
+                 preserved_energies=[100,99,90],
                  tensor_type=TensorType.FLOAT32,
                  # tensor_type=TensorType.FLOAT16,
                  # precision_type=PrecisionType.AMP,
@@ -54,7 +54,8 @@ class Arguments(object):
                  compress_type=CompressType.STANDARD,
                  #compress_rate=5,
                  # ndexes_back=[5,15,25,35,45],
-                 compress_rates=[x/2 for x in range(28,111,1)],
+                 # compress_rates=[x/2 for x in range(28,111,1)],
+                 compress_rates=[0],
                  # weight_decay=5e-4,
                  weight_decay=0,
                  # weight_decay=0.0005,
@@ -71,7 +72,9 @@ class Arguments(object):
                  loss_reduction=LossReduction.ELEMENTWISE_MEAN,
                  memory_type=MemoryType.PINNED,
                  workers=6,
-                 model_path="no_model",
+                 # model_path="no_model",
+                 # model_path="2018-11-25-00-36-07-133900-dataset-ItalyPowerDemand-preserve-energy-100-test-accuracy-95.91836734693878.model",
+                 model_path="2018-11-25-11-10-07-508525-dataset-Lighting7-preserve-energy-100-test-accuracy-82.1917808219178.model",
                  # model_path="2018-12-01-03-23-06-181637-dataset-Two_Patterns-preserve-energy-99-test-accuracy-88.25.model",
                  # model_path="2018-11-30-21-58-26-723085-dataset-Two_Patterns-preserve-energy-90-test-accuracy-93.8.model",
                  # model_path="2018-12-01-03-00-20-144358-dataset-Two_Patterns-preserve-energy-100-test-accuracy-87.15.model",
@@ -89,23 +92,24 @@ class Arguments(object):
                  # model_path="2018-11-29-12-26-08-403300-dataset-50words-preserve-energy-99-test-accuracy-63.51648351648352.model",
                  # model_path="2018-11-26-20-04-34-197804-dataset-50words-preserve-energy-100-test-accuracy-67.47252747252747.model",
                  # dataset="cifar100",
-                 dataset="cifar10",
+                 # dataset="cifar10",
                  # dataset="ucr",
                  # dataset="ucr",
+                 dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=32,
-                 # sample_count_limit=0,
-                 conv_type=ConvType.FFT2D,
+                 # sample_count_limit=32,
+                 sample_count_limit=0,
+                 # conv_type=ConvType.FFT2D,
                  # conv_type=ConvType.STANDARD2D,
-                 # conv_type=ConvType.FFT1D,
+                 conv_type=ConvType.FFT1D,
                  # conv_type=ConvType.STANDARD,
-                 conv_exec_type=ConvExecType.CUDA,
+                 # conv_exec_type=ConvExecType.CUDA,
                  # conv_exec_type=ConvExecType.CUDA_DEEP,
                  # conv_exec_type=ConvExecType.CUDA_SHARED_LOG,
                  # conv_exec_type=ConvExecType.BATCH,
-                 # conv_exec_type=ConvExecType.SERIAL,
-                 visualize=False,
+                 conv_exec_type=ConvExecType.SERIAL,
+                 visualize=True,
                  static_loss_scale=1,
                  out_size=None,
                  next_power2=True,
@@ -122,6 +126,7 @@ class Arguments(object):
                  resume="",
                  gpu=0,
                  start_epoch=1,
+                 index_back=0,
                  ):
         """
         The default parameters for the execution of the program.
@@ -216,6 +221,7 @@ class Arguments(object):
         self.gpu = gpu
         self.start_epoch = start_epoch
         self.precision_type = precision_type
+        self.index_back = index_back
 
 
     def get_bool(self, arg):

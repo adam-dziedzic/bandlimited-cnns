@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Sep 07 17:20:19 2018
-@author: ady@uchicago.edu
 """
 
 import os
@@ -61,7 +60,6 @@ current_file_name = __file__.split("/")[-1].split(".")[0]
 """
 sources:
 https://devblogs.nvidia.com/apex-pytorch-easy-mixed-precision-training/
-
 """
 try:
     import apex
@@ -281,6 +279,9 @@ parser.add_argument("--precision_type", default=args.precision_type.name,
                     # "FP16", "FP32", "AMP"
                     help="the precision type: " + ",".join(
                         PrecisionType.get_names()))
+parser.add_argument('--index_back', type=float,
+                    default=args.index_back,
+                    help="""Percentage of discarded coefficients (old param).""")
 
 parsed_args = parser.parse_args()
 args.set_parsed_args(parsed_args=parsed_args)
@@ -733,7 +734,8 @@ def main(args):
             file.write(str(epoch) + "," + str(train_loss) + "," + str(
                 train_accuracy) + "," + str(dev_loss) + "," + str(
                 dev_accuracy) + "," + str(test_loss) + "," + str(
-                test_accuracy) + "," + str(epoch_time) + "," + str(lr) + "\n")
+                test_accuracy) + "," + str(epoch_time) + "," + str(
+                lr) + "," + str(train_time) + "," + str(test_time) +"\n")
 
         # Metric: select the best model based on the best train loss (minimal).
         is_best = False
@@ -778,7 +780,8 @@ def main(args):
             'state_dict': model.state_dict(),
             'max_train_accuracy': max_train_accuracy,
             'optimizer': optimizer.state_dict(),
-        }, is_best)
+        }, is_best,
+            filename=dataset_name + "-" + str(max_train_accuracy) + "checkpoint.tar")
 
     with open(global_log_file, "a") as file:
         file.write(dataset_name + "," + str(min_train_loss) + "," + str(
@@ -827,9 +830,20 @@ if __name__ == '__main__':
     elif args.dataset == "mnist":
         flist = ["mnist"]
     elif args.dataset == "debug":
-        flist = ['50words', 'Adiac', 'ArrowHead', 'Beef', 'BeetleFly',
-                 'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
-                 'CinC_ECG_torso', 'Coffee', 'Computers']
+        # flist = ['ItalyPowerDemand']
+        flist = ['Lighting7']
+        #         'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
+        #         'CinC_ECG_torso', 'Coffee', 'Computers', 'Cricket_X',
+        #         'Cricket_Y', 'Cricket_Z', 'DiatomSizeReduction',
+        #         'DistalPhalanxOutlineAgeGroup', 'DistalPhalanxOutlineCorrect',
+        #         'DistalPhalanxTW', 'Earthquakes', 'ECG200', 'ECG5000',
+        #         'ECGFiveDays', 'ElectricDevices', 'FaceAll', 'FaceFour',
+        #         'FacesUCR', 'FISH', 'FordA', 'FordB', 'Gun_Point', 'Ham',
+        #         'HandOutlines', 'Haptics', 'Herring', 'InlineSkate',
+        #         'InsectWingbeatSound',
+        # flist = ['50words', 'Adiac', 'ArrowHead', 'Beef', 'BeetleFly',
+        #          'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
+        #          'CinC_ECG_torso', 'Coffee', 'Computers']
         # flist = ["WIFI"]
         # flist = ["50words"]
         # flist = ["yoga"]
@@ -1121,6 +1135,16 @@ if __name__ == '__main__':
                  'Earthquakes'
                  ]
         flist = reversed(flist)
+    elif args.dataset == "debug12":
+        flist = ['Adiac', 'ArrowHead', 'Beef', 'BeetleFly',
+                 'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
+                 'CinC_ECG_torso', 'Coffee', 'Computers']
+    elif args.dataset == "debug13":
+        flist = ['Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass']
+    elif args.dataset == "debug14":
+        flist = ['MALLAT', 'Meat', 'MedicalImages', 'MiddlePhalanxOutlineAgeGroup']
+    elif args.dataset == "debug15":
+        flist = ['Coffee', 'Computers']
     else:
         raise AttributeError("Unknown dataset: ", args.dataset)
 
