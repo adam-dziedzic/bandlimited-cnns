@@ -753,6 +753,8 @@ def main(args):
                                               dataset_name) + \
                                           "-preserve-energy-" + str(
                                               preserve_energy) + \
+                                          "-compress-rate-" + str(
+                                              args.compress_rate) + \
                                           "-test-accuracy-" + str(
                                               test_accuracy) + ".model")
                 torch.save(model.state_dict(), model_path)
