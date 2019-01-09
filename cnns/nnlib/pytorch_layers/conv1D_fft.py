@@ -114,14 +114,14 @@ class Conv1dfftFunction(torch.autograd.Function):
         is_lead_reversed = False
 
         if args is not None:
-            index_back = args.index_back
+            compress_rate = args.compress_rate
             preserve_energy = args.preserve_energy
             use_next_power2 = args.next_power2
             is_debug = args.is_debug
             compress_type = args.compress_type
             stride_type = args.stride_type
         else:
-            index_back = None
+            compress_rate = None
             preserve_energy = None
             use_next_power2 = False
             is_debug = False
@@ -157,9 +157,9 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         INPUT_ERROR = "Specify only one of: compress_rate, out_size, or " \
                       "preserve_energy"
-        if (index_back is not None and index_back > 0) and out_size is not None:
+        if (compress_rate is not None and compress_rate > 0) and out_size is not None:
             raise TypeError(INPUT_ERROR)
-        if (index_back is not None and index_back > 0) and (
+        if (compress_rate is not None and compress_rate > 0) and (
                 preserve_energy is not None and preserve_energy < 100):
             raise TypeError(INPUT_ERROR)
         if out_size is not None and (
@@ -278,9 +278,9 @@ class Conv1dfftFunction(torch.autograd.Function):
         init_half_fft_size = xfft.shape[-2]
         half_fft_compressed_size = None
         index_back_fft = None
-        if index_back is not None and index_back > 0:
+        if compress_rate is not None and compress_rate > 0:
             # At least one coefficient is removed.
-            index_back_fft = int(init_half_fft_size * (index_back / 100)) + 1
+            index_back_fft = int(init_half_fft_size * (compress_rate / 100)) + 1
 
         if compress_type is CompressType.STANDARD:
             if preserve_energy is not None and preserve_energy < 100:
@@ -789,7 +789,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                         fft_size=fft_size)
                     # start_index = 2 * filter_pad + padding
                     # start_index = padding
-                    start_index = 0
+                    start_index = padding
                     # print("start index: ", start_index)
                     out = out[:, :, start_index: start_index + W]
                     # Sum over all the Filters (F).
@@ -980,14 +980,14 @@ class Conv1dfft(Module):
         self.args = args
 
         if args is None:
-            self.index_back = None
+            self.compress_rate = None
             self.preserve_energy = None
             self.is_debug = False
             self.next_power2 = False
             self.is_debug = False
             self.compress_type = CompressType.STANDARD
         else:
-            self.index_back = args.compress_rate
+            self.compress_rate = args.compress_rate
             self.preserve_energy = args.preserve_energy
             self.next_power2 = args.next_power2
             self.is_debug = args.is_debug
@@ -1142,7 +1142,7 @@ class Conv1dfftAutograd(Conv1dfft):
         return Conv1dfftFunction.forward(
             ctx=None, input=input, filter=self.filter, bias=self.bias,
             padding=self.padding, stride=self.stride,
-            index_back=self.index_back, preserve_energy=self.preserve_energy,
+            index_back=self.compress_rate, preserve_energy=self.preserve_energy,
             out_size=self.out_size, use_next_power2=self.use_next_power2,
             is_manual=self.is_manual, conv_index=self.conv_index,
             is_debug=self.is_debug, compress_type=self.compress_type)
@@ -1212,10 +1212,10 @@ class Conv1dfftSimple(Conv1dfftAutograd):
         filter = torch_pad(self.filter, (0, input_size - 1))
         filter = torch.rfft(filter, 1)
 
-        if self.index_back is not None and self.index_back > 0:
+        if self.compress_rate is not None and self.compress_rate > 0:
             # 4 dims: batch, channel, time-series, complex values.
             input_size = input.shape[-2]
-            index_back = int(input_size * (self.index_back / 100)) + 1
+            index_back = int(input_size * (self.compress_rate / 100)) + 1
             input = input[..., :-index_back, :]
             filter = filter[..., :-index_back, :]
 

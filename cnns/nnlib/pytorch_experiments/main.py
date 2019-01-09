@@ -279,7 +279,7 @@ parser.add_argument("--precision_type", default=args.precision_type.name,
                     # "FP16", "FP32", "AMP"
                     help="the precision type: " + ",".join(
                         PrecisionType.get_names()))
-parser.add_argument('--index_back', type=float,
+parser.add_argument('--compress_rate', type=float,
                     default=args.index_back,
                     help="""Percentage of discarded coefficients (old param).""")
 

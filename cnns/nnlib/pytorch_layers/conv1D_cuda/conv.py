@@ -123,4 +123,4 @@ class Conv1dfftCuda(Conv1dfftAutograd):
         :return: the result of 1D convolution
         """
         return Conv1dfftFunctionCuda.apply(
-            input, self.filter, self.bias, self.padding, self.index_back)
+            input, self.filter, self.bias, self.padding, self.compress_rate)

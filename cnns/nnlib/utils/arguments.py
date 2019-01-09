@@ -40,6 +40,7 @@ class Arguments(object):
                  # network_type=NetworkType.ResNet18,
                  # network_type=NetworkType.DenseNetCifar,
                  network_type=NetworkType.FCNN_STANDARD,
+                 preserved_energy=100,  # for unit tests
                  # preserved_energies=[100],
                  # preserved_energies=range(100,49,-1),
                  # preserved_energies=range(85, 75, -1),
@@ -55,6 +56,7 @@ class Arguments(object):
                  #compress_rate=5,
                  # ndexes_back=[5,15,25,35,45],
                  # compress_rates=[x/2 for x in range(28,111,1)],
+                 compress_rate=0,  # for unit tests
                  compress_rates=[0],
                  # weight_decay=5e-4,
                  weight_decay=0,
@@ -72,9 +74,9 @@ class Arguments(object):
                  loss_reduction=LossReduction.ELEMENTWISE_MEAN,
                  memory_type=MemoryType.PINNED,
                  workers=6,
-                 # model_path="no_model",
+                 model_path="no_model",
                  # model_path="2018-11-25-00-36-07-133900-dataset-ItalyPowerDemand-preserve-energy-100-test-accuracy-95.91836734693878.model",
-                 model_path="2018-11-25-11-10-07-508525-dataset-Lighting7-preserve-energy-100-test-accuracy-82.1917808219178.model",
+                 # model_path="2018-11-25-11-10-07-508525-dataset-Lighting7-preserve-energy-100-test-accuracy-82.1917808219178.model",
                  # model_path="2018-12-01-03-23-06-181637-dataset-Two_Patterns-preserve-energy-99-test-accuracy-88.25.model",
                  # model_path="2018-11-30-21-58-26-723085-dataset-Two_Patterns-preserve-energy-90-test-accuracy-93.8.model",
                  # model_path="2018-12-01-03-00-20-144358-dataset-Two_Patterns-preserve-energy-100-test-accuracy-87.15.model",
@@ -107,8 +109,8 @@ class Arguments(object):
                  # conv_exec_type=ConvExecType.CUDA,
                  # conv_exec_type=ConvExecType.CUDA_DEEP,
                  # conv_exec_type=ConvExecType.CUDA_SHARED_LOG,
-                 # conv_exec_type=ConvExecType.BATCH,
-                 conv_exec_type=ConvExecType.SERIAL,
+                 conv_exec_type=ConvExecType.BATCH,
+                 # conv_exec_type=ConvExecType.SERIAL,
                  visualize=True,
                  static_loss_scale=1,
                  out_size=None,
@@ -125,8 +127,7 @@ class Arguments(object):
                  cuda_block_threads=1024,
                  resume="",
                  gpu=0,
-                 start_epoch=1,
-                 index_back=0,
+                 start_epoch=1
                  ):
         """
         The default parameters for the execution of the program.
@@ -181,7 +182,9 @@ class Arguments(object):
         self.__idx_weight_decay = self.__next_counter()
 
         # Object's variable that are not convertible to an element of a tensor.
+        self.preserve_energy = preserved_energy  # for unit tests
         self.preserve_energies = preserved_energies
+        self.compress_rate = compress_rate  # for unit tests
         self.compress_rates = compress_rates
         self.epochs = epochs
         self.min_batch_size = min_batch_size
@@ -221,7 +224,6 @@ class Arguments(object):
         self.gpu = gpu
         self.start_epoch = start_epoch
         self.precision_type = precision_type
-        self.index_back = index_back
 
 
     def get_bool(self, arg):
