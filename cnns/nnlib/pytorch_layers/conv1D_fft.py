@@ -54,6 +54,17 @@ logger.addHandler(consoleLog)
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
 
+if torch.cuda.is_available():
+    # from complex_mul_cpp import complex_mul as complex_mul_cpp
+    # from complex_mul_cuda import complex_mul as complex_mul_cuda
+    # from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
+    from complex_mul_cuda import \
+        complex_mul_stride_no_permute as complex_mul_stride_no_permute_cuda
+    from complex_mul_cuda import \
+        complex_mul_shared_log as complex_mul_shared_log_cuda
+    from complex_mul_cuda import \
+        complex_mul_deep as complex_mul_deep_cuda
+
 
 class Conv1dfftFunction(torch.autograd.Function):
     """
@@ -460,9 +471,13 @@ class Conv1dfftFunction(torch.autograd.Function):
         #     # properly sum up the values.
         #     output += bias.unsqueeze(1)
 
-        output = torch.zeros([N, F, out_W], dtype=dtype, device=device)
+        half_fft_size = half_fft_compressed_size
+        if half_fft_size is None:
+            half_fft_size = init_half_fft_size
+        cuda_block_threads = min(1024, half_fft_size)
 
         if args.conv_exec_type is ConvExecType.SERIAL:
+            output = torch.zeros([N, F, out_W], dtype=dtype, device=device)
             # Serially convolve each input map with all filters.
             for nn in range(N):  # For each time-series in the batch.
                 # Take one time series and un-squeeze it for broadcasting with
@@ -494,6 +509,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                     # out to properly sum up the values.
                     output[nn] += bias.unsqueeze(1)
         elif args.conv_exec_type is ConvExecType.BATCH:
+            output = torch.zeros([N, F, out_W], dtype=dtype, device=device)
             # Convolve some part of the input batch with all filters.
             start = 0
             # step = get_step_estimate(xfft, yfft, args.memory_size)
@@ -522,6 +538,39 @@ class Conv1dfftFunction(torch.autograd.Function):
                     # to the dimension of the output to properly sum up the
                     # values).
                     output[start:stop] += unsqueezed_bias
+        elif args.conv_exec_type is ConvExecType.CUDA:
+            if torch.cuda.is_available():
+                # print("complex cuda multiplication")
+                # print("xfft size: ", xfft.size())
+                # start_complex_time = time.time()
+
+                outfft = torch.zeros([N, F, half_fft_size, 2],
+                                     dtype=dtype, device=device)
+                # complex_mul_cuda(xfft, yfft, outfft)
+                yfft = pytorch_conjugate(yfft)
+                complex_mul_stride_no_permute_cuda(xfft, yfft, outfft,
+                                                   cuda_block_threads)
+                torch.cuda.synchronize()
+                outfft = complex_pad_simple(xfft=outfft, fft_size=fft_size)
+                # print("freq mul size: ", freq_mul.size())
+                output = torch.irfft(
+                    input=outfft, signal_ndim=1, signal_sizes=(fft_size,))
+                # global global_complex_time
+                # global_complex_time += time.time() - start_complex_time
+                # print("complex multiply time: ", global_complex_time)
+                if output.shape[-1] > out_W:
+                    # out_fft = out_fft[..., :out_W]
+                    output = output.narrow(dim=-1, start=0, length=out_W)
+                elif output.shape[-1] < out_W:
+                    output = torch_pad(output, (0, out_W - output.shape[-1]))
+                if bias is not None:
+                    # Add the bias term for each filter (it has to be unsqueezed
+                    # to the dimension of the output to properly sum up the
+                    # values).
+                    output += bias.unsqueeze(-1)
+            else:
+                raise Exception("Selected CUDA conv execution but no cuda "
+                                "device is available.")
         else:
             raise Exception(
                 f"Unknown conv exec type: {args.conv_exec_type.name}")
@@ -540,6 +589,8 @@ class Conv1dfftFunction(torch.autograd.Function):
         if ctx:
             ctx.run_args = args
             ctx.padding = padding
+            ctx.cuda_block_threads = cuda_block_threads
+            ctx.half_fft_size = half_fft_size
             ctx.save_for_backward(xfft, yfft, to_tensor(W), to_tensor(WW),
                                   to_tensor(fft_size), is_manual,
                                   to_tensor(conv_index),
@@ -591,6 +642,8 @@ class Conv1dfftFunction(torch.autograd.Function):
         omit_objs = [id(ctx)]
         args = ctx.run_args
         padding = ctx.padding
+        cuda_block_threads = ctx.cuda_block_threads
+        half_fft_size = ctx.half_fft_size
         conv_index = from_tensor(conv_index)  # for the debug/test purposes
 
         is_debug = from_tensor(is_debug)
@@ -769,10 +822,10 @@ class Conv1dfftFunction(torch.autograd.Function):
             [0, dx1, dx2, dx3, 0] * [w2, w1] = 
             [dx1*w1, dx1*w2 + dx2*w1, dx2*w2 + dx3*w1, dx3*w2]
             """
-            dx = torch.zeros([N, C, W], dtype=dtype, device=device)
-            conjugate_yfft = pytorch_conjugate(yfft)
-            del yfft
             if args.conv_exec_type is ConvExecType.SERIAL:
+                dx = torch.zeros([N, C, W], dtype=dtype, device=device)
+                conjugate_yfft = pytorch_conjugate(yfft)
+                del yfft
                 # Serially convolve each input map with all filters.
                 for nn in range(N):
                     # Take one time series and unsqueeze it for broadcast with
@@ -797,7 +850,11 @@ class Conv1dfftFunction(torch.autograd.Function):
                     out = torch.sum(out, dim=0)
                     out = torch.unsqueeze(input=out, dim=0)
                     dx[nn] = out
+                del conjugate_yfft
             elif args.conv_exec_type is ConvExecType.BATCH:
+                dx = torch.zeros([N, C, W], dtype=dtype, device=device)
+                conjugate_yfft = pytorch_conjugate(yfft)
+                del yfft
                 # Convolve some part of the dout batch with all filters.
                 start = 0
                 # step = 16
@@ -824,14 +881,45 @@ class Conv1dfftFunction(torch.autograd.Function):
                     # print("out after sum size: ", out.size())
                     dx[start:stop] = out
 
-            del conjugate_yfft
+                del conjugate_yfft
+            elif args.conv_exec_type is ConvExecType.CUDA:
+                if torch.cuda.is_available():
+                    # global global_permute_time
+                    # start_permute = time.time()
+                    # yfft was already conjugated in the forward pass
+                    yfft = yfft.permute(1, 0, 2, 3).contiguous()
+                    # global_permute_time += time.time() - start_permute
+                    # print("permute time: ", global_permute_time)
+                    # global global_complex_dxfft
+                    # start_complex = time.time()
+                    dxfft = torch.zeros([N, C, half_fft_size, 2],
+                                         dtype=dtype, device=device)
+                    complex_mul_stride_no_permute_cuda(doutfft, yfft, dxfft,
+                                                       cuda_block_threads)
+                    torch.cuda.synchronize()
+                    dx = torch.irfft(
+                        input=dxfft, signal_ndim=1, signal_sizes=(fft_size,))
+                    # global global_complex_time
+                    # global_complex_time += time.time() - start_complex_time
+                    # print("complex multiply time: ", global_complex_time)
+                    if dx.shape[-1] > W:
+                        # out_fft = out_fft[..., :out_W]
+                        dx = dx.narrow(dim=-1, start=padding, length=W)
+                    elif dx.shape[-1] < W:
+                        dx = torch_pad(dx, (0, W - dxout.shape[-1]))
+                    # global_complex_dxfft += time.time() - start_complex
+                    # print("complex dxfft: ", global_complex_dxfft)
+                    del yfft
+                else:
+                    raise Exception(
+                        "Selected CUDA conv execution but no cuda "
+                        "device is available.")
 
             if is_debug:
                 cuda_mem_show(info="after gradient input",
                               omit_objs=omit_objs)
 
         if need_filter_grad is True:
-            dw = torch.zeros([F, C, WW], dtype=dtype, device=device)
             # Calculate dw - the gradient for the filters w.
             # By chain rule dw is computed as: dout*x
             """
@@ -861,6 +949,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             gradient L / gradient w = [x1, x2, x3, x4] * [dx1, dx2, dx3]
             """
             if args.conv_exec_type is ConvExecType.SERIAL:
+                dw = torch.zeros([F, C, WW], dtype=dtype, device=device)
                 for ff in range(F):
                     # Gather all the contributions to the output that were caused
                     # by a given filter.
@@ -879,6 +968,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                     #     str(C), str(F)))
                     dw[ff] = out
             elif args.conv_exec_type is ConvExecType.BATCH:
+                dw = torch.zeros([F, C, WW], dtype=dtype, device=device)
                 # Convolve some part of the dout batch with all input maps.
                 start = 0
                 # step = 16
@@ -904,6 +994,25 @@ class Conv1dfftFunction(torch.autograd.Function):
                     # to all the input maps.
                     out = out.sum(dim=1)
                     dw[start:stop] = out
+            elif args.conv_exec_type is ConvExecType.CUDA:
+                if torch.cuda.is_available():
+                    doutfft = doutfft.permute(1, 0, 2, 3).contiguous()
+                    xfft = xfft.permute(1, 0, 2, 3).contiguous()
+                    dwfft = torch.zeros([F, C, half_fft_size, 2],
+                                        dtype=dtype, device=device)
+                    complex_mul_stride_no_permute_cuda(doutfft, xfft, dwfft,
+                                                       cuda_block_threads)
+                    torch.cuda.synchronize()
+                    dw = torch.irfft(
+                        input=dwfft, signal_ndim=1, signal_sizes=(fft_size,))
+                    if dw.shape[-1] > WW:
+                        dw = dw.narrow(dim=-1, start=0, length=WW)
+                    elif dw.shape[-1] < W:
+                        dw = torch_pad(dw, (0, WW - dw.shape[-1]))
+                else:
+                    raise Exception(
+                        "Selected CUDA conv execution but no cuda "
+                        "device is available.")
             else:
                 raise Exception(f"Unknown conv_exec_type: {args.conv_exec_type}")
             del xfft

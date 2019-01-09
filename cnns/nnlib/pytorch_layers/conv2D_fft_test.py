@@ -42,7 +42,6 @@ class TestPyTorchConv2d(unittest.TestCase):
             self.device = torch.device("cpu")
             print("cuda is not available")
             torch.manual_seed(seed)
-        dtype = torch.float
         self.dtype = torch.float
         self.ERR_MESSAGE_ALL_CLOSE = "The expected array desired and " \
                                      "computed actual are not almost equal."

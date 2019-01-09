@@ -845,7 +845,13 @@ if __name__ == '__main__':
         # flist = ['Lighting7']
         # flist = ['Trace']
         # flist = ["ToeSegmentation1"]
-        flist = ["Plane"]
+        # flist = ["Plane"]
+        # flist = ["MiddlePhalanxOutlineAgeGroup"]
+        # flist = ["ECGFiveDays"]
+        # flist = ["MoteStrain"]
+        # flist = ["Cricket_Y"]
+        # flist = ["Strawberry"]
+        flist = ["FaceFour"]
         #         'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
         #         'CinC_ECG_torso', 'Coffee', 'Computers', 'Cricket_X',
         #         'Cricket_Y', 'Cricket_Z', 'DiatomSizeReduction',
