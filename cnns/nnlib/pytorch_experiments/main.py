@@ -1144,7 +1144,13 @@ if __name__ == '__main__':
     elif args.dataset == "debug14":
         flist = ['MALLAT', 'Meat', 'MedicalImages', 'MiddlePhalanxOutlineAgeGroup']
     elif args.dataset == "debug15":
-        flist = ['Coffee', 'Computers']
+        flist = ['Coffee', 'Computers', 'Phoneme', 'Plane', 'Car', 'Strawberry']
+    elif args.dataset == "debug16":
+        flist = ['Lighting7', 'MedicalImages', 'FISH', 'FaceFour']
+    elif args.dataset == "debug17":
+        flist = ['MoteStrain', 'ECGFiveDays']
+    elif args.dataset == "debug18":
+        flist = ["Cricket_X", "Cricket_Y", "Cricket_Z"]
     else:
         raise AttributeError("Unknown dataset: ", args.dataset)
 
