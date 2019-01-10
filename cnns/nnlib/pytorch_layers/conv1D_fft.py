@@ -887,6 +887,8 @@ class Conv1dfftFunction(torch.autograd.Function):
                     # global global_permute_time
                     # start_permute = time.time()
                     # yfft was already conjugated in the forward pass
+                    yfft = pytorch_conjugate(yfft)
+                    # F, C, W, I -> C, F, W, I
                     yfft = yfft.permute(1, 0, 2, 3).contiguous()
                     # global_permute_time += time.time() - start_permute
                     # print("permute time: ", global_permute_time)
@@ -894,6 +896,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                     # start_complex = time.time()
                     dxfft = torch.zeros([N, C, half_fft_size, 2],
                                          dtype=dtype, device=device)
+                    # dout: N, F, W, I
                     complex_mul_stride_no_permute_cuda(doutfft, yfft, dxfft,
                                                        cuda_block_threads)
                     torch.cuda.synchronize()
