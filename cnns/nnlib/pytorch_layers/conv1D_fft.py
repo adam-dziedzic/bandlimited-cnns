@@ -1034,11 +1034,16 @@ class Conv1dfft(Module):
     """
     No PyTorch Autograd used - we compute backward pass on our own.
     """
+    """
+    :conv_index_counter: the counter to index (number) of the convolutional
+    2d fft layers .
+    """
+    conv_index_counter = 0
 
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
                  stride=1, padding=0, dilation=None, groups=None, bias=True,
                  filter_value=None, bias_value=None, is_manual=tensor([0]),
-                 conv_index=None, args=Arguments(), out_size=None):
+                 args=Arguments(), out_size=None):
         """
         1D convolution using FFT implemented fully in PyTorch.
 
@@ -1075,7 +1080,6 @@ class Conv1dfft(Module):
         FFT convolution to the next power of 2.
         :param is_manual: to check if the backward computation of convolution
         was computed manually.
-        :param conv_index: the index (number) of the convolutional layer.
         :param is_complex_pad: is padding applied to the complex representation
         of the input signal and filter before the reverse fft is applied.
         :param is_debug: is this the debug mode execution?
@@ -1153,7 +1157,8 @@ class Conv1dfft(Module):
         self.out_size = out_size
         self.stride = stride
         self.is_manual = is_manual
-        self.conv_index = conv_index
+        self.conv_index = Conv1dfft.conv_index_counter
+        Conv1dfft.conv_index_counter += 1
 
         self.reset_parameters()
 
@@ -1185,14 +1190,14 @@ class Conv1dfftAutograd(Conv1dfft):
                  stride=1, padding=0, dilation=1, groups=1, bias=True,
                  index_back=None, preserve_energy=100, out_size=None,
                  filter_value=None, bias_value=None, use_next_power2=False,
-                 is_manual=tensor([0]), conv_index=None, is_complex_pad=True,
+                 is_manual=tensor([0]), is_complex_pad=True,
                  is_debug=False, compress_type=CompressType.STANDARD):
         super(Conv1dfftAutograd, self).__init__(
             in_channels=in_channels, out_channels=out_channels,
             kernel_size=kernel_size, stride=stride, padding=padding, bias=bias,
             index_back=index_back, out_size=out_size, filter_value=filter_value,
             bias_value=bias_value, use_next_power2=use_next_power2,
-            conv_index=conv_index, preserve_energy=preserve_energy,
+            preserve_energy=preserve_energy,
             is_debug=is_debug, compress_type=compress_type, is_manual=is_manual,
             dilation=dilation, groups=groups, is_complex_pad=is_complex_pad)
 
@@ -1363,7 +1368,7 @@ class Conv1dfftSimpleForLoop(Conv1dfftAutograd):
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
                  stride=None, padding=None, bias=True, index_back=None,
                  preserve_energy=None, out_size=None, filter_value=None,
-                 bias_value=None, conv_index=None, use_next_power2=False,
+                 bias_value=None, use_next_power2=False,
                  is_complex_pad=True):
         """
         A simple implementation of 1D convolution with a single for loop where
@@ -1381,7 +1386,7 @@ class Conv1dfftSimpleForLoop(Conv1dfftAutograd):
             kernel_size=kernel_size, stride=stride, padding=padding,
             bias=bias, index_back=index_back, preserve_energy=preserve_energy,
             out_size=out_size, filter_value=filter_value, bias_value=bias_value,
-            conv_index=conv_index, use_next_power2=use_next_power2,
+            use_next_power2=use_next_power2,
             is_complex_pad=is_complex_pad)
 
     def forward(self, input):
@@ -1504,15 +1509,14 @@ class Conv1dfftCompressSignalOnly(Conv1dfftAutograd):
                  kernel_size=None,
                  stride=None, padding=None, bias=True, index_back=None,
                  preserve_energy=100, out_size=None, filter_value=None,
-                 bias_value=None, conv_index=None, use_next_power2=False,
+                 bias_value=None, use_next_power2=False,
                  is_complex_pad=True):
         super(Conv1dfftCompressSignalOnly, self).__init__(
             in_channels=in_channels, out_channels=out_channels,
             kernel_size=kernel_size, stride=stride, padding=padding,
             bias=bias, index_back=index_back, preserve_energy=preserve_energy,
             out_size=out_size, filter_value=filter_value, bias_value=bias_value,
-            conv_index=conv_index, use_next_power2=use_next_power2,
-            is_complex_pad=is_complex_pad)
+            use_next_power2=use_next_power2, is_complex_pad=is_complex_pad)
 
     def forward(self, input):
         """

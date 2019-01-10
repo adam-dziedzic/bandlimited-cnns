@@ -42,15 +42,15 @@ class FCNNPytorch(nn.Module):
                     padding=conv_pads, args=args)
 
         index = 0
-        self.conv0 = conv.get_conv(index=index)
+        self.conv0 = conv.get_conv(param_index=index)
         self.bn0 = nn.BatchNorm1d(num_features=out_channels[index])
 
         index = 1
-        self.conv1 = conv.get_conv(index=index)
+        self.conv1 = conv.get_conv(param_index=index)
         self.bn1 = nn.BatchNorm1d(num_features=out_channels[index])
 
         index = 2
-        self.conv2 = conv.get_conv(index=index)
+        self.conv2 = conv.get_conv(param_index=index)
         self.bn2 = nn.BatchNorm1d(num_features=out_channels[index])
         self.lin = nn.Linear(out_channels[index], self.num_classes)
 

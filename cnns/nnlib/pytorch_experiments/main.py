@@ -167,6 +167,13 @@ parser.add_argument('--compress_rates', nargs="+", type=float,
                     help="Percentage of the high frequency coefficients that "
                          "should be discarded. This is the compression in the "
                          "FFT domain.")
+parser.add_argument('--layers_compress_rates', nargs="+", type=float,
+                    default=args.layers_compress_rates,
+                    help="Percentage of the high frequency coefficients that "
+                         "should be discarded in each of the fft based "
+                         "convolution layers. This is the compression in the "
+                         "FFT domain. If this is None then the same compress "
+                         "rate is used for all the fft based conv layers.")
 parser.add_argument('--preserve_energies', nargs="+", type=float,
                     default=args.preserve_energies,
                     help="How much energy should be preserved in the "

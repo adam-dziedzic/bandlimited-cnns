@@ -37,9 +37,9 @@ class Arguments(object):
 
     def __init__(self,
                  is_debug=False,
-                 # network_type=NetworkType.ResNet18,
+                 network_type=NetworkType.ResNet18,
                  # network_type=NetworkType.DenseNetCifar,
-                 network_type=NetworkType.FCNN_STANDARD,
+                 # network_type=NetworkType.FCNN_STANDARD,
                  preserved_energy=100,  # for unit tests
                  # preserved_energies=[100],
                  # preserved_energies=range(100,49,-1),
@@ -59,9 +59,14 @@ class Arguments(object):
                  # compress_rates=[x/2 for x in range(28,111,1)],
                  compress_rate=0,  # for unit tests
                  compress_rates=[0],
+                 # layers_compress_rates=None,
+                 # compression rates for each of the conv fft layers in
+                 # ResNet-18, with the total compression in the fft domain by
+                 # more than 50%, about 92% of the energy is preserved
+                 layers_compress_rates=[72.62019231,70.17045455,73.4375,76.51515152,76.51515152,79.40340909,30.51470588,30.51470588,40.25735294,40.25735294,0,0,0,16.66666667,0,0,0],
                  # weight_decay=5e-4,
-                 weight_decay=0,
-                 # weight_decay=0.0005,
+                 # weight_decay=0,
+                 weight_decay=0.0005,
                  epochs=1,
                  min_batch_size=32,
                  test_batch_size=32,
@@ -118,24 +123,23 @@ class Arguments(object):
                  # model_path="2018-11-29-12-26-08-403300-dataset-50words-preserve-energy-99-test-accuracy-63.51648351648352.model",
                  # model_path="2018-11-26-20-04-34-197804-dataset-50words-preserve-energy-100-test-accuracy-67.47252747252747.model",
                  # dataset="cifar100",
-                 # dataset="cifar10",
+                 dataset="cifar10",
                  # dataset="ucr",
-                 # dataset="ucr",
-                 dataset="debug",
+                 # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 # sample_count_limit=32,
-                 sample_count_limit=0,
-                 # conv_type=ConvType.FFT2D,
+                 sample_count_limit=32,
+                 # sample_count_limit=0,
+                 conv_type=ConvType.FFT2D,
                  # conv_type=ConvType.STANDARD2D,
-                 conv_type=ConvType.FFT1D,
+                 # conv_type=ConvType.FFT1D,
                  # conv_type=ConvType.STANDARD,
-                 # conv_exec_type=ConvExecType.CUDA,
+                 conv_exec_type=ConvExecType.CUDA,
                  # conv_exec_type=ConvExecType.CUDA_DEEP,
                  # conv_exec_type=ConvExecType.CUDA_SHARED_LOG,
-                 conv_exec_type=ConvExecType.BATCH,
+                 # conv_exec_type=ConvExecType.BATCH,
                  # conv_exec_type=ConvExecType.SERIAL,
-                 visualize=True,
+                 visualize=False,
                  static_loss_scale=1,
                  out_size=None,
                  next_power2=True,
@@ -166,6 +170,8 @@ class Arguments(object):
         in the frequency domain.
         :param compress_rate: how much compress based on discarded coefficients
         in the frequency domain.
+        :param layers_compress_rates: the compression rate for each of the fft
+        based convolution layers.
         :param weight_decay: weight decay for optimizer parameters
         :param epochs: number of epochs for training
         :param min_batch_size: mini batch size for training
@@ -210,6 +216,7 @@ class Arguments(object):
         self.preserve_energies = preserved_energies
         self.compress_rate = compress_rate  # for unit tests
         self.compress_rates = compress_rates
+        self.layers_compress_rates = layers_compress_rates
         self.epochs = epochs
         self.min_batch_size = min_batch_size
         self.test_batch_size = test_batch_size

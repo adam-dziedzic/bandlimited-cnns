@@ -45,9 +45,9 @@ class LeNet(nn.Module):
                     padding=conv_pads, args=args)
 
         # self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-        self.conv1 = conv.get_conv(index=0)
+        self.conv1 = conv.get_conv(param_index=0)
         # self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-        self.conv2 = conv.get_conv(index=1)
+        self.conv2 = conv.get_conv(param_index=1)
         self.conv2_drop = nn.Dropout2d()
         self.fc1 = nn.Linear(flat_size, 50)
         self.fc2 = nn.Linear(50, num_classes)

@@ -27,7 +27,9 @@ class Conv(object):
         :param padding: padding for each convolutional layer.
         :param args: the general arguments for the program, e.g. the type of
         convolution to be used.
-        maps.
+        :param is_bias: should we include the bias into the conv layer.
+        :param conv_index: the index of the convolution layer, e.g. to determine
+        how much compression should be used.
         """
         self.kernel_sizes = kernel_sizes
         self.in_channels = in_channels
@@ -44,85 +46,83 @@ class Conv(object):
         self.next_power2 = args.next_power2
         self.compress_rate = args.compress_rate
 
-    def get_conv(self, index=0, compress_rate=None):
-        if index == 0:
+    def get_conv(self, param_index=0, compress_rate=None):
+        if param_index == 0:
             in_channels = self.in_channels
         else:
-            in_channels = self.out_channels[index - 1]
+            in_channels = self.out_channels[param_index - 1]
 
         if compress_rate is None:
             compress_rate = self.compress_rate
 
         if self.conv_type is ConvType.STANDARD:
             return nn.Conv1d(in_channels=in_channels,
-                             out_channels=self.out_channels[index],
-                             stride=self.strides[index],
-                             kernel_size=self.kernel_sizes[index],
-                             padding=self.padding[index],
+                             out_channels=self.out_channels[param_index],
+                             stride=self.strides[param_index],
+                             kernel_size=self.kernel_sizes[param_index],
+                             padding=self.padding[param_index],
                              bias=self.is_bias)
         elif self.conv_type is ConvType.STANDARD2D:
             return nn.Conv2d(in_channels=in_channels,
-                             out_channels=self.out_channels[index],
-                             stride=self.strides[index],
-                             kernel_size=self.kernel_sizes[index],
-                             padding=self.padding[index],
+                             out_channels=self.out_channels[param_index],
+                             stride=self.strides[param_index],
+                             kernel_size=self.kernel_sizes[param_index],
+                             padding=self.padding[param_index],
                              bias=self.is_bias)
         elif self.conv_type is ConvType.FFT1D:
             return Conv1dfft(in_channels=in_channels,
-                             out_channels=self.out_channels[index],
-                             stride=self.strides[index],
-                             kernel_size=self.kernel_sizes[index],
-                             padding=self.padding[index],
-                             conv_index=index,
+                             out_channels=self.out_channels[param_index],
+                             stride=self.strides[param_index],
+                             kernel_size=self.kernel_sizes[param_index],
+                             padding=self.padding[param_index],
                              bias=self.is_bias,
                              args=self.args)
         elif self.conv_type is ConvType.FFT2D:
             return Conv2dfft(in_channels=in_channels,
-                             out_channels=self.out_channels[index],
-                             stride=self.strides[index],
-                             kernel_size=self.kernel_sizes[index],
-                             padding=self.padding[index],
-                             conv_index=index,
+                             out_channels=self.out_channels[param_index],
+                             stride=self.strides[param_index],
+                             kernel_size=self.kernel_sizes[param_index],
+                             padding=self.padding[param_index],
                              bias=self.is_bias,
                              args=self.args)
         elif self.conv_type is ConvType.AUTOGRAD:
             return Conv1dfftAutograd(in_channels=in_channels,
-                                     out_channels=self.out_channels[index],
-                                     stride=self.strides[index],
-                                     kernel_size=self.kernel_sizes[index],
-                                     padding=self.padding[index],
+                                     out_channels=self.out_channels[param_index],
+                                     stride=self.strides[param_index],
+                                     kernel_size=self.kernel_sizes[param_index],
+                                     padding=self.padding[param_index],
                                      index_back=compress_rate,
                                      bias=self.is_bias)
         elif self.conv_type is ConvType.AUTOGRAD2D:
             return Conv2dfftAutograd(in_channels=in_channels,
-                                     out_channels=self.out_channels[index],
-                                     stride=self.strides[index],
-                                     kernel_size=self.kernel_sizes[index],
-                                     padding=self.padding[index],
+                                     out_channels=self.out_channels[param_index],
+                                     stride=self.strides[param_index],
+                                     kernel_size=self.kernel_sizes[param_index],
+                                     padding=self.padding[param_index],
                                      bias=self.is_bias,
                                      args=self.args)
         elif self.conv_type is ConvType.SIMPLE_FFT:
             return Conv1dfftSimple(in_channels=in_channels,
-                                   out_channels=self.out_channels[index],
-                                   stride=self.strides[index],
-                                   kernel_size=self.kernel_sizes[index],
-                                   padding=self.padding[index],
+                                   out_channels=self.out_channels[param_index],
+                                   stride=self.strides[param_index],
+                                   kernel_size=self.kernel_sizes[param_index],
+                                   padding=self.padding[param_index],
                                    index_back=compress_rate,
                                    bias=self.is_bias)
         elif self.conv_type is ConvType.SIMPLE_FFT_FOR_LOOP:
             return Conv1dfftSimpleForLoop(in_channels=in_channels,
-                                          out_channels=self.out_channels[index],
-                                          stride=self.strides[index],
-                                          kernel_size=self.kernel_sizes[index],
-                                          padding=self.padding[index],
+                                          out_channels=self.out_channels[param_index],
+                                          stride=self.strides[param_index],
+                                          kernel_size=self.kernel_sizes[param_index],
+                                          padding=self.padding[param_index],
                                           index_back=compress_rate,
                                           bias=self.is_bias)
         elif self.conv_type is ConvType.COMPRESS_INPUT_ONLY:
             return Conv1dfftCompressSignalOnly(
-                in_channels=in_channels, out_channels=self.out_channels[index],
-                stride=self.strides[index],
-                kernel_size=self.kernel_sizes[index],
-                padding=self.padding[index],
+                in_channels=in_channels, out_channels=self.out_channels[param_index],
+                stride=self.strides[param_index],
+                kernel_size=self.kernel_sizes[param_index],
+                padding=self.padding[param_index],
                 index_back=compress_rate,
                 preserve_energy=self.preserve_energy,
                 bias=self.is_bias)

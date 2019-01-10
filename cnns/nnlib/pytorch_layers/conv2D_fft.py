@@ -130,6 +130,11 @@ class Conv2dfftFunction(torch.autograd.Function):
         Conv2dfftFunction.mark_dirty(input)
         if args is not None:
             compress_rate = args.compress_rate
+            if conv_index is not None and args.layers_compress_rates is not None:
+                if len(args.layers_compress_rates) < conv_index:
+                    raise Exception("Not enough compress rates provided for "
+                                    "the fft based convolution.")
+                compress_rate = args.layers_compress_rates[conv_index]
             preserve_energy = args.preserve_energy
             use_next_power2 = args.next_power2
             is_debug = args.is_debug
@@ -302,7 +307,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                     yfft, yfft_spectrum = zero_out_min(yfft, yfft_spectrum)
             else:
                 retain_rate_W = 100 - compress_rate_W
-                retain_ratio = math.sqrt(retain_rate_W/100)
+                retain_ratio = math.sqrt(retain_rate_W / 100)
                 index_forward_W_fft = int(init_half_W_fft * retain_ratio)
                 # # At least one coefficient is removed.
                 # index_forward_W_fft = min(index_forward_W_fft,
@@ -882,11 +887,16 @@ class Conv2dfftFunction(torch.autograd.Function):
 
 
 class Conv2dfft(Module):
+    """
+    :conv_index_counter: the counter to index (number) of the convolutional
+    2d fft layers .
+    """
+    conv_index_counter = 0
 
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
                  stride=1, padding=0, dilation=None, groups=None, bias=False,
                  weight_value=None, bias_value=None, is_manual=tensor([0]),
-                 conv_index=None, args=Arguments(), out_size=None):
+                 args=Arguments(), out_size=None):
         """
 
         2D convolution using FFT implemented fully in PyTorch.
@@ -924,7 +934,6 @@ class Conv2dfft(Module):
         FFT convolution to the next power of 2.
         :param is_manual: to check if the backward computation of convolution
         was computed manually.
-        :param conv_index: the index (number) of the convolutional layer.
 
         Regarding the stride parameter: the number of pixels between
         adjacent receptive fields in the horizontal and vertical
@@ -983,7 +992,8 @@ class Conv2dfft(Module):
         self.padding = padding
         self.stride = stride
         self.is_manual = is_manual
-        self.conv_index = conv_index
+        self.conv_index = Conv2dfft.conv_index_counter
+        Conv2dfft.conv_index_counter += 1
         self.out_size = out_size
 
         if args is None:
