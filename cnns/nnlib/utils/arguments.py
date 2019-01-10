@@ -146,6 +146,7 @@ class Arguments(object):
                  dynamic_loss_scale=True,
                  memory_size=25,
                  is_progress_bar=False,
+                 log_conv_size=False,
                  stride_type=StrideType.STANDARD,
                  # is_dev_dataset = True,
                  is_dev_dataset=False,
@@ -184,6 +185,7 @@ class Arguments(object):
         on the machine).
         :param is_progress_bar: specify if the progress bar should be shown
         during training and testing of the model.
+        :param log_conv_size: log the size of the convolutional layers
         :param is_dev_set: is the dev dataset used (extracted from the trina set)
         :param dev_percent: % of data used from the train set as the dev set
         :param is_serial_conv: is the convolution exeucted as going serially
@@ -245,6 +247,7 @@ class Arguments(object):
         self.dynamic_loss_scale = dynamic_loss_scale
         self.memory_size = memory_size
         self.is_progress_bar = is_progress_bar
+        self.log_conv_size = log_conv_size
         self.stride_type=stride_type
         self.is_dev_dataset = is_dev_dataset
         self.dev_percent = dev_percent
@@ -287,6 +290,7 @@ class Arguments(object):
         self.next_power2 = self.get_bool(parsed_args.next_power2)
         self.visulize = self.get_bool(parsed_args.visualize)
         self.is_progress_bar = self.get_bool(parsed_args.is_progress_bar)
+        self.log_conv_size = self.get_bool(parsed_args.log_conv_size)
         self.is_data_augmentation = self.get_bool(parsed_args.is_data_augmentation)
         self.is_dev_dataset = self.get_bool(parsed_args.is_dev_dataset)
         self.mem_test = self.get_bool(parsed_args.mem_test)

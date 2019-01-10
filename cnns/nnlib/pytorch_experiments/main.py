@@ -252,6 +252,10 @@ parser.add_argument("--is_progress_bar",
                     help="should we show the progress bar after each batch was"
                          "processed in training and testing? " + ",".join(
                         Bool.get_names()))
+parser.add_argument("--log_conv_size",                    default="TRUE" if args.log_conv_size else "FALSE",
+                    # "TRUE", "FALSE"
+                    help="should we show log the size of each of the fft based"
+                         "conv layers? " + ",".join(Bool.get_names()))
 parser.add_argument("--stride_type", default=args.stride_type.name,
                     # "FLOAT32", "FLOAT16", "DOUBLE", "INT"
                     help="the tensor data type: " + ",".join(
@@ -392,8 +396,6 @@ def train(model, device, train_loader, optimizer, loss_function, epoch, args):
             device=device)
         optimizer.zero_grad()
         output = model(data)
-        # with open(additional_log_file, "a") as file:
-        #     file.write("\n")
         loss = loss_function(output, target)
 
         # The cross entropy loss combines `log_softmax` and `nll_loss` in
@@ -729,8 +731,9 @@ def main(args):
 
         epoch_time = time.time() - epoch_start_time
 
-        with open(additional_log_file, "a") as file:
-            file.write("\n")
+        if args.log_conv_size is True:
+            with open(additional_log_file, "a") as file:
+                file.write("\n")
 
         raw_optimizer = optimizer
         if args.precision_type is PrecisionType.FP16:
