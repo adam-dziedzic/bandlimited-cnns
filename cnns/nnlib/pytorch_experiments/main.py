@@ -435,6 +435,10 @@ def train(model, device, train_loader, optimizer, loss_function, epoch, args):
         total += target.size(0)
         correct += predicted.eq(target).sum().item()
 
+        if args.log_conv_size is True:
+            with open(additional_log_file, "a") as file:
+                file.write("\n")
+
         if args.is_progress_bar:
             progress_bar(total, len(train_loader.dataset), epoch=epoch,
                          msg="Train Loss: %.3f | Train Acc: %.3f%% (%d/%d)" %
@@ -476,6 +480,10 @@ def test(model, device, test_loader, loss_function, args, epoch=None):
             _, predicted = output.max(1)
             total += target.size(0)
             correct += predicted.eq(target).sum().item()
+
+            if args.log_conv_size is True:
+                with open(additional_log_file, "a") as file:
+                    file.write("\n")
 
             if args.is_progress_bar:
                 progress_bar(total, len(test_loader.dataset), epoch=epoch,
@@ -523,9 +531,9 @@ def main(args):
             "epoch,train_loss,train_accuracy,dev_loss,dev_accuracy,test_loss,"
             "test_accuracy,epoch_time,learning_rate,train_time,test_time\n")
 
-    with open(os.path.join(results_dir, additional_log_file), "a") as file:
-        # Write the metadata.
-        file.write(DATASET_HEADER)
+    # with open(os.path.join(results_dir, additional_log_file), "a") as file:
+    #     # Write the metadata.
+    #     file.write(DATASET_HEADER)
 
     with open(os.path.join(results_dir, mem_log_file), "a") as file:
         # Write the metadata.
@@ -730,10 +738,6 @@ def main(args):
         scheduler.step(train_loss)
 
         epoch_time = time.time() - epoch_start_time
-
-        if args.log_conv_size is True:
-            with open(additional_log_file, "a") as file:
-                file.write("\n")
 
         raw_optimizer = optimizer
         if args.precision_type is PrecisionType.FP16:

@@ -47,7 +47,7 @@ class Arguments(object):
                  # preserved_energies=[95, 90, 98],
                  # preserved_energies=[100, 99.9, 99.5, 99, 98, 97, 96, 95, 90, 80, 70, 60, 50, 10],
                  preserved_energies=[100],
-                 # preserved_energies=range(50, 101),
+                 # preserved_energies=range(96, 1),
                  tensor_type=TensorType.FLOAT32,
                  # tensor_type=TensorType.FLOAT16,
                  # precision_type=PrecisionType.AMP,
@@ -58,12 +58,13 @@ class Arguments(object):
                  # ndexes_back=[5,15,25,35,45],
                  # compress_rates=[x/2 for x in range(28,111,1)],
                  compress_rate=0,  # for unit tests
-                 compress_rates=[0],
+                 compress_rates=range(50,101),
                  # layers_compress_rates=None,
                  # compression rates for each of the conv fft layers in
                  # ResNet-18, with the total compression in the fft domain by
                  # more than 50%, about 92% of the energy is preserved
-                 layers_compress_rates=[72.62019231,70.17045455,73.4375,76.51515152,76.51515152,79.40340909,30.51470588,30.51470588,40.25735294,40.25735294,0,0,0,16.66666667,0,0,0],
+                 # layers_compress_rates=[72.62019231,70.17045455,73.4375,76.51515152,76.51515152,79.40340909,30.51470588,30.51470588,40.25735294,40.25735294,0,0,0,16.66666667,0,0,0],
+                 layers_compress_rates=None,
                  # weight_decay=5e-4,
                  # weight_decay=0,
                  weight_decay=0.0005,
@@ -128,8 +129,8 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
+                 # sample_count_limit=32,
                  sample_count_limit=32,
-                 # sample_count_limit=0,
                  conv_type=ConvType.FFT2D,
                  # conv_type=ConvType.STANDARD2D,
                  # conv_type=ConvType.FFT1D,
@@ -146,7 +147,7 @@ class Arguments(object):
                  dynamic_loss_scale=True,
                  memory_size=25,
                  is_progress_bar=False,
-                 log_conv_size=False,
+                 log_conv_size=True,
                  stride_type=StrideType.STANDARD,
                  # is_dev_dataset = True,
                  is_dev_dataset=False,
