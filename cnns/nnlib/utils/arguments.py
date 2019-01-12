@@ -304,6 +304,17 @@ class Arguments(object):
         if hasattr(parsed_args, "preserve_energy"):
             self.preserve_energy = parsed_args.preserve_energy
 
+        tensor_type = self.tensor_type
+        if tensor_type is TensorType.FLOAT32:
+            dtype = torch.float32
+        elif tensor_type is TensorType.FLOAT16 or args.precision_type is PrecisionType.FP16:
+            dtype = torch.float16
+        elif tensor_type is TensorType.DOUBLE:
+            dtype = torch.double
+        else:
+            raise Exception(f"Unknown tensor type: {tensor_type}")
+        self.dtype = dtype
+
     def get_str(self):
         args_dict = self.__dict__
         args_str = " ".join(
