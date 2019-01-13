@@ -52,14 +52,15 @@ class Arguments(object):
                  # tensor_type=TensorType.FLOAT16,
                  # precision_type=PrecisionType.AMP,
                  precision_type=PrecisionType.FP32,
+                 # precision_type=PrecisionType.FP16,
                  use_cuda=True,
                  compress_type=CompressType.STANDARD,
                  #compress_rate=5,
-                 compress_rate=0.1,
+                 compress_rate=0.0,
                  # ndexes_back=[5,15,25,35,45],
                  # compress_rates=[x/2 for x in range(28,111,1)],
                  # compress_rate=0.1,  # for unit tests
-                 compress_rates=[0, 0.01],
+                 compress_rates=[0.0],
                  # compress_rates=range(50,101),
                  # compress_rates=[0,5,11,11.5,17,20.5,22,22.5,28,32,33,36,37,39,41,42,47,50,51,55,58,59,63,64,65,66,69,70,71,73,76,77,79,80,82,83,84],
                  # layers_compress_rates=None,
@@ -71,7 +72,7 @@ class Arguments(object):
                  # weight_decay=5e-4,
                  # weight_decay=0,
                  weight_decay=0.0005,
-                 epochs=1,
+                 epochs=3,
                  min_batch_size=32,
                  test_batch_size=32,
                  learning_rate=0.01,
@@ -134,9 +135,9 @@ class Arguments(object):
                  mem_test=False,
                  is_data_augmentation=True,
                  # sample_count_limit=32,
-                 sample_count_limit=32,
-                 conv_type=ConvType.FFT2D,
-                 # conv_type=ConvType.STANDARD2D,
+                 sample_count_limit=0,
+                 # conv_type=ConvType.FFT2D,
+                 conv_type=ConvType.STANDARD2D,
                  # conv_type=ConvType.FFT1D,
                  # conv_type=ConvType.STANDARD,
                  conv_exec_type=ConvExecType.CUDA,
@@ -161,7 +162,7 @@ class Arguments(object):
                  cuda_block_threads=1024,
                  resume="",
                  gpu=0,
-                 start_epoch=1
+                 start_epoch=0
                  ):
         """
         The default parameters for the execution of the program.

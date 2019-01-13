@@ -2,7 +2,7 @@ import argparse
 import os
 import shutil
 import time
-
+import socket
 import torch
 import torch.nn as nn
 import torch.nn.parallel
@@ -17,6 +17,8 @@ from cnns.nnlib.datasets.cifar import get_cifar
 from cnns.nnlib.utils.general_utils import PrecisionType
 from cnns.nnlib.utils.exec_args import get_args
 import numpy as np
+import pathlib
+from cnns.nnlib.utils.general_utils import get_log_time
 
 try:
     from apex.parallel import DistributedDataParallel as DDP
@@ -33,25 +35,6 @@ args = get_args()
 
 cudnn.benchmark = True
 
-
-def fast_collate(batch):
-    imgs = [img[0] for img in batch]
-    targets = torch.tensor([target[1] for target in batch], dtype=torch.int64)
-    w = imgs[0].size[0]
-    h = imgs[0].size[1]
-    tensor = torch.zeros((len(imgs), 3, h, w), dtype=torch.uint8)
-    for i, img in enumerate(imgs):
-        nump_array = np.asarray(img, dtype=np.uint8)
-        tens = torch.from_numpy(nump_array)
-        if (nump_array.ndim < 3):
-            nump_array = np.expand_dims(nump_array, axis=-1)
-        nump_array = np.rollaxis(nump_array, 2)
-
-        tensor[i] += torch.from_numpy(nump_array)
-
-    return tensor, targets
-
-
 best_prec1 = 0
 
 if args.deterministic:
@@ -59,9 +42,23 @@ if args.deterministic:
     cudnn.deterministic = True
     torch.manual_seed(args.local_rank)
 
+results_folder_name = "results"
+results_dir = os.path.join(os.curdir, results_folder_name)
+pathlib.Path(results_dir).mkdir(parents=True, exist_ok=True)
+
 
 def main():
     global best_prec1, args
+
+    global_log_file = os.path.join(results_folder_name,
+                                   get_log_time() + "-ucr-fcnn.log")
+    args_str = args.get_str()
+    hostname = socket.gethostname()
+    HEADER = "hostname," + str(
+        hostname) + ",timestamp," + get_log_time() + "," + str(args_str)
+    with open(global_log_file, "a") as file:
+        # Write the metadata.
+        file.write(HEADER + ",")
 
     args.distributed = False
     if 'WORLD_SIZE' in os.environ:
@@ -115,25 +112,23 @@ def main():
         raise ValueError(f"Unknown dataset: {args.dataset_name}")
 
     train_sampler = None
-    val_sampler = None
+    test_sampler = None
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(
             train_dataset)
-        val_sampler = torch.utils.data.distributed.DistributedSampler(
+        test_sampler = torch.utils.data.distributed.DistributedSampler(
             test_dataset)
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.min_batch_size,
         shuffle=(train_sampler is None),
-        num_workers=args.workers, pin_memory=True, sampler=train_sampler,
-        collate_fn=fast_collate)
+        num_workers=args.workers, pin_memory=True, sampler=train_sampler)
 
     test_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=args.min_batch_size, shuffle=False,
         num_workers=args.workers, pin_memory=True,
-        sampler=val_sampler,
-        collate_fn=fast_collate)
+        sampler=test_sampler)
 
     # create model
     # if args.pretrained:
@@ -162,7 +157,8 @@ def main():
     criterion = nn.CrossEntropyLoss().cuda()
 
     # Scale learning rate based on global batch size
-    args.lr = args.learning_rate * float(args.min_batch_size * args.world_size) / 256.
+    args.lr = args.learning_rate * float(
+        args.min_batch_size * args.world_size) / 256.
     optimizer = torch.optim.SGD(model.parameters(), args.lr,
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay)
@@ -194,24 +190,38 @@ def main():
         resume()
 
     if args.evaluate:
-        validate(test_loader, model, criterion)
+        test(test_loader, model, criterion)
         return
+
+    with open(global_log_file, "a") as file:
+        # Write the header with the names of the columns.
+        file.write(
+            "\nepoch,train_loss,train_accuracy,test_loss,"
+            "test_accuracy,epoch_time,train_time,test_time\n")
 
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
 
         # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch)
+        start_train = time.time()
+        train_accuracy, train_loss = train(train_loader, model, criterion,
+                                           optimizer, epoch)
+        train_time = time.time() - start_train
+
         if args.prof:
             break
         # evaluate on validation set
-        prec1 = validate(test_loader, model, criterion)
+        start_test = time.time()
+        test_accuracy, test_loss = test(test_loader, model, criterion)
+        test_time = time.time() - start_test
+
+        epoch_time = train_time + test_time
 
         # remember best prec@1 and save checkpoint
         if args.local_rank == 0:
-            is_best = prec1 > best_prec1
-            best_prec1 = max(prec1, best_prec1)
+            is_best = test_accuracy > best_prec1
+            best_prec1 = max(test_accuracy, best_prec1)
             save_checkpoint({
                 'epoch': epoch + 1,
                 'arch': args.network_type,
@@ -219,6 +229,12 @@ def main():
                 'best_prec1': best_prec1,
                 'optimizer': optimizer.state_dict(),
             }, is_best)
+
+        with open(global_log_file, "a") as file:
+            file.write(str(epoch) + "," + str(train_loss) + "," + str(
+                train_accuracy) + "," + str(test_loss) + "," + str(
+                test_accuracy) + "," + str(epoch_time) + "," + str(
+                train_time) + "," + str(test_time) + "\n")
 
 
 class data_prefetcher():
@@ -329,9 +345,10 @@ def train(train_loader, model, criterion, optimizer, epoch):
                 args.world_size * args.min_batch_size / batch_time.avg,
                 batch_time=batch_time,
                 data_time=data_time, loss=losses, top1=top1, top5=top5))
+    return top1.avg, losses.avg
 
 
-def validate(test_loader, model, criterion):
+def test(test_loader, model, criterion):
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
@@ -372,15 +389,15 @@ def validate(test_loader, model, criterion):
         end = time.time()
 
         if args.local_rank == 0 and i % args.print_freq == 0:
-            print('Test: [{0}/{1}]\t'
-                  'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                  'Speed {2:.3f} ({3:.3f})\t'
-                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                  'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+            print('Test,[{0}/{1}]\t'
+                  'Time,{batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                  'Speed,{2:.3f},({3:.3f})\t'
+                  'Loss,{loss.val:.4f},({loss.avg:.4f})\t'
+                  'Prec@1,{top1.val:.3f},({top1.avg:.3f})\t'
+                  'Prec@5,{top5.val:.3f},({top5.avg:.3f})'.format(
                 i, len(test_loader),
-                args.world_size * args.batch_size / batch_time.val,
-                args.world_size * args.batch_size / batch_time.avg,
+                args.world_size * args.min_batch_size / batch_time.val,
+                args.world_size * args.min_batch_size / batch_time.avg,
                 batch_time=batch_time, loss=losses,
                 top1=top1, top5=top5))
 
@@ -389,7 +406,7 @@ def validate(test_loader, model, criterion):
     print(' * Prec@1 {top1.avg:.3f} Prec@5 {top5.avg:.3f}'
           .format(top1=top1, top5=top5))
 
-    return top1.avg
+    return top1.avg, losses.avg
 
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
