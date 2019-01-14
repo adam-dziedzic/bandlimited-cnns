@@ -406,6 +406,9 @@ class Conv2dfftFunction(torch.autograd.Function):
                                           half_fft_compressed_W, 2],
                                          dtype=dtype, device=device)
                     # complex_mul_cuda(xfft, yfft, outfft)
+                    xfft = xfft.contiguous()
+                    yfft = yfft.contiguous()
+
                     complex_mul_stride_no_permute_cuda(xfft, yfft, outfft,
                                                        cuda_block_threads)
                     torch.cuda.synchronize()
@@ -692,6 +695,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                     if torch.cuda.is_available():
                         # global global_permute_time
                         # start_permute = time.time()
+                        dxfft = dxfft.contiguous()
                         yfft = yfft.permute(1, 0, 2, 3, 4).contiguous()
                         # global_permute_time += time.time() - start_permute
                         # print("permute time: ", global_permute_time)
