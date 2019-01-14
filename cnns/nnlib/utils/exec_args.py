@@ -232,6 +232,7 @@ def get_args():
     parser.add_argument('--sync_bn', action='store_true',
                         help='enabling apex sync BN.')
     parser.add_argument("--local_rank", default=0, type=int)
+    parser.add_argument("--gpu", default=0, type=int)
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)
