@@ -271,7 +271,7 @@ def test(model, device, test_loader, loss_function, args, epoch=None):
 
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
-    torch.save(state, args.compress_rate + "-" + filename)
+    torch.save(state, str(args.compress_rate) + "-" + filename)
     if is_best:
         shutil.copyfile(filename, 'model_best.pth.tar')
 
