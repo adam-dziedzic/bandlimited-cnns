@@ -97,7 +97,6 @@ pathlib.Path(models_dir).mkdir(parents=True, exist_ok=True)
 
 args = get_args()
 
-
 current_file_name = __file__.split("/")[-1].split(".")[0]
 print("current file name: ", current_file_name)
 
@@ -271,7 +270,7 @@ def test(model, device, test_loader, loss_function, args, epoch=None):
 
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
-    torch.save(state, str(args.compress_rate) + "-" + filename)
+    torch.save(state, filename)
     if is_best:
         shutil.copyfile(filename, 'model_best.pth.tar')
 
@@ -568,7 +567,8 @@ def main(args):
             'optimizer': optimizer.state_dict(),
         }, is_best,
             filename=dataset_name + "-" + str(
-                max_train_accuracy) + "checkpoint.tar")
+                max_train_accuracy) + str(
+                args.compress_rate) + "-" + "checkpoint.tar")
 
     with open(global_log_file, "a") as file:
         file.write(dataset_name + "," + str(min_train_loss) + "," + str(
@@ -663,31 +663,32 @@ if __name__ == '__main__':
         # flist = ["50words"]
         # flist = ["SwedishLeaf"]
         flist = ['Computers', 'Beef', 'BeetleFly',
-                'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
-                'CinC_ECG_torso', 'Coffee', 'Cricket_X',
-                'Cricket_Y', 'Cricket_Z', 'DiatomSizeReduction',
-                'DistalPhalanxOutlineAgeGroup', 'DistalPhalanxOutlineCorrect',
-                'DistalPhalanxTW', 'Earthquakes', 'ECG200', 'ECG5000',
-                'ECGFiveDays', 'ElectricDevices', 'FaceAll', 'FaceFour',
-                'FacesUCR', 'FISH', 'FordA', 'FordB', 'Gun_Point', 'Ham',
-                'HandOutlines', 'Haptics', 'Herring', 'InlineSkate',
-                'InsectWingbeatSound', 'ItalyPowerDemand',
-                'LargeKitchenAppliances', 'Lighting2', 'Lighting7', 'MALLAT',
-                'Meat', 'MedicalImages', 'MiddlePhalanxOutlineAgeGroup',
-                'MiddlePhalanxOutlineCorrect', 'MiddlePhalanxTW', 'MoteStrain',
-                'NonInvasiveFatalECG_Thorax1', 'NonInvasiveFatalECG_Thorax2',
-                'OliveOil', 'OSULeaf', 'PhalangesOutlinesCorrect', 'Phoneme',
-                'Plane', 'ProximalPhalanxOutlineAgeGroup',
-                'ProximalPhalanxOutlineCorrect', 'ProximalPhalanxTW',
-                'RefrigerationDevices', 'ScreenType', 'ShapeletSim',
-                'ShapesAll', 'SmallKitchenAppliances', 'SonyAIBORobotSurface',
-                'SonyAIBORobotSurfaceII', 'StarLightCurves', 'Strawberry',
-                'SwedishLeaf', 'Symbols', 'synthetic_control',
-                'ToeSegmentation1', 'ToeSegmentation2', 'Trace', 'Two_Patterns',
-                'TwoLeadECG', 'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
-                'uWaveGestureLibrary_Z', 'UWaveGestureLibraryAll', 'wafer',
-                'Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass', 'yoga',
-                'ztest']
+                 'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
+                 'CinC_ECG_torso', 'Coffee', 'Cricket_X',
+                 'Cricket_Y', 'Cricket_Z', 'DiatomSizeReduction',
+                 'DistalPhalanxOutlineAgeGroup', 'DistalPhalanxOutlineCorrect',
+                 'DistalPhalanxTW', 'Earthquakes', 'ECG200', 'ECG5000',
+                 'ECGFiveDays', 'ElectricDevices', 'FaceAll', 'FaceFour',
+                 'FacesUCR', 'FISH', 'FordA', 'FordB', 'Gun_Point', 'Ham',
+                 'HandOutlines', 'Haptics', 'Herring', 'InlineSkate',
+                 'InsectWingbeatSound', 'ItalyPowerDemand',
+                 'LargeKitchenAppliances', 'Lighting2', 'Lighting7', 'MALLAT',
+                 'Meat', 'MedicalImages', 'MiddlePhalanxOutlineAgeGroup',
+                 'MiddlePhalanxOutlineCorrect', 'MiddlePhalanxTW', 'MoteStrain',
+                 'NonInvasiveFatalECG_Thorax1', 'NonInvasiveFatalECG_Thorax2',
+                 'OliveOil', 'OSULeaf', 'PhalangesOutlinesCorrect', 'Phoneme',
+                 'Plane', 'ProximalPhalanxOutlineAgeGroup',
+                 'ProximalPhalanxOutlineCorrect', 'ProximalPhalanxTW',
+                 'RefrigerationDevices', 'ScreenType', 'ShapeletSim',
+                 'ShapesAll', 'SmallKitchenAppliances', 'SonyAIBORobotSurface',
+                 'SonyAIBORobotSurfaceII', 'StarLightCurves', 'Strawberry',
+                 'SwedishLeaf', 'Symbols', 'synthetic_control',
+                 'ToeSegmentation1', 'ToeSegmentation2', 'Trace',
+                 'Two_Patterns',
+                 'TwoLeadECG', 'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
+                 'uWaveGestureLibrary_Z', 'UWaveGestureLibraryAll', 'wafer',
+                 'Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass', 'yoga',
+                 'ztest']
         # flist = ['DiatomSizeReduction',
         #          'DistalPhalanxOutlineAgeGroup', 'DistalPhalanxOutlineCorrect',
         #          'DistalPhalanxTW', 'Earthquakes', 'ECG200', 'ECG5000',
