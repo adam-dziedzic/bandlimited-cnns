@@ -19,6 +19,8 @@ from cnns.nnlib.utils.log_utils import get_logger
 from cnns.nnlib.utils.log_utils import set_up_logging
 from cnns.nnlib.utils.arguments import Arguments
 
+from cnns.nnlib.utils.general_utils import ConvExecType
+
 from cnns.nnlib.utils.general_utils import CompressType
 
 ERR_MSG = "Expected x is different from computed y."
@@ -94,6 +96,18 @@ class TestPyTorchConv1d(unittest.TestCase):
         self.logger = get_logger(name=__name__)
         self.logger.setLevel(logging.DEBUG)
         self.logger.info("Set up test")
+        seed = 31
+        if torch.cuda.is_available():
+            self.device = torch.device("cuda")
+            print("cuda is available")
+            torch.cuda.manual_seed_all(seed)
+        else:
+            self.device = torch.device("cpu")
+            print("cuda is not available")
+            torch.manual_seed(seed)
+        self.dtype = torch.float
+        self.ERR_MESSAGE_ALL_CLOSE = "The expected array desired and " \
+                                     "computed actual are not almost equal."
 
     def test_FunctionForwardNoCompression(self):
         x = np.array([[[1., 2., 3.]]])
@@ -109,19 +123,25 @@ class TestPyTorchConv1d(unittest.TestCase):
             np.testing.assert_array_almost_equal(
                 result, np.array([[expected_result]]))
 
-    def test_FunctionForwardNoCompression(self):
-        x = np.array([[[1., 2., 3.]]])
-        y = np.array([[[2., 1.]]])
-        b = np.array([0.0])
-        # get the expected results from numpy correlate
-        expected_result = np.correlate(x[0, 0, :], y[0, 0, :], mode="valid")
-        for convType in convTypes:
-            print("Conv type: ", convType)
-            conv = convType(filter_value=torch.from_numpy(y),
-                            bias_value=torch.from_numpy(b))
-            result = conv.forward(input=torch.from_numpy(x))
-            np.testing.assert_array_almost_equal(
-                result, np.array([[expected_result]]))
+    def test_FunctionForwardNoCompressionCUDA(self):
+        if torch.cuda.is_available():
+            args = Arguments(conv_exec_type=ConvExecType.CUDA)
+            x = np.array([[[1., 2., 3.]]])
+            y = np.array([[[2., 1.]]])
+            b = np.array([2.0])
+            # get the expected results from numpy correlate
+            # expected_result = np.correlate(x[0, 0, :], y[0, 0, :], mode="valid")
+            conv_param = {'pad': 0, 'stride': 1}
+            expected_result, _ = conv_forward_naive_1D(x, y, b, conv_param)
+            for convType in convTypes:
+                print("Conv type: ", convType)
+                conv = convType(
+                    filter_value=torch.from_numpy(y).to(self.device),
+                    bias_value=torch.from_numpy(b).to(self.device), args=args)
+                result = conv.forward(input=torch.from_numpy(x).to(self.device))
+                np.testing.assert_array_almost_equal(
+                    result.cpu().detach().numpy(),
+                    np.array(expected_result))
 
     def test_FunctionForwardNoCompressionFFTForCompressSignalOnly(self):
         x = np.array([[[1., 2., 3.]]])
@@ -192,7 +212,7 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         conv = Conv1dfft(filter_value=torch.from_numpy(y),
                          bias_value=torch.from_numpy(b),
-                         args=Arguments(index_back=5))
+                         args=Arguments(compress_rate=5))
         result = conv.forward(input=torch.from_numpy(x))
 
         expected = np.array([[expected_result_compressed]])
@@ -220,7 +240,7 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         conv = Conv1dfft(filter_value=torch.from_numpy(y),
                          bias_value=torch.from_numpy(b),
-                         args=Arguments(preserve_energy=80))
+                         args=Arguments(preserved_energy=80))
         result = conv.forward(input=torch.from_numpy(x))
         np.testing.assert_array_almost_equal(
             x=np.array(expected_result_compressed), y=result, decimal=6,
@@ -257,7 +277,7 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         conv = Conv1dfft(filter_value=torch.from_numpy(y),
                          bias_value=torch.from_numpy(b),
-                         args=Arguments(index_back=5))
+                         args=Arguments(compress_rate=5))
         result = conv.forward(input=torch.from_numpy(x))
         np.testing.assert_array_almost_equal(
             x=result, y=np.array(expected_result_compressed), decimal=6,
@@ -281,14 +301,16 @@ class TestPyTorchConv1d(unittest.TestCase):
         y = np.array([[[2., 1.]]])
         b = np.array([0.0])
         # get the expected results from numpy correlate
+        # expected_result = np.array(
+        #     [[[4.25, 6.75, 10.25, 12.75, 16.25, 18.75, 22.25]]])
         expected_result = np.array(
-            [[[4.25, 6.75, 10.25, 12.75, 16.25, 18.75, 22.25]]])
+            [[[4.125, 6.875, 10.125, 12.875, 16.125, 18.875, 22.125]]])
 
         for convType in [Conv1dfft]:
             print("Conv type: ", convType)
             conv = convType(filter_value=torch.from_numpy(y),
                             bias_value=torch.from_numpy(b),
-                            args=Arguments(index_back=1))
+                            args=Arguments(compress_rate=1))
             result = conv.forward(input=torch.from_numpy(x))
             np.testing.assert_array_almost_equal(
                 x=np.array(expected_result), y=result,
@@ -306,11 +328,14 @@ class TestPyTorchConv1d(unittest.TestCase):
         #     [[[4.25, 6.75, 10.25, 12.75, 16.25, 18.75, 22.25]]])
         # expected_result = np.array([[[2.893933, 7.958111, 9.305407, 13.347296,
         #                               16.041889, 18.573978, 22.75877]]])
+        # expected_result = np.array(
+        #     [[[4.25, 6.75, 10.25, 12.75, 16.25, 18.75, 22.25]]])
         expected_result = np.array(
-            [[[4.25, 6.75, 10.25, 12.75, 16.25, 18.75, 22.25]]])
+            [[[4.125, 6.875, 10.125, 12.875, 16.125, 18.875, 22.125]]]
+        )
         conv = Conv1dfft(filter_value=torch.from_numpy(y),
                          bias_value=torch.from_numpy(b),
-                         args=Arguments(index_back=1))
+                         args=Arguments(compress_rate=1))
         result = conv.forward(input=torch.from_numpy(x))
         print("actual result: ", result)
         np.testing.assert_array_almost_equal(
@@ -343,7 +368,7 @@ class TestPyTorchConv1d(unittest.TestCase):
                                       21.75877]]])
         conv = Conv1dfft(filter_value=torch.from_numpy(y),
                          bias_value=torch.from_numpy(b),
-                         args=Arguments(index_back=25))
+                         args=Arguments(compress_rate=25))
         result = conv.forward(input=torch.from_numpy(x))
         print("actual result: ", result)
         np.testing.assert_array_almost_equal(
@@ -376,7 +401,7 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         conv = Conv1dfft(filter_value=torch.from_numpy(y),
                          bias_value=torch.from_numpy(b),
-                         args=Arguments(index_back=25))
+                         args=Arguments(compress_rate=25))
         result = conv.forward(input=torch.from_numpy(x))
         print("actual result: ", result)
         np.testing.assert_array_almost_equal(
@@ -416,7 +441,7 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         conv = Conv1dfft(filter_value=torch.from_numpy(y),
                          bias_value=torch.from_numpy(b),
-                         args=Arguments(index_back=50))
+                         args=Arguments(compress_rate=50))
         result = conv.forward(input=torch.from_numpy(x))
         print("actual result: ", result)
         np.testing.assert_array_almost_equal(
@@ -455,7 +480,7 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         conv = Conv1dfft(filter_value=torch.from_numpy(y),
                          bias_value=torch.from_numpy(b),
-                         args=Arguments(index_back=70))
+                         args=Arguments(compress_rate=70))
         result = conv.forward(input=torch.from_numpy(x))
         print("actual result: ", result)
         np.testing.assert_array_almost_equal(
@@ -484,10 +509,10 @@ class TestPyTorchConv1d(unittest.TestCase):
         #                       80., 10.]
         preserved_energies = [95.]
 
-        for preserve_energy in preserved_energies:
+        for preserved_energy in preserved_energies:
             conv = Conv1dfft(filter_value=torch.from_numpy(y),
                              bias_value=torch.from_numpy(b),
-                             args=Arguments(preserve_energy=preserve_energy,
+                             args=Arguments(preserved_energy=preserved_energy,
                                             is_debug=True,
                                             compress_type=CompressType.NO_FILTER))
             result = conv.forward(input=torch.from_numpy(x))
@@ -495,7 +520,7 @@ class TestPyTorchConv1d(unittest.TestCase):
 
             result_tensor = tensor(result, dtype=torch.float32)
             print("absolute divergence for preserved energy {} is {}".format(
-                preserve_energy, torch.sum(
+                preserved_energy, torch.sum(
                     torch.abs(result_tensor - expected_result_tensor),
                     dim=-1).item()))
 
@@ -521,10 +546,10 @@ class TestPyTorchConv1d(unittest.TestCase):
         preserved_energies = [95.]
         # compress_rates = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
-        for preserve_energy in preserved_energies:
+        for preserved_energy in preserved_energies:
             conv = Conv1dfft(filter_value=torch.from_numpy(y),
                              bias_value=torch.from_numpy(b),
-                             args=Arguments(preserve_energy=preserve_energy,
+                             args=Arguments(preserved_energy=preserved_energy,
                                             is_debug=True,
                                             next_power2=False,
                                             compress_type=CompressType.BIG_COEFF))
@@ -534,7 +559,7 @@ class TestPyTorchConv1d(unittest.TestCase):
             result = result.float()
             print(
                 "absolute divergence for preserved energy,{},is,{},stop".format(
-                    preserve_energy, torch.sum(
+                    preserved_energy, torch.sum(
                         torch.abs(result - expected_result_tensor),
                         dim=-1).item()))
 
@@ -560,10 +585,10 @@ class TestPyTorchConv1d(unittest.TestCase):
         preserved_energies = [95.]
         # compress_rates = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
-        for preserve_energy in preserved_energies:
+        for preserved_energy in preserved_energies:
             conv = Conv1dfft(filter_value=torch.from_numpy(y),
                              bias_value=torch.from_numpy(b),
-                             args=Arguments(preserve_energy=preserve_energy,
+                             args=Arguments(preserved_energy=preserved_energy,
                                             is_debug=True, next_power2=False,
                                             compress_type=CompressType.LOW_COEFF))
             result = conv.forward(input=torch.from_numpy(x))
@@ -572,7 +597,7 @@ class TestPyTorchConv1d(unittest.TestCase):
             result = result.float()
             print(
                 "absolute divergence for preserved energy,{},is,{},stop".format(
-                    preserve_energy, torch.sum(
+                    preserved_energy, torch.sum(
                         torch.abs(result - expected_result_tensor),
                         dim=-1).item()))
 
@@ -598,11 +623,11 @@ class TestPyTorchConv1d(unittest.TestCase):
         # compress_rates = [1, 2, 4, 8, 16, 32, 64, 100]  # percent
         indexes_back = [8]  # percent
 
-        for index_back in indexes_back:
+        for compress_rate in indexes_back:
             conv = Conv1dfft(filter_value=torch.from_numpy(y),
                              bias_value=torch.from_numpy(b),
-                             args=Arguments(index_back=index_back,
-                                            preserve_energy=None,
+                             args=Arguments(compress_rate=compress_rate,
+                                            preserved_energy=None,
                                             is_debug=True,
                                             compress_type=CompressType.LOW_COEFF,
                                             next_power2=False))
@@ -612,7 +637,7 @@ class TestPyTorchConv1d(unittest.TestCase):
             result_tensor = result.float()
             print(
                 "absolute divergence for index back,{},is,{},stop".format(
-                    index_back, torch.sum(
+                    compress_rate, torch.sum(
                         torch.abs(result_tensor - expected_result_tensor),
                         dim=-1).item()))
 
@@ -638,11 +663,11 @@ class TestPyTorchConv1d(unittest.TestCase):
         # compress_rates = [1, 2, 4, 8, 16, 32, 64, 100]  # percent
         indexes_back = [8]
 
-        for index_back in indexes_back:
+        for compress_rate in indexes_back:
             conv = Conv1dfft(filter_value=torch.from_numpy(y),
                              bias_value=torch.from_numpy(b),
-                             args=Arguments(index_back=index_back,
-                                            preserve_energy=None,
+                             args=Arguments(compress_rate=compress_rate,
+                                            preserved_energy=None,
                                             is_debug=True,
                                             next_power2=False,
                                             compress_type=CompressType.BIG_COEFF))
@@ -652,7 +677,7 @@ class TestPyTorchConv1d(unittest.TestCase):
             result_tensor = tensor(result, dtype=torch.float32)
             print(
                 "absolute divergence for index back,{},is,{},stop".format(
-                    index_back, torch.sum(
+                    compress_rate, torch.sum(
                         torch.abs(result_tensor - expected_result_tensor),
                         dim=-1).item()))
 
@@ -706,10 +731,10 @@ class TestPyTorchConv1d(unittest.TestCase):
         #                       80., 70., 60., 50., 40., 10.]
         preserved_energies = [50.]
 
-        for preserve_energy in preserved_energies:
+        for preserved_energy in preserved_energies:
             conv = Conv1dfft(filter_value=torch.from_numpy(y),
                              bias_value=torch.from_numpy(b),
-                             args=Arguments(preserve_energy=preserve_energy,
+                             args=Arguments(preserved_energy=preserved_energy,
                                             is_debug=True, next_power2=False,
                                             compress_type=CompressType.STANDARD))
             result = conv.forward(input=torch.from_numpy(x))
@@ -718,7 +743,7 @@ class TestPyTorchConv1d(unittest.TestCase):
             result_tensor = tensor(result, dtype=torch.float32)
             print(
                 "absolute divergence for preserved energy,{},is,{},stop".format(
-                    preserve_energy, torch.sum(
+                    preserved_energy, torch.sum(
                         torch.abs(result_tensor - expected_result_tensor),
                         dim=-1).item()))
 
@@ -738,17 +763,17 @@ class TestPyTorchConv1d(unittest.TestCase):
         # preserve_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 90., 80.,
         #                      10., 1.]
         preserve_energies = [50.0]
-        for preserve_energy in preserve_energies:
+        for preserved_energy in preserve_energies:
             conv = Conv1dfft(filter_value=torch.from_numpy(y),
                              bias_value=torch.from_numpy(b),
-                             args=Arguments(preserve_energy=preserve_energy,
+                             args=Arguments(preserved_energy=preserved_energy,
                                             next_power2=False))
             result = conv.forward(input=torch.from_numpy(x))
             print("actual result: ", result)
 
             result_tensor = tensor(result, dtype=torch.float32)
             print("absolute divergence for preserved energy {} is {}".format(
-                preserve_energy, torch.sum(
+                preserved_energy, torch.sum(
                     torch.abs(result_tensor - expected_result_tensor),
                     dim=-1).item()))
 
@@ -766,17 +791,17 @@ class TestPyTorchConv1d(unittest.TestCase):
         # preserve_energies = [100., 99.5, 99.1, 99.0, 97., 96., 95., 90.,
         #                      80., 10.]
         preserve_energies = [50.0]
-        for preserve_energy in preserve_energies:
+        for preserved_energy in preserve_energies:
             conv = Conv1dfft(filter_value=torch.from_numpy(y),
                              bias_value=torch.from_numpy(b),
-                             args=Arguments(preserve_energy=preserve_energy,
+                             args=Arguments(preserved_energy=preserved_energy,
                                             next_power2=True))
             result = conv.forward(input=torch.from_numpy(x))
             print("actual result: ", result)
 
             result_tensor = tensor(result, dtype=torch.float32)
             print("absolute divergence for preserved energy {} is {}".format(
-                preserve_energy, torch.sum(
+                preserved_energy, torch.sum(
                     torch.abs(result_tensor - expected_result_tensor),
                     dim=-1).item()))
 
@@ -934,6 +959,35 @@ class TestPyTorchConv1d(unittest.TestCase):
         np.testing.assert_array_almost_equal(
             result, np.array(expected_result))
 
+    def test_FunctionForwardRandomCUDA(self):
+        if torch.cuda.is_available():
+            args = Arguments(conv_exec_type=ConvExecType.CUDA)
+            num_channels = 3
+            num_data_points = 11
+            num_values_data = 21
+            num_values_filter = 5
+            num_filters = 3
+            # Input signal: 5 data points, 3 channels, 10 values.
+            x = np.random.rand(num_data_points, num_channels, num_values_data)
+            # Filters: 3 filters, 3 channels, 4 values.
+            y = np.random.rand(num_filters, num_channels, num_values_filter)
+            # Bias: one for each filter
+            b = np.random.rand(num_filters)
+            # get the expected result
+            conv_param = {'pad': 0, 'stride': 1}
+            expected_result, _ = conv_forward_naive_1D(x, y, b, conv_param)
+            self.logger.debug("expected result: " + str(expected_result))
+
+            conv = Conv1dfftFunction()
+            result = conv.forward(ctx=None,
+                                  input=torch.from_numpy(x).to(self.device),
+                                  filter=torch.from_numpy(y).to(self.device),
+                                  bias=torch.from_numpy(b).to(self.device),
+                                  args=args)
+            self.logger.debug("obtained result: " + str(result))
+            np.testing.assert_array_almost_equal(
+                result.cpu().detach().numpy(), np.array(expected_result))
+
     def test_FunctionForwardRandomSipleFFTConv(self):
         num_channels = 3
         num_data_points = 11
@@ -1022,6 +1076,52 @@ class TestPyTorchConv1d(unittest.TestCase):
                                              expected_dw)
         np.testing.assert_array_almost_equal(db.detach().numpy(),
                                              expected_db)
+
+    def test_FunctionNoCompressionWithBiasCUDA(self):
+        if torch.cuda.is_available():
+            args = Arguments(conv_exec_type=ConvExecType.CUDA)
+            x = np.array([[[1.0, 2.0, 3.0]]])
+            y = np.array([[[2.0, 1.0]]])
+            b = np.array([2.0])
+            dtype = torch.float
+            x_torch = tensor(x, requires_grad=True, dtype=dtype,
+                             device=self.device)
+            y_torch = tensor(y, requires_grad=True, dtype=dtype,
+                             device=self.device)
+            b_torch = tensor(b, requires_grad=True, dtype=dtype,
+                             device=self.device)
+
+            conv_param = {'pad': 0, 'stride': 1}
+            expected_result, cache = conv_forward_naive_1D(x, y, b,
+                                                           conv_param)
+            ctx = MockContext()
+            ctx.set_needs_input_grad(3)
+            result_torch = Conv1dfftFunction.forward(
+                ctx, input=x_torch, filter=y_torch, bias=b_torch, args=args)
+
+            dout = tensor([[[0.1, -0.2]]], dtype=dtype)
+
+            dx, dw, db, _, _, _, _, _, _ = Conv1dfftFunction.backward(
+                ctx, dout.to(self.device))
+
+            # get the expected result from the backward pass
+            expected_dx, expected_dw, expected_db = \
+                conv_backward_naive_1D(dout.numpy(), cache)
+
+            result = result_torch.cpu().detach().numpy()
+            np.testing.assert_array_almost_equal(
+                result, np.array(expected_result))
+
+            self.logger.debug("expected dx: " + str(expected_dx))
+            self.logger.debug("computed dx: " + str(dx.cpu().detach().numpy()))
+
+            # are the gradients correct
+            np.testing.assert_array_almost_equal(dx.cpu().detach().numpy(),
+                                                 expected_dx)
+            np.testing.assert_array_almost_equal(dw.cpu().detach().numpy(),
+                                                 expected_dw)
+            np.testing.assert_array_almost_equal(db.cpu().detach().numpy(),
+                                                 expected_db)
 
     def test_FunctionBackwardNoCompressionWithBias2Inputs(self):
         x = np.array([[[1.0, 2.0, 3.0]], [[2.0, -1.0, 3.0]]])
@@ -1199,10 +1299,10 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         # approximate_expected_result = np.array(
         #     [[[-2.105834, 0.457627, 8.501472, 20.74531]]])
-        # approximate_expected_result = np.array(
-        #     [[[6.146684, 11.792807, 17.264324, 21.90055]]])
         approximate_expected_result = np.array(
-            [[[-3.035742, 4.273538, 14.162642, 24.351469]]])
+            [[[6.146684, 11.792807, 17.264324, 21.90055]]])
+        # approximate_expected_result = np.array(
+        #     [[[-3.035742, 4.273538, 14.162642, 24.351469]]])
 
         print("Approximate expected result: ", approximate_expected_result)
 
@@ -1215,7 +1315,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         result = result_torch.detach().numpy()
         print("Computed result: ", result)
         np.testing.assert_array_almost_equal(
-            x=np.array(approximate_expected_result), y=result,
+            x=np.array(approximate_expected_result), y=result, decimal=4,
             err_msg="Expected x is different from computed y.")
 
         self._check_delta1D(actual_result=result,
@@ -1294,16 +1394,17 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         # 1 index back
         conv_fft = Conv1dfft(filter_value=y_torch, bias_value=b_torch,
-                             args=Arguments(index_back=1, preserve_energy=None))
+                             args=Arguments(compress_rate=1,
+                                            preserved_energy=None))
         result_torch = conv_fft.forward(input=x_torch)
 
         result = result_torch.detach().numpy()
-        # compressed_expected_result = np.array(
-        #     [[[-2.25, -5.75, -2.25, 15.25, -18.25]]])
+        compressed_expected_result = np.array(
+            [[[-2.25, -5.75, -2.25, 15.25, -18.25]]])
         # compressed_expected_result = np.array(
         #     [[[-4., -3.999999, -4., 16.999998, -20.]]])
-        compressed_expected_result = np.array(
-            [[[-0.35, -7.95, 0.08, 12.97, -16.2]]])
+        # compressed_expected_result = np.array(
+        #     [[[-0.35, -7.95, 0.08, 12.97, -16.2]]])
         np.testing.assert_array_almost_equal(
             x=compressed_expected_result, y=result, decimal=2, err_msg=ERR_MSG)
 
@@ -1317,21 +1418,21 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         # are the gradients correct
         print("accurate expected_dx: ", expected_dx)
-        # approximate_dx = np.array(
-        #     [[[0.175, -0.275, -1.125, 0.925, 1.375, -0.775, -0.325]]])
+        approximate_dx = np.array(
+            [[[0.175, -0.275, -1.125, 0.925, 1.375, -0.775, -0.325]]])
         # approximate_dx = np.array(
         #     [[[0.2, -0.3, -1.1, 0.9, 1.4, -0.8, -0.3]]])
-        approximate_dx = np.array(
-            [[[0.199, -0.285, -1.13, 0.942, 1.347, -0.738, -0.368]]])
+        # approximate_dx = np.array(
+        #     [[[0.199, -0.285, -1.13, 0.942, 1.347, -0.738, -0.368]]])
         np.testing.assert_array_almost_equal(
             x=approximate_dx, y=x_torch.grad, decimal=3,
             err_msg="Expected approximate x is different from computed y. The "
                     "exact x (that represents dx) is: {}".format(expected_dx))
         print("accurate expected_dw: ", expected_dw)
 
-        # approximate_dw = np.array([[[0.675, -0.375, -1.125]]])
+        approximate_dw = np.array([[[0.675, -0.375, -1.125]]])
         # approximate_dw = np.array([[[0.5, -0.2, -1.3]]])
-        approximate_dw = np.array([[[0.918, -0.635, -0.867]]])
+        # approximate_dw = np.array([[[0.918, -0.635, -0.867]]])
 
         np.testing.assert_array_almost_equal(
             x=approximate_dw, y=y_torch.grad, decimal=3,
@@ -1406,7 +1507,8 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         # out_W = W + 2 * pad - WW + 1
 
-        dout = tensor([[[0.1, -0.2, 0.3, -0.1]]], dtype=dtype)
+        # dout = tensor([[[0.1, -0.2, 0.3, -0.1]]], dtype=dtype)
+        dout = torch.rand(x_torch.size(-1) + padding, dtype=dtype)
         # get the expected result from the backward pass
         expected_dx, expected_dw, expected_db = \
             conv_backward_naive_1D(dout.numpy(), cache)
@@ -1415,7 +1517,7 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         result = result_torch.detach().numpy()
         np.testing.assert_array_almost_equal(
-            x=np.array(expected_result), y=result, )
+            x=np.array(expected_result), y=result)
 
         print()
         print("expected dx: " + str(expected_dx))
@@ -1444,7 +1546,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         expected_result = [[[3.666667, 7.333333]]]
         conv = Conv1dfft(filter_value=torch.from_numpy(y),
                          bias_value=torch.from_numpy(b),
-                         args=Arguments(index_back=1))
+                         args=Arguments(compress_rate=1))
         result = conv.forward(input=torch.from_numpy(x))
         np.testing.assert_array_almost_equal(result, np.array(expected_result))
 
@@ -1466,10 +1568,11 @@ class TestPyTorchConv1d(unittest.TestCase):
         x = np.array([[[1., 2., 3.]]])
         y = np.array([[[2., 1.]]])
         b = np.array([0.0])
-        expected_result = [3.666667, 7.333333]
+        expected_result = [3.75, 7.25]
+        # expected_result = [3.666667, 7.333333]
         conv = Conv1dfft(
             filter_value=torch.from_numpy(y), bias_value=torch.from_numpy(b),
-            args=Arguments(index_back=1, preserve_energy=None))
+            args=Arguments(compress_rate=1, preserved_energy=None))
         result = conv.forward(input=torch.from_numpy(x))
         np.testing.assert_array_almost_equal(
             result, np.array([[expected_result]]))

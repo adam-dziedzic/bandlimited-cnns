@@ -10,7 +10,6 @@ import pathlib
 import logging
 import traceback
 
-import argparse
 import numpy as np
 import socket
 import time
@@ -22,6 +21,7 @@ from torch.optim.lr_scheduler import \
 from torch.optim.lr_scheduler import MultiStepLR
 
 from cnns.nnlib.pytorch_layers.AdamFloat16 import AdamFloat16
+from cnns.nnlib.pytorch_architecture.model_utils import getModelPyTorch
 from cnns.nnlib.pytorch_architecture.le_net import LeNet
 from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
 from cnns.nnlib.pytorch_architecture.densenet import densenet_cifar
@@ -46,6 +46,7 @@ from cnns.nnlib.datasets.mnist import get_mnist
 from cnns.nnlib.datasets.cifar import get_cifar
 from cnns.nnlib.datasets.ucr.ucr import get_ucr
 from cnns.nnlib.utils.arguments import Arguments
+from cnns.nnlib.utils.exec_args import get_args
 from cnns.nnlib.pytorch_experiments.utils.progress_bar import progress_bar
 
 # from memory_profiler import profile
@@ -94,197 +95,7 @@ pathlib.Path(models_dir).mkdir(parents=True, exist_ok=True)
 
 # plt.switch_backend('agg')
 
-# Execution parameters.
-args = Arguments()
-parser = argparse.ArgumentParser(description='PyTorch TimeSeries')
-parser.add_argument('--min_batch_size', type=int, default=args.min_batch_size,
-                    help=f"input mini batch size for training "
-                    f"(default: {args.min_batch_size})")
-parser.add_argument('--test_batch_size', type=int, default=args.test_batch_size,
-                    metavar='N',
-                    help='input batch size for testing (default: 1000)')
-parser.add_argument('--epochs', type=int, default=args.epochs, metavar='Epochs',
-                    help=f"number of epochs to train ("
-                    f"default: {args.epochs})")
-parser.add_argument('--learning_rate', type=float,
-                    default=args.learning_rate, metavar='LR',
-                    help=f'learning rate (default: {args.learning_rate})')
-parser.add_argument('--weight_decay', type=float, default=args.weight_decay,
-                    help=f'weight decay (default: {args.weight_decay})')
-parser.add_argument('--momentum', type=float, default=args.momentum,
-                    metavar='M',
-                    help=f'SGD momentum (default: {args.momentum})')
-parser.add_argument('--use_cuda', default="TRUE" if args.use_cuda else "FALSE",
-                    help="use CUDA for training and inference; "
-                         "options: " + ",".join(Bool.get_names()))
-parser.add_argument('--seed', type=int, default=args.seed, metavar='S',
-                    help='random seed (default: 31)')
-parser.add_argument('--log-interval', type=int, default=args.log_interval,
-                    metavar='N',
-                    help='how many batches to wait before logging training '
-                         'status')
-parser.add_argument("--optimizer_type", default=args.optimizer_type.name,
-                    # ADAM_FLOAT16, ADAM, MOMENTUM
-                    help="the type of the optimizer, please choose from: " +
-                         ",".join(OptimizerType.get_names()))
-parser.add_argument("--scheduler_type", default=args.scheduler_type.name,
-                    # StepLR, MultiStepLR, ReduceLROnPlateau, ExponentialLR
-                    # CosineAnnealingLR
-                    help="the type of the scheduler, please choose from: " +
-                         ",".join(SchedulerType.get_names()))
-parser.add_argument("--loss_type", default=args.loss_type.name,
-                    # StepLR, MultiStepLR, ReduceLROnPlateau, ExponentialLR
-                    # CosineAnnealingLR
-                    help="the type of the loss, please choose from: " +
-                         ",".join(LossType.get_names()))
-parser.add_argument("--loss_reduction", default=args.loss_reduction.name,
-                    help="the type of the loss, please choose from: " +
-                         ",".join(LossReduction.get_names()))
-parser.add_argument("--memory_type", default=args.memory_type.name,
-                    # "STANDARD", "PINNED"
-                    help="the type of the memory used, please choose from: " +
-                         ",".join(MemoryType.get_names()))
-parser.add_argument("--workers", default=args.workers, type=int,
-                    help="number of workers to fetch data for pytorch data "
-                         "loader, 0 means that the data will be "
-                         "loaded in the main process")
-parser.add_argument("--model_path",
-                    default=args.model_path,
-                    # default = "2018-11-07-00-00-27-dataset-50words-preserve-energy-90-test-accuracy-58.46153846153846.model",
-                    # default="2018-11-06-21-05-48-dataset-50words-preserve-energy-90-test-accuracy-12.5.model",
-                    # default="2018-11-06-21-19-51-dataset-50words-preserve-energy-90-test-accuracy-12.5.model",
-                    # no_model
-                    # 2018-11-06-21-05-48-dataset-50words-preserve-energy-90-test-accuracy-12.5.model
-                    help="The path to a saved model.")
-parser.add_argument("--dataset", default=args.dataset,
-                    help="the type of datasets: all, debug, cifar10, mnist.")
-# parser.add_argument("--compress_rate", default=args.compress_rate, type=float,
-#                     help="Percentage of indexes (values) from the back of the "
-#                          "frequency representation that should be discarded. "
-#                          "This is the compression in the FFT domain.")
-parser.add_argument('--compress_rates', nargs="+", type=float,
-                    default=args.compress_rates,
-                    help="Percentage of the high frequency coefficients that "
-                         "should be discarded. This is the compression in the "
-                         "FFT domain.")
-parser.add_argument('--preserve_energies', nargs="+", type=float,
-                    default=args.preserve_energies,
-                    help="How much energy should be preserved in the "
-                         "frequency representation of the signal? This "
-                         "is the compression in the FFT domain.")
-parser.add_argument("--mem_test",                    default="TRUE" if args.mem_test else "FALSE",
-                    help="is it the memory test; options: " + ",".join(
-                        Bool.get_names()))
-parser.add_argument("--is_data_augmentation",
-                    default="TRUE" if args.is_data_augmentation else "FALSE",
-                    help="should the data augmentation be applied; "
-                         "options: " + ",".join(Bool.get_names()))
-parser.add_argument("--is_debug",
-                    default="TRUE" if args.is_debug else "FALSE",
-                    help="is it the debug mode execution: " + ",".join(
-                        Bool.get_names()))
-parser.add_argument("--sample_count_limit", default=args.sample_count_limit,
-                    type=int,
-                    help="number of samples taken from the dataset "
-                         "(0 - inactive)")
-parser.add_argument("--conv_type", default=args.conv_type.name,
-                    # "FFT1D", "FFT2D", "STANDARD", "STANDARD2D", "AUTOGRAD",
-                    # "SIMPLE_FFT"
-                    help="the type of convolution, SPECTRAL_PARAM is with the "
-                         "convolutional weights initialized in the spectral "
-                         "domain, please choose from: " + ",".join(
-                        ConvType.get_names()))
-parser.add_argument("--conv_exec_type",
-                    default=args.conv_exec_type.name,
-                    help="the type of internal execution of the convolution"
-                         "operation, for example: SERIAL: is each data point "
-                         "convolved separately with all the filters, all a "
-                         "batch of datapoint is convolved with all filters in "
-                         "one go; CUDA: the tensor element wise complex "
-                         "multiplication is done on CUDA, choose options from: "
-                         "" + ",".join(ConvExecType.get_names()))
-parser.add_argument("--compress_type", default=args.compress_type.name,
-                    # "STANDARD", "BIG_COEFF", "LOW_COEFF"
-                    help="the type of compression to be applied: " + ",".join(
-                        CompressType.get_names()))
-parser.add_argument("--network_type", default=args.network_type.name,
-                    # "FCNN_STANDARD", "FCNN_SMALL", "LE_NET", "ResNet18"
-                    help="the type of network: " + ",".join(
-                        NetworkType.get_names()))
-parser.add_argument("--tensor_type", default=args.tensor_type.name,
-                    # "FLOAT32", "FLOAT16", "DOUBLE", "INT"
-                    help="the tensor data type: " + ",".join(
-                        TensorType.get_names()))
-parser.add_argument("--next_power2",
-                    default="TRUE" if args.next_power2 else "FALSE",
-                    # "TRUE", "FALSE"
-                    help="should we extend the input to the length of a power "
-                         "of 2 before taking its fft? " + ",".join(
-                        Bool.get_names()))
-parser.add_argument("--visualize", default="TRUE" if args.visulize else "FALSE",
-                    # "TRUE", "FALSE"
-                    help="should we visualize the activations map after each "
-                         "of the convolutional layers? " + ",".join(
-                        Bool.get_names()))
-parser.add_argument('--static_loss_scale', type=float,
-                    default=args.static_loss_scale,
-                    help="""Static loss scale, positive power of 2 values can 
-                    improve fp16 convergence.""")
-parser.add_argument('--dynamic_loss_scale',
-                    default="TRUE" if args.dynamic_loss_scale else "FALSE",
-                    help="(bool) Use dynamic loss scaling. "
-                         "If supplied, this argument supersedes " +
-                         "--static-loss-scale. Options: " + ",".join(
-                        Bool.get_names()))
-parser.add_argument('--memory_size', type=float,
-                    default=args.memory_size,
-                    help="""GPU or CPU memory size in GB.""")
-parser.add_argument("--is_progress_bar",
-                    default="TRUE" if args.is_progress_bar else "FALSE",
-                    # "TRUE", "FALSE"
-                    help="should we show the progress bar after each batch was"
-                         "processed in training and testing? " + ",".join(
-                        Bool.get_names()))
-parser.add_argument("--stride_type", default=args.stride_type.name,
-                    # "FLOAT32", "FLOAT16", "DOUBLE", "INT"
-                    help="the tensor data type: " + ",".join(
-                        StrideType.get_names()))
-parser.add_argument("--is_dev_dataset",
-                    default="TRUE" if args.is_dev_dataset else "FALSE",
-                    help="is it the dev set extracted from the train set, "
-                         "default is {args.is_dev_set}, but choose param from: "
-                         "" + ",".join(Bool.get_names()))
-parser.add_argument("--dev_percent", default=args.dev_percent,
-                    type=int,
-                    help="percent of train set used as the development set"
-                         " (range from 0 to 100), 0 - it is inactive,"
-                         " default: {args.dev_percent}")
-parser.add_argument("--adam_beta1", default=args.adam_beta1,
-                    type=float,
-                    help="beta1 value for the ADAM optimizer, default: "
-                         "{args.adam_beta1}")
-parser.add_argument("--adam_beta2", default=args.adam_beta2,
-                    type=float,
-                    help="beta2 value for the ADAM optimizer, default: "
-                         "{args.adam_beta1}")
-parser.add_argument("--cuda_block_threads", default=args.cuda_block_threads,
-                    type=int, help="Max number of threads for a cuda block.")
-parser.add_argument('--resume', default=args.resume, type=str, metavar='PATH',
-                    help='path to the latest checkpoint (default: none '
-                         'expressed as an empty string)')
-parser.add_argument('--start_epoch', type=int, default=args.start_epoch,
-                    help=f"the epoch number from which to start the training"
-                    f"(default: {args.start_epoch})")
-parser.add_argument("--precision_type", default=args.precision_type.name,
-                    # "FP16", "FP32", "AMP"
-                    help="the precision type: " + ",".join(
-                        PrecisionType.get_names()))
-parser.add_argument('--index_back', type=float,
-                    default=args.index_back,
-                    help="""Percentage of discarded coefficients (old param).""")
-
-parsed_args = parser.parse_args()
-args.set_parsed_args(parsed_args=parsed_args)
+args = get_args()
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
 print("current file name: ", current_file_name)
@@ -295,35 +106,6 @@ if torch.cuda.is_available() and args.use_cuda:
     # torch.set_default_tensor_type('torch.cuda.FloatTensor')
 else:
     device = torch.device("cpu")
-
-
-def getModelPyTorch(args=args):
-    """
-    Get the PyTorch version of the FCNN model.
-    :param input_size: the length (width) of the time series.
-    :param num_classes: number of output classes.
-    :param in_channels: number of channels in the input data for a convolution.
-    :param out_channels: number of channels in the output of a convolution.
-    :param dtype: global - the type of torch data/weights.
-    :param flat_size: the size of the flat vector after the conv layers.
-    :return: the model.
-    """
-    network_type = args.network_type
-    if network_type is NetworkType.LE_NET:
-        return LeNet(args=args)
-    elif network_type is NetworkType.FCNN_SMALL or (
-            network_type is NetworkType.FCNN_STANDARD):
-        if network_type is NetworkType.FCNN_SMALL:
-            args.out_channels = [1, 1, 1]
-        elif network_type is NetworkType.FCNN_STANDARD:
-            args.out_channels = [128, 256, 128]
-        return FCNNPytorch(args=args)
-    elif network_type == NetworkType.ResNet18:
-        return resnet18(args=args)
-    elif network_type == NetworkType.DenseNetCifar:
-        return densenet_cifar(args=args)
-    else:
-        raise Exception("Unknown network_type: ", network_type)
 
 
 def readucr(filename, data_type):
@@ -385,8 +167,6 @@ def train(model, device, train_loader, optimizer, loss_function, epoch, args):
             device=device)
         optimizer.zero_grad()
         output = model(data)
-        # with open(additional_log_file, "a") as file:
-        #     file.write("\n")
         loss = loss_function(output, target)
 
         # The cross entropy loss combines `log_softmax` and `nll_loss` in
@@ -425,6 +205,10 @@ def train(model, device, train_loader, optimizer, loss_function, epoch, args):
         _, predicted = output.max(1)
         total += target.size(0)
         correct += predicted.eq(target).sum().item()
+
+        if args.log_conv_size is True:
+            with open(additional_log_file, "a") as file:
+                file.write("\n")
 
         if args.is_progress_bar:
             progress_bar(total, len(train_loader.dataset), epoch=epoch,
@@ -468,6 +252,10 @@ def test(model, device, test_loader, loss_function, args, epoch=None):
             total += target.size(0)
             correct += predicted.eq(target).sum().item()
 
+            if args.log_conv_size is True:
+                with open(additional_log_file, "a") as file:
+                    file.write("\n")
+
             if args.is_progress_bar:
                 progress_bar(total, len(test_loader.dataset), epoch=epoch,
                              msg="Test Loss: %.3f | Test Acc: %.3f%% (%d/%d)" %
@@ -502,7 +290,7 @@ def main(args):
     dataset_log_file = os.path.join(
         results_folder_name, get_log_time() + "-dataset-" + str(dataset_name) + \
                              "-preserve-energy-" + str(preserve_energy) + \
-                             "-index-back-" + str(compress_rate) + \
+                             "-compress-rate-" + str(compress_rate) + \
                              ".log")
     DATASET_HEADER = HEADER + ",dataset," + str(dataset_name) + \
                      "-current-preserve-energy-" + str(preserve_energy) + "\n"
@@ -514,9 +302,9 @@ def main(args):
             "epoch,train_loss,train_accuracy,dev_loss,dev_accuracy,test_loss,"
             "test_accuracy,epoch_time,learning_rate,train_time,test_time\n")
 
-    with open(os.path.join(results_dir, additional_log_file), "a") as file:
-        # Write the metadata.
-        file.write(DATASET_HEADER)
+    # with open(os.path.join(results_dir, additional_log_file), "a") as file:
+    #     # Write the metadata.
+    #     file.write(DATASET_HEADER)
 
     with open(os.path.join(results_dir, mem_log_file), "a") as file:
         # Write the metadata.
@@ -552,19 +340,9 @@ def main(args):
             raise Exception(f"Unknown tensor type: {tensor_type}")
         torch.set_default_tensor_type(cpu_type)
 
-    if tensor_type is TensorType.FLOAT32:
-        dtype = torch.float32
-    elif tensor_type is TensorType.FLOAT16 or args.precision_type is PrecisionType.FP16:
-        dtype = torch.float16
-    elif tensor_type is TensorType.DOUBLE:
-        dtype = torch.double
-    else:
-        raise Exception(f"Unknown tensor type: {tensor_type}")
-    args.dtype = dtype
-
     train_loader, dev_loader, test_loader = None, None, None
     if dataset_name is "cifar10" or dataset_name is "cifar100":
-        train_loader, test_loader = get_cifar(args, dataset_name)
+        train_loader, test_loader, _, _ = get_cifar(args, dataset_name)
     elif dataset_name is "mnist":
         train_loader, test_loader = get_mnist(args)
     elif dataset_name in os.listdir(ucr_path):  # dataset from UCR archive
@@ -688,7 +466,9 @@ def main(args):
             file.write(
                 dataset_name + ",None,None,None,None," + str(
                     test_loss) + "," + str(test_accuracy) + "," + str(
-                    elapsed_time) + ",visualize" + "\n")
+                    elapsed_time) + ",visualize," + str(
+                    args.preserve_energy) + "," + str(
+                    args.compress_rate) + "\n")
         return
 
     dataset_start_time = time.time()
@@ -720,9 +500,6 @@ def main(args):
 
         epoch_time = time.time() - epoch_start_time
 
-        with open(additional_log_file, "a") as file:
-            file.write("\n")
-
         raw_optimizer = optimizer
         if args.precision_type is PrecisionType.FP16:
             raw_optimizer = optimizer.optimizer
@@ -735,7 +512,7 @@ def main(args):
                 train_accuracy) + "," + str(dev_loss) + "," + str(
                 dev_accuracy) + "," + str(test_loss) + "," + str(
                 test_accuracy) + "," + str(epoch_time) + "," + str(
-                lr) + "," + str(train_time) + "," + str(test_time) +"\n")
+                lr) + "," + str(train_time) + "," + str(test_time) + "\n")
 
         # Metric: select the best model based on the best train loss (minimal).
         is_best = False
@@ -783,7 +560,8 @@ def main(args):
             'max_train_accuracy': max_train_accuracy,
             'optimizer': optimizer.state_dict(),
         }, is_best,
-            filename=dataset_name + "-" + str(max_train_accuracy) + "checkpoint.tar")
+            filename=dataset_name + "-" + str(
+                max_train_accuracy) + "checkpoint.tar")
 
     with open(global_log_file, "a") as file:
         file.write(dataset_name + "," + str(min_train_loss) + "," + str(
@@ -817,6 +595,12 @@ if __name__ == '__main__':
             ",".join(
                 [str(compress_rate) for compress_rate in args.compress_rates]) +
             "\n")
+        file.write(
+            "dataset,"
+            "min_train_loss,max_train_accuracy,"
+            "min_dev_loss,max_dev_accuracy,"
+            "min_test_loss,max_test_accuracy,"
+            "execution_time,additional_info\n")
 
     if args.precision_type is PrecisionType.AMP:
         from apex import amp
@@ -833,7 +617,16 @@ if __name__ == '__main__':
         flist = ["mnist"]
     elif args.dataset == "debug":
         # flist = ['ItalyPowerDemand']
-        flist = ['Lighting7']
+        # flist = ['Lighting7']
+        # flist = ['Trace']
+        # flist = ["ToeSegmentation1"]
+        # flist = ["Plane"]
+        # flist = ["MiddlePhalanxOutlineAgeGroup"]
+        # flist = ["ECGFiveDays"]
+        # flist = ["MoteStrain"]
+        # flist = ["Cricket_Y"]
+        # flist = ["Strawberry"]
+        # flist = ["FaceFour"]
         #         'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
         #         'CinC_ECG_torso', 'Coffee', 'Computers', 'Cricket_X',
         #         'Cricket_Y', 'Cricket_Z', 'DiatomSizeReduction',
@@ -862,32 +655,32 @@ if __name__ == '__main__':
         # flist = ["Cricket_X"]
         # flist = ["50words"]
         # flist = ["SwedishLeaf"]
-        # flist = ['50words', 'Adiac', 'ArrowHead', 'Beef', 'BeetleFly',
-        #         'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
-        #         'CinC_ECG_torso', 'Coffee', 'Computers', 'Cricket_X',
-        #         'Cricket_Y', 'Cricket_Z', 'DiatomSizeReduction',
-        #         'DistalPhalanxOutlineAgeGroup', 'DistalPhalanxOutlineCorrect',
-        #         'DistalPhalanxTW', 'Earthquakes', 'ECG200', 'ECG5000',
-        #         'ECGFiveDays', 'ElectricDevices', 'FaceAll', 'FaceFour',
-        #         'FacesUCR', 'FISH', 'FordA', 'FordB', 'Gun_Point', 'Ham',
-        #         'HandOutlines', 'Haptics', 'Herring', 'InlineSkate',
-        #         'InsectWingbeatSound', 'ItalyPowerDemand',
-        #         'LargeKitchenAppliances', 'Lighting2', 'Lighting7', 'MALLAT',
-        #         'Meat', 'MedicalImages', 'MiddlePhalanxOutlineAgeGroup',
-        #         'MiddlePhalanxOutlineCorrect', 'MiddlePhalanxTW', 'MoteStrain',
-        #         'NonInvasiveFatalECG_Thorax1', 'NonInvasiveFatalECG_Thorax2',
-        #         'OliveOil', 'OSULeaf', 'PhalangesOutlinesCorrect', 'Phoneme',
-        #         'Plane', 'ProximalPhalanxOutlineAgeGroup',
-        #         'ProximalPhalanxOutlineCorrect', 'ProximalPhalanxTW',
-        #         'RefrigerationDevices', 'ScreenType', 'ShapeletSim',
-        #         'ShapesAll', 'SmallKitchenAppliances', 'SonyAIBORobotSurface',
-        #         'SonyAIBORobotSurfaceII', 'StarLightCurves', 'Strawberry',
-        #         'SwedishLeaf', 'Symbols', 'synthetic_control',
-        #         'ToeSegmentation1', 'ToeSegmentation2', 'Trace', 'Two_Patterns',
-        #         'TwoLeadECG', 'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
-        #         'uWaveGestureLibrary_Z', 'UWaveGestureLibraryAll', 'wafer',
-        #         'Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass', 'yoga',
-        #         'ztest']
+        flist = ['Computers', 'Beef', 'BeetleFly',
+                'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
+                'CinC_ECG_torso', 'Coffee', 'Cricket_X',
+                'Cricket_Y', 'Cricket_Z', 'DiatomSizeReduction',
+                'DistalPhalanxOutlineAgeGroup', 'DistalPhalanxOutlineCorrect',
+                'DistalPhalanxTW', 'Earthquakes', 'ECG200', 'ECG5000',
+                'ECGFiveDays', 'ElectricDevices', 'FaceAll', 'FaceFour',
+                'FacesUCR', 'FISH', 'FordA', 'FordB', 'Gun_Point', 'Ham',
+                'HandOutlines', 'Haptics', 'Herring', 'InlineSkate',
+                'InsectWingbeatSound', 'ItalyPowerDemand',
+                'LargeKitchenAppliances', 'Lighting2', 'Lighting7', 'MALLAT',
+                'Meat', 'MedicalImages', 'MiddlePhalanxOutlineAgeGroup',
+                'MiddlePhalanxOutlineCorrect', 'MiddlePhalanxTW', 'MoteStrain',
+                'NonInvasiveFatalECG_Thorax1', 'NonInvasiveFatalECG_Thorax2',
+                'OliveOil', 'OSULeaf', 'PhalangesOutlinesCorrect', 'Phoneme',
+                'Plane', 'ProximalPhalanxOutlineAgeGroup',
+                'ProximalPhalanxOutlineCorrect', 'ProximalPhalanxTW',
+                'RefrigerationDevices', 'ScreenType', 'ShapeletSim',
+                'ShapesAll', 'SmallKitchenAppliances', 'SonyAIBORobotSurface',
+                'SonyAIBORobotSurfaceII', 'StarLightCurves', 'Strawberry',
+                'SwedishLeaf', 'Symbols', 'synthetic_control',
+                'ToeSegmentation1', 'ToeSegmentation2', 'Trace', 'Two_Patterns',
+                'TwoLeadECG', 'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
+                'uWaveGestureLibrary_Z', 'UWaveGestureLibraryAll', 'wafer',
+                'Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass', 'yoga',
+                'ztest']
         # flist = ['DiatomSizeReduction',
         #          'DistalPhalanxOutlineAgeGroup', 'DistalPhalanxOutlineCorrect',
         #          'DistalPhalanxTW', 'Earthquakes', 'ECG200', 'ECG5000',
@@ -1144,13 +937,16 @@ if __name__ == '__main__':
     elif args.dataset == "debug13":
         flist = ['Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass']
     elif args.dataset == "debug14":
-        flist = ['MALLAT', 'Meat', 'MedicalImages', 'MiddlePhalanxOutlineAgeGroup']
+        flist = ['MALLAT', 'Meat', 'MedicalImages',
+                 'MiddlePhalanxOutlineAgeGroup']
     elif args.dataset == "debug15":
         flist = ['Coffee', 'Computers', 'Phoneme', 'Plane', 'Car', 'Strawberry']
     elif args.dataset == "debug16":
-        flist = ['Lighting7', 'FISH', 'FaceFour', 'ProximalPhalanxOutlineCorrect']
+        flist = ['Lighting7', 'FISH', 'FaceFour',
+                 'ProximalPhalanxOutlineCorrect']
     elif args.dataset == "debug17":
-        flist = ['MoteStrain', 'ECGFiveDays', 'DistalPhalanxOutlineAgeGroup', 'ProximalPhalanxTW']
+        flist = ['MoteStrain', 'ECGFiveDays', 'DistalPhalanxOutlineAgeGroup',
+                 'ProximalPhalanxTW']
     elif args.dataset == "debug18":
         flist = ["Cricket_X", "Cricket_Y", "Cricket_Z"]
     elif args.dataset == "debug19":
@@ -1163,6 +959,8 @@ if __name__ == '__main__':
                  'Worms',
                  'WormsTwoClass',  # start from almost the beginning
                  'Earthquakes']
+    elif args.dataset == 'debug20':
+        flist = ["Coffee", "Car", "ArrowHead"]
     else:
         raise AttributeError("Unknown dataset: ", args.dataset)
 
@@ -1182,20 +980,9 @@ if __name__ == '__main__':
             for compress_rate in args.compress_rates:
                 print("Dataset: ", dataset_name)
                 print("preserve energy: ", preserve_energy)
-                print("index back: ", compress_rate)
+                print("compress rate: ", compress_rate)
                 args.preserve_energy = preserve_energy
                 args.compress_rate = compress_rate
-                with open(global_log_file, "a") as file:
-                    file.write(
-                        "preserve_energy," + str(preserve_energy) + ",")
-                    file.write(
-                        "compress_rate," + str(compress_rate) + "\n")
-                    file.write(
-                        "dataset,"
-                        "min_train_loss,max_train_accuracy,"
-                        "min_dev_loss,max_dev_accuracy,"
-                        "min_test_loss,max_test_accuracy,"
-                        "execution_time\n")
                 start_training = time.time()
                 try:
                     main(args=args)

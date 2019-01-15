@@ -117,4 +117,4 @@ def get_cifar(args, dataset_name):
                                               shuffle=False,
                                               **kwargs)
 
-    return train_loader, test_loader
+    return train_loader, test_loader, train_dataset, test_dataset

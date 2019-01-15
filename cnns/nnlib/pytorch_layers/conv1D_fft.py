@@ -54,6 +54,17 @@ logger.addHandler(consoleLog)
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
 
+if torch.cuda.is_available():
+    # from complex_mul_cpp import complex_mul as complex_mul_cpp
+    # from complex_mul_cuda import complex_mul as complex_mul_cuda
+    # from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
+    from complex_mul_cuda import \
+        complex_mul_stride_no_permute as complex_mul_stride_no_permute_cuda
+    from complex_mul_cuda import \
+        complex_mul_shared_log as complex_mul_shared_log_cuda
+    from complex_mul_cuda import \
+        complex_mul_deep as complex_mul_deep_cuda
+
 
 class Conv1dfftFunction(torch.autograd.Function):
     """
@@ -114,14 +125,14 @@ class Conv1dfftFunction(torch.autograd.Function):
         is_lead_reversed = False
 
         if args is not None:
-            index_back = args.index_back
+            compress_rate = args.compress_rate
             preserve_energy = args.preserve_energy
             use_next_power2 = args.next_power2
             is_debug = args.is_debug
             compress_type = args.compress_type
             stride_type = args.stride_type
         else:
-            index_back = None
+            compress_rate = None
             preserve_energy = None
             use_next_power2 = False
             is_debug = False
@@ -157,9 +168,10 @@ class Conv1dfftFunction(torch.autograd.Function):
 
         INPUT_ERROR = "Specify only one of: compress_rate, out_size, or " \
                       "preserve_energy"
-        if (index_back is not None and index_back > 0) and out_size is not None:
+        if (
+                compress_rate is not None and compress_rate > 0) and out_size is not None:
             raise TypeError(INPUT_ERROR)
-        if (index_back is not None and index_back > 0) and (
+        if (compress_rate is not None and compress_rate > 0) and (
                 preserve_energy is not None and preserve_energy < 100):
             raise TypeError(INPUT_ERROR)
         if out_size is not None and (
@@ -278,9 +290,9 @@ class Conv1dfftFunction(torch.autograd.Function):
         init_half_fft_size = xfft.shape[-2]
         half_fft_compressed_size = None
         index_back_fft = None
-        if index_back is not None and index_back > 0:
+        if compress_rate is not None and compress_rate > 0:
             # At least one coefficient is removed.
-            index_back_fft = int(init_half_fft_size * (index_back / 100)) + 1
+            index_back_fft = int(init_half_fft_size * (compress_rate / 100)) + 1
 
         if compress_type is CompressType.STANDARD:
             if preserve_energy is not None and preserve_energy < 100:
@@ -459,9 +471,13 @@ class Conv1dfftFunction(torch.autograd.Function):
         #     # properly sum up the values.
         #     output += bias.unsqueeze(1)
 
-        output = torch.zeros([N, F, out_W], dtype=dtype, device=device)
+        half_fft_size = half_fft_compressed_size
+        if half_fft_size is None:
+            half_fft_size = init_half_fft_size
+        cuda_block_threads = min(1024, half_fft_size)
 
         if args.conv_exec_type is ConvExecType.SERIAL:
+            output = torch.zeros([N, F, out_W], dtype=dtype, device=device)
             # Serially convolve each input map with all filters.
             for nn in range(N):  # For each time-series in the batch.
                 # Take one time series and un-squeeze it for broadcasting with
@@ -493,6 +509,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                     # out to properly sum up the values.
                     output[nn] += bias.unsqueeze(1)
         elif args.conv_exec_type is ConvExecType.BATCH:
+            output = torch.zeros([N, F, out_W], dtype=dtype, device=device)
             # Convolve some part of the input batch with all filters.
             start = 0
             # step = get_step_estimate(xfft, yfft, args.memory_size)
@@ -521,9 +538,42 @@ class Conv1dfftFunction(torch.autograd.Function):
                     # to the dimension of the output to properly sum up the
                     # values).
                     output[start:stop] += unsqueezed_bias
-        else:
-            raise Exception(f"Unknown conv exec type: {args.conv_exec_type.name}")
+        elif args.conv_exec_type is ConvExecType.CUDA:
+            if torch.cuda.is_available():
+                # print("complex cuda multiplication")
+                # print("xfft size: ", xfft.size())
+                # start_complex_time = time.time()
 
+                outfft = torch.zeros([N, F, half_fft_size, 2],
+                                     dtype=dtype, device=device)
+                # complex_mul_cuda(xfft, yfft, outfft)
+                yfft = pytorch_conjugate(yfft)
+                complex_mul_stride_no_permute_cuda(xfft, yfft, outfft,
+                                                   cuda_block_threads)
+                torch.cuda.synchronize()
+                outfft = complex_pad_simple(xfft=outfft, fft_size=fft_size)
+                # print("freq mul size: ", freq_mul.size())
+                output = torch.irfft(
+                    input=outfft, signal_ndim=1, signal_sizes=(fft_size,))
+                # global global_complex_time
+                # global_complex_time += time.time() - start_complex_time
+                # print("complex multiply time: ", global_complex_time)
+                if output.shape[-1] > out_W:
+                    # out_fft = out_fft[..., :out_W]
+                    output = output.narrow(dim=-1, start=0, length=out_W)
+                elif output.shape[-1] < out_W:
+                    output = torch_pad(output, (0, out_W - output.shape[-1]))
+                if bias is not None:
+                    # Add the bias term for each filter (it has to be unsqueezed
+                    # to the dimension of the output to properly sum up the
+                    # values).
+                    output += bias.unsqueeze(-1)
+            else:
+                raise Exception("Selected CUDA conv execution but no cuda "
+                                "device is available.")
+        else:
+            raise Exception(
+                f"Unknown conv exec type: {args.conv_exec_type.name}")
 
         if is_debug:
             cuda_mem_show(info="compute output")
@@ -539,6 +589,8 @@ class Conv1dfftFunction(torch.autograd.Function):
         if ctx:
             ctx.run_args = args
             ctx.padding = padding
+            ctx.cuda_block_threads = cuda_block_threads
+            ctx.half_fft_size = half_fft_size
             ctx.save_for_backward(xfft, yfft, to_tensor(W), to_tensor(WW),
                                   to_tensor(fft_size), is_manual,
                                   to_tensor(conv_index),
@@ -590,6 +642,8 @@ class Conv1dfftFunction(torch.autograd.Function):
         omit_objs = [id(ctx)]
         args = ctx.run_args
         padding = ctx.padding
+        cuda_block_threads = ctx.cuda_block_threads
+        half_fft_size = ctx.half_fft_size
         conv_index = from_tensor(conv_index)  # for the debug/test purposes
 
         is_debug = from_tensor(is_debug)
@@ -768,10 +822,10 @@ class Conv1dfftFunction(torch.autograd.Function):
             [0, dx1, dx2, dx3, 0] * [w2, w1] = 
             [dx1*w1, dx1*w2 + dx2*w1, dx2*w2 + dx3*w1, dx3*w2]
             """
-            dx = torch.zeros([N, C, W], dtype=dtype, device=device)
-            conjugate_yfft = pytorch_conjugate(yfft)
-            del yfft
             if args.conv_exec_type is ConvExecType.SERIAL:
+                dx = torch.zeros([N, C, W], dtype=dtype, device=device)
+                conjugate_yfft = pytorch_conjugate(yfft)
+                del yfft
                 # Serially convolve each input map with all filters.
                 for nn in range(N):
                     # Take one time series and unsqueeze it for broadcast with
@@ -789,14 +843,18 @@ class Conv1dfftFunction(torch.autograd.Function):
                         fft_size=fft_size)
                     # start_index = 2 * filter_pad + padding
                     # start_index = padding
-                    start_index = 0
+                    start_index = padding
                     # print("start index: ", start_index)
                     out = out[:, :, start_index: start_index + W]
                     # Sum over all the Filters (F).
                     out = torch.sum(out, dim=0)
                     out = torch.unsqueeze(input=out, dim=0)
                     dx[nn] = out
+                del conjugate_yfft
             elif args.conv_exec_type is ConvExecType.BATCH:
+                dx = torch.zeros([N, C, W], dtype=dtype, device=device)
+                conjugate_yfft = pytorch_conjugate(yfft)
+                del yfft
                 # Convolve some part of the dout batch with all filters.
                 start = 0
                 # step = 16
@@ -823,14 +881,48 @@ class Conv1dfftFunction(torch.autograd.Function):
                     # print("out after sum size: ", out.size())
                     dx[start:stop] = out
 
-            del conjugate_yfft
+                del conjugate_yfft
+            elif args.conv_exec_type is ConvExecType.CUDA:
+                if torch.cuda.is_available():
+                    # global global_permute_time
+                    # start_permute = time.time()
+                    # yfft was already conjugated in the forward pass
+                    yfft = pytorch_conjugate(yfft)
+                    # F, C, W, I -> C, F, W, I
+                    yfft = yfft.permute(1, 0, 2, 3).contiguous()
+                    # global_permute_time += time.time() - start_permute
+                    # print("permute time: ", global_permute_time)
+                    # global global_complex_dxfft
+                    # start_complex = time.time()
+                    dxfft = torch.zeros([N, C, half_fft_size, 2],
+                                         dtype=dtype, device=device)
+                    # dout: N, F, W, I
+                    complex_mul_stride_no_permute_cuda(doutfft, yfft, dxfft,
+                                                       cuda_block_threads)
+                    torch.cuda.synchronize()
+                    dx = torch.irfft(
+                        input=dxfft, signal_ndim=1, signal_sizes=(fft_size,))
+                    # global global_complex_time
+                    # global_complex_time += time.time() - start_complex_time
+                    # print("complex multiply time: ", global_complex_time)
+                    if dx.shape[-1] > W:
+                        # out_fft = out_fft[..., :out_W]
+                        dx = dx.narrow(dim=-1, start=padding, length=W)
+                    elif dx.shape[-1] < W:
+                        dx = torch_pad(dx, (0, W - dxout.shape[-1]))
+                    # global_complex_dxfft += time.time() - start_complex
+                    # print("complex dxfft: ", global_complex_dxfft)
+                    del yfft
+                else:
+                    raise Exception(
+                        "Selected CUDA conv execution but no cuda "
+                        "device is available.")
 
             if is_debug:
                 cuda_mem_show(info="after gradient input",
                               omit_objs=omit_objs)
 
         if need_filter_grad is True:
-            dw = torch.zeros([F, C, WW], dtype=dtype, device=device)
             # Calculate dw - the gradient for the filters w.
             # By chain rule dw is computed as: dout*x
             """
@@ -860,6 +952,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             gradient L / gradient w = [x1, x2, x3, x4] * [dx1, dx2, dx3]
             """
             if args.conv_exec_type is ConvExecType.SERIAL:
+                dw = torch.zeros([F, C, WW], dtype=dtype, device=device)
                 for ff in range(F):
                     # Gather all the contributions to the output that were caused
                     # by a given filter.
@@ -877,7 +970,8 @@ class Conv1dfftFunction(torch.autograd.Function):
                     #     "conv"+str(conv_index), out.size(), dw.size(), str(N),
                     #     str(C), str(F)))
                     dw[ff] = out
-            else:
+            elif args.conv_exec_type is ConvExecType.BATCH:
+                dw = torch.zeros([F, C, WW], dtype=dtype, device=device)
                 # Convolve some part of the dout batch with all input maps.
                 start = 0
                 # step = 16
@@ -903,6 +997,27 @@ class Conv1dfftFunction(torch.autograd.Function):
                     # to all the input maps.
                     out = out.sum(dim=1)
                     dw[start:stop] = out
+            elif args.conv_exec_type is ConvExecType.CUDA:
+                if torch.cuda.is_available():
+                    doutfft = doutfft.permute(1, 0, 2, 3).contiguous()
+                    xfft = xfft.permute(1, 0, 2, 3).contiguous()
+                    dwfft = torch.zeros([F, C, half_fft_size, 2],
+                                        dtype=dtype, device=device)
+                    complex_mul_stride_no_permute_cuda(doutfft, xfft, dwfft,
+                                                       cuda_block_threads)
+                    torch.cuda.synchronize()
+                    dw = torch.irfft(
+                        input=dwfft, signal_ndim=1, signal_sizes=(fft_size,))
+                    if dw.shape[-1] > WW:
+                        dw = dw.narrow(dim=-1, start=0, length=WW)
+                    elif dw.shape[-1] < W:
+                        dw = torch_pad(dw, (0, WW - dw.shape[-1]))
+                else:
+                    raise Exception(
+                        "Selected CUDA conv execution but no cuda "
+                        "device is available.")
+            else:
+                raise Exception(f"Unknown conv_exec_type: {args.conv_exec_type}")
             del xfft
 
             if is_debug:
@@ -919,11 +1034,16 @@ class Conv1dfft(Module):
     """
     No PyTorch Autograd used - we compute backward pass on our own.
     """
+    """
+    :conv_index_counter: the counter to index (number) of the convolutional
+    2d fft layers .
+    """
+    conv_index_counter = 0
 
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
                  stride=1, padding=0, dilation=None, groups=None, bias=True,
                  filter_value=None, bias_value=None, is_manual=tensor([0]),
-                 conv_index=None, args=Arguments(), out_size=None):
+                 args=Arguments(), out_size=None):
         """
         1D convolution using FFT implemented fully in PyTorch.
 
@@ -960,7 +1080,6 @@ class Conv1dfft(Module):
         FFT convolution to the next power of 2.
         :param is_manual: to check if the backward computation of convolution
         was computed manually.
-        :param conv_index: the index (number) of the convolutional layer.
         :param is_complex_pad: is padding applied to the complex representation
         of the input signal and filter before the reverse fft is applied.
         :param is_debug: is this the debug mode execution?
@@ -980,14 +1099,14 @@ class Conv1dfft(Module):
         self.args = args
 
         if args is None:
-            self.index_back = None
+            self.compress_rate = None
             self.preserve_energy = None
             self.is_debug = False
             self.next_power2 = False
             self.is_debug = False
             self.compress_type = CompressType.STANDARD
         else:
-            self.index_back = args.compress_rate
+            self.compress_rate = args.compress_rate
             self.preserve_energy = args.preserve_energy
             self.next_power2 = args.next_power2
             self.is_debug = args.is_debug
@@ -1038,7 +1157,8 @@ class Conv1dfft(Module):
         self.out_size = out_size
         self.stride = stride
         self.is_manual = is_manual
-        self.conv_index = conv_index
+        self.conv_index = Conv1dfft.conv_index_counter
+        Conv1dfft.conv_index_counter += 1
 
         self.reset_parameters()
 
@@ -1070,14 +1190,14 @@ class Conv1dfftAutograd(Conv1dfft):
                  stride=1, padding=0, dilation=1, groups=1, bias=True,
                  index_back=None, preserve_energy=100, out_size=None,
                  filter_value=None, bias_value=None, use_next_power2=False,
-                 is_manual=tensor([0]), conv_index=None, is_complex_pad=True,
+                 is_manual=tensor([0]), is_complex_pad=True,
                  is_debug=False, compress_type=CompressType.STANDARD):
         super(Conv1dfftAutograd, self).__init__(
             in_channels=in_channels, out_channels=out_channels,
             kernel_size=kernel_size, stride=stride, padding=padding, bias=bias,
             index_back=index_back, out_size=out_size, filter_value=filter_value,
             bias_value=bias_value, use_next_power2=use_next_power2,
-            conv_index=conv_index, preserve_energy=preserve_energy,
+            preserve_energy=preserve_energy,
             is_debug=is_debug, compress_type=compress_type, is_manual=is_manual,
             dilation=dilation, groups=groups, is_complex_pad=is_complex_pad)
 
@@ -1142,7 +1262,7 @@ class Conv1dfftAutograd(Conv1dfft):
         return Conv1dfftFunction.forward(
             ctx=None, input=input, filter=self.filter, bias=self.bias,
             padding=self.padding, stride=self.stride,
-            index_back=self.index_back, preserve_energy=self.preserve_energy,
+            index_back=self.compress_rate, preserve_energy=self.preserve_energy,
             out_size=self.out_size, use_next_power2=self.use_next_power2,
             is_manual=self.is_manual, conv_index=self.conv_index,
             is_debug=self.is_debug, compress_type=self.compress_type)
@@ -1212,10 +1332,10 @@ class Conv1dfftSimple(Conv1dfftAutograd):
         filter = torch_pad(self.filter, (0, input_size - 1))
         filter = torch.rfft(filter, 1)
 
-        if self.index_back is not None and self.index_back > 0:
+        if self.compress_rate is not None and self.compress_rate > 0:
             # 4 dims: batch, channel, time-series, complex values.
             input_size = input.shape[-2]
-            index_back = int(input_size * (self.index_back / 100)) + 1
+            index_back = int(input_size * (self.compress_rate / 100)) + 1
             input = input[..., :-index_back, :]
             filter = filter[..., :-index_back, :]
 
@@ -1248,7 +1368,7 @@ class Conv1dfftSimpleForLoop(Conv1dfftAutograd):
     def __init__(self, in_channels=None, out_channels=None, kernel_size=None,
                  stride=None, padding=None, bias=True, index_back=None,
                  preserve_energy=None, out_size=None, filter_value=None,
-                 bias_value=None, conv_index=None, use_next_power2=False,
+                 bias_value=None, use_next_power2=False,
                  is_complex_pad=True):
         """
         A simple implementation of 1D convolution with a single for loop where
@@ -1266,7 +1386,7 @@ class Conv1dfftSimpleForLoop(Conv1dfftAutograd):
             kernel_size=kernel_size, stride=stride, padding=padding,
             bias=bias, index_back=index_back, preserve_energy=preserve_energy,
             out_size=out_size, filter_value=filter_value, bias_value=bias_value,
-            conv_index=conv_index, use_next_power2=use_next_power2,
+            use_next_power2=use_next_power2,
             is_complex_pad=is_complex_pad)
 
     def forward(self, input):
@@ -1389,15 +1509,14 @@ class Conv1dfftCompressSignalOnly(Conv1dfftAutograd):
                  kernel_size=None,
                  stride=None, padding=None, bias=True, index_back=None,
                  preserve_energy=100, out_size=None, filter_value=None,
-                 bias_value=None, conv_index=None, use_next_power2=False,
+                 bias_value=None, use_next_power2=False,
                  is_complex_pad=True):
         super(Conv1dfftCompressSignalOnly, self).__init__(
             in_channels=in_channels, out_channels=out_channels,
             kernel_size=kernel_size, stride=stride, padding=padding,
             bias=bias, index_back=index_back, preserve_energy=preserve_energy,
             out_size=out_size, filter_value=filter_value, bias_value=bias_value,
-            conv_index=conv_index, use_next_power2=use_next_power2,
-            is_complex_pad=is_complex_pad)
+            use_next_power2=use_next_power2, is_complex_pad=is_complex_pad)
 
     def forward(self, input):
         """

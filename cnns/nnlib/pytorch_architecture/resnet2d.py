@@ -20,6 +20,10 @@ model_urls = {
     'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
 }
 
+def conv7x7(in_planes, out_planes, stride=2, padding=3, args=None):
+    return Conv(kernel_sizes=[7], in_channels=in_planes,
+                out_channels=[out_planes], strides=[stride],
+                padding=[padding], args=args, is_bias=False).get_conv()
 
 def conv3x3(in_planes, out_planes, stride=1, args=None):
     """3x3 convolution with padding"""
@@ -125,8 +129,12 @@ class ResNet(nn.Module):
         super(ResNet, self).__init__()
         # self.global_layer1_time = 0.0
         self.inplanes = 64
-        self.conv1 = conv3x3(in_planes=args.in_channels, out_planes=64,
-                             stride=1, args=args)
+        if args.dataset == "cifar10" or args.dataset == "cifar100":
+            self.conv1 = conv3x3(in_planes=args.in_channels, out_planes=64,
+                                 stride=1, args=args)
+        else:
+            self.conv1 = conv7x7(in_planes=args.in_channels, out_planes=64,
+                                 stride=2, args=args)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
