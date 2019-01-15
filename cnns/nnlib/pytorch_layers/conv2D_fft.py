@@ -317,6 +317,7 @@ class Conv2dfftFunction(torch.autograd.Function):
 
         _, _, half_fft_compressed_H, half_fft_compressed_W, _ = xfft.size()
         if args.log_conv_size is True:
+        # if True:
             with open(additional_log_file, "a") as file:
                 # file.write(str(half_fft_compressed_H) + "," + str(
                 #     half_fft_compressed_W) + ",")

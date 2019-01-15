@@ -97,6 +97,7 @@ pathlib.Path(models_dir).mkdir(parents=True, exist_ok=True)
 
 args = get_args()
 
+
 current_file_name = __file__.split("/")[-1].split(".")[0]
 print("current file name: ", current_file_name)
 
@@ -476,6 +477,9 @@ def main(args):
     for epoch in range(args.start_epoch, args.epochs + 1):
         epoch_start_time = time.time()
         # print("\ntrain:")
+        if args.log_conv_size is True:
+            with open(additional_log_file, "a") as file:
+                file.write(str(args.compress_rate) + ",")
         train_start_time = time.time()
         train_loss, train_accuracy = train(
             model=model, device=device, train_loader=train_loader, args=args,
@@ -490,9 +494,12 @@ def main(args):
                 loss_function=loss_function, args=args)
         # print("\ntest:")
         test_start_time = time.time()
-        test_loss, test_accuracy = test(
-            model=model, device=device, test_loader=test_loader,
-            loss_function=loss_function, args=args)
+        if args.log_conv_size is True:
+            test_loss, test_accuracy = 0, 0
+        else:
+            test_loss, test_accuracy = test(
+                model=model, device=device, test_loader=test_loader,
+                loss_function=loss_function, args=args)
         test_time = time.time() - test_start_time
         # Scheduler step is based only on the train data, we do not use the
         # test data to schedule the decrease in the learning rate.
