@@ -567,7 +567,7 @@ def main(args):
             'optimizer': optimizer.state_dict(),
         }, is_best,
             filename=dataset_name + "-" + str(
-                max_train_accuracy) + str(
+                max_train_accuracy) + "-" + str(
                 args.compress_rate) + "-" + "checkpoint.tar")
 
     with open(global_log_file, "a") as file:
