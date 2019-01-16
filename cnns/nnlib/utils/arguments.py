@@ -162,7 +162,8 @@ class Arguments(object):
                  adam_beta2=0.999,
                  cuda_block_threads=1024,
                  # resume="cifar100-90.484checkpoint.tar",
-                 resume="cifar100-0.0-84-checkpoint.tar",
+                 # resume="cifar100-0.0-84-checkpoint.tar",
+                 resume="",
                  gpu=0,
                  start_epoch=137
                  ):

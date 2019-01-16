@@ -579,6 +579,7 @@ def main(args):
 
 
 if __name__ == '__main__':
+    print("start learning!")
     start_time = time.time()
     hostname = socket.gethostname()
     global_log_file = os.path.join(results_folder_name,
