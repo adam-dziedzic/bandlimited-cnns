@@ -61,7 +61,8 @@ class Arguments(object):
                  # compress_rates=[x/2 for x in range(28,111,1)],
                  # compress_rate=0.1,  # for unit tests
                  # compress_rates=[50.0],
-                 compress_rates=range(0, 101),
+                 # compress_rates=range(0, 101),
+                 compress_rates=[6],
                  # compress_rates=[0,5,11,11.5,17,20.5,22,22.5,28,32,33,36,37,39,41,42,47,50,51,55,58,59,63,64,65,66,69,70,71,73,76,77,79,80,82,83,84],
                  # layers_compress_rates=None,
                  # compression rates for each of the conv fft layers in
@@ -160,9 +161,10 @@ class Arguments(object):
                  adam_beta1=0.9,
                  adam_beta2=0.999,
                  cuda_block_threads=1024,
-                 resume="",
+                 # resume="cifar100-90.484checkpoint.tar",
+                 resume="cifar100-0.0-84-checkpoint.tar",
                  gpu=0,
-                 start_epoch=0
+                 start_epoch=137
                  ):
         """
         The default parameters for the execution of the program.
