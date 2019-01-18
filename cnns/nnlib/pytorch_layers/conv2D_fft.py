@@ -327,14 +327,15 @@ class Conv2dfftFunction(torch.autograd.Function):
             torch.cuda.empty_cache()
 
         if args.log_conv_size is True:
-        # if True:
+            # if True:
             with open(additional_log_file, "a") as file:
                 # file.write(str(half_fft_compressed_H) + "," + str(
                 #     half_fft_compressed_W) + ",")
                 # file.write(str(conv_index) + "," + str(
                 #     half_fft_compressed_H * half_fft_compressed_W * C) + ",")
                 file.write(
-                    str(half_fft_compressed_H * half_fft_compressed_W * C) + ",")
+                    str(
+                        half_fft_compressed_H * half_fft_compressed_W * C) + ",")
                 # file.write("C:" + str(C) + "," + "H:" + str(
                 #     half_fft_compressed_H) + "," + "W:" + str(
                 #     half_fft_compressed_W) + ",")
@@ -595,7 +596,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                 args.stride_type is StrideType.STANDARD):
             N, F, HHH, WWW = dout.size()
             assert HHH == WWW
-            grad = torch.zeros(N, F, out_H, out_W)
+            grad = torch.zeros(N, F, out_H, out_W, device=device, dtype=dtype)
             if out_H > HHH and out_W > WWW:
                 grad[..., ::stride_H, ::stride_W] = dout
             else:
@@ -638,6 +639,9 @@ class Conv2dfftFunction(torch.autograd.Function):
                              signal_ndim=Conv2dfftFunction.signal_ndim,
                              onesided=True)
         del padded_dout
+
+        if args.mem_test:
+            torch.cuda.empty_cache()
 
         # the last dimension is for real and imaginary parts of the complex
         # numbers
@@ -726,6 +730,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                         # print("permute time: ", global_permute_time)
                         # global global_complex_dxfft
                         # start_complex = time.time()
+
                         complex_mul_stride_no_permute_cuda(doutfft, yfft, dxfft,
                                                            cuda_block_threads)
                         torch.cuda.synchronize()
@@ -758,7 +763,6 @@ class Conv2dfftFunction(torch.autograd.Function):
                                  signal_sizes=(init_H_fft, init_W_fft),
                                  onesided=True)
                 del dxfft
-                # print("full dx: ", dx)
                 dx = dx[..., pad_H:H + pad_H, pad_W:W + pad_W]
             del yfft
 
@@ -997,9 +1001,17 @@ class Conv2dfft(Module):
                                  "in_channels and kernel_size) to generate the "
                                  "filter.")
             self.kernel_height, self.kernel_width = get_pair(kernel_size)
-            self.weight = Parameter(
-                torch.randn(out_channels, in_channels, self.kernel_height,
-                            self.kernel_width, dtype=args.dtype))
+            if args.dtype is torch.float:
+                weight = torch.randn(out_channels, in_channels,
+                                     self.kernel_height,
+                                     self.kernel_width, dtype=args.dtype)
+            elif args.dtype is torch.half:
+                weight = torch.randn(out_channels, in_channels,
+                                     self.kernel_height,
+                                     self.kernel_width).to(torch.half)
+            else:
+                raise Exception(f"Unknown dtype in args: {args.dtype}")
+            self.weight = Parameter(weight)
         else:
             self.is_weight_value = True
             self.weight = weight_value
@@ -1050,7 +1062,13 @@ class Conv2dfft(Module):
 
     def reset_parameters(self):
         if self.is_weight_value is not None and self.is_weight_value is False:
-            init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+            if self.weight.dtype is torch.half:
+                dtype = self.weight.dtype
+                weight = self.weight.to(torch.float)
+                init.kaiming_uniform_(weight, a=math.sqrt(5))
+                self.weight = Parameter(weight.to(dtype))
+            else:
+                init.kaiming_uniform_(self.weight, a=math.sqrt(5))
         if self.bias is not None and self.is_bias_value is False:
             fan_in, _ = init._calculate_fan_in_and_fan_out(self.weight)
             bound = 1 / math.sqrt(fan_in)

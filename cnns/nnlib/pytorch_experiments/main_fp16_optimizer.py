@@ -75,12 +75,14 @@ def main():
         args.world_size = torch.distributed.get_world_size()
 
     if args.precision_type is PrecisionType.FP16:
-        assert torch.backends.cudnn.enabled, "fp16 mode requires cudnn backend to be enabled."
+        assert torch.backends.cudnn.enabled, "fp16 mode requires cudnn " \
+                                             "backend to be enabled."
 
     if args.static_loss_scale != 1.0:
         if not args.precision_type is PrecisionType.FP16:
             print(
-                "Warning:  if --fp16 is not used, static_loss_scale will be ignored.")
+                "Warning:  if --fp16 is not used, static_loss_scale will be "
+                "ignored.")
 
     # Data loading code
     # traindir = os.path.join(args.data, 'train')
@@ -199,7 +201,7 @@ def main():
             "\nepoch,train_loss,train_accuracy,test_loss,"
             "test_accuracy,epoch_time,train_time,test_time\n")
 
-    for epoch in range(args.start_epoch, args.epochs):
+    for epoch in range(args.start_epoch, args.epochs + 1):
         if args.distributed:
             train_sampler.set_epoch(epoch)
 
