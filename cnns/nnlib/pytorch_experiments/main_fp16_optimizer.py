@@ -107,8 +107,9 @@ def main():
     #     transforms.Resize(val_size),
     #     transforms.CenterCrop(crop_size),
     # ]))
-
-    if args.dataset is "cifar10" or args.dataset is "cifar100":
+    args.dataset = str(args.dataset)
+    print("args.dataset: ", args.dataset)
+    if args.dataset == "cifar10" or args.dataset == "cifar100":
         _, _, train_dataset, test_dataset = get_cifar(args, args.dataset)
     else:
         raise ValueError(f"Unknown dataset: <{args.dataset}>")
