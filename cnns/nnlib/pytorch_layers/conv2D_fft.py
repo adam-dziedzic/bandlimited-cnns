@@ -257,6 +257,9 @@ class Conv2dfftFunction(torch.autograd.Function):
             filter, (0, fft_padding_filter_W, 0, fft_padding_filter_H),
             'constant', 0)
 
+        if args.mem_test:
+            torch.cuda.empty_cache()
+
         # global global_fft_time
         # start_fft_time = time.time()
         # fft of the input and filters
@@ -268,6 +271,9 @@ class Conv2dfftFunction(torch.autograd.Function):
                           signal_ndim=Conv2dfftFunction.signal_ndim,
                           onesided=True)
         del filter
+
+        if args.mem_test:
+            torch.cuda.empty_cache()
 
         # global_fft_time += time.time() - start_fft_time
         # print("rfft time: ", global_fft_time)
@@ -316,6 +322,10 @@ class Conv2dfftFunction(torch.autograd.Function):
                 yfft = compress_2D_index_forward(yfft, index_forward_W_fft)
 
         _, _, half_fft_compressed_H, half_fft_compressed_W, _ = xfft.size()
+
+        if args.mem_test:
+            torch.cuda.empty_cache()
+
         if args.log_conv_size is True:
         # if True:
             with open(additional_log_file, "a") as file:
@@ -471,6 +481,9 @@ class Conv2dfftFunction(torch.autograd.Function):
         # global_correlation_time += time.time() - start_correlation
         # print("complex correlation time: ", global_correlation_time)
 
+        if args.mem_test:
+            torch.cuda.empty_cache()
+
         if (stride_H != 1 or stride_W != 1) and (
                 stride_type is StrideType.STANDARD):
             out = out[:, :, ::stride_H, ::stride_W]
@@ -502,6 +515,7 @@ class Conv2dfftFunction(torch.autograd.Function):
             ctx.half_fft_compressed_H = half_fft_compressed_H
             ctx.half_fft_compressed_W = half_fft_compressed_W
             ctx.C = C
+            ctx.args = args
             ctx.save_for_backward(xfft, yfft)
 
         return out.clone()
@@ -549,7 +563,11 @@ class Conv2dfftFunction(torch.autograd.Function):
         half_fft_compressed_H = ctx.half_fft_compressed_H
         half_fft_compressed_W = ctx.half_fft_compressed_W
         C = ctx.C
+        args = ctx.args
         xfft, yfft = ctx.saved_tensors
+
+        if args.mem_test:
+            torch.cuda.empty_cache()
 
         is_debug = args.is_debug
         if is_debug:
@@ -563,6 +581,9 @@ class Conv2dfftFunction(torch.autograd.Function):
             del tensor_obj
         omit_objs = [id(ctx)]
         del ctx
+
+        if args.mem_test:
+            torch.cuda.empty_cache()
 
         if is_debug:
             cuda_mem_show(info="backward start", omit_objs=omit_objs)
@@ -609,6 +630,9 @@ class Conv2dfftFunction(torch.autograd.Function):
             dout, (0, fft_padding_dout_W, 0, fft_padding_dout_H),
             'constant', 0)
         del dout
+
+        if args.mem_test:
+            torch.cuda.empty_cache()
 
         doutfft = torch.rfft(padded_dout,
                              signal_ndim=Conv2dfftFunction.signal_ndim,
@@ -737,6 +761,9 @@ class Conv2dfftFunction(torch.autograd.Function):
                 # print("full dx: ", dx)
                 dx = dx[..., pad_H:H + pad_H, pad_W:W + pad_W]
             del yfft
+
+        if args.mem_test:
+            torch.cuda.empty_cache()
 
         if need_filter_grad:
             # Calculate dw - the gradient for the filters w.
@@ -883,6 +910,9 @@ class Conv2dfftFunction(torch.autograd.Function):
                 dw = dw[..., :HH, :WW]
         del doutfft
         del xfft
+
+        if args.mem_test:
+            torch.cuda.empty_cache()
 
         # if dx is not None:
         #     print("dx size: ", dx.size(), ", dw size: ", dw.size())
