@@ -37,8 +37,8 @@ class Arguments(object):
 
     def __init__(self,
                  is_debug=False,
-                 # network_type=NetworkType.ResNet18,
-                 network_type=NetworkType.DenseNetCifar,
+                 network_type=NetworkType.ResNet18,
+                 # network_type=NetworkType.DenseNetCifar,
                  # network_type=NetworkType.FCNN_STANDARD,
                  preserved_energy=100,  # for unit tests
                  # preserved_energies=[100],
@@ -62,7 +62,7 @@ class Arguments(object):
                  # compress_rate=0.1,  # for unit tests
                  # compress_rates=[50.0],
                  # compress_rates=range(0, 101),
-                 compress_rates=[6],
+                 compress_rates=[0],
                  # compress_rates=[0,5,11,11.5,17,20.5,22,22.5,28,32,33,36,37,39,41,42,47,50,51,55,58,59,63,64,65,66,69,70,71,73,76,77,79,80,82,83,84],
                  # layers_compress_rates=None,
                  # compression rates for each of the conv fft layers in
@@ -72,7 +72,7 @@ class Arguments(object):
                  layers_compress_rates=None,
                  # weight_decay=5e-4,
                  # weight_decay=0,
-                 weight_decay=0.0001,
+                 weight_decay=0.0005,
                  epochs=1,
                  min_batch_size=32,
                  test_batch_size=32,
@@ -130,7 +130,7 @@ class Arguments(object):
                  # model_path="2018-11-26-20-04-34-197804-dataset-50words-preserve-energy-100-test-accuracy-67.47252747252747.model",
                  # model_path="2019-01-11-02-21-05-406721-dataset-cifar10-preserve-energy-100.0-test-accuracy-92.23-51.5-real-compression.model",
                  # dataset="cifar100",
-                 dataset="cifar100",
+                 dataset="cifar10",
                  # dataset="ucr",
                  # dataset="debug",
                  mem_test=False,
@@ -165,7 +165,8 @@ class Arguments(object):
                  # resume="cifar100-0.0-84-checkpoint.tar",
                  resume="",
                  gpu=0,
-                 start_epoch=137
+                 start_epoch=0,
+                 only_train=True,
                  ):
         """
         The default parameters for the execution of the program.
@@ -267,6 +268,7 @@ class Arguments(object):
         self.gpu = gpu
         self.start_epoch = start_epoch
         self.precision_type = precision_type
+        self.only_train = only_train
 
 
     def get_bool(self, arg):
@@ -304,6 +306,7 @@ class Arguments(object):
         self.is_dev_dataset = self.get_bool(parsed_args.is_dev_dataset)
         self.mem_test = self.get_bool(parsed_args.mem_test)
         self.use_cuda = self.get_bool(parsed_args.use_cuda) and torch.cuda.is_available()
+        self.only_train = self.get_bool(parsed_args.only_train)
 
         if hasattr(parsed_args, "preserve_energy"):
             self.preserve_energy = parsed_args.preserve_energy
