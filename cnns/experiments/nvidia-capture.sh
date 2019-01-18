@@ -23,7 +23,7 @@ device=${2:-0}
 echo "TIMESTAMP: ${TIMESTAMP}"
 file=utilization-${TIMESTAMP}-${compress_rate}.csv
 
-nvidia-smi -lms 100 -i ${device} --query-gpu=utilization.gpu,utilization.memory --format=csv -f ${file} &
+nvidia-smi -lms 1 -i ${device} --query-gpu=utilization.gpu,utilization.memory --format=csv -f ${file} &
 NVIDIA_PID=$!
 sleep 0
 
