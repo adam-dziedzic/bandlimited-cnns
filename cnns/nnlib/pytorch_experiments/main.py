@@ -515,7 +515,7 @@ def main(args):
                 loss_function=loss_function, args=args)
         # print("\ntest:")
         test_start_time = time.time()
-        if args.log_conv_size is True:
+        if args.log_conv_size is True or args.mem_test is True:
             test_loss, test_accuracy = 0, 0
         else:
             test_loss, test_accuracy = test(
