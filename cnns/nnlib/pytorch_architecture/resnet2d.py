@@ -184,7 +184,9 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
+        print(x.dtype)
         x = self.conv1(x)
+        print(x.dtype)
         x = self.bn1(x)
         x = self.relu(x)
         x = self.maxpool(x)
