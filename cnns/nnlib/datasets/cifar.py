@@ -47,10 +47,10 @@ def get_cifar(args, dataset_name):
     :return: main train and test loaders, as well as other params, such as
     number of classes.
     """
-    if dataset_name is "cifar10":
+    if dataset_name == "cifar10":
         args.num_classes = 10
         dataset_loader = datasets.CIFAR10
-    elif dataset_name is "cifar100":
+    elif dataset_name == "cifar100":
         args.num_classes = 100
         dataset_loader = datasets.CIFAR100
     else:
