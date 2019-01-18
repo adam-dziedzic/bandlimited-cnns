@@ -19,23 +19,24 @@ else
 fi
 
 if [ "$3" != "" ]; then
-    echo "size: Positional parameter 2 contains: "$3
+    echo "size: Positional parameter 3 contains: "$3
 else
-    echo "size: Positional parameter 2 is empty"
+    echo "size: Positional parameter 3 is empty"
 fi
 
 if [ "$4" != "" ]; then
-    echo "type: Positional parameter 2 contains: "$4
+    echo "type: Positional parameter 4 contains: "$4
 else
-    echo "type: Positional parameter 2 is empty"
+    echo "type: Positional parameter 4 is empty"
 fi
 
 compress_rate=${1:-0}
 device=${2:-0}
 size=${3:-32}
-type=${4:-32}
+type=${4:-"fp32"}
 
-if [ "${type}" != "fp16" ]; then
+program = "main.py"
+if [ "${type}" == "fp16" ]; then
     program = "main_fp16_optimizer.py"
 else
     program = "main.py"
