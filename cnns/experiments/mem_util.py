@@ -25,8 +25,8 @@ def read_columns(file_name):
                 column2.append(int(row[1][:-1]))
     column1 = np.pad(column1, (0,max_length-len(column1)), 'constant')
     column2 = np.pad(column2, (0,max_length - len(column2)), 'constant')
-    min=2400
-    max=4900
+    min=2000
+    max=6000
     column1, column2 = column1[min:max], column2[min:max]
     print(file_name)
     if is_mem:
