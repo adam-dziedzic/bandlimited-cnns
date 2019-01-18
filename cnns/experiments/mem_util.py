@@ -3,9 +3,8 @@ import matplotlib.pyplot as plt
 import csv
 import os
 import numpy as np
-import math
 
-is_mem = True
+is_mem = False
 font = {'size': 20}
 matplotlib.rc('font', **font)
 
@@ -25,8 +24,8 @@ def read_columns(file_name):
                 column2.append(int(row[1][:-1]))
     column1 = np.pad(column1, (0,max_length-len(column1)), 'constant')
     column2 = np.pad(column2, (0,max_length - len(column2)), 'constant')
-    min=2000
-    max=6000
+    min=0 #3000
+    max=10000
     column1, column2 = column1[min:max], column2[min:max]
     print(file_name)
     if is_mem:
@@ -41,14 +40,15 @@ def read_columns(file_name):
 fig = plt.figure(figsize=(8, 6))
 
 # files = ["0-fp16", "0-fp32", "25-fp32", "50-fp32", "75-fp32"]
-files = ["0-fp16", "0-fp32", "50-fp32"]
+files = ["fp16-0", "fp32-0", "fp32-50", "fp32-75"]
+# files = ["0-fp16", "0-fp32"]
 for i, rate in enumerate(files):
     gpu, mem = read_columns(dir_path + "/utilization-" + str(rate) + ".csv")
     label=str(rate)+" %"
     if is_mem:
-        plt.plot([x for x in range(len(mem))], mem, label=label, lw=2, marker=i)
+        plt.plot([x for x in range(len(mem))], mem, label=label, lw=3, marker=i)
     else:
-        plt.plot([x for x in range(len(gpu))], gpu, label=label, lw=2, marker=i)
+        plt.plot([x for x in range(len(gpu))], gpu, label=label, lw=3, marker=i)
 
 plt.xlabel('Time (msec)')
 

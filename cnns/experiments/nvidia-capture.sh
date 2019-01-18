@@ -48,7 +48,7 @@ else
 fi
 
 echo "TIMESTAMP: ${TIMESTAMP}"
-file=utilization-${compress_rate}-${type}.csv
+file=utilization-${type}-${compress_rate}.csv
 
 nvidia-smi -lms 1 -i ${device} --query-gpu=utilization.gpu,utilization.memory --format=csv -f ${file} &
 NVIDIA_PID=$!
