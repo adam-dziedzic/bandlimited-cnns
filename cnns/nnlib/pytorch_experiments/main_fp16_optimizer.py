@@ -111,7 +111,7 @@ def main():
     if args.dataset is "cifar10" or args.dataset is "cifar100":
         _, _, train_dataset, test_dataset = get_cifar(args, args.dataset)
     else:
-        raise ValueError(f"Unknown dataset: {args.dataset}")
+        raise ValueError(f"Unknown dataset: <{args.dataset}>")
 
     train_sampler = None
     test_sampler = None
