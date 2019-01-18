@@ -7,19 +7,20 @@ TIMESTAMP=$(date -d"$CURRENT +$MINUTES minutes" '+%F-%T-%N-%Z')
 echo TIMESTAMP: ${TIMESTAMP}
 
 if [ "$1" != "" ]; then
-    echo "Positional parameter 1 contains: "$1
+    echo "compress rate: Positional parameter 1 contains: "$1
 else
-    echo "Positional parameter 1 is empty"
+    echo "compress rate: Positional parameter 1 is empty"
 fi
 
 if [ "$2" != "" ]; then
-    echo "Positional parameter 2 contains: "$2
+    echo "device: Positional parameter 2 contains: "$2
 else
-    echo "Positional parameter 2 is empty"
+    echo "device: Positional parameter 2 is empty"
 fi
 
 compress_rate=${1:-0}
 device=${2:-0}
+echo "TIMESTAMP: ${TIMESTAMP}"
 file=${TIMESTAMP}-${compress_rate}.csv
 
 nvidia-smi -lms 100 -i ${device} --query-gpu=utilization.gpu,utilization.memory --format=csv -f ${file} &
