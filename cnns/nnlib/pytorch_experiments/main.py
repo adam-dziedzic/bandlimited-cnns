@@ -309,20 +309,25 @@ def main(args):
     preserve_energy = args.preserve_energy
     compress_rate = args.compress_rate
 
-    dataset_log_file = os.path.join(
-        results_folder_name, get_log_time() + "-dataset-" + str(dataset_name) + \
-                             "-preserve-energy-" + str(preserve_energy) + \
-                             "-compress-rate-" + str(compress_rate) + \
-                             ".log")
     DATASET_HEADER = HEADER + ",dataset," + str(dataset_name) + \
                      "-current-preserve-energy-" + str(preserve_energy) + "\n"
-    with open(dataset_log_file, "a") as file:
-        # Write the metadata.
-        file.write(DATASET_HEADER)
-        # Write the header with the names of the columns.
-        file.write(
-            "epoch,train_loss,train_accuracy,dev_loss,dev_accuracy,test_loss,"
-            "test_accuracy,epoch_time,learning_rate,train_time,test_time\n")
+
+    test_many_compress_rates=True
+    if test_many_compress_rates:
+        dataset_log_file = os.path.join(results_folder_name, "dataset.log")
+    else:
+        dataset_log_file = os.path.join(
+            results_folder_name, get_log_time() + "-dataset-" + str(dataset_name) + \
+                                 "-preserve-energy-" + str(preserve_energy) + \
+                                 "-compress-rate-" + str(compress_rate) + \
+                                 ".log")
+        with open(dataset_log_file, "a") as file:
+            # Write the metadata.
+            file.write(DATASET_HEADER)
+            # Write the header with the names of the columns.
+            file.write(
+                "epoch,train_loss,train_accuracy,dev_loss,dev_accuracy,test_loss,"
+                "test_accuracy,epoch_time,learning_rate,train_time,test_time,compress_rate\n")
 
     # with open(os.path.join(results_dir, additional_log_file), "a") as file:
     #     # Write the metadata.
@@ -540,7 +545,8 @@ def main(args):
                 train_accuracy) + "," + str(dev_loss) + "," + str(
                 dev_accuracy) + "," + str(test_loss) + "," + str(
                 test_accuracy) + "," + str(epoch_time) + "," + str(
-                lr) + "," + str(train_time) + "," + str(test_time) + "\n")
+                lr) + "," + str(train_time) + "," + str(test_time) + "," + str(
+                args.compress_rate) + "\n")
 
         # Metric: select the best model based on the best train loss (minimal).
         is_best = False

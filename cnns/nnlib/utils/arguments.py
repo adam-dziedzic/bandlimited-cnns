@@ -62,8 +62,9 @@ class Arguments(object):
                  # compress_rate=0.1,  # for unit tests
                  # compress_rates=[50.0],
                  # compress_rates=range(0, 101),
-                 compress_rates=[0],
+                 # compress_rates=[0],
                  # compress_rates=[0,5,11,11.5,17,20.5,22,22.5,28,32,33,36,37,39,41,42,47,50,51,55,58,59,63,64,65,66,69,70,71,73,76,77,79,80,82,83,84],
+                 compress_rates = [0,0,3,4,9.5,11.5,11.5,12,17.5,22,22.5,28,37.5,47,47.5,51,64.5,74,77.5,84],
                  # layers_compress_rates=None,
                  # compression rates for each of the conv fft layers in
                  # ResNet-18, with the total compression in the fft domain by
@@ -73,7 +74,7 @@ class Arguments(object):
                  # weight_decay=5e-4,
                  # weight_decay=0,
                  weight_decay=0.0005,
-                 epochs=1,
+                 epochs=0,
                  min_batch_size=32,
                  test_batch_size=32,
                  learning_rate=0.01,
@@ -153,7 +154,7 @@ class Arguments(object):
                  dynamic_loss_scale=True,
                  memory_size=25,
                  is_progress_bar=False,
-                 log_conv_size=True,
+                 log_conv_size=False,
                  stride_type=StrideType.STANDARD,
                  # is_dev_dataset = True,
                  is_dev_dataset=False,
@@ -166,7 +167,7 @@ class Arguments(object):
                  resume="",
                  gpu=0,
                  start_epoch=0,
-                 only_train=True,
+                 only_train=False,
                  ):
         """
         The default parameters for the execution of the program.
