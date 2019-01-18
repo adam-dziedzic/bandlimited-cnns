@@ -312,22 +312,24 @@ def main(args):
     DATASET_HEADER = HEADER + ",dataset," + str(dataset_name) + \
                      "-current-preserve-energy-" + str(preserve_energy) + "\n"
 
-    test_many_compress_rates=True
+    test_many_compress_rates = False
     if test_many_compress_rates:
         dataset_log_file = os.path.join(results_folder_name, "dataset.log")
     else:
         dataset_log_file = os.path.join(
-            results_folder_name, get_log_time() + "-dataset-" + str(dataset_name) + \
-                                 "-preserve-energy-" + str(preserve_energy) + \
-                                 "-compress-rate-" + str(compress_rate) + \
-                                 ".log")
+            results_folder_name,
+            get_log_time() + "-dataset-" + str(dataset_name) + \
+            "-preserve-energy-" + str(preserve_energy) + \
+            "-compress-rate-" + str(compress_rate) + \
+            ".log")
         with open(dataset_log_file, "a") as file:
             # Write the metadata.
             file.write(DATASET_HEADER)
             # Write the header with the names of the columns.
             file.write(
-                "epoch,train_loss,train_accuracy,dev_loss,dev_accuracy,test_loss,"
-                "test_accuracy,epoch_time,learning_rate,train_time,test_time,compress_rate\n")
+                "epoch,train_loss,train_accuracy,dev_loss,dev_accuracy,"
+                "test_loss,test_accuracy,epoch_time,learning_rate,"
+                "train_time,test_time,compress_rate\n")
 
     # with open(os.path.join(results_dir, additional_log_file), "a") as file:
     #     # Write the metadata.
