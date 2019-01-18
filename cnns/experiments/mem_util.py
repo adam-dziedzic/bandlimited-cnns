@@ -5,7 +5,7 @@ import os
 import numpy as np
 import math
 
-is_mem = False
+is_mem = True
 font = {'size': 20}
 matplotlib.rc('font', **font)
 
@@ -40,7 +40,7 @@ def read_columns(file_name):
 
 fig = plt.figure(figsize=(8, 6))
 
-for i, rate in enumerate([0, 25, 50, 75]):
+for i, rate in enumerate(["0-fp16", "0-fp32", "25-fp32", "50-fp32", "75-fp32"]):
     gpu, mem = read_columns(dir_path + "/utilization-" + str(rate) + ".csv")
     label=str(rate)+" %"
     if is_mem:
