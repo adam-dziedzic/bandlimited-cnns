@@ -188,6 +188,7 @@ class ResNet(nn.Module):
         x = self.conv1(x)
         print(x.dtype)
         x = self.bn1(x)
+        print(x.dtype)
         x = self.relu(x)
         x = self.maxpool(x)
 

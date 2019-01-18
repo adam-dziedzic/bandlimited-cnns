@@ -47,6 +47,12 @@ results_dir = os.path.join(os.curdir, results_folder_name)
 pathlib.Path(results_dir).mkdir(parents=True, exist_ok=True)
 
 
+def fix_bn(m):
+    classname = m.__class__.__name__
+    if classname.find('BatchNorm') != -1:
+        m.eval().half()
+
+
 def main():
     global best_prec1, args
 
@@ -149,6 +155,7 @@ def main():
     model = model.cuda()
     if args.precision_type is PrecisionType.FP16:
         model = network_to_half(model)
+        model.apply(fix_bn)  # fix batchnorm
     if args.distributed:
         # By default, apex.parallel.DistributedDataParallel overlaps communication with
         # computation in the backward pass.
