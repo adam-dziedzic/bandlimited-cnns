@@ -495,4 +495,7 @@ def reduce_tensor(tensor):
 
 
 if __name__ == '__main__':
-    main()
+    for compress_rate in args.compress_rates:
+        print("compress rate: ", compress_rate)
+        args.compress_rate = compress_rate
+        main()

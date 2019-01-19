@@ -4,7 +4,8 @@ import csv
 import os
 import numpy as np
 
-metric = "GPUUtilization"
+# metric = "GPUUtilization"
+metric = "MemoryUsed"
 if metric == "MemoryUtilization":
     prefix = "MemoryUtilization"
     ylabel= 'Memory \n utilization (%)'
@@ -20,13 +21,14 @@ matplotlib.rc('font', **font)
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-max_length = 10000
+max_length = 20000
 # dir_prefix = "mem_test_data_utilization"
 # dir_prefix = "mem_test_data_utilization_train_test"
 # dir_prefix = "mem_test_data_utilization_train_test_2_epochs"
 # dir_prefix = "no_mem_test_data_utilization_train_test_2_epochs"
 # dir_prefix = "no_mem_test_data_utilization_train_test_3_iterations"
-dir_prefix = "mem_test_mem_used_train_test_3_iterations"
+# dir_prefix = "mem_test_mem_used_train_test_3_iterations"
+dir_prefix = "mem_test_mem_used_train_test_3_iterations_only_main-fp16"
 
 def read_columns(rate):
     file_name = dir_path + "/" + dir_prefix + "/utilization-" + str(
