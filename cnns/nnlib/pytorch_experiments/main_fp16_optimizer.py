@@ -221,10 +221,15 @@ def main():
 
         if args.prof:
             break
-        # evaluate on validation set
-        start_test = time.time()
-        test_accuracy, test_loss = test(test_loader, model, criterion)
-        test_time = time.time() - start_test
+
+        if args.only_train:
+            test_accuracy, test_loss = 0, 0
+            test_time = 0
+        else:
+            # evaluate on validation set
+            start_test = time.time()
+            test_accuracy, test_loss = test(test_loader, model, criterion)
+            test_time = time.time() - start_test
 
         epoch_time = train_time + test_time
 
