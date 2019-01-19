@@ -128,23 +128,21 @@ class Conv2dfftFunction(torch.autograd.Function):
         # print("input size: ", input.size(), ", filter size:", filter.size())
 
         Conv2dfftFunction.mark_dirty(input)
-        if args is not None:
-            compress_rate = args.compress_rate
-            if conv_index is not None and args.layers_compress_rates is not None:
-                if len(args.layers_compress_rates) < conv_index:
-                    raise Exception("Not enough compress rates provided for "
-                                    "the fft based convolution.")
-                compress_rate = args.layers_compress_rates[conv_index]
-            preserve_energy = args.preserve_energy
-            use_next_power2 = args.next_power2
-            is_debug = args.is_debug
-            stride_type = args.stride_type
-        else:
-            compress_rate = None
-            preserve_energy = None
-            use_next_power2 = False
-            is_debug = False
-            stride_type = StrideType.STANDARD
+
+        if args.mem_test:
+            torch.cuda.empty_cache()
+
+        compress_rate = args.compress_rate
+        if conv_index is not None and args.layers_compress_rates is not None:
+            if len(args.layers_compress_rates) < conv_index:
+                raise Exception("Not enough compress rates provided for "
+                                "the fft based convolution.")
+            compress_rate = args.layers_compress_rates[conv_index]
+        preserve_energy = args.preserve_energy
+        use_next_power2 = args.next_power2
+        is_debug = args.is_debug
+        stride_type = args.stride_type
+
 
         dtype = input.dtype
         device = input.device
