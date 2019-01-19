@@ -16,7 +16,7 @@ matplotlib.rc('font', **font)
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 max_length = 6700
-dir_prefix = ""
+dir_prefix = "mem_test_data_utilization"
 
 
 def read_columns(rate):
