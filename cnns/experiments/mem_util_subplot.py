@@ -15,10 +15,10 @@ matplotlib.rc('font', **font)
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-max_length = 6700
+max_length = 10000
 # dir_prefix = "mem_test_data_utilization"
-dir_prefix = "mem_test_data_utilization_train_test"
-
+# dir_prefix = "mem_test_data_utilization_train_test"
+dir_prefix = "mem_test_data_utilization_train_test_2_epochs"
 
 def read_columns(rate):
     file_name = dir_path + "/" + dir_prefix + "/utilization-" + str(
@@ -34,11 +34,11 @@ def read_columns(rate):
                 column2.append(int(row[1][:-1]))
     column1 = np.pad(column1, (0, max_length - len(column1)), 'constant')
     column2 = np.pad(column2, (0, max_length - len(column2)), 'constant')
-    min = 3000 # 3000
-    max = 5000
+    min = 2500 # 3000
+    max = 8000
     if rate == "fp16-0":
-        min = 3000
-        max = 5000
+        min = 2500
+        max = 8000
     column1, column2 = column1[min:max], column2[min:max]
     print(file_name)
     if is_mem:
