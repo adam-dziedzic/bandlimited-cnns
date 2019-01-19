@@ -18,7 +18,8 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 max_length = 10000
 # dir_prefix = "mem_test_data_utilization"
 # dir_prefix = "mem_test_data_utilization_train_test"
-dir_prefix = "mem_test_data_utilization_train_test_2_epochs"
+# dir_prefix = "mem_test_data_utilization_train_test_2_epochs"
+dir_prefix = "no_mem_test_data_utilization_train_test_2_epochs"
 
 def read_columns(rate):
     file_name = dir_path + "/" + dir_prefix + "/utilization-" + str(
@@ -80,7 +81,8 @@ for i, file_nr in enumerate(files):
                      marker=i, color=color)
 
     plt.grid()
-    plt.legend(loc='upper left', frameon=False)
+    plt.legend(loc='upper left', frameon=False, ncol=len(file_nr),
+               prop={'size': 16}, bbox_to_anchor=(0, 1.05))
     if i > 0:
         plt.xlabel('Time (msec)')
     plt.ylabel(prefix + ' util (%)')
