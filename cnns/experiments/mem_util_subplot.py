@@ -4,7 +4,7 @@ import csv
 import os
 import numpy as np
 
-metric = "MemoryUsed"
+metric = "GPUUtilization"
 if metric == "MemoryUtilization":
     prefix = "MemoryUtilization"
     ylabel= 'Memory \n utilization (%)'
@@ -25,7 +25,8 @@ max_length = 10000
 # dir_prefix = "mem_test_data_utilization_train_test"
 # dir_prefix = "mem_test_data_utilization_train_test_2_epochs"
 # dir_prefix = "no_mem_test_data_utilization_train_test_2_epochs"
-dir_prefix = "no_mem_test_data_utilization_train_test_3_iterations"
+# dir_prefix = "no_mem_test_data_utilization_train_test_3_iterations"
+dir_prefix = "mem_test_mem_used_train_test_3_iterations"
 
 def read_columns(rate):
     file_name = dir_path + "/" + dir_prefix + "/utilization-" + str(
@@ -39,18 +40,18 @@ def read_columns(rate):
                 # print(row[1][:-1])
                 column1.append(int(row[0][:-1]))
                 column2.append(int(row[1][:-1]))
-                column3.append(int(row[1][:-1]))
+                column3.append(int(row[2][:-3])/16280*100)
     column1 = np.pad(column1, (0, max_length - len(column1)), 'constant')
     column2 = np.pad(column2, (0, max_length - len(column2)), 'constant')
     column3 = np.pad(column3, (0, max_length - len(column2)), 'constant')
-    min = 2500 # 3000
-    max = 8700
+    min = 1000 # 3000
+    max = 7500
     if rate == "fp16-0":
-        min = 2500
-        max = 8700
-    column1, column2 = column1[min:max], column2[min:max], column3[min:max]
+        min = 1000
+        max = 7500
+    column1, column2, column3 = column1[min:max], column2[min:max], column3[min:max]
     print(file_name)
-    if metric == "MemoryUtilization"
+    if metric == "MemoryUtilization":
         column = column2
     elif metric == "GPUUtilization":
         column = column1
@@ -92,7 +93,7 @@ for i, file_nr in enumerate(files):
             plt.plot([x for x in range(len(gpu))], gpu, label=label, lw=3,
                      marker=i, color=color)
         elif metric == "MemoryUsed":
-            plt.plot([x for x in range(len(gpu))], mem_used, label=label, lw=3,
+            plt.plot([x for x in range(len(mem_used))], mem_used, label=label, lw=3,
                      marker=i, color=color)
         else:
             raise Exception(f"Unknown metric: {metric}")
@@ -106,7 +107,7 @@ for i, file_nr in enumerate(files):
     else:
         plt.title("Compress with mixed precision", fontsize=16)
     plt.ylabel(ylabel)
-    plt.ylim(0, 100)
+    plt.ylim(0, 20)
 
 # plt.gcf().autofmt_xdate()
 # plt.xticks(rotation=0)
