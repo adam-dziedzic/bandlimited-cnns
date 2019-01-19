@@ -57,7 +57,8 @@ def main():
     global best_prec1, args
 
     global_log_file = os.path.join(results_folder_name,
-                                   get_log_time() + "-ucr-fcnn.log")
+                                   get_log_time() + "-" + str(
+                                       args.compress_rate) + ".log")
     args_str = args.get_str()
     hostname = socket.gethostname()
     HEADER = "hostname," + str(
