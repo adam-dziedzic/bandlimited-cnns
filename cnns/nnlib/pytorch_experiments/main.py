@@ -21,33 +21,26 @@ from torch.optim.lr_scheduler import \
 from torch.optim.lr_scheduler import MultiStepLR
 
 from cnns.nnlib.pytorch_layers.AdamFloat16 import AdamFloat16
-from cnns.nnlib.pytorch_architecture.model_utils import getModelPyTorch
-from cnns.nnlib.pytorch_architecture.le_net import LeNet
-from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
-from cnns.nnlib.pytorch_architecture.densenet import densenet_cifar
-from cnns.nnlib.pytorch_architecture.fcnn import FCNNPytorch
-from cnns.nnlib.utils.general_utils import ConvType
-from cnns.nnlib.utils.general_utils import ConvExecType
-from cnns.nnlib.utils.general_utils import CompressType
+# from cnns.nnlib.pytorch_architecture.model_utils import getModelPyTorch
 from cnns.nnlib.utils.general_utils import OptimizerType
 from cnns.nnlib.utils.general_utils import SchedulerType
 from cnns.nnlib.utils.general_utils import LossType
 from cnns.nnlib.utils.general_utils import LossReduction
-from cnns.nnlib.utils.general_utils import NetworkType
-from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import TensorType
-from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.general_utils import PrecisionType
-from cnns.nnlib.utils.general_utils import Bool
 from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import mem_log_file
 from cnns.nnlib.utils.general_utils import get_log_time
 from cnns.nnlib.datasets.mnist import get_mnist
 from cnns.nnlib.datasets.cifar import get_cifar
 from cnns.nnlib.datasets.ucr.ucr import get_ucr
-from cnns.nnlib.utils.arguments import Arguments
 from cnns.nnlib.utils.exec_args import get_args
 from cnns.nnlib.pytorch_experiments.utils.progress_bar import progress_bar
+from cnns.nnlib.pytorch_architecture.le_net import LeNet
+from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
+from cnns.nnlib.pytorch_architecture.densenet import densenet_cifar
+from cnns.nnlib.pytorch_architecture.fcnn import FCNNPytorch
+from cnns.nnlib.utils.general_utils import NetworkType
 
 # from memory_profiler import profile
 
@@ -106,6 +99,35 @@ if torch.cuda.is_available() and args.use_cuda:
     # torch.set_default_tensor_type('torch.cuda.FloatTensor')
 else:
     device = torch.device("cpu")
+
+
+def getModelPyTorch(args):
+    """
+    Get the PyTorch version of the FCNN model.
+    :param input_size: the length (width) of the time series.
+    :param num_classes: number of output classes.
+    :param in_channels: number of channels in the input data for a convolution.
+    :param out_channels: number of channels in the output of a convolution.
+    :param dtype: global - the type of torch data/weights.
+    :param flat_size: the size of the flat vector after the conv layers.
+    :return: the model.
+    """
+    network_type = args.network_type
+    if network_type is NetworkType.LE_NET:
+        return LeNet(args=args)
+    elif network_type is NetworkType.FCNN_SMALL or (
+            network_type is NetworkType.FCNN_STANDARD):
+        if network_type is NetworkType.FCNN_SMALL:
+            args.out_channels = [1, 1, 1]
+        elif network_type is NetworkType.FCNN_STANDARD:
+            args.out_channels = [128, 256, 128]
+        return FCNNPytorch(args=args)
+    elif network_type == NetworkType.ResNet18:
+        return resnet18(args=args)
+    elif network_type == NetworkType.DenseNetCifar:
+        return densenet_cifar(args=args)
+    else:
+        raise Exception("Unknown network_type: ", network_type)
 
 
 def readucr(filename, data_type):
@@ -287,20 +309,27 @@ def main(args):
     preserve_energy = args.preserve_energy
     compress_rate = args.compress_rate
 
-    dataset_log_file = os.path.join(
-        results_folder_name, get_log_time() + "-dataset-" + str(dataset_name) + \
-                             "-preserve-energy-" + str(preserve_energy) + \
-                             "-compress-rate-" + str(compress_rate) + \
-                             ".log")
     DATASET_HEADER = HEADER + ",dataset," + str(dataset_name) + \
                      "-current-preserve-energy-" + str(preserve_energy) + "\n"
-    with open(dataset_log_file, "a") as file:
-        # Write the metadata.
-        file.write(DATASET_HEADER)
-        # Write the header with the names of the columns.
-        file.write(
-            "epoch,train_loss,train_accuracy,dev_loss,dev_accuracy,test_loss,"
-            "test_accuracy,epoch_time,learning_rate,train_time,test_time\n")
+
+    test_many_compress_rates = False
+    if test_many_compress_rates:
+        dataset_log_file = os.path.join(results_folder_name, "dataset.log")
+    else:
+        dataset_log_file = os.path.join(
+            results_folder_name,
+            get_log_time() + "-dataset-" + str(dataset_name) + \
+            "-preserve-energy-" + str(preserve_energy) + \
+            "-compress-rate-" + str(compress_rate) + \
+            ".log")
+        with open(dataset_log_file, "a") as file:
+            # Write the metadata.
+            file.write(DATASET_HEADER)
+            # Write the header with the names of the columns.
+            file.write(
+                "epoch,train_loss,train_accuracy,dev_loss,dev_accuracy,"
+                "test_loss,test_accuracy,epoch_time,learning_rate,"
+                "train_time,test_time,compress_rate\n")
 
     # with open(os.path.join(results_dir, additional_log_file), "a") as file:
     #     # Write the metadata.
@@ -493,7 +522,7 @@ def main(args):
                 loss_function=loss_function, args=args)
         # print("\ntest:")
         test_start_time = time.time()
-        if args.log_conv_size is True:
+        if args.log_conv_size is True or args.mem_test is True:
             test_loss, test_accuracy = 0, 0
         else:
             test_loss, test_accuracy = test(
@@ -518,7 +547,8 @@ def main(args):
                 train_accuracy) + "," + str(dev_loss) + "," + str(
                 dev_accuracy) + "," + str(test_loss) + "," + str(
                 test_accuracy) + "," + str(epoch_time) + "," + str(
-                lr) + "," + str(train_time) + "," + str(test_time) + "\n")
+                lr) + "," + str(train_time) + "," + str(test_time) + "," + str(
+                args.compress_rate) + "\n")
 
         # Metric: select the best model based on the best train loss (minimal).
         is_best = False
@@ -567,7 +597,7 @@ def main(args):
             'optimizer': optimizer.state_dict(),
         }, is_best,
             filename=dataset_name + "-" + str(
-                max_train_accuracy) + str(
+                max_train_accuracy) + "-" + str(
                 args.compress_rate) + "-" + "checkpoint.tar")
 
     with open(global_log_file, "a") as file:
@@ -579,6 +609,7 @@ def main(args):
 
 
 if __name__ == '__main__':
+    print("start learning!")
     start_time = time.time()
     hostname = socket.gethostname()
     global_log_file = os.path.join(results_folder_name,

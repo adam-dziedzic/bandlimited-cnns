@@ -184,6 +184,9 @@ def get_args():
                         # "TRUE", "FALSE"
                         help="should we show log the size of each of the fft based"
                              "conv layers? " + ",".join(Bool.get_names()))
+    parser.add_argument("--only_train", default="TRUE" if args.only_train else "FALSE",
+                        # "TRUE", "FALSE"
+                        help="should we show execute only the train stage without any testing? " + ",".join(Bool.get_names()))
     parser.add_argument("--stride_type", default=args.stride_type.name,
                         # "FLOAT32", "FLOAT16", "DOUBLE", "INT"
                         help="the tensor data type: " + ",".join(
@@ -218,9 +221,6 @@ def get_args():
                         # "FP16", "FP32", "AMP"
                         help="the precision type: " + ",".join(
                             PrecisionType.get_names()))
-    parser.add_argument('--compress_rate', type=float,
-                        default=args.compress_rate,
-                        help="""Percentage of discarded coefficients (old param).""")
     parser.add_argument('--print-freq', '-p', default=10, type=int,
                         metavar='N', help='print frequency (default: 10)')
     parser.add_argument('-e', '--evaluate', dest='evaluate',

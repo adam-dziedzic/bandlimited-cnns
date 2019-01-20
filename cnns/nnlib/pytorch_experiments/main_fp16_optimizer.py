@@ -16,9 +16,12 @@ from cnns.nnlib.pytorch_architecture.model_utils import getModelPyTorch
 from cnns.nnlib.datasets.cifar import get_cifar
 from cnns.nnlib.utils.general_utils import PrecisionType
 from cnns.nnlib.utils.exec_args import get_args
-import numpy as np
 import pathlib
 from cnns.nnlib.utils.general_utils import get_log_time
+from torch.optim.lr_scheduler import \
+    ReduceLROnPlateau as ReduceLROnPlateauPyTorch
+from torch.optim.lr_scheduler import MultiStepLR
+from cnns.nnlib.utils.general_utils import SchedulerType
 
 try:
     from apex.parallel import DistributedDataParallel as DDP
@@ -47,11 +50,18 @@ results_dir = os.path.join(os.curdir, results_folder_name)
 pathlib.Path(results_dir).mkdir(parents=True, exist_ok=True)
 
 
+def fix_bn(m):
+    classname = m.__class__.__name__
+    if classname.find('BatchNorm') != -1:
+        m.eval().half()
+
+
 def main():
     global best_prec1, args
 
     global_log_file = os.path.join(results_folder_name,
-                                   get_log_time() + "-ucr-fcnn.log")
+                                   get_log_time() + "-" + str(
+                                       args.compress_rate) + ".log")
     args_str = args.get_str()
     hostname = socket.gethostname()
     HEADER = "hostname," + str(
@@ -75,12 +85,14 @@ def main():
         args.world_size = torch.distributed.get_world_size()
 
     if args.precision_type is PrecisionType.FP16:
-        assert torch.backends.cudnn.enabled, "fp16 mode requires cudnn backend to be enabled."
+        assert torch.backends.cudnn.enabled, "fp16 mode requires cudnn " \
+                                             "backend to be enabled."
 
     if args.static_loss_scale != 1.0:
         if not args.precision_type is PrecisionType.FP16:
             print(
-                "Warning:  if --fp16 is not used, static_loss_scale will be ignored.")
+                "Warning:  if --fp16 is not used, static_loss_scale will be "
+                "ignored.")
 
     # Data loading code
     # traindir = os.path.join(args.data, 'train')
@@ -105,11 +117,12 @@ def main():
     #     transforms.Resize(val_size),
     #     transforms.CenterCrop(crop_size),
     # ]))
-
-    if args.dataset is "cifar10" or args.dataset is "cifar100":
+    args.dataset = str(args.dataset)
+    print("args.dataset: ", args.dataset)
+    if args.dataset == "cifar10" or args.dataset == "cifar100":
         _, _, train_dataset, test_dataset = get_cifar(args, args.dataset)
     else:
-        raise ValueError(f"Unknown dataset: {args.dataset}")
+        raise ValueError(f"Unknown dataset: <{args.dataset}>")
 
     train_sampler = None
     test_sampler = None
@@ -146,6 +159,7 @@ def main():
     model = model.cuda()
     if args.precision_type is PrecisionType.FP16:
         model = network_to_half(model)
+        model.apply(fix_bn)  # fix batchnorm
     if args.distributed:
         # By default, apex.parallel.DistributedDataParallel overlaps communication with
         # computation in the backward pass.
@@ -157,15 +171,36 @@ def main():
     criterion = nn.CrossEntropyLoss().cuda()
 
     # Scale learning rate based on global batch size
-    args.lr = args.learning_rate * float(
-        args.min_batch_size * args.world_size) / 256.
+    if args.scheduler_type is SchedulerType.Custom:
+        args.lr = args.learning_rate * float(
+            args.min_batch_size * args.world_size) / 256.
+    else:
+        args.lr = args.learning_rate
     optimizer = torch.optim.SGD(model.parameters(), args.lr,
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay)
     if args.precision_type is PrecisionType.FP16:
+        # Optimizer wrapper that automatically manages loss scaling +
+        # master params:
+        # http://on-demand.gputechconf.com/gtc-taiwan/2018/pdf/5-1_Internal%20Speaker_Michael%20Carilli_PDF%20For%20Sharing.pdf
         optimizer = FP16_Optimizer(optimizer,
                                    static_loss_scale=args.static_loss_scale,
-                                   dynamic_loss_scale=args.dynamic_loss_scale)
+                                   dynamic_loss_scale=args.dynamic_loss_scale,
+                                   verbose=False)
+
+    # https://pytorch.org/docs/stable/optim.html#torch.optim.lr_scheduler.ReduceLROnPlateau
+    raw_optimizer = optimizer
+    if args.precision_type is PrecisionType.FP16:
+        raw_optimizer = optimizer.optimizer
+    if args.scheduler_type is SchedulerType.ReduceLROnPlateau:
+        scheduler = ReduceLROnPlateauPyTorch(optimizer=raw_optimizer, mode='min',
+                                             factor=0.1, patience=10)
+    elif args.scheduler_type is SchedulerType.MultiStepLR:
+        scheduler = MultiStepLR(optimizer=raw_optimizer, milestones=[150, 250])
+    elif args.scheduler_type is SchedulerType.Custom:
+        scheduler = None
+    else:
+        raise Exception(f"Unknown scheduler type: {args.scheduler_type}")
 
     # Optionally resume from a checkpoint
     if args.resume:
@@ -197,9 +232,9 @@ def main():
         # Write the header with the names of the columns.
         file.write(
             "\nepoch,train_loss,train_accuracy,test_loss,"
-            "test_accuracy,epoch_time,train_time,test_time\n")
+            "test_accuracy,epoch_time,train_time,test_time,learning_rate\n")
 
-    for epoch in range(args.start_epoch, args.epochs):
+    for epoch in range(args.start_epoch, args.epochs + 1):
         if args.distributed:
             train_sampler.set_epoch(epoch)
 
@@ -211,10 +246,21 @@ def main():
 
         if args.prof:
             break
-        # evaluate on validation set
-        start_test = time.time()
-        test_accuracy, test_loss = test(test_loader, model, criterion)
-        test_time = time.time() - start_test
+
+        if args.scheduler_type is SchedulerType.ReduceLROnPlateau or (
+                args.scheduler_type is SchedulerType.MultiStepLR):
+            # Scheduler step is based only on the train data, we do not use the
+            # test data to schedule the decrease in the learning rate.
+            scheduler.step(train_loss)
+
+        if args.only_train:
+            test_accuracy, test_loss = 0, 0
+            test_time = 0
+        else:
+            # evaluate on validation set
+            start_test = time.time()
+            test_accuracy, test_loss = test(test_loader, model, criterion)
+            test_time = time.time() - start_test
 
         epoch_time = train_time + test_time
 
@@ -230,11 +276,15 @@ def main():
                 'optimizer': optimizer.state_dict(),
             }, is_best)
 
+        lr = f"unknown (started with: {args.learning_rate})"
+        if len(raw_optimizer.param_groups) > 0:
+            lr = raw_optimizer.param_groups[0]['lr']
+
         with open(global_log_file, "a") as file:
             file.write(str(epoch) + "," + str(train_loss) + "," + str(
                 train_accuracy) + "," + str(test_loss) + "," + str(
                 test_accuracy) + "," + str(epoch_time) + "," + str(
-                train_time) + "," + str(test_time) + "\n")
+                train_time) + "," + str(test_time) + "," + str(lr) + "\n")
 
 
 class data_prefetcher():
@@ -291,7 +341,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
     while input is not None:
         i += 1
 
-        adjust_learning_rate(optimizer, epoch, i, len(train_loader))
+        if args.scheduler_type is SchedulerType.Custom:
+            adjust_learning_rate(optimizer, epoch, i, len(train_loader))
 
         if args.prof:
             if i > 10:
@@ -478,4 +529,7 @@ def reduce_tensor(tensor):
 
 
 if __name__ == '__main__':
-    main()
+    for compress_rate in args.compress_rates:
+        print("compress rate: ", compress_rate)
+        args.compress_rate = compress_rate
+        main()
