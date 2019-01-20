@@ -221,9 +221,6 @@ def get_args():
                         # "FP16", "FP32", "AMP"
                         help="the precision type: " + ",".join(
                             PrecisionType.get_names()))
-    parser.add_argument('--compress_rate', type=float,
-                        default=args.compress_rate,
-                        help="""Percentage of discarded coefficients (old param).""")
     parser.add_argument('--print-freq', '-p', default=10, type=int,
                         metavar='N', help='print frequency (default: 10)')
     parser.add_argument('-e', '--evaluate', dest='evaluate',

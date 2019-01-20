@@ -64,6 +64,7 @@ class SchedulerType(EnumWithNames):
     MultiStepLR = 4
     StepLR = 5
     LambdaLR = 6
+    Custom = 7
 
 
 class LossType(EnumWithNames):
