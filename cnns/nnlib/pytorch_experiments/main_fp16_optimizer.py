@@ -59,13 +59,17 @@ def fix_bn(m):
 def main():
     global best_prec1, args
 
-    global_log_file = os.path.join(results_folder_name,
-                                   get_log_time() + "-" + str(
-                                       args.compress_rate) + ".log")
+    global_log_file = os.path.join(
+        results_folder_name,
+        get_log_time() + "-dataset-" + str(
+            args.dataset) + "-compress-label-" + str(
+            args.compress_rate) + ".log")
     args_str = args.get_str()
     hostname = socket.gethostname()
+    cuda_visible_devices = os.environ['CUDA_VISIBLE_DEVICES']
     HEADER = "hostname," + str(
-        hostname) + ",timestamp," + get_log_time() + "," + str(args_str)
+        hostname) + ",timestamp," + get_log_time() + "," + str(
+        args_str) + ",cuda_visible_devices," + str(cuda_visible_devices)
     with open(global_log_file, "a") as file:
         # Write the metadata.
         file.write(HEADER + ",")
@@ -193,7 +197,8 @@ def main():
     if args.precision_type is PrecisionType.FP16:
         raw_optimizer = optimizer.optimizer
     if args.scheduler_type is SchedulerType.ReduceLROnPlateau:
-        scheduler = ReduceLROnPlateauPyTorch(optimizer=raw_optimizer, mode='min',
+        scheduler = ReduceLROnPlateauPyTorch(optimizer=raw_optimizer,
+                                             mode='min',
                                              factor=0.1, patience=10)
     elif args.scheduler_type is SchedulerType.MultiStepLR:
         scheduler = MultiStepLR(optimizer=raw_optimizer, milestones=[150, 250])
@@ -221,6 +226,10 @@ def main():
                       .format(args.resume, checkpoint['epoch']))
             else:
                 print("=> no checkpoint found at '{}'".format(args.resume))
+
+            if args.learning_rate is not None:
+                for i, param_group in enumerate(raw_optimizer.param_groups):
+                    param_group['lr'] = args.learning_rate
 
         resume()
 

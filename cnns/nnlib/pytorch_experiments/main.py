@@ -612,13 +612,14 @@ if __name__ == '__main__':
     print("start learning!")
     start_time = time.time()
     hostname = socket.gethostname()
+    cuda_visible_devices = os.environ['CUDA_VISIBLE_DEVICES']
     global_log_file = os.path.join(results_folder_name,
                                    get_log_time() + "-ucr-fcnn.log")
     args_str = args.get_str()
     HEADER = "hostname," + str(
-        hostname) + ",timestamp," + get_log_time() + "," + str(args_str)
-    with open(additional_log_file, "a") as file:
-        # Write the metadata.
+        hostname) + ",timestamp," + get_log_time() + "," + str(
+        args_str) + ",cuda_visible_devices," + str(cuda_visible_devices)
+    with open(additional_log_file, "a") as file:        # Write the metadata.
         file.write(HEADER + "\n")
     with open(global_log_file, "a") as file:
         # Write the metadata.
