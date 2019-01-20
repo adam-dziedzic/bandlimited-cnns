@@ -269,7 +269,7 @@ void complex_mul_stride_no_permute_cuda(
     const auto y_blocks = F;
     const dim3 blocks(x_blocks, y_blocks);
 
-    AT_DISPATCH_FLOATING_TYPES(x.type(), "complex_mul_cuda",
+    AT_DISPATCH_FLOATING_TYPES_AND_HALF(x.type(), "complex_mul_cuda",
     ([&] {
         complex_mul_cuda_kernel<scalar_t><<<blocks, threads>>>(
         x.data<scalar_t>(), y.data<scalar_t>(), out.data<scalar_t>(),

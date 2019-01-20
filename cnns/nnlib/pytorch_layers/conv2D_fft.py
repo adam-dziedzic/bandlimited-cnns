@@ -128,23 +128,21 @@ class Conv2dfftFunction(torch.autograd.Function):
         # print("input size: ", input.size(), ", filter size:", filter.size())
 
         Conv2dfftFunction.mark_dirty(input)
-        if args is not None:
-            compress_rate = args.compress_rate
-            if conv_index is not None and args.layers_compress_rates is not None:
-                if len(args.layers_compress_rates) < conv_index:
-                    raise Exception("Not enough compress rates provided for "
-                                    "the fft based convolution.")
-                compress_rate = args.layers_compress_rates[conv_index]
-            preserve_energy = args.preserve_energy
-            use_next_power2 = args.next_power2
-            is_debug = args.is_debug
-            stride_type = args.stride_type
-        else:
-            compress_rate = None
-            preserve_energy = None
-            use_next_power2 = False
-            is_debug = False
-            stride_type = StrideType.STANDARD
+
+        if args.mem_test:
+            torch.cuda.empty_cache()
+
+        compress_rate = args.compress_rate
+        if conv_index is not None and args.layers_compress_rates is not None:
+            if len(args.layers_compress_rates) < conv_index:
+                raise Exception("Not enough compress rates provided for "
+                                "the fft based convolution.")
+            compress_rate = args.layers_compress_rates[conv_index]
+        preserve_energy = args.preserve_energy
+        use_next_power2 = args.next_power2
+        is_debug = args.is_debug
+        stride_type = args.stride_type
+
 
         dtype = input.dtype
         device = input.device
@@ -257,6 +255,9 @@ class Conv2dfftFunction(torch.autograd.Function):
             filter, (0, fft_padding_filter_W, 0, fft_padding_filter_H),
             'constant', 0)
 
+        if args.mem_test:
+            torch.cuda.empty_cache()
+
         # global global_fft_time
         # start_fft_time = time.time()
         # fft of the input and filters
@@ -268,6 +269,9 @@ class Conv2dfftFunction(torch.autograd.Function):
                           signal_ndim=Conv2dfftFunction.signal_ndim,
                           onesided=True)
         del filter
+
+        if args.mem_test:
+            torch.cuda.empty_cache()
 
         # global_fft_time += time.time() - start_fft_time
         # print("rfft time: ", global_fft_time)
@@ -316,15 +320,20 @@ class Conv2dfftFunction(torch.autograd.Function):
                 yfft = compress_2D_index_forward(yfft, index_forward_W_fft)
 
         _, _, half_fft_compressed_H, half_fft_compressed_W, _ = xfft.size()
+
+        if args.mem_test:
+            torch.cuda.empty_cache()
+
         if args.log_conv_size is True:
-        # if True:
+            # if True:
             with open(additional_log_file, "a") as file:
                 # file.write(str(half_fft_compressed_H) + "," + str(
                 #     half_fft_compressed_W) + ",")
                 # file.write(str(conv_index) + "," + str(
                 #     half_fft_compressed_H * half_fft_compressed_W * C) + ",")
                 file.write(
-                    str(half_fft_compressed_H * half_fft_compressed_W * C) + ",")
+                    str(
+                        half_fft_compressed_H * half_fft_compressed_W * C) + ",")
                 # file.write("C:" + str(C) + "," + "H:" + str(
                 #     half_fft_compressed_H) + "," + "W:" + str(
                 #     half_fft_compressed_W) + ",")
@@ -471,6 +480,9 @@ class Conv2dfftFunction(torch.autograd.Function):
         # global_correlation_time += time.time() - start_correlation
         # print("complex correlation time: ", global_correlation_time)
 
+        if args.mem_test:
+            torch.cuda.empty_cache()
+
         if (stride_H != 1 or stride_W != 1) and (
                 stride_type is StrideType.STANDARD):
             out = out[:, :, ::stride_H, ::stride_W]
@@ -502,6 +514,7 @@ class Conv2dfftFunction(torch.autograd.Function):
             ctx.half_fft_compressed_H = half_fft_compressed_H
             ctx.half_fft_compressed_W = half_fft_compressed_W
             ctx.C = C
+            ctx.args = args
             ctx.save_for_backward(xfft, yfft)
 
         return out.clone()
@@ -549,7 +562,11 @@ class Conv2dfftFunction(torch.autograd.Function):
         half_fft_compressed_H = ctx.half_fft_compressed_H
         half_fft_compressed_W = ctx.half_fft_compressed_W
         C = ctx.C
+        args = ctx.args
         xfft, yfft = ctx.saved_tensors
+
+        if args.mem_test:
+            torch.cuda.empty_cache()
 
         is_debug = args.is_debug
         if is_debug:
@@ -564,6 +581,9 @@ class Conv2dfftFunction(torch.autograd.Function):
         omit_objs = [id(ctx)]
         del ctx
 
+        if args.mem_test:
+            torch.cuda.empty_cache()
+
         if is_debug:
             cuda_mem_show(info="backward start", omit_objs=omit_objs)
 
@@ -574,7 +594,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                 args.stride_type is StrideType.STANDARD):
             N, F, HHH, WWW = dout.size()
             assert HHH == WWW
-            grad = torch.zeros(N, F, out_H, out_W)
+            grad = torch.zeros(N, F, out_H, out_W, device=device, dtype=dtype)
             if out_H > HHH and out_W > WWW:
                 grad[..., ::stride_H, ::stride_W] = dout
             else:
@@ -610,10 +630,16 @@ class Conv2dfftFunction(torch.autograd.Function):
             'constant', 0)
         del dout
 
+        if args.mem_test:
+            torch.cuda.empty_cache()
+
         doutfft = torch.rfft(padded_dout,
                              signal_ndim=Conv2dfftFunction.signal_ndim,
                              onesided=True)
         del padded_dout
+
+        if args.mem_test:
+            torch.cuda.empty_cache()
 
         # the last dimension is for real and imaginary parts of the complex
         # numbers
@@ -702,6 +728,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                         # print("permute time: ", global_permute_time)
                         # global global_complex_dxfft
                         # start_complex = time.time()
+
                         complex_mul_stride_no_permute_cuda(doutfft, yfft, dxfft,
                                                            cuda_block_threads)
                         torch.cuda.synchronize()
@@ -734,9 +761,11 @@ class Conv2dfftFunction(torch.autograd.Function):
                                  signal_sizes=(init_H_fft, init_W_fft),
                                  onesided=True)
                 del dxfft
-                # print("full dx: ", dx)
                 dx = dx[..., pad_H:H + pad_H, pad_W:W + pad_W]
             del yfft
+
+        if args.mem_test:
+            torch.cuda.empty_cache()
 
         if need_filter_grad:
             # Calculate dw - the gradient for the filters w.
@@ -884,6 +913,9 @@ class Conv2dfftFunction(torch.autograd.Function):
         del doutfft
         del xfft
 
+        if args.mem_test:
+            torch.cuda.empty_cache()
+
         # if dx is not None:
         #     print("dx size: ", dx.size(), ", dw size: ", dw.size())
         # else:
@@ -967,9 +999,17 @@ class Conv2dfft(Module):
                                  "in_channels and kernel_size) to generate the "
                                  "filter.")
             self.kernel_height, self.kernel_width = get_pair(kernel_size)
-            self.weight = Parameter(
-                torch.randn(out_channels, in_channels, self.kernel_height,
-                            self.kernel_width, dtype=args.dtype))
+            if args.dtype is torch.float:
+                weight = torch.randn(out_channels, in_channels,
+                                     self.kernel_height,
+                                     self.kernel_width, dtype=args.dtype)
+            elif args.dtype is torch.half:
+                weight = torch.randn(out_channels, in_channels,
+                                     self.kernel_height,
+                                     self.kernel_width).to(torch.half)
+            else:
+                raise Exception(f"Unknown dtype in args: {args.dtype}")
+            self.weight = Parameter(weight)
         else:
             self.is_weight_value = True
             self.weight = weight_value
@@ -1020,7 +1060,13 @@ class Conv2dfft(Module):
 
     def reset_parameters(self):
         if self.is_weight_value is not None and self.is_weight_value is False:
-            init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+            if self.weight.dtype is torch.half:
+                dtype = self.weight.dtype
+                weight = self.weight.to(torch.float)
+                init.kaiming_uniform_(weight, a=math.sqrt(5))
+                self.weight = Parameter(weight.to(dtype))
+            else:
+                init.kaiming_uniform_(self.weight, a=math.sqrt(5))
         if self.bias is not None and self.is_bias_value is False:
             fan_in, _ = init._calculate_fan_in_and_fan_out(self.weight)
             bound = 1 / math.sqrt(fan_in)

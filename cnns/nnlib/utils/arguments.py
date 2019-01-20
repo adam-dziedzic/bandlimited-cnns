@@ -37,32 +37,33 @@ class Arguments(object):
 
     def __init__(self,
                  is_debug=False,
-                 # network_type=NetworkType.ResNet18,
-                 network_type=NetworkType.DenseNetCifar,
+                 network_type=NetworkType.ResNet18,
+                 # network_type=NetworkType.DenseNetCifar,
                  # network_type=NetworkType.FCNN_STANDARD,
                  preserved_energy=100,  # for unit tests
                  # preserved_energies=[100],
                  # preserved_energies=range(100,49,-1),
                  # preserved_energies=range(85, 75, -1),
-                 # preserved_energies=[95, 90, 98],
-                 # preserved_energies=[100, 99.9, 99.5, 99, 98, 97, 96, 95, 90, 80, 70, 60, 50, 10],
+                 # preserved_energies=[95, 90, 98],                 # preserved_energies=[100, 99.9, 99.5, 99, 98, 97, 96, 95, 90, 80, 70, 60, 50, 10],
                  preserved_energies=[100],
                  # preserved_energies=range(96, 1),
-                 tensor_type=TensorType.FLOAT32,
-                 # tensor_type=TensorType.FLOAT16,
+                 # tensor_type=TensorType.FLOAT32,
+                 tensor_type=TensorType.FLOAT16,
                  # precision_type=PrecisionType.AMP,
-                 precision_type=PrecisionType.FP32,
-                 # precision_type=PrecisionType.FP16,
+                 # precision_type=PrecisionType.FP32,
+                 precision_type=PrecisionType.FP16,
                  use_cuda=True,
                  compress_type=CompressType.STANDARD,
                  #compress_rate=5,
-                 compress_rate=0.0,
+                 compress_rate=0,
                  # ndexes_back=[5,15,25,35,45],
                  # compress_rates=[x/2 for x in range(28,111,1)],
                  # compress_rate=0.1,  # for unit tests
                  # compress_rates=[50.0],
-                 compress_rates=range(0, 101),
+                 # compress_rates=range(0, 101),
+                 compress_rates=[50.0],
                  # compress_rates=[0,5,11,11.5,17,20.5,22,22.5,28,32,33,36,37,39,41,42,47,50,51,55,58,59,63,64,65,66,69,70,71,73,76,77,79,80,82,83,84],
+                 # compress_rates = [0,0,3,4,9.5,11.5,11.5,12,17.5,22,22.5,28,37.5,47,47.5,51,64.5,74,77.5,84],
                  # layers_compress_rates=None,
                  # compression rates for each of the conv fft layers in
                  # ResNet-18, with the total compression in the fft domain by
@@ -71,16 +72,17 @@ class Arguments(object):
                  layers_compress_rates=None,
                  # weight_decay=5e-4,
                  # weight_decay=0,
-                 weight_decay=0.0001,
-                 epochs=1,
+                 weight_decay=0.0005,
+                 epochs=0,
                  min_batch_size=32,
                  test_batch_size=32,
-                 learning_rate=0.01,
+                 learning_rate=0.001,
                  momentum=0.9,
                  seed=31,
                  log_interval=1,
                  optimizer_type=OptimizerType.MOMENTUM,
                  scheduler_type=SchedulerType.ReduceLROnPlateau,
+                 # scheduler_type=SchedulerType.Custom,
                  loss_type=LossType.CROSS_ENTROPY,
                  loss_reduction=LossReduction.ELEMENTWISE_MEAN,
                  memory_type=MemoryType.PINNED,
@@ -129,13 +131,14 @@ class Arguments(object):
                  # model_path="2018-11-26-20-04-34-197804-dataset-50words-preserve-energy-100-test-accuracy-67.47252747252747.model",
                  # model_path="2019-01-11-02-21-05-406721-dataset-cifar10-preserve-energy-100.0-test-accuracy-92.23-51.5-real-compression.model",
                  # dataset="cifar100",
-                 dataset="cifar100",
+                 dataset="cifar10",
                  # dataset="ucr",
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
                  sample_count_limit=32,
                  # sample_count_limit=1024,
+                 # sample_count_limit=2048,
                  conv_type=ConvType.FFT2D,
                  # conv_type=ConvType.STANDARD2D,
                  # conv_type=ConvType.FFT1D,
@@ -160,9 +163,12 @@ class Arguments(object):
                  adam_beta1=0.9,
                  adam_beta2=0.999,
                  cuda_block_threads=1024,
+                 # resume="cifar100-90.484checkpoint.tar",
+                 # resume="cifar100-0.0-84-checkpoint.tar",
                  resume="",
                  gpu=0,
-                 start_epoch=0
+                 start_epoch=0,
+                 only_train=False,
                  ):
         """
         The default parameters for the execution of the program.
@@ -264,6 +270,7 @@ class Arguments(object):
         self.gpu = gpu
         self.start_epoch = start_epoch
         self.precision_type = precision_type
+        self.only_train = only_train
 
 
     def get_bool(self, arg):
@@ -301,6 +308,7 @@ class Arguments(object):
         self.is_dev_dataset = self.get_bool(parsed_args.is_dev_dataset)
         self.mem_test = self.get_bool(parsed_args.mem_test)
         self.use_cuda = self.get_bool(parsed_args.use_cuda) and torch.cuda.is_available()
+        self.only_train = self.get_bool(parsed_args.only_train)
 
         if hasattr(parsed_args, "preserve_energy"):
             self.preserve_energy = parsed_args.preserve_energy

@@ -8,6 +8,7 @@ from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.general_utils import TensorType
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.arguments import Arguments
+from torch.nn.parameter import Parameter
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152']
@@ -151,8 +152,15 @@ class ResNet(nn.Module):
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d) or isinstance(m, Conv2dfft):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out',
-                                        nonlinearity='relu')
+                if m.weight.dtype is torch.half:
+                    dtype = m.weight.dtype
+                    weight = m.weight.to(torch.float)
+                    nn.init.kaiming_normal_(weight, mode='fan_out',
+                                            nonlinearity='relu')
+                    m.weight = Parameter(weight.to(dtype))
+                else:
+                    nn.init.kaiming_normal_(m.weight, mode='fan_out',
+                                            nonlinearity='relu')
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
