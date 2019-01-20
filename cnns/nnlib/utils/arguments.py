@@ -60,7 +60,7 @@ class Arguments(object):
                  # compress_rates=[x/2 for x in range(28,111,1)],
                  # compress_rate=0.1,  # for unit tests
                  # compress_rates=[50.0],
-                 compress_rates=range(84, -1, -1),
+                 compress_rates=range(17, -1, -1),
                  # compress_rates=[0,1,6,10,12,20,22,28,38,47,48,76,84],
                  # compress_rates=[0,5,11,11.5,17,20.5,22,22.5,28,32,33,36,37,39,41,42,47,50,51,55,58,59,63,64,65,66,69,70,71,73,76,77,79,80,82,83,84],
                  # compress_rates = [0,0,3,4,9.5,11.5,11.5,12,17.5,22,22.5,28,37.5,47,47.5,51,64.5,74,77.5,84],
