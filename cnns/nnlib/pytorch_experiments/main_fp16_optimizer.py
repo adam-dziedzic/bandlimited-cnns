@@ -274,7 +274,9 @@ def main():
                 'state_dict': model.state_dict(),
                 'best_prec1': best_prec1,
                 'optimizer': optimizer.state_dict(),
-            }, is_best)
+            }, is_best, filename=args.dataset + "-" + str(
+                test_accuracy) + "-" + str(
+                args.compress_rate) + "-" + "checkpoint.tar")
 
         lr = f"unknown (started with: {args.learning_rate})"
         if len(raw_optimizer.param_groups) > 0:
