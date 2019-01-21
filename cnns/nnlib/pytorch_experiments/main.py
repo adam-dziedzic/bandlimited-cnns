@@ -554,7 +554,8 @@ def main(args):
         # Metric: select the best model based on the best train loss (minimal).
         is_best = False
         if args.is_dev_dataset:
-            if dev_accuracy > max_dev_accuracy:
+            if (train_loss < min_train_loss) or (dev_loss < min_dev_loss) or (
+                    test_loss < min_test_loss):
                 min_train_loss = train_loss
                 max_train_accuracy = train_accuracy
                 min_dev_loss = dev_loss
@@ -572,23 +573,6 @@ def main(args):
                                           "-test-accuracy-" + str(
                                               test_accuracy) + ".model")
                 torch.save(model.state_dict(), model_path)
-        else:
-            if train_loss < min_train_loss:
-                min_train_loss = train_loss
-                max_train_accuracy = train_accuracy
-                min_dev_loss = dev_loss
-                max_dev_accuracy = dev_accuracy
-                min_test_loss = test_loss
-                max_test_accuracy = test_accuracy
-                is_best = True
-                model_path = os.path.join(models_dir,
-                                          get_log_time() + "-dataset-" + str(
-                                              dataset_name) + \
-                                          "-preserve-energy-" + str(
-                                              preserve_energy) + \
-                                          "-test-accuracy-" + str(
-                                              test_accuracy) + ".model")
-                torch.save(model.state_dict(), model_path)
 
         # Save the checkpoint (to resume training).
         save_checkpoint({
@@ -597,8 +581,9 @@ def main(args):
             'max_train_accuracy': max_train_accuracy,
             'optimizer': optimizer.state_dict(),
         }, is_best,
-            filename=dataset_name + "-" + str(
-                max_train_accuracy) + "-" + str(
+            filename="dataset-" + dataset_name + "-max-train-accuracy-" + str(
+                max_train_accuracy) + "-max-test-accuracy-" + str(
+                max_test_accuracy) + "-compress-rate-" + str(
                 args.compress_rate) + "-" + "checkpoint.tar")
 
     with open(global_log_file, "a") as file:
