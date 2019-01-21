@@ -82,6 +82,7 @@ pathlib.Path(results_dir).mkdir(parents=True, exist_ok=True)
 
 models_folder_name = "models"
 models_dir = os.path.join(os.curdir, models_folder_name)
+print("models_dir: ", models_dir)
 pathlib.Path(models_dir).mkdir(parents=True, exist_ok=True)
 # if not os.path.exists(models_dir):
 #     os.makedirs(models_dir)
@@ -312,7 +313,7 @@ def main(args):
     DATASET_HEADER = HEADER + ",dataset," + str(dataset_name) + \
                      "-current-preserve-energy-" + str(preserve_energy) + "\n"
 
-    test_many_compress_rates = True
+    test_many_compress_rates = False
     if test_many_compress_rates:
         dataset_log_file = os.path.join(results_folder_name, "dataset.log")
     else:
