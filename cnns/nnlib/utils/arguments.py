@@ -138,7 +138,7 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=32,
+                 sample_count_limit=0,
                  # sample_count_limit=32,
                  # sample_count_limit=1024,
                  # sample_count_limit=2048,
@@ -151,7 +151,7 @@ class Arguments(object):
                  # conv_exec_type=ConvExecType.CUDA_SHARED_LOG,
                  # conv_exec_type=ConvExecType.BATCH,
                  # conv_exec_type=ConvExecType.SERIAL,
-                 visualize=True,  # test model for different compress rates
+                 visualize=False,  # test model for different compress rates
                  static_loss_scale=1,
                  out_size=None,
                  next_power2=True,
