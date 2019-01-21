@@ -233,6 +233,10 @@ def get_args():
                         help='enabling apex sync BN.')
     parser.add_argument("--local_rank", default=0, type=int)
     parser.add_argument("--gpu", default=0, type=int)
+    parser.add_argument("--test_compress_rates",
+                        default="TRUE" if args.test_compress_rates else "FALSE",
+                        help="should we log to a single file for many compress rates: "
+                             "" + ",".join(Bool.get_names()))
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)
