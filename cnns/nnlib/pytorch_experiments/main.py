@@ -313,9 +313,9 @@ def main(args):
     DATASET_HEADER = HEADER + ",dataset," + str(dataset_name) + \
                      "-current-preserve-energy-" + str(preserve_energy) + "\n"
 
-    test_many_compress_rates = False
-    if test_many_compress_rates:
-        dataset_log_file = os.path.join(results_folder_name, "dataset.log")
+    if args.test_compress_rates:
+        dataset_log_file = os.path.join(results_folder_name,
+                                        f"{args.dataset}-dataset.log")
     else:
         dataset_log_file = os.path.join(
             results_folder_name,
@@ -620,7 +620,7 @@ if __name__ == '__main__':
     HEADER = "hostname," + str(
         hostname) + ",timestamp," + get_log_time() + "," + str(
         args_str) + ",cuda_visible_devices," + str(cuda_visible_devices)
-    with open(additional_log_file, "a") as file:        # Write the metadata.
+    with open(additional_log_file, "a") as file:  # Write the metadata.
         file.write(HEADER + "\n")
     with open(global_log_file, "a") as file:
         # Write the metadata.

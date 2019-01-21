@@ -175,6 +175,7 @@ class Arguments(object):
                  gpu=0,
                  start_epoch=0,
                  only_train=False,
+                 test_compress_rates=False,
                  ):
         """
         The default parameters for the execution of the program.
@@ -277,6 +278,7 @@ class Arguments(object):
         self.start_epoch = start_epoch
         self.precision_type = precision_type
         self.only_train = only_train
+        self.test_compress_rates = test_compress_rates
 
 
     def get_bool(self, arg):
@@ -315,6 +317,7 @@ class Arguments(object):
         self.mem_test = self.get_bool(parsed_args.mem_test)
         self.use_cuda = self.get_bool(parsed_args.use_cuda) and torch.cuda.is_available()
         self.only_train = self.get_bool(parsed_args.only_train)
+        self.test_compress_rates = self.get_bool(parsed_args.test_compress_rates)
 
         if hasattr(parsed_args, "preserve_energy"):
             self.preserve_energy = parsed_args.preserve_energy
