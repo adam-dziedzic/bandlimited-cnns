@@ -37,8 +37,8 @@ class Arguments(object):
 
     def __init__(self,
                  is_debug=False,
-                 # network_type=NetworkType.ResNet18,
-                 network_type=NetworkType.DenseNetCifar,
+                 network_type=NetworkType.ResNet18,
+                 # network_type=NetworkType.DenseNetCifar,
                  # network_type=NetworkType.FCNN_STANDARD,
                  preserved_energy=100,  # for unit tests
                  # preserved_energies=[100],
@@ -60,8 +60,10 @@ class Arguments(object):
                  # compress_rates=[x/2 for x in range(28,111,1)],
                  # compress_rate=0.1,  # for unit tests
                  # compress_rates=[50.0],
-                 compress_rates=range(17, -1, -1),
+                 # compress_rates=
                  # compress_rates=[0,1,6,10,12,20,22,28,38,47,48,76,84],
+                 compress_rates=[0,3,4,9.5,11.5,12,17.5,22,22.5,28,37.5,47,47.5,51,64.5,74,77.5,84],
+                 # compress_rates=range(0,30),
                  # compress_rates=[0,5,11,11.5,17,20.5,22,22.5,28,32,33,36,37,39,41,42,47,50,51,55,58,59,63,64,65,66,69,70,71,73,76,77,79,80,82,83,84],
                  # compress_rates = [0,0,3,4,9.5,11.5,11.5,12,17.5,22,22.5,28,37.5,47,47.5,51,64.5,74,77.5,84],
                  # layers_compress_rates=None,
@@ -72,7 +74,7 @@ class Arguments(object):
                  layers_compress_rates=None,
                  # weight_decay=5e-4,
                  # weight_decay=0,
-                 weight_decay=0.0005,
+                 weight_decay=0.0001,
                  epochs=0,
                  min_batch_size=32,
                  test_batch_size=32,
@@ -87,8 +89,8 @@ class Arguments(object):
                  loss_reduction=LossReduction.ELEMENTWISE_MEAN,
                  memory_type=MemoryType.PINNED,
                  workers=6,
-                 # model_path="no_model",
-                 model_path="2019-01-18-20-11-05-764539-dataset-cifar100-preserve-energy-100.0-test-accuracy-58.63.model",
+                 model_path="no_model",
+                 # model_path="2019-01-18-20-11-05-764539-dataset-cifar100-preserve-energy-100.0-test-accuracy-58.63.model",
                  # model_path="2019-01-09-14-51-48-093159-dataset-ECGFiveDays-preserve-energy-100.0-test-accuracy-86.52729384436701.model",
                  # model_path="2019-01-09-13-46-20-792223-dataset-MoteStrain-preserve-energy-90.0-test-accuracy-79.47284345047923.model",
                  # model_path="2019-01-09-13-47-45-327309-dataset-MoteStrain-preserve-energy-100.0-test-accuracy-80.59105431309904.model",
@@ -131,8 +133,8 @@ class Arguments(object):
                  # model_path="2018-11-29-12-26-08-403300-dataset-50words-preserve-energy-99-test-accuracy-63.51648351648352.model",
                  # model_path="2018-11-26-20-04-34-197804-dataset-50words-preserve-energy-100-test-accuracy-67.47252747252747.model",
                  # model_path="2019-01-11-02-21-05-406721-dataset-cifar10-preserve-energy-100.0-test-accuracy-92.23-51.5-real-compression.model",
-                 dataset="cifar100",
-                 # dataset="cifar10",
+                 # dataset="cifar100",
+                 dataset="cifar10",
                  # dataset="ucr",
                  # dataset="debug",
                  mem_test=False,
@@ -150,7 +152,7 @@ class Arguments(object):
                  # conv_exec_type=ConvExecType.CUDA_SHARED_LOG,
                  # conv_exec_type=ConvExecType.BATCH,
                  # conv_exec_type=ConvExecType.SERIAL,
-                 visualize=True,  # test model for different compress rates
+                 visualize=False,  # test model for different compress rates
                  static_loss_scale=1,
                  out_size=None,
                  next_power2=True,
