@@ -46,17 +46,17 @@ fig = plt.figure(figsize=(10, 8))
 
 datasets = ["cifar10", "cifar100"]
 titles = ["ResNet-18 on CIFAR-10", "DenseNet-121 on CIFAR-100"]
-labels10 = ["compression", "0", "51.5"]
+labels10 = ["compression", "0", "51.5", "86"]
 labels100 = ["compression", "0", "51", "78", "86"]
 legend_pos = ["center left", "upper left"]
-ncols = [2, 4]
-bbox = [(0, 0.5), (0, 1.05)]
+ncols = [3, 4]
+bbox = [(0.0, 0.1), (0, 1.05)]
 
 for j, dataset in enumerate(datasets):
     plt.subplot(2, 1, j + 1)
     print("dataset: ", dataset)
     if dataset == "cifar10":
-        columns = 3
+        columns = 4
         labels = labels10
     else:
         columns = 5
@@ -75,12 +75,12 @@ for j, dataset in enumerate(datasets):
 
     plt.grid()
     plt.legend(loc=legend_pos[j], ncol=ncols[j], frameon=False,
-               prop={'size': 16}, bbox_to_anchor=bbox[j])
+               prop={'size': 18}, bbox_to_anchor=bbox[j])
     plt.xlabel('Test compression (%)')
     plt.title(titles[j], fontsize=16)
     plt.ylabel("Test accuracy (%)")
     plt.ylim(0, 100)
-    plt.xlim(0, 85)
+    plt.xlim(0, 86)
 
 # plt.gcf().autofmt_xdate()
 # plt.xticks(rotation=0)

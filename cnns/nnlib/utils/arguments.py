@@ -186,6 +186,7 @@ class Arguments(object):
                  start_epoch=0,
                  only_train=False,
                  test_compress_rates=True,
+                 noise_sigma=0.0,
                  noise_sigmas=[0.0],
                  ):
         """
@@ -290,6 +291,7 @@ class Arguments(object):
         self.precision_type = precision_type
         self.only_train = only_train
         self.test_compress_rates = test_compress_rates
+        self.noise_sigma = noise_sigma
         self.noise_sigmas = noise_sigmas
 
 
