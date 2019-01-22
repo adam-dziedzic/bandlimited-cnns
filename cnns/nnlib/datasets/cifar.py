@@ -6,6 +6,8 @@ from cnns.nnlib.datasets.transformations.dtype_transformation import \
     DtypeTransformation
 from cnns.nnlib.datasets.transformations.flat_transformation import \
     FlatTransformation
+from cnns.nnlib.datasets.transformations.gaussian_noise import \
+    AddGaussianNoiseTransformation
 from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import NetworkType
 
@@ -25,7 +27,7 @@ def get_transform_train(dtype=torch.float32, signal_dimension=2):
     return transform_train
 
 
-def get_transform_test(dtype=torch.float32, signal_dimension=2):
+def get_transform_test(dtype=torch.float32, signal_dimension=2, noise_sigma=0):
     transformations = [
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.4465),
@@ -33,6 +35,9 @@ def get_transform_test(dtype=torch.float32, signal_dimension=2):
     ]
     if signal_dimension == 1:
         transformations.append(FlatTransformation())
+    if noise_sigma > 0:
+        transformations.append(
+            AddGaussianNoiseTransformation(sigma=noise_sigma))
     transformations.append(DtypeTransformation(dtype))
     transform_test = transforms.Compose(transformations)
     return transform_test
@@ -92,7 +97,8 @@ def get_cifar(args, dataset_name):
             train_dataset.targets = train_dataset.targets[:sample_count]
         except AttributeError:
             train_dataset.train_data = train_dataset.train_data[:sample_count]
-            train_dataset.train_labels = train_dataset.train_labels[:sample_count]
+            train_dataset.train_labels = train_dataset.train_labels[
+                                         :sample_count]
 
     train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
                                                batch_size=args.min_batch_size,
@@ -103,7 +109,8 @@ def get_cifar(args, dataset_name):
                                   download=True,
                                   transform=get_transform_test(
                                       dtype=torch.float,
-                                      signal_dimension=args.signal_dimension))
+                                      signal_dimension=args.signal_dimension,
+                                      noise_sigma=args.noise_sigma))
     if sample_count > 0:
         try:
             test_dataset.data = test_dataset.data[:sample_count]

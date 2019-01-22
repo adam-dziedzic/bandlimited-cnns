@@ -19,17 +19,21 @@ from cnns.nnlib.utils.general_utils import Bool
 from cnns.nnlib.utils.arguments import Arguments
 import argparse
 
+
 def get_args():
     # Execution parameters.
     args = Arguments()
     parser = argparse.ArgumentParser(description='PyTorch TimeSeries')
-    parser.add_argument('--min_batch_size', type=int, default=args.min_batch_size,
+    parser.add_argument('--min_batch_size', type=int,
+                        default=args.min_batch_size,
                         help=f"input mini batch size for training "
                         f"(default: {args.min_batch_size})")
-    parser.add_argument('--test_batch_size', type=int, default=args.test_batch_size,
+    parser.add_argument('--test_batch_size', type=int,
+                        default=args.test_batch_size,
                         metavar='N',
                         help='input batch size for testing (default: 1000)')
-    parser.add_argument('--epochs', type=int, default=args.epochs, metavar='Epochs',
+    parser.add_argument('--epochs', type=int, default=args.epochs,
+                        metavar='Epochs',
                         help=f"number of epochs to train ("
                         f"default: {args.epochs})")
     parser.add_argument('--learning_rate', type=float,
@@ -40,7 +44,8 @@ def get_args():
     parser.add_argument('--momentum', type=float, default=args.momentum,
                         metavar='M',
                         help=f'SGD momentum (default: {args.momentum})')
-    parser.add_argument('--use_cuda', default="TRUE" if args.use_cuda else "FALSE",
+    parser.add_argument('--use_cuda',
+                        default="TRUE" if args.use_cuda else "FALSE",
                         help="use CUDA for training and inference; "
                              "options: " + ",".join(Bool.get_names()))
     parser.add_argument('--seed', type=int, default=args.seed, metavar='S',
@@ -107,7 +112,8 @@ def get_args():
                         help="How much energy should be preserved in the "
                              "frequency representation of the signal? This "
                              "is the compression in the FFT domain.")
-    parser.add_argument("--mem_test", default="TRUE" if args.mem_test else "FALSE",
+    parser.add_argument("--mem_test",
+                        default="TRUE" if args.mem_test else "FALSE",
                         help="is it the memory test; options: " + ",".join(
                             Bool.get_names()))
     parser.add_argument("--is_data_augmentation",
@@ -156,7 +162,8 @@ def get_args():
                         help="should we extend the input to the length of a power "
                              "of 2 before taking its fft? " + ",".join(
                             Bool.get_names()))
-    parser.add_argument("--visualize", default="TRUE" if args.visulize else "FALSE",
+    parser.add_argument("--visualize",
+                        default="TRUE" if args.visulize else "FALSE",
                         # "TRUE", "FALSE"
                         help="should we visualize the activations map after each "
                              "of the convolutional layers? " + ",".join(
@@ -180,13 +187,16 @@ def get_args():
                         help="should we show the progress bar after each batch was"
                              "processed in training and testing? " + ",".join(
                             Bool.get_names()))
-    parser.add_argument("--log_conv_size", default="TRUE" if args.log_conv_size else "FALSE",
+    parser.add_argument("--log_conv_size",
+                        default="TRUE" if args.log_conv_size else "FALSE",
                         # "TRUE", "FALSE"
                         help="should we show log the size of each of the fft based"
                              "conv layers? " + ",".join(Bool.get_names()))
-    parser.add_argument("--only_train", default="TRUE" if args.only_train else "FALSE",
+    parser.add_argument("--only_train",
+                        default="TRUE" if args.only_train else "FALSE",
                         # "TRUE", "FALSE"
-                        help="should we show execute only the train stage without any testing? " + ",".join(Bool.get_names()))
+                        help="should we show execute only the train stage without any testing? " + ",".join(
+                            Bool.get_names()))
     parser.add_argument("--stride_type", default=args.stride_type.name,
                         # "FLOAT32", "FLOAT16", "DOUBLE", "INT"
                         help="the tensor data type: " + ",".join(
@@ -210,8 +220,10 @@ def get_args():
                         help="beta2 value for the ADAM optimizer, default: "
                              "{args.adam_beta1}")
     parser.add_argument("--cuda_block_threads", default=args.cuda_block_threads,
-                        type=int, help="Max number of threads for a cuda block.")
-    parser.add_argument('--resume', default=args.resume, type=str, metavar='PATH',
+                        type=int,
+                        help="Max number of threads for a cuda block.")
+    parser.add_argument('--resume', default=args.resume, type=str,
+                        metavar='PATH',
                         help='path to the latest checkpoint (default: none '
                              'expressed as an empty string)')
     parser.add_argument('--start_epoch', type=int, default=args.start_epoch,
@@ -237,6 +249,9 @@ def get_args():
                         default="TRUE" if args.test_compress_rates else "FALSE",
                         help="should we log to a single file for many compress rates: "
                              "" + ",".join(Bool.get_names()))
+    parser.add_argument("--noise_sigma", default=args.noise_sigma,
+                        type=float,
+                        help="how much gaussian noise to add: {args.noise_sigma}")
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)

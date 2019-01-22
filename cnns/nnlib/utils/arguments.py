@@ -55,12 +55,14 @@ class Arguments(object):
                  use_cuda=True,
                  compress_type=CompressType.STANDARD,
                  #compress_rate=5,
-                 compress_rate=0,
+                 compress_rate=0.0,
                  # ndexes_back=[5,15,25,35,45],
                  # compress_rates=[x/2 for x in range(28,111,1)],
                  # compress_rate=0.1,  # for unit tests
-                 # compress_rates=[50.0],
                  compress_rates=[0.0],
+                 # compress_rates=range(85, 91),
+                 # compress_rates=[50.0],
+                 # compress_rates=[90.0],
                  # compress_rates=[0,1,6,10,12,20,22,28,38,47,48,76,84],
                  # compress_rates=[0,3,4,9.5,11.5,12,17.5,22,22.5,28,37.5,47,47.5,51,64.5,74,77.5,84],
                  # compress_rates=range(0,30),
@@ -74,7 +76,7 @@ class Arguments(object):
                  layers_compress_rates=None,
                  # weight_decay=5e-4,
                  # weight_decay=0,
-                 weight_decay=0.0001,
+                 weight_decay=0.0005,
                  epochs=0,
                  min_batch_size=32,
                  test_batch_size=32,
@@ -90,7 +92,9 @@ class Arguments(object):
                  memory_type=MemoryType.PINNED,
                  workers=6,
                  # model_path="no_model",
-                 model_path="2019-01-08-02-48-26-558883-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.07-compress-8.32.model",
+                 model_path="2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model",
+                 # model_path="2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model",
+                 # model_path="2019-01-08-02-48-26-558883-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.07-compress-8.32.model",
                  # model_path="2019-01-08-07-18-52-980249-dataset-cifar10-preserve-energy-100.0-test-accuracy-92.82-compress-29.26.model",
                  # model_path="2019-01-18-20-11-05-764539-dataset-cifar100-preserve-energy-100.0-test-accuracy-58.63.model",
                  # model_path="2019-01-09-14-51-48-093159-dataset-ECGFiveDays-preserve-energy-100.0-test-accuracy-86.52729384436701.model",
@@ -161,7 +165,7 @@ class Arguments(object):
                  dynamic_loss_scale=True,
                  memory_size=25,
                  is_progress_bar=False,
-                 log_conv_size=True,
+                 log_conv_size=False,
                  stride_type=StrideType.STANDARD,
                  # is_dev_dataset = True,
                  is_dev_dataset=False,
@@ -176,6 +180,7 @@ class Arguments(object):
                  start_epoch=0,
                  only_train=False,
                  test_compress_rates=False,
+                 noise_sigma=1.0,
                  ):
         """
         The default parameters for the execution of the program.
@@ -279,6 +284,7 @@ class Arguments(object):
         self.precision_type = precision_type
         self.only_train = only_train
         self.test_compress_rates = test_compress_rates
+        self.noise_sigma = noise_sigma
 
 
     def get_bool(self, arg):

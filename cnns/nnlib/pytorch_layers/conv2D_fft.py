@@ -722,6 +722,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                     if torch.cuda.is_available():
                         # global global_permute_time
                         # start_permute = time.time()
+                        doutfft = doutfft.contiguous()
                         dxfft = dxfft.contiguous()
                         yfft = yfft.permute(1, 0, 2, 3, 4).contiguous()
                         # global_permute_time += time.time() - start_permute

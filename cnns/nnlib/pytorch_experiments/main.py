@@ -75,13 +75,14 @@ ucr_data_folder = "TimeSeriesDatasets"
 ucr_path = os.path.join(os.pardir, os.pardir, ucr_data_folder)
 
 results_folder_name = "results"
-results_dir = os.path.join(os.curdir, results_folder_name)
+results_dir = os.path.join(os.getcwd(), results_folder_name)
+print("current dir: ", os.getcwd())
 pathlib.Path(results_dir).mkdir(parents=True, exist_ok=True)
 # if not os.path.exists(results_dir):
 #     os.makedirs(results_dir)
 
 models_folder_name = "models"
-models_dir = os.path.join(os.curdir, models_folder_name)
+models_dir = os.path.join(os.getcwd(), models_folder_name)
 print("models_dir: ", models_dir)
 pathlib.Path(models_dir).mkdir(parents=True, exist_ok=True)
 # if not os.path.exists(models_dir):
@@ -315,7 +316,7 @@ def main(args):
 
     if args.test_compress_rates:
         dataset_log_file = os.path.join(results_folder_name,
-                                        f"{args.dataset}-dataset.log")
+                                        f"{args.dataset}-dataset-compress-rates.log")
     else:
         dataset_log_file = os.path.join(
             results_folder_name,
@@ -492,6 +493,7 @@ def main(args):
             model=model, device=device, test_loader=test_loader,
             loss_function=loss_function, args=args)
         elapsed_time = time.time() - start_visualize_time
+        print("test accuracy: ", test_accuracy)
         with open(global_log_file, "a") as file:
             file.write(
                 dataset_name + ",None,None,None,None," + str(
