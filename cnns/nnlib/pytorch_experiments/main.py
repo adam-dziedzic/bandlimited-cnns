@@ -359,7 +359,8 @@ def main(args):
             cuda_type = torch.cuda.DoubleTensor
         else:
             raise Exception(f"Unknown tensor type: {tensor_type}")
-        torch.set_default_tensor_type(cuda_type)
+        # The below has to be disabled for normal distribution to work (add noise).
+        # torch.set_default_tensor_type(cuda_type)
     else:
         if tensor_type is TensorType.FLOAT32:
             cpu_type = torch.FloatTensor
@@ -369,7 +370,7 @@ def main(args):
             cpu_type = torch.DoubleTensor
         else:
             raise Exception(f"Unknown tensor type: {tensor_type}")
-        torch.set_default_tensor_type(cpu_type)
+        # torch.set_default_tensor_type(cpu_type)
 
     train_loader, dev_loader, test_loader = None, None, None
     if dataset_name is "cifar10" or dataset_name is "cifar100":
@@ -493,6 +494,7 @@ def main(args):
             model=model, device=device, test_loader=test_loader,
             loss_function=loss_function, args=args)
         elapsed_time = time.time() - start_visualize_time
+        print("test time: ", elapsed_time)
         print("test accuracy: ", test_accuracy)
         with open(global_log_file, "a") as file:
             file.write(
@@ -1004,20 +1006,23 @@ if __name__ == '__main__':
     print("flist: ", flist)
     for dataset_name in flist:
         args.dataset_name = dataset_name
+        print("Dataset: ", dataset_name)
         for preserve_energy in args.preserve_energies:
+            print("preserve energy: ", preserve_energy)
+            args.preserve_energy = preserve_energy
             for compress_rate in args.compress_rates:
-                print("Dataset: ", dataset_name)
-                print("preserve energy: ", preserve_energy)
                 print("compress rate: ", compress_rate)
-                args.preserve_energy = preserve_energy
                 args.compress_rate = compress_rate
-                start_training = time.time()
-                try:
-                    main(args=args)
-                except RuntimeError as err:
-                    print(f"ERROR: {dataset_name}. "
-                          "Details: " + str(err))
-                    traceback.print_tb(err.__traceback__)
-                print("training time (sec): ", time.time() - start_training)
+                for noise_sigma in args.noise_sigmas:
+                    print("noise sigma: ", noise_sigma)
+                    args.noise_sigma = noise_sigma
+                    start_training = time.time()
+                    try:
+                        main(args=args)
+                    except RuntimeError as err:
+                        print(f"ERROR: {dataset_name}. "
+                              "Details: " + str(err))
+                        traceback.print_tb(err.__traceback__)
+                    print("elapsed time (sec): ", time.time() - start_training)
 
     print("total elapsed time (sec): ", time.time() - start_time)

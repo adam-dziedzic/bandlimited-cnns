@@ -20,6 +20,7 @@ def get_color(COLOR_TUPLE_255):
 
 
 font = {'size': 20}
+title_size=16
 matplotlib.rc('font', **font)
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -28,7 +29,7 @@ fig = plt.figure(figsize=(8, 6))
 
 plt.subplot(2, 1, 1)
 
-plt.title("cifar10")
+plt.title("ResNet-18 on CIFAR-10", fontsize=title_size)
 static_x = (
 0, 8.3855401, 11.87663269, 14.5, 17.8, 21.0941708, 24, 26, 29.26308507,
 39.203635, 49, 53.53477122, 67.50730502, 77.77388775)
@@ -69,7 +70,7 @@ plt.legend(loc=legend_position, frameon=frameon, prop={'size': legend_size}, bbo
 
 plt.subplot(2, 1, 2)
 
-plt.title("cifar100")
+plt.title("DenseNet-121 on CIFAR-100", fontsize=title_size)
 static_x = (
 0, 6.96345194, 9.732438751, 11.74155899, 16.71815462, 20.25832864, 23.932799,
 29.48016456, 40.12626288, 48.87082897, 50.91781047, 77.82953128)

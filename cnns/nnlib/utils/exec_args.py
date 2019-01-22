@@ -249,9 +249,9 @@ def get_args():
                         default="TRUE" if args.test_compress_rates else "FALSE",
                         help="should we log to a single file for many compress rates: "
                              "" + ",".join(Bool.get_names()))
-    parser.add_argument("--noise_sigma", default=args.noise_sigma,
+    parser.add_argument("--noise_sigmas", default=args.noise_sigmas, nargs="+",
                         type=float,
-                        help="how much gaussian noise to add: {args.noise_sigma}")
+                        help="how much gaussian noise to add: {args.noise_sigmas}")
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)
