@@ -384,7 +384,7 @@ def main(args):
 
     model = getModelPyTorch(args=args)
     model.to(device)
-    # model = torch.nn.DataParallel(model)
+    model = torch.nn.DataParallel(model)
 
     # https://pytorch.org/docs/master/notes/serialization.html
     if args.model_path != "no_model":
