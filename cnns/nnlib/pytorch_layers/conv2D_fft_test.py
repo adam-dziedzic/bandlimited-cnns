@@ -4,7 +4,6 @@ import time
 import numpy as np
 import torch
 from torch import tensor
-from torch.nn import functional as F
 from cnns.nnlib.layers import conv_forward_naive, conv_backward_naive
 from cnns.nnlib.pytorch_layers.conv2D_fft \
     import Conv2dfftAutograd, Conv2dfftFunction, Conv2dfft
@@ -1210,8 +1209,9 @@ class TestPyTorchConv2d(unittest.TestCase):
         pytorch Conv2d backward (sec):  0.022943496704101562
         Conv2dfft backward (sec):  0.2832372188568115
 
-        :return:
         """
+        seed=31
+        torch.cuda.manual_seed_all(seed)
         x = cifar10_image
         x.requires_grad_()
         print("shape of the input image: ", x.size())
@@ -1244,14 +1244,16 @@ class TestPyTorchConv2d(unittest.TestCase):
             expected_result_tensor = convTorch(input=x)
         print("pytorch Conv2d forward (sec): ", time.time() - start)
 
-        preserve_energy = 99.0
+        preserve_energy = 100.0
+        compress_rate=0.0
         conv = Conv2dfft(in_channels=y.shape[1],
                          out_channels=y.shape[0],
                          kernel_size=(y.shape[2], y.shape[3]),
                          bias=False,
                          args=Arguments(
-                             preserve_energy=preserve_energy,
-                             index_back=0,
+                             dtype=dtype,
+                             preserved_energy=preserve_energy,
+                             compress_rate=compress_rate,
                              is_debug=False,
                              next_power2=True,
                              compress_type=CompressType.STANDARD))

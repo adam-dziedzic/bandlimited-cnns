@@ -188,6 +188,7 @@ class Arguments(object):
                  test_compress_rates=True,
                  noise_sigma=0.0,
                  noise_sigmas=[0.0],
+                 dtype=torch.float,
                  ):
         """
         The default parameters for the execution of the program.
@@ -293,6 +294,7 @@ class Arguments(object):
         self.test_compress_rates = test_compress_rates
         self.noise_sigma = noise_sigma
         self.noise_sigmas = noise_sigmas
+        self.dtype = dtype
 
 
     def get_bool(self, arg):

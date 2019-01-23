@@ -350,7 +350,7 @@ def main(args):
     use_cuda = args.use_cuda
     device = torch.device("cuda" if use_cuda else "cpu")
     tensor_type = args.tensor_type
-    if use_cuda:
+    if use_cuda and args.noise_sigma is False:
         if tensor_type is TensorType.FLOAT32:
             cuda_type = torch.cuda.FloatTensor
         elif tensor_type is TensorType.FLOAT16:
@@ -360,8 +360,8 @@ def main(args):
         else:
             raise Exception(f"Unknown tensor type: {tensor_type}")
         # The below has to be disabled for normal distribution to work (add noise).
-        # torch.set_default_tensor_type(cuda_type)
-    else:
+        torch.set_default_tensor_type(cuda_type)
+    elif use_cuda is False and args.noise_sigma is False:
         if tensor_type is TensorType.FLOAT32:
             cpu_type = torch.FloatTensor
         elif tensor_type is TensorType.FLOAT16:
@@ -370,7 +370,7 @@ def main(args):
             cpu_type = torch.DoubleTensor
         else:
             raise Exception(f"Unknown tensor type: {tensor_type}")
-        # torch.set_default_tensor_type(cpu_type)
+        torch.set_default_tensor_type(cpu_type)
 
     train_loader, dev_loader, test_loader = None, None, None
     if dataset_name is "cifar10" or dataset_name is "cifar100":
@@ -558,8 +558,7 @@ def main(args):
         # Metric: select the best model based on the best train loss (minimal).
         is_best = False
         if args.is_dev_dataset:
-            if (train_loss < min_train_loss) or (dev_loss < min_dev_loss) or (
-                    test_loss < min_test_loss):
+            if (train_loss < min_train_loss) or (dev_loss < min_dev_loss):
                 min_train_loss = train_loss
                 max_train_accuracy = train_accuracy
                 min_dev_loss = dev_loss
