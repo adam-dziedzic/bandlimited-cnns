@@ -22,7 +22,7 @@ Most graphs from the paper can be found in: `cnns/graphs` directory.
 The main part of the 2D convolution with compression can be found in the following files:
 1. Pytorch conv2D_fft module: `cnns/nnlib/pytorch_layers/conv2D_fft.py`
 2. CUDA kernel: `cnns/nnlib/pytorch_cuda/complex_mul_cuda/complex_mul_kernel_stride_no_permute.cu`
-3. Pytorch conv1D_fft moduls: `cnns/nnlib/pytorch_layers/conv1D_fft.py`
+3. Pytorch conv1D_fft module: `cnns/nnlib/pytorch_layers/conv1D_fft.py`
 
 ## Memory management:
 `cnns/pytorch_tutorials/memory_net.py`
