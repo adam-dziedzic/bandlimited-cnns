@@ -43,7 +43,8 @@ GPU_MEM_SIZE = 16280
 # dir_prefix = "no_mem_test_data_utilization_train_test_3_iterations"
 # dir_prefix = "mem_test_mem_used_train_test_3_iterations"
 # dir_prefix = "mem_test_mem_used_train_test_3_iterations_only_main-fp16"
-dir_prefix = "mem_test_mem_used_train_test_3_iterations_only_main_fp16_correct_compress_rate"
+# dir_prefix = "mem_test_mem_used_train_test_3_iterations_only_main_fp16_correct_compress_rate"
+dir_prefix = "mem_usage_84"
 
 def read_columns(rate):
     file_name = dir_path + "/" + dir_prefix + "/utilization-" + str(

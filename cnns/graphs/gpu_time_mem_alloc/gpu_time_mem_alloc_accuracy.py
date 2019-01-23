@@ -45,6 +45,7 @@ def read_columns(dataset):
 
 fig = plt.figure(figsize=(8, 6))
 
+titles = ["ResNet-18 on CIFAR-10", "DenseNet-121 on CIFAR-100"]
 datasets = ["cifar10", "cifar100"]
 
 # files = ["0-fp16", "0-fp32"]
@@ -61,8 +62,8 @@ for i, dataset in enumerate(datasets):
     plt.legend(loc='upper left', frameon=False, prop={'size': 14},
                bbox_to_anchor=(0, 0.6))
     if i > -1:
-        plt.xlabel('FFT compression ratio (%)')
-    plt.title(dataset, fontsize=16)
+        plt.xlabel('Compression ratio (%)')
+    plt.title(titles[i], fontsize=16)
     plt.ylabel("Normalized\n performance (%)")
     plt.ylim(20, 130)
     plt.xlim(0, 80)
