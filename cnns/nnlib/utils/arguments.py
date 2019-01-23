@@ -47,17 +47,18 @@ class Arguments(object):
                  # preserved_energies=[95, 90, 98],                 # preserved_energies=[100, 99.9, 99.5, 99, 98, 97, 96, 95, 90, 80, 70, 60, 50, 10],
                  # preserved_energies=[100,99.5,99,98,95,90,80],
                  # preserved_energies=range(96, 1),
-                 # tensor_type=TensorType.FLOAT16,
-                 tensor_type=TensorType.FLOAT32,
-                 # precision_type=PrecisionType.AMP,
-                 precision_type=PrecisionType.FP32,
+                 tensor_type=TensorType.FLOAT16,
+                 # tensor_type=TensorType.FLOAT32,
+                 precision_type=PrecisionType.AMP,
+                 # precision_type=PrecisionType.FP32,
                  # precision_type=PrecisionType.FP16,
                  use_cuda=True,
                  compress_type=CompressType.STANDARD,
                  #compress_rate=5,
                  compress_rate=0.0,
+                 compress_rates=[0.0],
                  # ndexes_back=[5,15,25,35,45],
-                 compress_rates=range(0, 101),
+                 # compress_rates=range(0, 101),
                  # compress_rates=[x/2 for x in range(28,111,1)],
                  # compress_rate=0.1,  # for unit tests
                  # compress_rates=[84.0], # 47.5, 84.0
@@ -92,7 +93,7 @@ class Arguments(object):
                  loss_reduction=LossReduction.ELEMENTWISE_MEAN,
                  memory_type=MemoryType.PINNED,
                  workers=6,
-                 # model_path="no_model",
+                 model_path="no_model",
                  # model_path="2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model",
                  # model_path="2019-01-08-14-41-44-026589-dataset-cifar10-preserve-energy-100.0-test-accuracy-91.39-fp16-amp-no-compression.model",
                  # model_path="2019-01-21-14-30-13-992591-dataset-cifar10-preserve-energy-100.0-test-accuracy-84.55-compress-label-84-after-epoch-304.model",
@@ -101,7 +102,7 @@ class Arguments(object):
                  # model_path="2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model",
                  # model_path="2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model",
                  # model_path="2019-01-08-02-48-26-558883-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.07-compress-8.32.model",
-                 model_path="2019-01-08-07-18-52-980249-dataset-cifar10-preserve-energy-100.0-test-accuracy-92.82-compress-29.26.model",
+                 # model_path="2019-01-08-07-18-52-980249-dataset-cifar10-preserve-energy-100.0-test-accuracy-92.82-compress-29.26.model",
                  # model_path="2019-01-18-20-11-05-764539-dataset-cifar100-preserve-energy-100.0-test-accuracy-58.63.model",
                  # model_path="2019-01-09-14-51-48-093159-dataset-ECGFiveDays-preserve-energy-100.0-test-accuracy-86.52729384436701.model",
                  # model_path="2019-01-09-13-46-20-792223-dataset-MoteStrain-preserve-energy-90.0-test-accuracy-79.47284345047923.model",
@@ -151,8 +152,8 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=0,
-                 # sample_count_limit=32,
+                 # sample_count_limit=0,
+                 sample_count_limit=1024,
                  # sample_count_limit=1024,
                  # sample_count_limit=2048,
                  conv_type=ConvType.FFT2D,
@@ -164,7 +165,7 @@ class Arguments(object):
                  # conv_exec_type=ConvExecType.CUDA_SHARED_LOG,
                  # conv_exec_type=ConvExecType.BATCH,
                  # conv_exec_type=ConvExecType.SERIAL,
-                 visualize=True,  # test model for different compress rates
+                 visualize=False,  # test model for different compress rates
                  static_loss_scale=1,
                  out_size=None,
                  next_power2=True,
@@ -185,10 +186,9 @@ class Arguments(object):
                  gpu=0,
                  start_epoch=0,
                  only_train=False,
-                 test_compress_rates=True,
+                 test_compress_rates=False,
                  noise_sigma=0.0,
                  noise_sigmas=[0.0],
-                 dtype=torch.float,
                  ):
         """
         The default parameters for the execution of the program.
@@ -294,7 +294,6 @@ class Arguments(object):
         self.test_compress_rates = test_compress_rates
         self.noise_sigma = noise_sigma
         self.noise_sigmas = noise_sigmas
-        self.dtype = dtype
 
 
     def get_bool(self, arg):

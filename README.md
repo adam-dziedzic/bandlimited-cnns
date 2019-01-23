@@ -1,4 +1,5 @@
-# Band-limited Training and Inference for Convolutional Neural Network
+# Band-limited Training and Inference for Convolutional Neural Networks
+
 The convolutional layers are core building blocks of neural network architectures. In general, a convolutional filter applies to the entire frequency spectrum of an input signal. We explore artificially constraining the frequency spectra of these filters, called band-limiting, during Convolutional Neural Networks (CNN) training. The band-limiting applies to both the feedforward and backpropagation steps. Through an extensive evaluation over time-series and image datasets, we observe that CNNs are resilient to this compression scheme and results suggest that CNNs learn to leverage lower-frequency components. An extensive experimental evaluation across 1D and 2D CNN training tasks illustrates: (1) band-limited training can effectively control the resource usage (GPU and memory); (2) models trained with band-limited layers retain high prediction accuracy; and (3) requires no modification to existing training algorithms or neural network architectures to use unlike other compression schemes.
 
 # Experiments
@@ -15,6 +16,8 @@ For CIFAR-100 with more than about 50% compression (label 48 or above for the co
 `CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --conv_type='FFT2D' --conv_exec_type=CUDA --dataset='cifar100' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=350 --compress_rates 48  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.01 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='STANDARD' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='DenseNetCifar' --next_power2='TRUE' --optimizer_type='MOMENTUM' --preserve_energies 100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=6 --precision_type='FP32'  --only_train='FALSE' --test_compress_rate='FALSE' --noise_sigmas=0.0 >> cifar100-fft2d-energy100-pytorch-adam-gpu-lr:0.01,decay:0.0001-compress-rate-12.0-percent-float32.txt 2>&1 &`
 
 Please, feel free to modify the compression rate.
+
+If you want to run the code inside your favorite IDE and want to have access to the program parameters (called args), then please go to the following file: `cnns/nnlib/utils/arguments.py`. The description of the arguments is in `cnns/nnlib/utils/exec_args.py`.
 
 Most graphs from the paper can be found in: `cnns/graphs` directory.
 
