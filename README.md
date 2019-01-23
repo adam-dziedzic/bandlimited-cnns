@@ -2,6 +2,22 @@
 
 The convolutional layers are core building blocks of neural network architectures. In general, a convolutional filter applies to the entire frequency spectrum of an input signal. We explore artificially constraining the frequency spectra of these filters, called band-limiting, during Convolutional Neural Networks (CNN) training. The band-limiting applies to both the feedforward and backpropagation steps. Through an extensive evaluation over time-series and image datasets, we observe that CNNs are resilient to this compression scheme and results suggest that CNNs learn to leverage lower-frequency components. An extensive experimental evaluation across 1D and 2D CNN training tasks illustrates: (1) band-limited training can effectively control the resource usage (GPU and memory); (2) models trained with band-limited layers retain high prediction accuracy; and (3) requires no modification to existing training algorithms or neural network architectures to use unlike other compression schemes.
 
+# Installation
+See guidelines in: `cnns/installations`
+- Pytorch version 1.0 (recommended installation from the source code: pytorch_from_source.sh)
+- Torchvision (recommended from the source code: https://github.com/pytorch/vision.git, torchvision.sh)
+- Apex: https://github.com/NVIDIA/apex (nvidia_apex.sh)
+
+Install python libraries:
+- matplotlib
+- memory_profiler
+- py3nvml
+
+Install CUDA kernel:
+`cnns/nnlib/pytorch_cuda/complex_mul_cuda/clean_install.sh` (adjust your python path inside the bash script).
+
+We ran the experiments with CUDA 9.2.
+
 # Experiments
 To run the main experiments for cifar10 and cifar100, go to the directory: `cnns/nnlib/pytorch_experiments`.
 Find the `run.sh` file and run some examples from it. This is how to train 2 exemplar models:
