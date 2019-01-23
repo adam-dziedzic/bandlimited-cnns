@@ -46,7 +46,7 @@ def read_columns(dataset):
 fig = plt.figure(figsize=(8, 6))
 
 dataset = "cifar10-on-ResNet18-add-gaussian-noise"
-labels = ["sigma", "FP32-C=0%", "FP32-C=51%", "FP32-C=86%", "FP16-C=0%"]
+labels = ["sigma", "FP32-C=0%", "FP32-C=50%", "FP32-C=85%", "FP16-C=0%"]
 
 cols = read_columns(dataset)
 colors = [get_color(color) for color in

@@ -46,8 +46,8 @@ fig = plt.figure(figsize=(10.5, 8))
 
 datasets = ["cifar10", "cifar100"]
 titles = ["ResNet-18 on CIFAR-10", "DenseNet-121 on CIFAR-100"]
-labels10 = ["compression", "0", "30", "51", "86"]
-labels100 = ["compression", "0", "51", "78", "86"]
+labels10 = ["compression", "0", "30", "50", "85"]
+labels100 = ["compression", "0", "50", "75", "85"]
 legend_pos = ["center left", "upper left"]
 ncols = [4, 4]
 bbox = [(0.0, 0.05), (0, 1.05)]

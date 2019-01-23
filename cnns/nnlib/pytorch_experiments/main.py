@@ -190,8 +190,6 @@ def train(model, device, train_loader, optimizer, loss_function, epoch, args):
         data, target = data.to(device=device, dtype=args.dtype), target.to(
             device=device)
         optimizer.zero_grad()
-        if args.tensor_type is TensorType.FLOAT16:
-            data = data.half()
         output = model(data)
         loss = loss_function(output, target)
 
