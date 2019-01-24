@@ -47,10 +47,10 @@ class Arguments(object):
                  # preserved_energies=[95, 90, 98],                 # preserved_energies=[100, 99.9, 99.5, 99, 98, 97, 96, 95, 90, 80, 70, 60, 50, 10],
                  # preserved_energies=[100,99.5,99,98,95,90,80],
                  # preserved_energies=range(96, 1),
-                 # tensor_type=TensorType.FLOAT16,
-                 tensor_type=TensorType.FLOAT32,
-                 # precision_type=PrecisionType.AMP,  # use AMP for fp16 - reduced precision training
-                 precision_type=PrecisionType.FP32,
+                 tensor_type=TensorType.FLOAT16,
+                 # tensor_type=TensorType.FLOAT32,
+                 precision_type=PrecisionType.AMP,  # use AMP for fp16 - reduced precision training
+                 # precision_type=PrecisionType.FP32,
                  # precision_type=PrecisionType.FP16,
                  use_cuda=True,
                  compress_type=CompressType.STANDARD,
@@ -79,7 +79,7 @@ class Arguments(object):
                  # weight_decay=5e-4,
                  # weight_decay=0,
                  weight_decay=0.0005,
-                 epochs=0,
+                 epochs=350,
                  min_batch_size=32,
                  test_batch_size=32,
                  learning_rate=0.01,

@@ -58,8 +58,8 @@ energy_y = (
 
 plt.plot(static_x, static_y, label='static compression', lw=2, marker='o',
          color=get_color(MY_BLUE))
-plt.plot(mix_x, mix_y, label='energy first + static rest', lw=2, marker='v',
-         color=get_color(MY_ORANGE))
+# plt.plot(mix_x, mix_y, label='energy first + static rest', lw=2, marker='v',
+#          color=get_color(MY_ORANGE))
 plt.plot(energy_x, energy_y, label='energy based compression', lw=2, marker='s',
          color=get_color(MY_GREEN))
 
