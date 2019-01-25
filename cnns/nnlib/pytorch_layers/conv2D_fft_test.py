@@ -421,6 +421,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         filter_W = 3
         num_filters = 64
 
+
         x = cifar10_image
         # repeat the data point num_data_points times
         repetition = num_data_points
