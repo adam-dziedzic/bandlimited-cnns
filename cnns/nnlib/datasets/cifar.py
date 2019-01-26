@@ -10,7 +10,36 @@ from cnns.nnlib.datasets.transformations.gaussian_noise import \
     AddGaussianNoiseTransformation
 from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import NetworkType
+import numpy as np
+import matplotlib.pyplot as plt
+from six.moves import cPickle
+from cnns.nnlib.utils.arguments import Arguments
+import os
 
+print("current directory is: ", os.getcwd())
+
+def show_images():
+    """
+    Prints 5X5 grid of random Cifar10 images. It isn't blurry, though not perfect either.
+    https://stackoverflow.com/questions/35995999/why-cifar-10-images-are-not-displayed-properly-using-matplotlib
+    """
+    f = open('./data/cifar-10-batches-py/data_batch_1', 'rb')
+    datadict = cPickle.load(f,encoding='latin1')
+    f.close()
+    X = datadict["data"]
+    Y = datadict['labels']
+    X = X.reshape(10000, 3, 32, 32).transpose(0,2,3,1).astype("uint8")
+    Y = np.array(Y)
+
+    #Visualizing CIFAR 10
+    fig, axes1 = plt.subplots(5,5,figsize=(3,3))
+    for j in range(5):
+        for k in range(5):
+            i = np.random.choice(range(len(X)))
+            axes1[j][k].set_axis_off()
+            # X[i:i+1] keeps the value in a table, so simply use X[i].
+            axes1[j][k].imshow(X[i])
+    plt.show()
 
 def get_transform_train(dtype=torch.float32, signal_dimension=2):
     transformations = [
@@ -125,3 +154,8 @@ def get_cifar(args, dataset_name):
                                               **kwargs)
 
     return train_loader, test_loader, train_dataset, test_dataset
+
+
+if __name__ == "__main__":
+    get_cifar(Arguments(), "cifar10")
+    show_images()
