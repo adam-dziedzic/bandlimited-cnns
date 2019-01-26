@@ -24,6 +24,7 @@ import sys
 import time
 import os
 import socket
+import torch_dct
 
 if torch.cuda.is_available():
     # from complex_mul_cpp import complex_mul as complex_mul_cpp
@@ -34,17 +35,19 @@ if torch.cuda.is_available():
     from complex_mul_cuda import \
         complex_mul_shared_log as complex_mul_shared_log_cuda
 
-
 logger = get_logger(name=__name__)
 logger.setLevel(logging.DEBUG)
 logger.info("Set up test")
+
 
 # Interface to complex multiplication in CUDA.
 def complex_mul_shared_log(x, y, out):
     return complex_mul_shared_log_cuda(x, y, out)
 
+
 def complex_mul_stride_no_permute(x, y, out, num_threads=1024):
     return complex_mul_stride_no_permute_cuda(x, y, out, num_threads)
+
 
 def get_numpy(x):
     """
@@ -52,6 +55,7 @@ def get_numpy(x):
     :return: a number representation on CPU
     """
     return x.cpu().detach().numpy()
+
 
 class MockContext(object):
     """
@@ -259,6 +263,7 @@ def next_power2(x):
     """
     # return math.pow(2, math.ceil(math.log2(x)))
     return int(2 ** np.ceil(np.log2(x)))
+
 
 # from memory_profiler import profile
 # @profile
@@ -524,9 +529,11 @@ def complex_mul3(x, y):
     # imaginary part of the complex number
     # result_im = a * d + b * c
     # use the last dimension: dim=-1
-    return torch.cat(tensors=(x[..., :1]*y[..., :1]-x[..., 1:]*y[..., 1:],
-                              x[..., 1:]*y[..., :1]+x[..., :1]*y[..., 1:]),
+    return torch.cat(tensors=(x[..., :1] * y[..., :1] - x[..., 1:] * y[..., 1:],
+                              x[..., 1:] * y[..., :1] + x[..., :1] * y[...,
+                                                                     1:]),
                      dim=-1)
+
 
 def complex_mul4(x, y):
     """
@@ -599,9 +606,9 @@ def complex_mul4(x, y):
     # add = torch.add
     # torch.cat(tensors=(x[..., :1]*y[..., :1]-x[..., 1:]*y[..., 1:],
     #                    x[..., 1:]*y[..., :1]+x[..., :1]*y[..., 1:]))
-    out = x*y[..., :1]
-    out[..., :1].add_(-1*x[..., 1:]*y[..., 1:])
-    out[..., 1:].add_(x[..., :1]*y[..., 1:])
+    out = x * y[..., :1]
+    out[..., :1].add_(-1 * x[..., 1:] * y[..., 1:])
+    out[..., 1:].add_(x[..., :1] * y[..., 1:])
     return out
 
 
@@ -712,6 +719,7 @@ def complex_mul5(x, y, out):
     out[..., 0] = uavc - (x[..., 0] + x[..., 1]) * y[..., 1]
     # imaginary part of the complex number
     out[..., 1] = (x[..., 1] - x[..., 0]) * y[..., 0] + uavc
+
 
 def complex_mul6_cpp(x, y):
     """
@@ -868,8 +876,10 @@ def complex_mul7_cuda(x, y, out):
     """
     return complex_mul_cuda(x, y, out)
 
+
 def complex_mul8_stride_cuda(x, y, out):
     return complex_mul_strid_cuda(x, y, out)
+
 
 def pytorch_conjugate(x):
     """
@@ -2673,6 +2683,39 @@ def correlate_fft_signals(xfft, yfft, fft_size: int,
     # print("freq mul size: ", freq_mul.size())
     out = torch.irfft(
         input=freq_mul, signal_ndim=signal_ndim, signal_sizes=(fft_size,))
+    del freq_mul
+    return out
+
+
+def correlate_dct_signals(xdct, ydct, dct_size):
+    """
+    :param xdct: input dct signal
+    :param ydct: input dct filter
+    :return: the correlation between xdct and ydct
+    
+    >>> # Test the backward computation without summing up the final tensor.
+    >>> # The summing up of the final tensor is done only if param is_forward
+    >>> # is set to True.
+    >>> x = tensor([[[1.0, 2.0, 3.0], [-1.0, -3.0, 2.0]]])
+    >>> # Two filters.
+    >>> y = tensor([[[0.1, -0.2]]])
+    >>> fft_size = x.shape[-1] + y.shape[-1]//2
+    >>> y_padded = F.pad(y, (0, fft_size - y.shape[-1]), 'constant', 0.0)
+    >>> signal_ndim = 1
+    >>> xdct = torch_dct.dct(x)
+    >>> ydct = torch_dct.dct(y)
+    >>> result = correlate_dct_signals(xfft=xfft, yfft=yfft,
+    ... fft_size=fft_size)
+    >>> # print("result: ", result)
+    >>> out_size=(x.shape[-1]-y.shape[-1] + 1)
+    >>> np.testing.assert_array_almost_equal(result[...,:out_size],
+    ... np.array([[[-0.3, -0.4], [ 0.5, -0.7]]]))
+    """
+    freq_mul = xdct * pytorch_conjugate(ydct)
+    freq_mul = F.pad(freq_mul, (0, dct_size - freq_mul.shape[-1]),
+                     mode='constantŁ')
+    # print("freq mul size: ", freq_mul.size())
+    out = torch_dct.idct(freq_mul)
     del freq_mul
     return out
 
