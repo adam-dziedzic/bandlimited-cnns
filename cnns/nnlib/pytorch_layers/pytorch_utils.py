@@ -8,22 +8,14 @@ import collections
 import numpy as np
 import re
 import torch
-from torch import tensor
 import torch.nn.functional as F
 from torch import tensor
 from heapq import heappush, heappop
-from cnns.nnlib.utils.general_utils import plot_signal_freq
 from cnns.nnlib.utils.general_utils import mem_log_file
 import gc
-from functools import reduce
 from cnns.nnlib.utils.log_utils import get_logger
-from cnns.nnlib.utils.log_utils import set_up_logging
 import logging
 import math
-import sys
-import time
-import os
-import socket
 import torch_dct
 
 if torch.cuda.is_available():
@@ -2713,11 +2705,39 @@ def correlate_dct_signals(xdct, ydct, dct_size):
     """
     freq_mul = xdct * pytorch_conjugate(ydct)
     freq_mul = F.pad(freq_mul, (0, dct_size - freq_mul.shape[-1]),
-                     mode='constantŁ')
+                     mode='constant')
     # print("freq mul size: ", freq_mul.size())
     out = torch_dct.idct(freq_mul)
     del freq_mul
     return out
+
+
+def correlate_dct_1D(x, y, use_next_power2=True):
+    """
+    Correlate 1D input signals via the DCT transformation.
+
+    :param x: input signal in the time domain.
+    :param y: input filter in the time domain.
+    :return: the correlation z between x and y
+    """
+    N = x.shape[-1]
+    L = y.shape[-1]
+    M = N + L - 1
+    P1 = max(1, math.ceil(L-3 / 2))
+    P2 = max(1, math.ceil((N-3) / 2))
+    P = math.ceil(3*M / 2)
+    
+    if use_next_power2:
+        P = next_power2(P)
+
+    x = F.pad(input=x, pad=(P1, P-P1-N), mode='constant')
+    y = y.flip([-1])
+    y = F.pad(input=y, pad=(P2, P-P2-L), mode='constant')
+    x = torch_dct.dct(x)
+    y = torch_dct.dct(y)
+    z = x * y
+    z = torch_dct.dct1(z)
+    return z
 
 
 def correlate_fft_signals2D(xfft, yfft, input_height, input_width,

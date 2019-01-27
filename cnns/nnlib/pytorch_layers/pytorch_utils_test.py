@@ -3,10 +3,11 @@ import unittest
 from cnns.nnlib.pytorch_layers.pytorch_utils import flip
 from cnns.nnlib.pytorch_layers.pytorch_utils import preserve_energy2D
 from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul
+from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_dct_1D
 import numpy as np
 from torch import tensor
-import socket
 import time
+import torch.nn.functional as F
 
 if torch.cuda.is_available():
     from complex_mul_cuda import \
@@ -760,6 +761,24 @@ class TestPytorchUtils(unittest.TestCase):
         np.testing.assert_allclose(
             actual=out.cpu().numpy(), desired=expect.cpu().numpy(), rtol=1e-3,
             err_msg="actual out different from desired expected")
+
+    def test_correlate_dct_1d(self):
+        x = tensor([[[1.0, 2.0, 3.0]]])
+        y = tensor([[[0.1, -0.2]]])
+        expected_result = F.conv1d(x, y)
+        print("expected result: ", expected_result)
+        result = correlate_dct_1D(x, y)
+        print("result: ", result)
+        np.testing.assert_allclose(actual=result, desired=expected_result)
+
+    def test_correlate_dct_2d(self):
+        x = tensor([[[1.0, 2.0, 3.0], [-1.0, -3.0, 2.0]]])
+        y = tensor([[[0.1, -0.2], [0.2, 0.1]]])
+        expected_result = F.conv1d(x, y)
+        print("expected result: ", expected_result)
+        result = correlate_dct_1D(x, y)
+        print("result: ", result)
+        np.testing.assert_allclose(actual=result, desired=expected_result)
 
 if __name__ == '__main__':
     unittest.main()
