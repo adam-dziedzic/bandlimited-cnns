@@ -2711,7 +2711,6 @@ def correlate_dct_signals(xdct, ydct, dct_size):
     del freq_mul
     return out
 
-
 def correlate_dct_1D(x, y, use_next_power2=True):
     """
     Correlate 1D input signals via the DCT transformation.

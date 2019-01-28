@@ -8,3 +8,7 @@ y = dct.idct(X)  # scaled DCT-III done through the last dimension
 print("numerical error: ", (torch.abs(x - y)).sum())
 assert (torch.abs(x - y)).sum() < 1e-4  # x == y within numerical tolerance
 
+X1 = dct.dct1(x)
+y1 = dct.idct1(X1)
+print("numercial error for dct1: ", (torch.abs(x - y1)).sum())
+
