@@ -32,6 +32,7 @@ def correlate(dct_function):
         y = np.pad(array=y, pad_width=(P2, P - P2 - L), mode='constant')
         z = dct_function(self, x, y)
         # z = z[(P1+P2):(P1+P2)+M]
+        z = 2 * z
         return z
 
     return wrapper
@@ -46,6 +47,9 @@ class DCT:
         DCT of x according to: "A computing method for linear convolution in the
         DCT domain":
         https://www.eurasip.org/Proceedings/Eusipco/Eusipco2011/papers/1569426007.pdf
+        and
+        https://unix4lyfe.org/dct-1d/
+
 
         :param x: 1D input signal in the time domain.
         :return: DCT(x) - 1D output signal in the frequency DCT domain.
@@ -114,6 +118,13 @@ class DCT:
 
     @correlate
     def correlate_izumi(self, x, y):
+        """
+        Cross correlation of x and y via the DCT transform.
+
+        :param x: input signal x in the time domain
+        :param y: input filter y in the time domain
+        :return: the output of the correlation
+        """
         x = self.dct2(x)
         y = self.dct2(y)
         z = x * y
@@ -126,6 +137,14 @@ class DCT:
         y = self.dct2wiki(y)
         z = x * y
         z = self.dct1wiki(z)
+        return z
+
+    @correlate
+    def correlate_matrucci(self, x, y):
+        x = self.dct2(x)
+        y = self.dct1(y)
+        z = x * y
+        z = self.dct2(z)
         return z
 
     def idct(self, x):
@@ -145,8 +164,9 @@ if __name__ == "__main__":
     # y = np.array([-1.0, 3.0])
     x = np.arange(0, 21, dtype=float)
     y = np.array([1.0, 2.0, 3.0])
-    expect = np.correlate(x, y)
+    expect = np.correlate(x, y, mode="full")
     print("expect: ", expect)
     result = dct.correlate_izumi(x, y, use_next_power2=False)
+    # result = dct.correlate_matrucci(x, y, use_next_power2=False)
     print("result: ", result)
     assert np.testing.assert_allclose(actual=result, desired=expect)

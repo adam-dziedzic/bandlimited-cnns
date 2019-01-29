@@ -6,6 +6,7 @@ import torch
 import numpy as np
 from cnns.nnlib.dct.simple_dct import DCT
 
+
 class TestSimpleDCT(unittest.TestCase):
 
     def setUp(self):
@@ -30,11 +31,46 @@ class TestSimpleDCT(unittest.TestCase):
                                      "computed actual are not almost equal."
 
     def testCorrelation1(self):
-        x = np.array([1,2,3], dtype=float)
-        y = np.array([-1,2], dtype=float)
+        x = np.array([1, 2, 3], dtype=float)
+        y = np.array([-1, 2], dtype=float)
         dct = DCT()
-        expect = np.correlate(x, y, mode='full')[len(y)-1:]
+        expect = np.correlate(x, y, mode='full')[len(y) - 1:]
         print("expect: ", expect)
-        result = dct.correlate(x, y)
+        result = dct.correlate_izumi(x, y, use_next_power2=False)
         print("result: ", result)
         assert np.testing.assert_allclose(actual=result, desired=expect)
+
+    def testCorrelation2(self):
+        x = np.array([1.0, 2, 3, 4, 5, 6, 7, 8.0], dtype=float)
+        y = np.array([1.0, 4.0, 1.0], dtype=float)
+        dct = DCT()
+        expect = np.correlate(x, y, mode='full')[len(y) - 1:]
+        print("expect: ", expect)
+        result = dct.correlate_izumi(x, y, use_next_power2=False)
+        print("result: ", result)
+        assert np.testing.assert_allclose(actual=result, desired=expect)
+
+    def testCorrelation3(self):
+        x = np.array([1.0, 2, 3, 4, 4, 3, 2, 1.0], dtype=float)
+        y = np.array([1.0, 1.0, 2.0, 2.0, 1.0, 1.0], dtype=float)
+        dct = DCT()
+        expect = np.correlate(x, y, mode='full')
+        print("expect: ", expect)
+        result = dct.correlate_izumi(x, y, use_next_power2=False)
+        print("result: ", result)
+        assert np.testing.assert_allclose(actual=result, desired=expect)
+
+    def test_dct2(self):
+        dct = DCT()
+        x = np.array([1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0], dtype=float)
+        xdct = dct.dct2(x)
+        print("xdct: ", xdct)
+
+        x2 = np.array([1.0,2.0,3.0,4.0,4.0,3.0,2.0,1.0], dtype=float)
+        xdct2 = dct.dct2(x2)
+        print("xdct2 even and symmetric: ", xdct2)
+
+        x3 = np.array([1.0,2.0,3.0,4.0,3.0,2.0,1.0], dtype=float)
+        xdct3 = dct.dct2(x3)
+        print("xdct3 even and symmetric: ", xdct3)
+
