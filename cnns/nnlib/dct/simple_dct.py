@@ -7,16 +7,17 @@ class DCT:
         pass
 
     def dct2(self, x):
-        N = x.shape[-1]
-        X = np.zeros(N, dtype=float)
-        for k in range(N):
+        P = x.shape[-1]
+        X = np.zeros(P, dtype=float)
+        for k in range(P):
             out = 0
-            for n in range(N):
-                out += x[n] * np.cos(np.pi * (n + .5) * k / N)
             if k == 0:
-                out *= np.sqrt(1. / N)
+                kk = 1. / np.sqrt(2)
             else:
-                out *= np.sqrt(2. / N)
+                kk = 1.
+            for n in range(P):
+                out += kk * x[n] * np.cos(np.pi * (n + .5) * k / P)
+            out *= np.sqrt(2. / P)
             X[k] = out
         return X
 
@@ -26,9 +27,11 @@ class DCT:
         for n in range(N):
             out = 0
             for k in range(N):
-                out += Y[k] * np.cos(np.pi * n * k / N)
-            if k == 0:
-                out *= 1./2
+                if k == 0:
+                    kk = 1. / 2.
+                else:
+                    kk = 1.
+                out += kk * Y[k] * np.cos(np.pi * n * k / N)
             y[n] = out
         return y
 
@@ -51,12 +54,12 @@ class DCT:
             P = int(2 ** np.ceil(np.log2(P)))
 
         x = np.pad(array=x, pad_width=(P1, P - P1 - N), mode='constant')
-        # y = np.flip(y)
+        y = np.flip(y)
         y = np.pad(array=y, pad_width=(P2, P - P2 - L), mode='constant')
         x = self.dct2(x)
         y = self.dct2(y)
         z = x * y
-        z = self.dct1(z)
+        z = self.dct1(z)[(P1+P2):(P1+P2)+M]
         return z
 
 

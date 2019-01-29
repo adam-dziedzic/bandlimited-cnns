@@ -2711,6 +2711,7 @@ def correlate_dct_signals(xdct, ydct, dct_size):
     del freq_mul
     return out
 
+
 def correlate_dct_1D(x, y, use_next_power2=True):
     """
     Correlate 1D input signals via the DCT transformation.
@@ -2722,16 +2723,16 @@ def correlate_dct_1D(x, y, use_next_power2=True):
     N = x.shape[-1]
     L = y.shape[-1]
     M = N + L - 1
-    P1 = max(1, math.ceil(L-3 / 2))
-    P2 = max(1, math.ceil((N-3) / 2))
-    P = math.ceil(3*M / 2)
-    
+    P1 = max((L - 3), 0) // 2 + 1
+    P2 = max(P1 + 1, (N - 3) // 2 + 1)
+    P = max(P2 + 1, 3 * M // 2 + 1)
+
     if use_next_power2:
         P = next_power2(P)
 
-    x = F.pad(input=x, pad=(P1, P-P1-N), mode='constant')
+    x = F.pad(input=x, pad=(P1, P - P1 - N), mode='constant')
     y = y.flip([-1])
-    y = F.pad(input=y, pad=(P2, P-P2-L), mode='constant')
+    y = F.pad(input=y, pad=(P2, P - P2 - L), mode='constant')
     x = torch_dct.dct(x)
     y = torch_dct.dct(y)
     z = x * y

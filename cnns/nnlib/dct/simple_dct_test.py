@@ -33,7 +33,7 @@ class TestSimpleDCT(unittest.TestCase):
         x = np.array([1,2,3], dtype=float)
         y = np.array([-1,2], dtype=float)
         dct = DCT()
-        expect = np.correlate(x, y)
+        expect = np.correlate(x, y, mode='full')[len(y)-1:]
         print("expect: ", expect)
         result = dct.correlate(x, y)
         print("result: ", result)
