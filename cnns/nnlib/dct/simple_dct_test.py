@@ -74,3 +74,14 @@ class TestSimpleDCT(unittest.TestCase):
         xdct3 = dct.dct2(x3)
         print("xdct3 even and symmetric: ", xdct3)
 
+    def testConvolution1(self):
+        x = np.array([1.0, 2, 3, 4, 4, 3, 2, 1.0], dtype=float)
+        y = np.array([1.0, 1.0, 2.0, 2.0, 1.0, 1.0], dtype=float)
+        dct = DCT()
+        expect = np.convolve(x, y, mode='full')
+        print("expect: ", expect)
+        result = dct.correlate_izumi(x, y, use_next_power2=False,
+                                     is_convolution=True)
+        print("result: ", result)
+        assert np.testing.assert_allclose(actual=result, desired=expect)
+

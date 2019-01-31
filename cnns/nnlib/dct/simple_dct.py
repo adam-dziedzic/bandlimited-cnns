@@ -16,7 +16,8 @@ def correlate(dct_function):
     example() would have been lost.
     """
     @wraps(dct_function)
-    def wrapper(self, x, y, use_next_power2):
+    def wrapper(self, x, y, use_next_power2=False, is_convolution=False):
+        is_correlation = not is_convolution
         N = len(x)
         L = len(y)
         M = N + L - 1
@@ -28,7 +29,8 @@ def correlate(dct_function):
             P = int(2 ** np.ceil(np.log2(P)))
 
         x = np.pad(array=x, pad_width=(P1, P - P1 - N), mode='constant')
-        y = np.flip(y)
+        if is_correlation:
+            y = np.flip(y)
         y = np.pad(array=y, pad_width=(P2, P - P2 - L), mode='constant')
         z = dct_function(self, x, y)
         # z = z[(P1+P2):(P1+P2)+M]
