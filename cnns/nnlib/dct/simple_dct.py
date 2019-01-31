@@ -103,6 +103,8 @@ class DCT:
 
     def dct1wiki(self, x):
         """
+        This acts as an inverse transform for the izumi convolution.
+
         DCT1 of the input signal x in the frequency domain.
 
         :param x: N point input signal in the frequency domain.
@@ -117,6 +119,90 @@ class DCT:
             out += math.pow(-1.0, k) * x[P-1]
             X[k] = out
         return X
+
+    def dct1reju(self, x):
+        """
+        This can act as a forward or backward transform. We use it simply as a
+        transform. This is a very similar definition to wikipedia but with
+        scaling 2.
+        https://www.researchgate.net/publication/3343693_Convolution_Using_Discrete_Sine_and_Cosine_Transforms
+        DCT1 of the input signal x.
+        :param x: (N+1) point input signal.
+        :return: transformed x.
+        """
+        N = x.shape[-1]
+        X = np.zeros(N, dtype=float)
+        for k in range(N):
+            out = 0.0
+            for n in range(N):
+                if n == 0 || n == (N-1):
+                    kk = 1.0 / 2
+                else:
+                    kk = 1.0
+                out += kk * x[n] * np.cos(np.pi * k * n / (N-1))
+            X[k] = 2 * out
+        return X
+
+    def dct2reju(self, x):
+        """
+        This can act as a forward or backward transform. We use it simply as a
+        transform. This is a very similar definition to wikipedia but with
+        scaling 2.
+        https://www.researchgate.net/publication/3343693_Convolution_Using_Discrete_Sine_and_Cosine_Transforms
+        DCT2 of the input signal x.
+        :param x: (N) point input signal.
+        :return: transformed x.
+        """
+        N = x.shape[-1]
+        X = np.zeros(N + 1, dtype=float)
+        for k in range(N):
+            out = 0.0
+            for n in range(N):
+                out += x[n] * np.cos(np.pi * k * (n + 0.5) / N)
+            X[k] = 2 * out
+        X[N] = 0.0
+        return X
+
+    def dst1reju(self, x):
+        """
+        This can act as a forward or backward transform. We use it simply as a
+        transform. This is a very similar definition to wikipedia but with
+        scaling 2.
+        https://www.researchgate.net/publication/3343693_Convolution_Using_Discrete_Sine_and_Cosine_Transforms
+        DST1 of the input signal x.
+        :param x: (N) point input signal.
+        :return: transformed x.
+        """
+        N = x.shape[-1]
+        X = np.zeros(N, dtype=float)
+        X[0] = 0.0
+        for k in range(1, N):
+            out = 0.0
+            for n in range(1, N):
+                out += x[n] * np.sin(np.pi * k * n / N)
+            X[k] = 2 * out
+        return X
+
+    def dst2reju(self, x):
+        """
+        This can act as a forward or backward transform. We use it simply as a
+        transform. This is a very similar definition to wikipedia but with
+        scaling 2.
+        https://www.researchgate.net/publication/3343693_Convolution_Using_Discrete_Sine_and_Cosine_Transforms
+        DST2 of the input signal x.
+        :param x: (N) point input signal.
+        :return: transformed x.
+        """
+        N = x.shape[-1]
+        X = np.zeros(N+1, dtype=float)
+        X[0] = 0.0
+        for k in range(1, N+1):
+            out = 0.0
+            for n in range(N):
+                out += x[n] * np.sin(np.pi * k * (n + 0.5) / N)
+            X[k] = 2 * out
+        return X
+
 
     @correlate
     def correlate_izumi(self, x, y):
