@@ -10,7 +10,7 @@ import numpy as np
 import os
 import matplotlib
 from matplotlib import pyplot as plt
-from numpy.fft import rfft, irfft
+from numpy.fft import fft, ifft, rfft, irfft
 
 # http://ksrowell.com/blog-visualizing-data/2012/02/02/optimal-colors-for-graphs/
 MY_BLUE = (56, 106, 177)
@@ -87,12 +87,11 @@ def DST1e(x):
     """
     N = x.shape[-1]
     X = np.zeros(N, dtype=float)
-    X[0] = 0.0
-    for k in range(1, N):
+    for k in range(1, N + 1):
         out = 0.0
-        for n in range(1, N):
-            out += x[n] * np.sin(np.pi * k * n / N)
-        X[k] = 2 * out
+        for n in range(1, N + 1):
+            out += x[n - 1] * np.sin(np.pi * k * n / (N + 1))
+        X[k - 1] = 2 * out
     return X
 
 
@@ -112,12 +111,14 @@ def DST2e(x):
         out = 0.0
         for n in range(N):
             out += x[n] * np.sin(np.pi * k * (n + 0.5) / N)
-        X[k-1] = 2 * out
+        X[k - 1] = 2 * out
     return X
 
 
 def dC2e(x):
     """
+    Apply DCT to x and make the signal even - symmetric.
+
     function dsC2e=dC2e(s)
     N=length(s);
     fprintf("N: %i\n", N)
@@ -164,17 +165,24 @@ def dS2e(x):
     N = x.shape[-1]
     sS2e = DST2e(x)
     if N % 2 == 0:  # N is even
-        temp = sS2e[1:N - 2:2]
-        dsS2e = np.concatenate([[0.0], sS2e[-1], [0.0], np.flip(temp, axis=0), [0.0]])
+        temp = sS2e[1:N - 1:2]
+        dsS2e = np.concatenate(
+            [[0.0], temp, [sS2e[-1]], np.flip(temp, axis=0), [0.0]])
     else:  # N is odd
         temp = sS2e[1:N - 1:2]  # decimation: select every other element
         dsS2e = np.concatenate([[0.0], temp, np.flip(temp, axis=0), [0.0]])
     return dsS2e
 
 
-def fft_convolution(x, y):
+def rfft_convolution(x, y):
     # Convolution by DFT method (Discrete Fourier Transform).
     zdft = np.real(irfft(rfft(x) * rfft(y)))
+    return zdft
+
+
+def fft_convolution(x, y):
+    # Convolution by DFT method (Discrete Fourier Transform).
+    zdft = np.real(ifft(fft(x) * fft(y)))
     return zdft
 
 
@@ -184,9 +192,15 @@ def dct_convolution(s, h):
     assert N == M
 
     # Calculation of T1
-    T1 = dC2e(s) * dC2e(h) - dS2e(s) * dS2e(h)
+    dC2es = dC2e(s)
+    dS2es = dS2e(s)
+    dC2eh = dC2e(h)
+    dS2eh = dS2e(h)
+    # T1 = dC2e(s) * dC2e(h) - dS2e(s) * dS2e(h)
+    T1 = dC2es * dC2eh - dS2es * dS2eh
     # calculation of T2
-    T2 = dS2e(s) * dC2e(h) + dC2e(s) * dS2e(h)
+    # T2 = dS2e(s) * dC2e(h) + dC2e(s) * dS2e(h)
+    T2 = dS2es * dC2eh + dC2es * dS2eh
     # after calculating T2, remove zero-th and N-th values from T2 because for
     # S1e the range is from n=1:N-1 but T2 calculated is for n=0:N
     T2 = T2[1:-1]
@@ -208,7 +222,7 @@ def dct_convolution(s, h):
     T1C1e = DCT1e(T1)
     if N % 2 == 0:  # For even N
         temp = T1C1e[0:-2:2]
-        dT1C1e = np.concatenate([temp, T1C1e[-1], np.flip(temp, axis=0)])
+        dT1C1e = np.concatenate([temp, [T1C1e[-1]], np.flip(temp, axis=0)])
     else:
         temp = T1C1e[0:-1:2]
         dT1C1e = np.concatenate([temp, np.flip(temp, axis=0)])
@@ -244,7 +258,7 @@ if __name__ == "__main__":
     N = 20  # length of the sequences.
     s = np.random.rand(N, 1)  # first sequence.
     h = np.random.rand(N, 1)  # second sequence.
-    out_fft = fft_convolution(s, h)
+    out_fft = rfft_convolution(s, h)
     print("out fft: ", out_fft)
     out_dct = dct_convolution(s, h)
     print("out dct: ", out_dct)
