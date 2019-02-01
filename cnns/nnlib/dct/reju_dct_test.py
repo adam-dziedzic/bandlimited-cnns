@@ -46,7 +46,7 @@ class TestRejuDCT(unittest.TestCase):
 
     def test_DS2e_odd_input_length(self):
         x = np.array([0.2551, 0.5060, 0.6991, 0.8909, 0.9593])
-        expect = np.array([4.4089, -1.5600,  1.4301, -0.8869,  1.0332])
+        expect = np.array([4.4089, -1.5600, 1.4301, -0.8869, 1.0332])
         result = DST2e(x)
         np.testing.assert_allclose(actual=result, desired=expect, rtol=1e-3)
 
@@ -68,5 +68,12 @@ class TestRejuDCT(unittest.TestCase):
         expect = fft_convolution(s, h)
         # fft: [1.781406, 1.502568, 1.230928, 1.534484]
         # expect = np.array([1.0110, 1.2726, 1.4868, 1.5321, 1.0976])
+        result = dct_convolution(s, h)
+        np.testing.assert_allclose(actual=result, desired=expect, rtol=1e-3)
+
+    def test_dct_convolution(self):
+        s = np.array([1, 2, 3, 4, 5.0], dtype=float)
+        h = np.array([2, 3, -1, 0, -1.0], dtype=float)
+        expect = np.array([11, -1.0, 7, 10, 18], dtype=float)
         result = dct_convolution(s, h)
         np.testing.assert_allclose(actual=result, desired=expect, rtol=1e-3)
