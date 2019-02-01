@@ -135,7 +135,7 @@ class DCT:
         for k in range(N):
             out = 0.0
             for n in range(N):
-                if n == 0 || n == (N-1):
+                if n == 0 or n == (N-1):
                     kk = 1.0 / 2
                 else:
                     kk = 1.0
