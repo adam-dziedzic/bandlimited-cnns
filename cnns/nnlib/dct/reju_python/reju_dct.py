@@ -176,7 +176,7 @@ def dS2e(x):
 
 def rfft_convolution(x, y):
     # Convolution by DFT method (Discrete Fourier Transform).
-    zdft = np.real(irfft(rfft(x) * rfft(y)))
+    zdft = irfft(rfft(x) * rfft(y), n=x.shape[-1])
     return zdft
 
 
@@ -239,6 +239,18 @@ def dct_convolution(s, h):
 
     y = 1 / (8 * N) * (dT1C1e[1:] + np.concatenate([dT2S1e, [0.0]]))
     return y
+
+
+def dct_correlation(s, h, pad=None):
+    h_len = h.shape[-1]
+    if pad is None:
+        pad = h_len // 2
+    s = np.pad(s, [pad, pad], mode="constant")
+    fft_len = s.shape[-1]
+    h = np.pad(np.flip(h, axis=0), [0, fft_len - h_len],
+               mode="constant")
+    result = dct_convolution(s, h)[(h_len - 1):]
+    return result
 
 
 def plot_signals(ydct, ydft):

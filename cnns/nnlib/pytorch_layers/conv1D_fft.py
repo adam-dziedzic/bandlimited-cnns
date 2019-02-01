@@ -895,7 +895,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                     # global global_complex_dxfft
                     # start_complex = time.time()
                     dxfft = torch.zeros([N, C, half_fft_size, 2],
-                                         dtype=dtype, device=device)
+                                        dtype=dtype, device=device)
                     # dout: N, F, W, I
                     complex_mul_stride_no_permute_cuda(doutfft, yfft, dxfft,
                                                        cuda_block_threads)
@@ -1017,7 +1017,8 @@ class Conv1dfftFunction(torch.autograd.Function):
                         "Selected CUDA conv execution but no cuda "
                         "device is available.")
             else:
-                raise Exception(f"Unknown conv_exec_type: {args.conv_exec_type}")
+                raise Exception(
+                    f"Unknown conv_exec_type: {args.conv_exec_type}")
             del xfft
 
             if is_debug:

@@ -4,8 +4,8 @@ from cnns.nnlib.utils.log_utils import get_logger
 import logging
 import torch
 import numpy as np
-from cnns.nnlib.dct.reju_dct import dC2e, dS2e, dct_convolution, \
-    fft_convolution, rfft_convolution, DST1e, DST2e
+from cnns.nnlib.dct.reju_python.reju_dct import dC2e, dS2e, dct_convolution, \
+    fft_convolution, rfft_convolution, DST1e, DST2e, dct_correlation
 from numpy.fft import rfft, irfft, fft, ifft
 
 class TestRejuDCT(unittest.TestCase):
@@ -118,7 +118,7 @@ class TestRejuDCT(unittest.TestCase):
         h = np.array([2, 3, -1, 0, -2.0], dtype=float)
         expect2 = np.convolve(s, h, mode='same')
         print("expect2: ", expect2)
-        expect3 = irfft(rfft(s) * rfft(h))
+        expect3 = irfft(rfft(s) * rfft(h), n=s.shape[-1])
         print("expect3: ", expect3)
         expect4 = np.real(ifft(fft(s) * fft(h)))
         print("expect4: ", expect4)
@@ -127,17 +127,87 @@ class TestRejuDCT(unittest.TestCase):
         np.testing.assert_allclose(actual=result, desired=expect4, rtol=1e-3,
                                    atol=1e-10)
 
-    def test_linear_convolution1(self):
+    def test_linear_full_convolution1(self):
         s = np.array([1, 2, 3, -4.0, 1.0], dtype=float)
-        h = np.array([2, 3, -1], dtype=float)
+        h = np.array([2, 3, -1], dtype=float)  # -1, 3, 2
+        expect2 = np.convolve(s, h, mode='full')
+        print("expect2: ", expect2)
         h_len = h.shape[-1]
         pad = h_len // 2 + 1
         s = np.pad(s, [0, pad], mode="constant")
         fft_len = s.shape[-1]
         h = np.pad(h, [0, fft_len - h_len], mode="constant")
-        expect2 = np.convolve(s, h, mode='same')
-        print("expect2: ", expect2)
         result = dct_convolution(s, h)
+        print("result: ", result)
+        np.testing.assert_allclose(actual=result, desired=expect2, rtol=1e-3,
+                                   atol=1e-10)
+
+    def test_linear_correlation1(self):
+        s = np.array([1, 2, 3, -4.0, 1.0], dtype=float)
+        h = np.array([2, 3, -1], dtype=float)  # -1, 3, 2
+        h_len = h.shape[-1]
+        pad = (h_len - 1) // 2
+        s = np.pad(s, [pad, pad], mode="constant")
+        expect2 = np.correlate(s, h, mode='valid')
+        print("expect2: ", expect2)
+        fft_len = s.shape[-1]
+        h = np.pad(np.flip(h, axis=0), [0, fft_len - h_len],
+                   mode="constant")
+        result = dct_convolution(s, h)[(h_len - 1):]
+        print("result: ", result)
+        np.testing.assert_allclose(actual=result, desired=expect2, rtol=1e-3,
+                                   atol=1e-10)
+
+    def test_linear_correlation2(self):
+        s = np.array([1, 2, 3, -4.0, 1.0, 5, 10.0], dtype=float)
+        h = np.array([2, 3, -1], dtype=float)  # -1, 3, 2
+        h_len = h.shape[-1]
+        pad = (h_len - 1) // 2
+        s = np.pad(s, [pad, pad], mode="constant")
+        expect2 = np.correlate(s, h, mode='valid')
+        print("expect2: ", expect2)
+        result = dct_correlation(s, h, pad=0)
+        print("result: ", result)
+        np.testing.assert_allclose(actual=result, desired=expect2, rtol=1e-3,
+                                   atol=1e-10)
+
+    def test_linear_correlation3(self):
+        s = np.array([11, 1, 2, 3, -4.0, 1.0, 5, 10.0], dtype=float)
+        h = np.array([2, 3, -1], dtype=float)  # -1, 3, 2
+        h_len = h.shape[-1]
+        pad = (h_len - 1) // 2
+        s = np.pad(s, [pad, pad], mode="constant")
+        expect2 = np.correlate(s, h, mode='valid')
+        print("expect2: ", expect2)
+        result = dct_correlation(s, h, pad=0)
+        print("result: ", result)
+        np.testing.assert_allclose(actual=result, desired=expect2, rtol=1e-3,
+                                   atol=1e-10)
+
+    def test_linear_correlation4_random(self):
+        s = np.random.randn(20)
+        h = np.random.randn(5)
+        print("h: ", h)
+        h_len = h.shape[-1]
+        pad = (h_len - 1) // 2
+        s = np.pad(s, [pad, pad], mode="constant")
+        expect2 = np.correlate(s, h, mode='valid')
+        print("expect2: ", expect2)
+        result = dct_correlation(s, h, pad=0)
+        print("result: ", result)
+        np.testing.assert_allclose(actual=result, desired=expect2, rtol=1e-3,
+                                   atol=1e-10)
+
+    def test_linear_correlation5_standard_usage(self):
+        s = np.random.randn(20)
+        h = np.random.randn(3)
+        print("h: ", h)
+        h_len = h.shape[-1]
+        pad = (h_len - 1) // 2
+        s1 = np.pad(s, [pad, pad], mode="constant")
+        expect2 = np.correlate(s1, h, mode='valid')
+        print("expect2: ", expect2)
+        result = dct_correlation(s, h, pad=pad)
         print("result: ", result)
         np.testing.assert_allclose(actual=result, desired=expect2, rtol=1e-3,
                                    atol=1e-10)
