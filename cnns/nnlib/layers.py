@@ -739,31 +739,31 @@ log_file = "index_back_filter_signal2" + get_log_time() + ".log"
 def correlate_signals(x, y, fft_size, out_size, preserve_energy_rate=None,
                       index_back=None):
     """
-    Cross-correlation of the signals: x and y.
+    Cross-correlation of the signals: x and h.
 
     :param x: input signal
     :param y: filter
     :param out_len: required output len
     :param preserve_energy_rate: compressed to this energy rate
     :param index_back: how many coefficients to remove
-    :return: output signal after correlation of signals x and y
+    :return: output signal after correlation of signals x and h
 
     >>> x = [1.0,2.0,3.0,4.0]
-    >>> y = [1.0,3.0]
-    >>> result = correlate_signals(x=x, y=y, fft_size=len(x), out_size=(len(x)-len(y) + 1))
-    >>> expected_result = np.correlate(x, y, mode='valid')
+    >>> h = [1.0,3.0]
+    >>> result = correlate_signals(x=x, h=h, fft_size=len(x), out_size=(len(x)-len(h) + 1))
+    >>> expected_result = np.correlate(x, h, mode='valid')
     >>> np.testing.assert_array_almost_equal(result, expected_result)
 
     >>> x = np.random.rand(10)
-    >>> y = np.random.rand(3)
-    >>> result = correlate_signals(x=x, y=y, fft_size=len(x), out_size=(len(x)-len(y) + 1))
-    >>> expected_result = np.correlate(x, y, mode='valid')
+    >>> h = np.random.rand(3)
+    >>> result = correlate_signals(x=x, h=h, fft_size=len(x), out_size=(len(x)-len(h) + 1))
+    >>> expected_result = np.correlate(x, h, mode='valid')
     >>> np.testing.assert_array_almost_equal(result, expected_result)
 
     >>> x = np.random.rand(100)
-    >>> y = np.random.rand(11)
-    >>> result = correlate_signals(x=x, y=y, fft_size=len(x), out_size=(len(x)-len(y) + 1))
-    >>> expected_result = np.correlate(x, y, mode='valid')
+    >>> h = np.random.rand(11)
+    >>> result = correlate_signals(x=x, h=h, fft_size=len(x), out_size=(len(x)-len(h) + 1))
+    >>> expected_result = np.correlate(x, h, mode='valid')
     >>> np.testing.assert_array_almost_equal(result, expected_result)
     """
     # print("x input size: ", x)
@@ -1056,19 +1056,19 @@ def conv_forward_fft_1D(x, w, b, conv_param):
      using-fourier-transforms-to-do-convolution?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
 
     >>> x = np.array([[[1., 2., 3.]]])
-    >>> y = np.array([[[2., 1.]]])
+    >>> h = np.array([[[2., 1.]]])
     >>> b = np.array([0.0])
     >>> conv_param = {'pad' : 0, 'stride' :1}
-    >>> result, cache = conv_forward_fft_1D(x, y, b, conv_param)
-    >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:], mode="valid")
+    >>> result, cache = conv_forward_fft_1D(x, h, b, conv_param)
+    >>> expected_result = np.correlate(x[0, 0,:], h[0, 0,:], mode="valid")
     >>> # expected_result = [4., 7.]
     >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
 
     >>> x = np.array([[[1., 2., 3.]]])
-    >>> y = np.array([[[2., 1.]]])
+    >>> h = np.array([[[2., 1.]]])
     >>> b = np.array([0.0])
     >>> conv_param = {'pad' : 0, 'stride' :1, 'preserve_energy_rate' :0.9}
-    >>> result, cache = conv_forward_fft_1D(x, y, b, conv_param)
+    >>> result, cache = conv_forward_fft_1D(x, h, b, conv_param)
     >>> expected_result = [3.5, 7.5]
     >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
     """
@@ -1116,19 +1116,19 @@ def conv_backward_fft_1D(dout, cache):
     - db: Gradient with respect to b
 
     >>> x = np.array([[[1., 2., 3.]]])
-    >>> y = np.array([[[2., 1.]]])
+    >>> h = np.array([[[2., 1.]]])
     >>> b = np.array([0.0])
     >>> conv_param = {'pad' : 0, 'stride' :1}
     >>> dout = np.array([[[0.1, -0.2]]])
     >>> # first, get the expected results from direct naive approach to convolution
-    >>> result, cache = conv_forward_naive_1D(x, y, b, conv_param)
-    >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:], mode="valid")
+    >>> result, cache = conv_forward_naive_1D(x, h, b, conv_param)
+    >>> expected_result = np.correlate(x[0, 0,:], h[0, 0,:], mode="valid")
     >>> # is the forward naive convolution correct?
     >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
     >>> expected_dx, expected_dw, expected_db = conv_backward_naive_1D(dout, cache)
     >>> # get the results from the backward pass
-    >>> result, cache = conv_forward_fft_1D(x, y, b, conv_param)
-    >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:], mode="valid")
+    >>> result, cache = conv_forward_fft_1D(x, h, b, conv_param)
+    >>> expected_result = np.correlate(x[0, 0,:], h[0, 0,:], mode="valid")
     >>> # is the FFT based forward convolution correct?
     >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
     >>> # finally: are the gradients correct?
@@ -1238,11 +1238,11 @@ def conv_forward_numpy_1D(x, w, b, conv_param):
      - cache: (x, w, b, conv_param)
 
     >>> x = np.array([[[1., 2., 3.]]])
-    >>> y = np.array([[[2., 1.]]])
+    >>> h = np.array([[[2., 1.]]])
     >>> b = np.array([0.0])
     >>> conv_param = {'pad' : 0, 'stride' :1}
-    >>> result, cache = conv_forward_numpy_1D(x, y, b, conv_param)
-    >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:], mode="valid")
+    >>> result, cache = conv_forward_numpy_1D(x, h, b, conv_param)
+    >>> expected_result = np.correlate(x[0, 0,:], h[0, 0,:], mode="valid")
     >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
     """
     pad = conv_param.get('pad')
@@ -1281,19 +1281,19 @@ def conv_backward_numpy_1D(dout, cache):
     - db: Gradient with respect to b
 
     >>> x = np.array([[[1., 2., 3.]]])
-    >>> y = np.array([[[2., 1.]]])
+    >>> h = np.array([[[2., 1.]]])
     >>> b = np.array([0.0])
     >>> conv_param = {'pad' : 0, 'stride' :1}
     >>> dout = np.array([[[0.1, -0.2]]])
     >>> # first, get the expected results from direct naive approach to convolution
-    >>> result, cache = conv_forward_naive_1D(x, y, b, conv_param)
-    >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:], mode="valid")
+    >>> result, cache = conv_forward_naive_1D(x, h, b, conv_param)
+    >>> expected_result = np.correlate(x[0, 0,:], h[0, 0,:], mode="valid")
     >>> # is the forward naive convolution correct?
     >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
     >>> expected_dx, expected_dw, expected_db = conv_backward_naive_1D(dout, cache)
     >>> # get the results from the backward pass
-    >>> result, cache = conv_forward_numpy_1D(x, y, b, conv_param)
-    >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:], mode="valid")
+    >>> result, cache = conv_forward_numpy_1D(x, h, b, conv_param)
+    >>> expected_result = np.correlate(x[0, 0,:], h[0, 0,:], mode="valid")
     >>> # is the FFT based forward convolution correct?
     >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
     >>> # finally: are the gradients correct?
@@ -1385,12 +1385,12 @@ def conv_forward_naive_1D(x, w, b, conv_param):
      - cache: (x, w, b, conv_param)
 
     >>> x = np.array([[[1., 2., 3.]]])
-    >>> y = np.array([[[2., 1.]]])
+    >>> h = np.array([[[2., 1.]]])
     >>> b = np.array([0.0])
     >>> conv_param = {'pad' : 0, 'stride' :1}
-    >>> result, cache = conv_forward_naive_1D(x, y, b, conv_param)
+    >>> result, cache = conv_forward_naive_1D(x, h, b, conv_param)
     >>> # print("result: ", result)
-    >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:], mode="valid")
+    >>> expected_result = np.correlate(x[0, 0,:], h[0, 0,:], mode="valid")
     >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
     """
     pad = conv_param.get('pad')
@@ -1466,16 +1466,16 @@ def compress_fft_1D_fast(x, y_len):
     # print("xfft len after compression: ", len(xfft))
     # print("expected y_len: ", y_len)
     y = ifft(xfft) * np.sqrt(fft_len)
-    # print("size of the output: ", len(y))
+    # print("size of the output: ", len(h))
     y = np.real(y)
-    # print("energy of y before truncation: ", energy(y))
-    plot_signal_time(y, "y after ifft and real")
+    # print("energy of h before truncation: ", energy(h))
+    plot_signal_time(y, "h after ifft and real")
     y = y[:y_len]
-    plot_signal_time(y, "y after truncation to y_len")
-    # y = y * energy(x) / energy(y) # scale the signal
-    # print("energy ratio: ", energy(y) / energy(x))
+    plot_signal_time(y, "h after truncation to y_len")
+    # h = h * energy(x) / energy(h) # scale the signal
+    # print("energy ratio: ", energy(h) / energy(x))
     # print("len ratio: ", x_len / y_len)
-    # print("energy of y: ", energy(y))
+    # print("energy of h: ", energy(h))
     return y
 
 
@@ -1524,15 +1524,15 @@ def compress_fft_1D(x, y_len):
     # plot_signal(np.abs(xfft), title="xfft after compression")
     # print("xfft len after compression: ", len(xfft))
     # print("expected y_len: ", y_len)
-    # y = irfft(xfft, norm="ortho", n=y_len)
+    # h = irfft(xfft, norm="ortho", n=y_len)
     y = irfft(xfft, n=y_len)
-    # yfft = fft(y, 512)
-    # plot_signal(y, "signal y after irfft")
+    # yfft = fft(h, 512)
+    # plot_signal(h, "signal h after irfft")
     # plot_signal(ifft(yfft), "signal yfft after inverse 512")
-    # print("size of the output: ", len(y))
-    # y = np.real(y)
-    # plot_signal(y, "y after ifft and real")
-    # print("energy ratio: ", energy(y)/energy(x))
+    # print("size of the output: ", len(h))
+    # h = np.real(h)
+    # plot_signal(h, "h after ifft and real")
+    # print("energy ratio: ", energy(h)/energy(x))
     return y
 
 
@@ -1541,10 +1541,10 @@ def compress_fft_1D_gradient(g, x_len):
     Compress the fft signal - this is the backward propagation for fft 1D compression.
 
     The final returned gradient should be: gradient_out = g (the input gradient) * gradient_fft compression with respect
-    to y - which is just the Fourier (transformation) matrix.
+    to h - which is just the Fourier (transformation) matrix.
 
-    :param g: the gradient: the gradient of the loss L with respect to the output of the 1D fft compression y
-    \frac{\gradient L}{\gradient of \hat{y}}
+    :param g: the gradient: the gradient of the loss L with respect to the output of the 1D fft compression h
+    \frac{\gradient L}{\gradient of \hat{h}}
     :param y_len: the length of the output. Based on this value, we calculate the pad_count: how many
     zeros we should add (in the frequency domain) to both halves of the gradient signal g.
     :return: gradient of the loss R with respect to x (the input signal to the forward 1D fft compression).
@@ -1746,11 +1746,11 @@ def conv_backward_naive_1D(dout, cache):
     - db: Gradient with respect to b
 
     >>> x = np.array([[[1., 2., 3.]]])
-    >>> y = np.array([[[2., 1.]]])
+    >>> h = np.array([[[2., 1.]]])
     >>> b = np.array([0.0])
     >>> conv_param = {'pad' : 0, 'stride' :1}
-    >>> result, cache = conv_forward_naive_1D(x, y, b, conv_param)
-    >>> expected_result = np.correlate(x[0, 0,:], y[0, 0,:], mode="valid")
+    >>> result, cache = conv_forward_naive_1D(x, h, b, conv_param)
+    >>> expected_result = np.correlate(x[0, 0,:], h[0, 0,:], mode="valid")
     >>> np.testing.assert_array_almost_equal(result, np.array([[expected_result]]))
     >>> dout = np.array([[[0.1, -0.2]]])
     >>> dx, dw, db = conv_backward_naive_1D(dout, cache)
@@ -2400,8 +2400,8 @@ def svm_loss(x, y):
     Inputs:
     - x: Input data, of shape (N, C) where x[i, j] is the score for the jth
       class for the ith input.
-    - y: Vector of labels, of shape (N,) where y[i] is the label for x[i] and
-      0 <= y[i] < C
+    - h: Vector of labels, of shape (N,) where h[i] is the label for x[i] and
+      0 <= h[i] < C
 
     Returns a tuple of:
     - loss: Scalar giving the loss
@@ -2427,8 +2427,8 @@ def softmax_loss(x, y):
     Inputs:
     - x: Input data, of shape (N, C) where x[i, j] is the score for the jth
       class for the ith input.
-    - y: Vector of labels, of shape (N,) where y[i] is the label for x[i] and
-      0 <= y[i] < C
+    - h: Vector of labels, of shape (N,) where h[i] is the label for x[i] and
+      0 <= h[i] < C
 
     Returns a tuple of:
     - loss: Scalar giving the loss

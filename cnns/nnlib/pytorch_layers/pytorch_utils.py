@@ -287,7 +287,7 @@ def complex_mul(x, y):
     ... [-4., 7.]]))
     >>> # x = torch.rfft(torch.tensor([1., 2., 3., 0.]), 1)
     >>> x = tensor([[ 6.,  0.], [-2., -2.], [ 2.,  0.]])
-    >>> # y = torch.rfft(torch.tensor([5., 6., 7., 0.]), 1)
+    >>> h
     >>> y = tensor([[18.,  0.], [-2., -6.], [ 6.,  0.]])
     >>> # torch.equal(tensor1, tensor2): True if two tensors
     >>> # have the same size and elements, False otherwise.

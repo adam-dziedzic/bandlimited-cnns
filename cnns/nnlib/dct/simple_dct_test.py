@@ -85,3 +85,13 @@ class TestSimpleDCT(unittest.TestCase):
         print("result: ", result)
         assert np.testing.assert_allclose(actual=result, desired=expect)
 
+    def testCorrelation2(self):
+        x = np.array([1.0, -2.0, 3.0, -4.0, 2.0, -8.0, -1.0, 5.0], dtype=float)
+        y = np.array([1.0, -4.0, 2.0], dtype=float)
+        dct = DCT()
+        expect = np.correlate(x, y, mode='full')[len(y) - 1:]
+        print("expect: ", expect)
+        result = dct.correlate_izumi(x, y, use_next_power2=False)
+        print("result: ", result)
+        assert np.testing.assert_allclose(actual=result, desired=expect)
+

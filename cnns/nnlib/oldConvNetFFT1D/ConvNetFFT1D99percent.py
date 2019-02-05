@@ -161,7 +161,7 @@ for energy_rate in energy_rates:
 
     left_ylabel = "Execution time (sec)"
     ax.set_ylabel(left_ylabel, color="red")
-    ax.tick_params('y', colors='red')
+    ax.tick_params('h', colors='red')
 
     plt.title("Execution time (sec) for each preserved energy rate")
     ax.set_xticklabels(trates)

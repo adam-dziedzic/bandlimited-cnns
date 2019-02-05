@@ -64,7 +64,7 @@ def main():
   w, h = fig.canvas.get_width_height()
   figimg = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
   Image.fromarray(figimg.reshape((h, w, 3))).save(out_fn)
-  print 'wrote', out_fn
+  print('wrote', out_fn)
 
 if __name__ == '__main__':
   main()
