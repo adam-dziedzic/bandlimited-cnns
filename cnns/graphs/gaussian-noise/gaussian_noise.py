@@ -13,6 +13,7 @@ MY_RED = (204, 37, 41)
 MY_ORANGE = (218, 124, 48)
 MY_GREEN = (62, 150, 81)
 MY_BLACK = (83, 81, 84)
+MY_GOLD = (148, 139, 61)
 
 
 def get_color(COLOR_TUPLE_255):
@@ -25,7 +26,7 @@ matplotlib.rc('font', **font)
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 GPU_MEM_SIZE = 16280
-columns = 5
+columns = 6
 
 
 def read_columns(dataset):
@@ -46,13 +47,12 @@ def read_columns(dataset):
 fig = plt.figure(figsize=(8, 6))
 
 dataset = "cifar10-on-ResNet18-add-gaussian-noise"
-labels = ["sigma", "FP32-C=0%", "FP32-C=50%", "FP32-C=85%", "FP16-C=0%"]
+labels = ["sigma", "FP32-C=0%", "FP16-C=0%", "FP32-C=0% early stopping", "FP32-C=50%", "FP32-C=85%"]
 
 cols = read_columns(dataset)
 colors = [get_color(color) for color in
-          [MY_RED, MY_GREEN, MY_BLUE, MY_BLACK, MY_ORANGE]]
-markers = ["^", "o","v","s","D"]
-
+          [MY_GREEN, MY_BLUE, MY_BLACK, MY_ORANGE, MY_GOLD, MY_RED]]
+markers = ["^", "o", "v", "s", "D", "p"]  # ^ - triangle up, o - circle, v - triangle down, D - diamond, p - pentagon;
 
 for i in range(columns):
     if i > 0:  # skip sigma
