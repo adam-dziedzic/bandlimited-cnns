@@ -12,6 +12,7 @@ Install python libraries:
 - matplotlib
 - memory_profiler
 - py3nvml
+- torch_dct (pip install torch_dct)
 
 Install CUDA kernel:
 `cnns/nnlib/pytorch_cuda/complex_mul_cuda/clean_install.sh` (adjust your python path inside the bash script).
