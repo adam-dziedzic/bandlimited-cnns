@@ -35,7 +35,7 @@ from cnns.nnlib.datasets.mnist import get_mnist
 from cnns.nnlib.datasets.cifar import get_cifar
 from cnns.nnlib.datasets.ucr.ucr import get_ucr
 from cnns.nnlib.utils.exec_args import get_args
-from cnns.nnlib.pytorch_experiments.utils.progress_bar import progress_bar
+# from cnns.nnlib.pytorch_experiments.track_utils.progress_bar import progress_bar
 from cnns.nnlib.pytorch_architecture.le_net import LeNet
 from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
 from cnns.nnlib.pytorch_architecture.densenet import densenet_cifar
@@ -234,12 +234,12 @@ def train(model, device, train_loader, optimizer, loss_function, epoch, args):
             with open(additional_log_file, "a") as file:
                 file.write("\n")
 
-        if args.is_progress_bar:
-            progress_bar(total, len(train_loader.dataset), epoch=epoch,
-                         msg="Train Loss: %.3f | Train Acc: %.3f%% (%d/%d)" %
-                             (train_loss / total, 100. * correct / total,
-                              correct,
-                              total))
+        # if args.is_progress_bar:
+        #     progress_bar(total, len(train_loader.dataset), epoch=epoch,
+        #                  msg="Train Loss: %.3f | Train Acc: %.3f%% (%d/%d)" %
+        #                      (train_loss / total, 100. * correct / total,
+        #                       correct,
+        #                       total))
 
     # Test loss for the whole dataset.
     train_loss /= total
@@ -602,7 +602,10 @@ if __name__ == '__main__':
     print("start learning!")
     start_time = time.time()
     hostname = socket.gethostname()
-    cuda_visible_devices = os.environ['CUDA_VISIBLE_DEVICES']
+    try:
+        cuda_visible_devices = os.environ['CUDA_VISIBLE_DEVICES']
+    except KeyError:
+        cuda_visible_devices = 0
     global_log_file = os.path.join(results_folder_name,
                                    get_log_time() + "-ucr-fcnn.log")
     args_str = args.get_str()

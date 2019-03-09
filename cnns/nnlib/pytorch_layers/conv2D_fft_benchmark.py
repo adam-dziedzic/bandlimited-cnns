@@ -31,8 +31,9 @@ from cnns.nnlib.utils.arguments import Arguments
 
 import socket
 
-if socket.gethostname() == "skr-compute1" or socket.gethostname() == "adam-gpu2":
-    from complex_mul_cpp import complex_mul as complex_mul_cpp
+# if socket.gethostname() == "skr-compute1" or socket.gethostname() == "adam-gpu2":
+if torch.cuda.is_available():
+    # from complex_mul_cpp import complex_mul as complex_mul_cpp
     # from complex_mul_cuda import complex_mul as complex_mul_cuda
     # from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
     from complex_mul_cuda import \
@@ -259,7 +260,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
             convFFT = conv.forward(ctx=None, input=x, filter=y, stride=1,
                                    args=Arguments(
                                        stride_type=StrideType.STANDARD,
-                                       conv_exec_type=ConvExecType.CUDA_DEEP))
+                                       conv_exec_type=ConvExecType.CUDA))
         convFFTtime = time.time() - start
         print("convFFT time: ", convFFTtime)
         speedup = convFFTtime / convStandardTime
@@ -274,6 +275,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
         dtype = torch.float
         if torch.cuda.is_available():
             device = torch.device("cuda")
+            print("Torch CUDA is available")
         else:
             device = torch.device("cpu")
         print("device used: ", str(device))
@@ -306,8 +308,9 @@ class TestBenchmarkConv2d(unittest.TestCase):
         conv = Conv2dfft(weight_value=y, stride=stride,
                          args=Arguments(stride_type=StrideType.STANDARD,
                                         min_batch_size=min_batch_size,
-                                        preserve_energy=preserve_energy,
-                                        next_power2=next_power2))
+                                        preserved_energy=preserve_energy,
+                                        next_power2=next_power2,
+                                        conv_exec_type=ConvExecType.CUDA))
         conv.to(device)
         start = time.time()
         for repeat in range(repetitions):
@@ -339,7 +342,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
         start = time.time()
         conv.forward(ctx=None, input=x, filter=y, stride=1,
                      args=Arguments(stride_type=StrideType.STANDARD,
-                                    preserve_energy=80))
+                                    preserved_energy=80))
         convFFTtime = time.time() - start
         print("convFFT time: ", convFFTtime)
         speedup = convFFTtime / convStandardTime

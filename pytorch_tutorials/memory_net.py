@@ -536,7 +536,7 @@ def test_network(net, testloader, classes, device):
     outputs, and checking it against the ground-truth. If the prediction is
     correct, we add the sample to the list of correct predictions.
 
-    :param testloader: an instance of the torch.utils.data.DataLoader
+    :param testloader: an instance of the torch.track_utils.data.DataLoader
     :param classes: the classes expected in the test set
     :param net: the deep neural network model
     :return: the accuracy on the whole test set
@@ -546,7 +546,7 @@ def test_network(net, testloader, classes, device):
 
     # dataiter = iter(testloader)
     # images, labels = dataiter.next()
-    # imshow(torchvision.utils.make_grid(images))
+    # imshow(torchvision.track_utils.make_grid(images))
     # print('GroundTruth: ',
     #       ' '.join('%5s' % classes[labels[j]] for j in range(4)))
 

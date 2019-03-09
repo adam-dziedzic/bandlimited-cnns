@@ -23,7 +23,7 @@ Then you can convert this array into a ``torch.*Tensor``.
 Specifically for vision, we have created a package called
 ``torchvision``, that has data loaders for common datasets such as
 Imagenet, CIFAR10, MNIST, etc. and data transformers for images, viz.,
-``torchvision.datasets`` and ``torch.utils.data.DataLoader``.
+``torchvision.datasets`` and ``torch.track_utils.data.DataLoader``.
 
 This provides a huge convenience and avoids writing boilerplate code.
 

@@ -37,14 +37,16 @@ The total number of GPU thread blocks is N * F * max threads per block: number
 of input maps (e.g. images) in the batch and number of filers in the filter
 bank.
 Each block of threads is used to compute a single output plane of size
-(H x W x I), which correspond to the f-th channel plane in the n-th output map.
+(H x W x I), which corresponds to the f-th channel plane in the n-th output map.
 It is obtained after a point-wise complex multiplication between an input map n
-and a filter f both of size H x W x I.
+and a filter f, where both the input map and the filter are of size H x W x I.
+
 Each thread in a block of threads drills through each channel in an input map
 on the level of a given (H,W) coordinate.
 For image n, we set its starting index n_idx from n*C*H*W*I and the last
 coordinate for a given plane is at (n_idx+H*W*I) = n_idx + channel_size (a
 single channel size).
+
 We define the number of threads in the block as a raw_stride.
 Once a thread finishes summing values for all the channels C in the (H,W)
 coordinate, it moves (raw_stride*(*W*I) = stride) positions to the next (H,W)

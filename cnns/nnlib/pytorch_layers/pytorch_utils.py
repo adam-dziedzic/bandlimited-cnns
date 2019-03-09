@@ -1,5 +1,5 @@
 """
-Pytorch utils.
+Pytorch track_utils.
 
 The latest version of Pytorch (in the main branch 2018.06.30)
 supports tensor flipping.
