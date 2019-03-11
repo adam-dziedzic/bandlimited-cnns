@@ -65,6 +65,7 @@ if torch.cuda.is_available():
     from complex_mul_cuda import \
         complex_mul_deep as complex_mul_deep_cuda
 
+global_dataset_name = "50words"
 
 class Conv1dfftFunction(torch.autograd.Function):
     """
@@ -270,6 +271,10 @@ class Conv1dfftFunction(torch.autograd.Function):
                           onesided=True)
         del input
 
+        if args.visulize is True:
+            print("full spectra size: ", xfft.size())
+            full_spectra_size = xfft.size()[2]
+
         if is_debug:
             data_point = 0
             data_channel = 0
@@ -335,6 +340,19 @@ class Conv1dfftFunction(torch.autograd.Function):
                                               length=half_fft_compressed_size)
             del xfft
             xfft = xfft_compressed
+
+            if args.visulize is True:
+                print("compressed: ", xfft.size())
+                compress_spectra_size = xfft.size()[2]
+                with open("spectra_size_all_with_W_no_power_2.csv", "a") as out:
+                    global global_dataset_name
+                    if global_dataset_name == args.dataset_name:
+                        out.write(",")
+                    else:
+                        out.write("\n")
+                        global_dataset_name = args.dataset_name
+                    out.write(args.dataset_name + "," + str(W) + "," + str(full_spectra_size) + "," + str(compress_spectra_size) + "," + str(compress_spectra_size/full_spectra_size))
+
 
         if is_debug:
             cuda_mem_show(info="compress input")

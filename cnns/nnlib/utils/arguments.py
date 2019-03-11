@@ -20,6 +20,37 @@ cFFT cuda_multiply: total elapsed time (sec):  15.602577447891235
 Pytorch: total elapsed time (sec):  7.639773607254028
 """
 
+# 1D
+# conv_type = ConvType.FFT1D
+# conv_type = ConvType.STANDARD
+
+# 2D
+# conv_type = ConvType.STANDARD2D
+conv_type = ConvType.FFT2D
+
+if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
+    dataset = "ucr"
+    network_type = NetworkType.FCNN_STANDARD
+    preserved_energy = 99  # for unit tests
+    preserved_energies = [preserved_energy]
+    tensor_type = TensorType.FLOAT32
+    precision_type = PrecisionType.FP32
+    conv_exec_type = ConvExecType.BATCH
+    visualize = True  # test model for different compress rates
+    next_power2 = False
+else:
+    dataset = "cifar10"
+    network_type=NetworkType.ResNet18
+    # network_type=NetworkType.DenseNetCifar
+    preserved_energy = 100  # for unit tests
+    preserved_energies = [preserved_energy]
+    tensor_type = TensorType.FLOAT32
+    precision_type = PrecisionType.FP32
+    conv_exec_type = ConvExecType.CUDA
+    visualize = True  # test model for different compress rates
+    next_power2 = True
+
+
 class Arguments(object):
     """
     Encapsulate all the arguments for the running program and carry them through
@@ -37,18 +68,18 @@ class Arguments(object):
 
     def __init__(self,
                  is_debug=False,
-                 network_type=NetworkType.ResNet18,
+                 # network_type=NetworkType.ResNet18,
                  # network_type=NetworkType.DenseNetCifar,
-                 # network_type=NetworkType.FCNN_STANDARD,
-                 preserved_energy=100,  # for unit tests
-                 preserved_energies=[100],
+                 network_type=network_type,
+                 preserved_energy=preserved_energy,  # for unit tests
+                 preserved_energies=preserved_energies,
                  # preserved_energies=range(100,49,-1),
                  # preserved_energies=range(85, 75, -1),
                  # preserved_energies=[95, 90, 98],                 # preserved_energies=[100, 99.9, 99.5, 99, 98, 97, 96, 95, 90, 80, 70, 60, 50, 10],
                  # preserved_energies=[100,99.5,99,98,95,90,80],
                  # preserved_energies=range(96, 1),
                  # tensor_type=TensorType.FLOAT16,
-                 tensor_type=TensorType.FLOAT32,
+                 tensor_type=tensor_type,
                  # precision_type=PrecisionType.AMP,  # use AMP for fp16 - reduced precision training
                  precision_type=PrecisionType.FP32,
                  # precision_type=PrecisionType.FP16,
@@ -56,8 +87,8 @@ class Arguments(object):
                  compress_type=CompressType.STANDARD,
                  #compress_rate=5,
                  # compress_rate=0.0,
-                 compress_rate=84.0,
-                 compress_rates=[84.0],
+                 compress_rate=0.0,
+                 compress_rates=[0.0],
                  # ndexes_back=[5,15,25,35,45],
                  # compress_rates=range(0, 101),
                  # compress_rates=[x/2 for x in range(28,111,1)],
@@ -94,8 +125,8 @@ class Arguments(object):
                  loss_reduction=LossReduction.ELEMENTWISE_MEAN,
                  memory_type=MemoryType.PINNED,
                  workers=6,
-                 # model_path="no_model",
-                 model_path="2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model",
+                 model_path="no_model",
+                 # model_path="2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model",
                  # model_path="2019-01-08-14-41-44-026589-dataset-cifar10-preserve-energy-100.0-test-accuracy-91.39-fp16-amp-no-compression.model",
                  # model_path="2019-01-21-14-30-13-992591-dataset-cifar10-preserve-energy-100.0-test-accuracy-84.55-compress-label-84-after-epoch-304.model",
                  # model_path="2019-01-12-23-31-40-502439-dataset-cifar10-preserve-energy-100.0-test-accuracy-92.63-compress-20-percent-combine_energy-index_back.model",
@@ -148,30 +179,31 @@ class Arguments(object):
                  # model_path="2018-11-26-20-04-34-197804-dataset-50words-preserve-energy-100-test-accuracy-67.47252747252747.model",
                  # model_path="2019-01-11-02-21-05-406721-dataset-cifar10-preserve-energy-100.0-test-accuracy-92.23-51.5-real-compression.model",
                  # dataset="cifar100",
-                 dataset="cifar10",
-                 # dataset="ucr",
+                 # dataset="cifar10",
+                 dataset=dataset,
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=0,  # run on full data
+                 # sample_count_limit=0,  # run on full data
+                 sample_count_limit=1000,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
                  # sample_count_limit=100,
                  # sample_count_limit=1024,
                  # sample_count_limit=2048,
-                 conv_type=ConvType.FFT2D,
+                 # conv_type=ConvType.FFT2D,
                  # conv_type=ConvType.STANDARD2D,
-                 # conv_type=ConvType.FFT1D,
+                 conv_type=conv_type,
                  # conv_type=ConvType.STANDARD,
-                 conv_exec_type=ConvExecType.CUDA,
+                 # conv_exec_type=ConvExecType.CUDA,
                  # conv_exec_type=ConvExecType.CUDA_DEEP,
                  # conv_exec_type=ConvExecType.CUDA_SHARED_LOG,
-                 # conv_exec_type=ConvExecType.BATCH,
+                 conv_exec_type=conv_exec_type,
                  # conv_exec_type=ConvExecType.SERIAL,
-                 visualize=False,  # test model for different compress rates
+                 visualize=visualize,  # test model for different compress rates
                  static_loss_scale=1,
                  out_size=None,
-                 next_power2=True,
+                 next_power2=next_power2,
                  dynamic_loss_scale=True,
                  memory_size=25,
                  is_progress_bar=False,

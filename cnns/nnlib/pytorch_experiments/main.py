@@ -639,7 +639,7 @@ if __name__ == '__main__':
         amp_handle = amp.init(enabled=True)
 
     if args.dataset == "all" or args.dataset == "ucr":
-        flist = os.listdir(ucr_path)
+        flist = sorted(os.listdir(ucr_path))
     elif args.dataset == "cifar10":
         flist = ["cifar10"]
     elif args.dataset == "cifar100":
@@ -647,6 +647,8 @@ if __name__ == '__main__':
     elif args.dataset == "mnist":
         flist = ["mnist"]
     elif args.dataset == "debug":
+        # flist = ["50words"]
+        flist = ["Adiac"]
         # flist = ['ItalyPowerDemand']
         # flist = ['Lighting7']
         # flist = ['Trace']
@@ -671,7 +673,6 @@ if __name__ == '__main__':
         #          'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
         #          'CinC_ECG_torso', 'Coffee', 'Computers']
         # flist = ["WIFI"]
-        # flist = ["50words"]
         # flist = ["yoga"]
         # flist = ["Two_Patterns"]
         # flist = ["uWaveGestureLibrary_Z"]
@@ -686,33 +687,33 @@ if __name__ == '__main__':
         # flist = ["Cricket_X"]
         # flist = ["50words"]
         # flist = ["SwedishLeaf"]
-        flist = ['Computers', 'Beef', 'BeetleFly',
-                 'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
-                 'CinC_ECG_torso', 'Coffee', 'Cricket_X',
-                 'Cricket_Y', 'Cricket_Z', 'DiatomSizeReduction',
-                 'DistalPhalanxOutlineAgeGroup', 'DistalPhalanxOutlineCorrect',
-                 'DistalPhalanxTW', 'Earthquakes', 'ECG200', 'ECG5000',
-                 'ECGFiveDays', 'ElectricDevices', 'FaceAll', 'FaceFour',
-                 'FacesUCR', 'FISH', 'FordA', 'FordB', 'Gun_Point', 'Ham',
-                 'HandOutlines', 'Haptics', 'Herring', 'InlineSkate',
-                 'InsectWingbeatSound', 'ItalyPowerDemand',
-                 'LargeKitchenAppliances', 'Lighting2', 'Lighting7', 'MALLAT',
-                 'Meat', 'MedicalImages', 'MiddlePhalanxOutlineAgeGroup',
-                 'MiddlePhalanxOutlineCorrect', 'MiddlePhalanxTW', 'MoteStrain',
-                 'NonInvasiveFatalECG_Thorax1', 'NonInvasiveFatalECG_Thorax2',
-                 'OliveOil', 'OSULeaf', 'PhalangesOutlinesCorrect', 'Phoneme',
-                 'Plane', 'ProximalPhalanxOutlineAgeGroup',
-                 'ProximalPhalanxOutlineCorrect', 'ProximalPhalanxTW',
-                 'RefrigerationDevices', 'ScreenType', 'ShapeletSim',
-                 'ShapesAll', 'SmallKitchenAppliances', 'SonyAIBORobotSurface',
-                 'SonyAIBORobotSurfaceII', 'StarLightCurves', 'Strawberry',
-                 'SwedishLeaf', 'Symbols', 'synthetic_control',
-                 'ToeSegmentation1', 'ToeSegmentation2', 'Trace',
-                 'Two_Patterns',
-                 'TwoLeadECG', 'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
-                 'uWaveGestureLibrary_Z', 'UWaveGestureLibraryAll', 'wafer',
-                 'Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass', 'yoga',
-                 'ztest']
+        # flist = ['Computers', 'Beef', 'BeetleFly',
+        #          'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
+        #          'CinC_ECG_torso', 'Coffee', 'Cricket_X',
+        #          'Cricket_Y', 'Cricket_Z', 'DiatomSizeReduction',
+        #          'DistalPhalanxOutlineAgeGroup', 'DistalPhalanxOutlineCorrect',
+        #          'DistalPhalanxTW', 'Earthquakes', 'ECG200', 'ECG5000',
+        #          'ECGFiveDays', 'ElectricDevices', 'FaceAll', 'FaceFour',
+        #          'FacesUCR', 'FISH', 'FordA', 'FordB', 'Gun_Point', 'Ham',
+        #          'HandOutlines', 'Haptics', 'Herring', 'InlineSkate',
+        #          'InsectWingbeatSound', 'ItalyPowerDemand',
+        #          'LargeKitchenAppliances', 'Lighting2', 'Lighting7', 'MALLAT',
+        #          'Meat', 'MedicalImages', 'MiddlePhalanxOutlineAgeGroup',
+        #          'MiddlePhalanxOutlineCorrect', 'MiddlePhalanxTW', 'MoteStrain',
+        #          'NonInvasiveFatalECG_Thorax1', 'NonInvasiveFatalECG_Thorax2',
+        #          'OliveOil', 'OSULeaf', 'PhalangesOutlinesCorrect', 'Phoneme',
+        #          'Plane', 'ProximalPhalanxOutlineAgeGroup',
+        #          'ProximalPhalanxOutlineCorrect', 'ProximalPhalanxTW',
+        #          'RefrigerationDevices', 'ScreenType', 'ShapeletSim',
+        #          'ShapesAll', 'SmallKitchenAppliances', 'SonyAIBORobotSurface',
+        #          'SonyAIBORobotSurfaceII', 'StarLightCurves', 'Strawberry',
+        #          'SwedishLeaf', 'Symbols', 'synthetic_control',
+        #          'ToeSegmentation1', 'ToeSegmentation2', 'Trace',
+        #          'Two_Patterns',
+        #          'TwoLeadECG', 'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
+        #          'uWaveGestureLibrary_Z', 'UWaveGestureLibraryAll', 'wafer',
+        #          'Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass', 'yoga',
+        #          'ztest']
         # flist = ['DiatomSizeReduction',
         #          'DistalPhalanxOutlineAgeGroup', 'DistalPhalanxOutlineCorrect',
         #          'DistalPhalanxTW', 'Earthquakes', 'ECG200', 'ECG5000',

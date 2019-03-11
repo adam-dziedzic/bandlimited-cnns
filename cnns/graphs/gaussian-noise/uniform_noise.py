@@ -60,7 +60,8 @@ colors = [get_color(color) for color in
 markers = ["^", "o", "v", "s", "D", "p"]  # ^ - triangle up, o - circle, v - triangle down, D - diamond, p - pentagon;
 
 for i in range(columns):
-    if i > 0:  # skip sigma
+    if i > 0:  # skip epsilon
+        # print(cols[i])
         plt.plot(cols[0], cols[i], label=labels[i], lw=3, marker=markers[i],
                  color=colors[i])
 
