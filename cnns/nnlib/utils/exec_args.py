@@ -89,10 +89,10 @@ def get_args():
                         help="The path to a saved model.")
     parser.add_argument("--dataset", default=args.dataset,
                         help="the type of datasets: all, debug, cifar10, mnist.")
-    # parser.add_argument("--compress_rate", default=args.compress_rate, type=float,
-    #                     help="Percentage of indexes (values) from the back of the "
-    #                          "frequency representation that should be discarded. "
-    #                          "This is the compression in the FFT domain.")
+    parser.add_argument("--compress_rate", default=args.compress_rate, type=float,
+                        help="Percentage of indexes (values) from the back of the "
+                             "frequency representation that should be discarded. "
+                             "This is the compression in the FFT domain.")
     parser.add_argument('--compress_rates', nargs="+", type=float,
                         default=args.compress_rates,
                         help="Percentage of the high frequency coefficients that "

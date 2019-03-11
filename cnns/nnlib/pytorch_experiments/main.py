@@ -3,7 +3,6 @@
 """
 Created on Fri Sep 07 17:20:19 2018
 """
-import sys
 import os
 import sys
 import pathlib
