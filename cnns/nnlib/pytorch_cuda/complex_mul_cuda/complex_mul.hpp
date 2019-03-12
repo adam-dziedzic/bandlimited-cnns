@@ -12,4 +12,6 @@ void complex_mul_stride_no_permute_cuda(
 void complex_mul_stride_no_permute_cuda_pure(
     at::Tensor x, at::Tensor y, at::Tensor out, int threads = 1024);
 
+void complex_mul_cublas(at::Tensor x, at::Tensor y, at::Tensor out);
+
 #endif  // COMPLEX_MUL_h
