@@ -2899,7 +2899,7 @@ def correlate_fft_signals2D(xfft, yfft, input_height, input_width,
 
     out = out[..., :out_height, :out_width]
     if out.dim() > 2 and is_forward:
-        out = torch.sum(input=out, dim=1, keepdim=True)
+        out = torch.sum(input=out, dim=1, keepdim=False)
     return out
 
 

@@ -279,21 +279,19 @@ class TestBenchmarkConv2d(unittest.TestCase):
         else:
             device = torch.device("cpu")
         print("device used: ", str(device))
-        N, C, H, W = 128, 16, 32, 32
-        K, HH, WW = 16, 3, 3
+        N, C, H, W = 32, 3, 32, 32
+        K, HH, WW = 64, 3, 3
         x = torch.randn(N, C, H, W, dtype=dtype, device=device)
         y = torch.randn(K, C, HH, WW, dtype=dtype, device=device)
 
-        repetitions = 100
-        min_batch_size = 128
+        repetitions = 1000
         preserve_energy = 100
         stride = 1
         next_power2 = True
 
-        print("preserve energy: ", preserve_energy)
-        print("min_batch_size (equivalent to the batch slice for fft): ",
-              min_batch_size)
-        print("next power 2: ", next_power2)
+        # print("preserve energy: ", preserve_energy)
+        # print("min_batch_size (equivalent to the batch slice for fft): ", N)
+        # print("next power 2: ", next_power2)
 
         convStandard = torch.nn.Conv2d(in_channels=C, out_channels=K,
                                        kernel_size=(HH, WW), stride=stride)
@@ -305,12 +303,16 @@ class TestBenchmarkConv2d(unittest.TestCase):
         convStandardTime = time.time() - start
         print("convStandard time: ", convStandardTime)
 
+        compress_rate = 50.0
+
         conv = Conv2dfft(weight_value=y, stride=stride,
                          args=Arguments(stride_type=StrideType.STANDARD,
-                                        min_batch_size=min_batch_size,
+                                        min_batch_size=N,
                                         preserved_energy=preserve_energy,
                                         next_power2=next_power2,
-                                        conv_exec_type=ConvExecType.CUDA))
+                                        conv_exec_type=ConvExecType.CUDA,
+                                        compress_rate=compress_rate,
+                                        compress_rates=[compress_rate]))
         conv.to(device)
         start = time.time()
         for repeat in range(repetitions):
@@ -342,7 +344,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
         start = time.time()
         conv.forward(ctx=None, input=x, filter=y, stride=1,
                      args=Arguments(stride_type=StrideType.STANDARD,
-                                    preserved_energy=80))
+                                    preserved_energy=100))
         convFFTtime = time.time() - start
         print("convFFT time: ", convFFTtime)
         speedup = convFFTtime / convStandardTime
@@ -426,12 +428,13 @@ class TestBenchmarkConv2d(unittest.TestCase):
         torch.manual_seed(args.seed)
         torch.cuda.manual_seed_all(args.seed)
 
-        args.sample_count_limit = 128
-        args.min_batch_size = 128
+        args.sample_count_limit = 32
+        args.min_batch_size = 32
+        args.dataset_name = "cifar10"
         args.test_batch_size = args.min_batch_size
         args.network_type = NetworkType.ResNet18
         from cnns.nnlib.datasets.cifar import get_cifar
-        train_loader, test_loader = get_cifar(args)
+        train_loader, test_loader, _, _ = get_cifar(args=args, dataset_name=args.dataset_name)
 
         repetition = 1
 
@@ -443,15 +446,17 @@ class TestBenchmarkConv2d(unittest.TestCase):
         args.compress_type = CompressType.STANDARD
         args.tensor_type = TensorType.FLOAT32
         args.num_classes = 10
-        args.min_batch_size = 128
         args.test_batch_size = args.min_batch_size
         args.in_channels = C
-
+        args.dtype = torch.float32
         conv_exec_types = [(ConvType.STANDARD2D, ConvExecType.SERIAL),
-                           # (ConvType.FFT2D, ConvExecType.BATCH),
                            (ConvType.FFT2D, ConvExecType.CUDA),
                            (ConvType.FFT2D, ConvExecType.CUDA_SHARED_LOG),
-                           (ConvType.FFT2D, ConvExecType.CUDA_DEEP), ]
+                           (ConvType.FFT2D, ConvExecType.CUDA_DEEP),
+                           # (ConvType.FFT2D, ConvExecType.BATCH),
+                           # (ConvType.FFT2D, ConvExecType.SERIAL),
+                           ]
+
         for conv_type, conv_exec_type in conv_exec_types:
             args.conv_type = conv_type
             args.conv_exec_type = conv_exec_type
@@ -464,7 +469,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
                     inputs = inputs.to(device)
                     outputs_standard = model(inputs)
             standard_time = time.time() - start_eval
-            print(f"total time for ({conv_type},{conv_exec_type}):"
+            print(f"total time for ({conv_type}-{conv_exec_type}):"
                   f" {standard_time}")
 
     def test_complex_mul(self):
