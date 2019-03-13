@@ -36,7 +36,7 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     tensor_type = TensorType.FLOAT32
     precision_type = PrecisionType.FP32
     conv_exec_type = ConvExecType.BATCH
-    visualize = True  # test model for different compress rates
+    visualize = True # test model for different compress rates
     next_power2 = False
 else:
     dataset = "cifar10"
@@ -47,7 +47,7 @@ else:
     tensor_type = TensorType.FLOAT32
     precision_type = PrecisionType.FP32
     conv_exec_type = ConvExecType.CUDA
-    visualize = True  # test model for different compress rates
+    visualize = False  # test model for different compress rates
     next_power2 = True
 
 
@@ -67,7 +67,7 @@ class Arguments(object):
         return self.__counter__
 
     def __init__(self,
-                 is_debug=False,
+                 is_debug=True,
                  # network_type=NetworkType.ResNet18,
                  # network_type=NetworkType.DenseNetCifar,
                  network_type=network_type,
@@ -185,7 +185,7 @@ class Arguments(object):
                  mem_test=False,
                  is_data_augmentation=True,
                  # sample_count_limit=0,  # run on full data
-                 sample_count_limit=1000,
+                 sample_count_limit=32,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
                  # sample_count_limit=100,

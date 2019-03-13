@@ -69,7 +69,12 @@ global_irfft_time = 0.0
 global_complex_time = 0.0
 global_permute_time = 0.0
 global_complex_dxfft = 0.0
-
+global_pad_time = 0.0
+global_counter = 0
+global_threshold = 10000
+global_conjugate_time = 0.0
+global_restore_time = 0.0
+global_init_time = 0.0
 
 class Conv2dfftFunction(torch.autograd.Function):
     """
@@ -143,17 +148,25 @@ class Conv2dfftFunction(torch.autograd.Function):
         is_debug = args.is_debug
         stride_type = args.stride_type
 
-
         dtype = input.dtype
         device = input.device
 
         if is_debug:
-            pass
+            # print("debug enabled")
+            global global_counter
+            global global_threshold
+            global_counter += 1
+            # print("global_counter: ", global_counter)
+
+
+        if is_debug:
+            global global_init_time
+            start_init_time = time.time()
 
         INPUT_ERROR = "Specify only one of: compress_rate, out_size, or " \
                       "preserve_energy"
-        if (
-                compress_rate is not None and compress_rate > 0) and out_size is not None:
+        if (compress_rate is not None and compress_rate > 0) and (
+                out_size is not None):
             raise TypeError(INPUT_ERROR)
         if (compress_rate is not None and compress_rate > 0) and (
                 preserve_energy is not None and preserve_energy < 100):
@@ -237,6 +250,15 @@ class Conv2dfftFunction(torch.autograd.Function):
             init_H_fft = next_power2(init_H_fft)
             init_W_fft = next_power2(init_W_fft)
 
+        if is_debug:
+            global_init_time += time.time() - start_init_time
+            if global_counter % global_threshold == 0:
+                print("global init time: ", global_init_time)
+
+        if is_debug:
+            global global_pad_time
+            start_pad_time = time.time()
+
         # How many padded (zero) values there are because of going to the next
         # power of 2?
         fft_padding_input_H = init_H_fft - 2 * pad_H - H
@@ -255,11 +277,18 @@ class Conv2dfftFunction(torch.autograd.Function):
             filter, (0, fft_padding_filter_W, 0, fft_padding_filter_H),
             'constant', 0)
 
+        if is_debug:
+            global_pad_time += time.time() - start_pad_time
+            if global_counter % global_threshold == 0:
+                print("global pad time: ", global_pad_time)
+
         if args.mem_test:
             torch.cuda.empty_cache()
 
-        # global global_fft_time
-        # start_fft_time = time.time()
+        if is_debug:
+            global global_fft_time
+            start_fft_time = time.time()
+
         # fft of the input and filters
         xfft = torch.rfft(input, signal_ndim=Conv2dfftFunction.signal_ndim,
                           onesided=True)
@@ -270,11 +299,13 @@ class Conv2dfftFunction(torch.autograd.Function):
                           onesided=True)
         del filter
 
+        if is_debug:
+            global_fft_time += time.time() - start_fft_time
+            if global_counter % global_threshold == 0:
+                print("(r)fft time: ", global_fft_time)
+
         if args.mem_test:
             torch.cuda.empty_cache()
-
-        # global_fft_time += time.time() - start_fft_time
-        # print("rfft time: ", global_fft_time)
 
         # The last dimension (-1) has size 2 as it represents the complex
         # numbers with real and imaginary parts. The last but one dimension (-2)
@@ -293,13 +324,18 @@ class Conv2dfftFunction(torch.autograd.Function):
 
         # Compression.
         if preserve_energy is not None and preserve_energy < 100.0:
-            # start_energy = time.time()
+            if is_debug:
+                start_energy = time.time()
+
             xfft, yfft = preserve_energy2D_symmetry(
                 xfft, yfft, preserve_energy_rate=preserve_energy,
                 is_debug=is_debug)
-            # global global_preserve_energy_time
-            # global_preserve_energy_time += time.time() - start_energy
-            # print("preserve energy time: ", global_preserve_energy_time)
+
+            if is_debug:
+                global global_preserve_energy_time
+                global_preserve_energy_time += time.time() - start_energy
+                if global_counter % global_threshold == 0:
+                    print("preserve energy time: ", global_preserve_energy_time)
 
         elif compress_rate_W is not None and compress_rate_W > 0:
             is_fine_grained_sparsification = False  # this is for tests
@@ -347,8 +383,20 @@ class Conv2dfftFunction(torch.autograd.Function):
         # C, H, W = xfft.size(1), xfft.size(2), xfft.size(3)
         # print(f"C,{C},H,{H},W,{W},C*H*W,{C*H*W}")
 
+        if is_debug:
+            global global_conjugate_time
+            start_conjugate = time.time()
+
         yfft = pytorch_conjugate(yfft)
-        # start_correlation = time.time()
+
+        if is_debug:
+            global_conjugate_time += time.time() - start_conjugate
+            if global_counter % global_threshold == 0:
+                print("conjugate time: ", global_conjugate_time)
+
+        if is_debug:
+            start_correlation = time.time()
+
         if args.conv_exec_type is ConvExecType.SERIAL:
             # Serially convolve each input map with all filters.
             out = torch.empty([N, F, out_H, out_W], dtype=dtype, device=device)
@@ -457,17 +505,38 @@ class Conv2dfftFunction(torch.autograd.Function):
                 raise Exception(f"Unknown conv exec "
                                 f"type: {args.conv_exec_type.name}.")
 
+            if is_debug:
+                global global_correlation_time
+                global_correlation_time += time.time() - start_correlation
+                if global_counter % global_threshold == 0:
+                    print("correlation time: ", global_correlation_time)
+
+            if is_debug:
+                start_restore = time.time()
+
             outfft = restore_size_2D(outfft, init_H_fft=init_H_fft,
                                      init_half_W_fft=init_half_W_fft)
 
-            # start_irfft_time = time.time()
+            if is_debug:
+                global global_restore_time
+                global_restore_time += time.time() - start_restore
+                if global_counter % global_threshold == 0:
+                    print("restore time (de-compress/concat output): ", global_restore_time)
+
+            if is_debug:
+                start_irfft_time = time.time()
+
+
             out = torch.irfft(input=outfft,
                               signal_ndim=Conv2dfftFunction.signal_ndim,
                               signal_sizes=(init_H_fft, init_W_fft),
                               onesided=True)
-            # global global_irfft_time
-            # global_irfft_time += time.time() - start_irfft_time
-            # print("irfft time: ", global_irfft_time)
+
+            if is_debug:
+                global global_irfft_time
+                global_irfft_time += time.time() - start_irfft_time
+                if global_counter % global_threshold == 0:
+                    print("i(r)fft time: ", global_irfft_time)
 
             del outfft
             out = out[..., :out_H, :out_W]
@@ -1340,8 +1409,9 @@ class Conv2dfftAutograd(Conv2dfft):
 
 def test_run():
     torch.manual_seed(231)
-    filter = np.array([[[[1.0, 2.0, 3.0], [2.0, 4.0, 1.0], [0.0, 1.0, -1.0]]]],
-                      dtype=np.float32)
+    filter = np.array(
+        [[[[1.3, 2.1, 3.6], [2.9, -4.1, 1.1], [-2.1, 1.2, -1.3]]]],
+        dtype=np.float32)
     filter = torch.from_numpy(filter)
     module = Conv2dfft(filter)
     print("filter and bias parameters: ", list(module.parameters()))

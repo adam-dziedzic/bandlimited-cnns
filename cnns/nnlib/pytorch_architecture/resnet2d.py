@@ -61,6 +61,7 @@ class BasicBlock(nn.Module):
         self.stride = stride
 
     def forward(self, x):
+        # print("ResNet x size: ", x.size())
         residual = x
 
         # start_conv1 = time.time()

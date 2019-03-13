@@ -6,7 +6,7 @@ Author: Adam Dziedzic, ady@uchicago.edu
 
 To compile with nvcc and run the tests, just uncomment the ATen library with the
 include line below, and the declaration of the function that is used by PyTorch,
-namely: complex_mul_shared_log_cuda.
+namely: complex_mul_deep.
 
 */
 #include <ATen/ATen.h>  // this to be uncommented to compile the file with nvcc
@@ -529,7 +529,7 @@ void test_multiply_suit() {
 /**
 :param: The out tensor has to be zero-initialized.
 
-This to be uncommented to compile the file with nvcc.
+This has to be commented to compile the file with nvcc.
 */
 void complex_mul_deep_cuda(
     at::Tensor x,
