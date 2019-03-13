@@ -21,7 +21,9 @@ if not sys.warnoptions:
     warnings.simplefilter("ignore")
 
 args = get_args()
-train_loader, test_loader, train_dataset, test_dataset = get_cifar(args, "cifar10")
+args.sample_count_limit = 1000
+train_loader, test_loader, train_dataset, test_dataset = get_cifar(args,
+                                                                   "cifar10")
 
 if torch.cuda.is_available() and args.use_cuda:
     print("cuda is available")
@@ -76,9 +78,11 @@ def get_foolbox_model(model_path, compress_rate):
     pytorch_model = load_model(args=args)
     mean = 0
     std = 1
-    foolbox_model = foolbox.models.PyTorchModel(model=pytorch_model, bounds=(min, max),
+    foolbox_model = foolbox.models.PyTorchModel(model=pytorch_model,
+                                                bounds=(min, max),
                                                 num_classes=args.num_classes,
-                                                preprocessing=(mean, std), device=device)
+                                                preprocessing=(mean, std),
+                                                device=device)
     return foolbox_model
 
 
@@ -88,10 +92,13 @@ def get_attacks():
         # foolbox.attacks.AdditiveUniformNoiseAttack,
         # foolbox.attacks.GaussianBlurAttack,
         # foolbox.attacks.AdditiveGaussianNoiseAttack,
-        foolbox.attacks.FGSM,
-        foolbox.attacks.GradientAttack,
-        foolbox.attacks.ContrastReductionAttack,
-        foolbox.attacks.BlendedUniformNoiseAttack,
+        # foolbox.attacks.FGSM,
+        # (foolbox.attacks.ContrastReductionAttack, [0.8 + x / 10 for x in range(3)]),
+        (foolbox.attacks.ContrastReductionAttack,
+         [2.1 + x / 10 for x in reversed(range(10))]),
+        (foolbox.attacks.GradientAttack, [x / 100 for x in range(21)]),
+        (
+        foolbox.attacks.BlendedUniformNoiseAttack, [x / 10 for x in range(21)]),
         # foolbox.attacks.SaltAndPepperNoiseAttack(foolbox_model),
         # foolbox.attacks.LinfinityBasicIterativeAttack(
         # model, distance=foolbox.distances.MeanSquaredDistance),
@@ -102,13 +109,15 @@ def get_attacks():
 # attack = foolbox.attacks.FGSM(model)
 # attack = empty_attack
 
-print("compress rate, attack name, epsilon, correct, counter, correct rate (%), time (sec)")
+print(
+    "compress rate, attack name, epsilon, correct, counter, correct rate (%), time (sec)")
 
 model_paths = [
     (0,
      "2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model"),
     (84,
      "2019-01-21-14-30-13-992591-dataset-cifar10-preserve-energy-100.0-test-accuracy-84.55-compress-label-84-after-epoch-304.model"),
+
 ]
 
 # input_epsilons = [0.7, 0.8, 0.9, 1.0]
@@ -116,13 +125,15 @@ model_paths = [
 # input_epsilons = [0.0, 0.0001, 0.001, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 # 0.0, 0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009, 0.01, 0.02
 # input_epsilons = [0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1]
-input_epsilons = [0.11 + x / 100 for x in range(10)]
+# input_epsilons = [0.11 + x / 100 for x in range(10)]
+# input_epsilons = [x / 100 for x in range(21)]
 # input_epsilons = range(0, 100, 10)
 attacks = get_attacks()
-for current_attack in attacks:
+for current_attack, input_epsilons in attacks:
 
     for compress_rate, model_path in model_paths:
-        foolbox_model = get_foolbox_model(model_path=model_path, compress_rate=compress_rate)
+        foolbox_model = get_foolbox_model(model_path=model_path,
+                                          compress_rate=compress_rate)
         attack = current_attack(foolbox_model)
         # for epsilon in [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0]:
         for epsilon in input_epsilons:
@@ -153,5 +164,6 @@ for current_attack in attacks:
                     #     if np.argmax(predictions) == label:
                     #         correct += 1
             timing = time.time() - start
-            print(compress_rate, ",", attack.name(), ",", epsilon, ",", correct, ",", counter, ",", correct / counter,
+            print(compress_rate, ",", attack.name(), ",", epsilon, ",", correct,
+                  ",", counter, ",", correct / counter,
                   ",", timing)
