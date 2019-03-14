@@ -21,7 +21,7 @@ if not sys.warnoptions:
     warnings.simplefilter("ignore")
 
 args = get_args()
-args.sample_count_limit = 100
+args.sample_count_limit = 1000
 train_loader, test_loader, train_dataset, test_dataset = get_cifar(args,
                                                                    "cifar10")
 
@@ -89,7 +89,7 @@ def get_foolbox_model(model_path, compress_rate):
 def get_attacks():
     attacks = [  # empty_attack,
         (foolbox.attacks.SinglePixelAttack, "PerturbPixelsAttack",
-         [x for x in range(0, 1001, 100)]),
+         [x for x in range(0, 301, 20)]),
         # foolbox.attacks.AdditiveUniformNoiseAttack,
         # foolbox.attacks.GaussianBlurAttack,
         # foolbox.attacks.AdditiveGaussianNoiseAttack,
