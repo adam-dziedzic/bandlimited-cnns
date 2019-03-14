@@ -256,6 +256,8 @@ def get_args():
     parser.add_argument("--noise_sigmas", default=args.noise_sigmas, nargs="+",
                         type=float,
                         help="how much Gaussian noise to add: {args.noise_sigmas}")
+    parser.add_argument("--fft_type", default=args.fft_type,
+                        help="the type of fft used: real_fft or complex_fft.")
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)

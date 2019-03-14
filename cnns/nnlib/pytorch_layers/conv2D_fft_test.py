@@ -579,7 +579,7 @@ class TestPyTorchConv2d(unittest.TestCase):
                         [4.0, 5.0, 1.0],
                         [1.0, -1.0, -2.0]]]])
         y = np.array([[[[2.0, 1.0], [-1.0, 2.0]]]])
-        b = np.array([1.0])
+        b = np.array([0.0])
         if torch.cuda.is_available():
             device = torch.device("cuda")
             print("cuda is available")

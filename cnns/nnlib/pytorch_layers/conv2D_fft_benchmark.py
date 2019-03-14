@@ -293,20 +293,28 @@ class TestBenchmarkConv2d(unittest.TestCase):
             # (32, 256, 4, 4, 256, 3, 3, 1),
             # (32, 512, 2, 2, 512, 3, 3, 1),
         ]:
-            x = torch.randn(N, C, H, W, dtype=dtype, device=device)
+            natural_image = True
+            if natural_image:
+                x = cifar10_image[:, :1, :H, :W]
+                x_new = x.expand(N, C, -1, -1).clone()  # specifies new size
+                del x
+                print("x size: ", x_new.size())
+                x = x_new.to(device)
+            else:
+                x = torch.randn(N, C, H, W, dtype=dtype, device=device)
+
             y = torch.randn(K, C, HH, WW, dtype=dtype, device=device)
 
             print("input size: ", x.size())
             print("filter size: ", y.size())
             print("padding: ", padding)
-
-            repetitions = 10000
+            repetitions = 1000
             print("repetitions: ", repetitions)
             preserve_energy = 100
+            print("preserve energy: ", preserve_energy)
             stride = 1
-            next_power2 = True
+            next_power2 = False
             print("next_power2: ", str(next_power2))
-
             # cuda_exec_type = ConvExecType.CUDA_DEEP
             cuda_exec_type = ConvExecType.CUDA
             # cuda_exec_type = ConvExecType.CUDA_SHARED_LOG
@@ -329,12 +337,11 @@ class TestBenchmarkConv2d(unittest.TestCase):
             convStandardTime = time.time() - start
             print("PyTorch conv2D: ", convStandardTime)
 
-            compress_rate = 0.0
-            print("compress_rate, FFT conv2D:")
+            # print("compress_rate, FFT conv2D:")
             # for compress_rate in range(0, 86, 5):
-            for compress_rate in [0.0]:
+            for compress_rate in [80.0]:
                 compress_rate = float(compress_rate)
-                # print("compress rate: ", compress_rate)
+                print("compress rate: ", compress_rate)
 
                 conv = Conv2dfft(weight_value=y, stride=stride, padding=padding,
                                  args=Arguments(stride_type=StrideType.STANDARD,
@@ -350,10 +357,11 @@ class TestBenchmarkConv2d(unittest.TestCase):
                 for repeat in range(repetitions):
                     conv.forward(input=x)
                 convFFTtime = time.time() - start
-                print(compress_rate, ",", convFFTtime)
+                # print(compress_rate, ",", convFFTtime)
+                print("conv FFT time: ", convFFTtime)
                 # del conv
-                # speedup = convFFTtime / convStandardTime
-                # print(f"Pytorch speedup: {speedup}")
+                speedup = convFFTtime / convStandardTime
+                print(f"Pytorch speedup: {speedup}")
 
     def test_forward_compression(self):
         dtype = torch.float
@@ -443,6 +451,136 @@ class TestBenchmarkConv2d(unittest.TestCase):
                                              y_expect.grad.cpu().detach().numpy(),
                                              decimal=3)
 
+    def test_forward_backward_performance(self):
+        dtype = torch.float
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
+        print("device used: ", str(device))
+
+        N, C, H, W, K, HH, WW, padding = 32, 3, 32, 32, 64, 3, 3, 0
+
+        natural_image = True
+        if natural_image:
+            x = cifar10_image[:, :1, :H, :W]
+            x_new = x.expand(N, C, -1, -1).clone()  # specifies new size
+            del x
+            print("x size: ", x_new.size())
+            x = x_new.to(device)
+            x.requires_grad_(True)
+        else:
+            x = torch.randn(N, C, H, W, dtype=dtype, device=device,
+                            requires_grad=True)
+        x_expect = x.clone().detach().requires_grad_(True)
+        y = torch.randn(K, C, HH, WW, dtype=dtype, device=device,
+                        requires_grad=True)
+        y_expect = y.clone().detach().requires_grad_(True)
+
+        print("input size: ", x.size())
+        print("filter size: ", y.size())
+        print("padding: ", padding)
+        from .conv2D_fft import global_threshold
+        repetitions = global_threshold
+        print("repetitions: ", repetitions)
+        preserve_energy = 80
+        print("preserve energy: ", preserve_energy)
+        stride = 1
+        print("stride: ", stride)
+        next_power2 = True
+        print("next_power2: ", str(next_power2))
+        # cuda_exec_type = ConvExecType.CUDA_DEEP
+        cuda_exec_type = ConvExecType.CUDA
+        # cuda_exec_type = ConvExecType.CUDA_SHARED_LOG
+        print("cuda exec type: ", cuda_exec_type.name)
+        compress_rate = 0.0
+        print("compress rate: ", compress_rate)
+
+        # warm-up
+        torch.nn.functional.conv2d(input=x_expect,
+                                   weight=y_expect,
+                                   stride=stride,
+                                   padding=padding)
+
+        start = time.time()
+        for _ in range(repetitions):
+            convStandard = torch.nn.functional.conv2d(input=x_expect,
+                                                      weight=y_expect,
+                                                      stride=stride,
+                                                      padding=padding)
+        convStandardTime = time.time() - start
+        print("convStandard time: ", convStandardTime)
+
+        conv = Conv2dfft(weight_value=y, stride=stride, bias=False,
+                         padding=padding,
+                         args=Arguments(stride_type=StrideType.STANDARD,
+                                        min_batch_size=N,
+                                        is_debug=True,
+                                        preserved_energy=preserve_energy,
+                                        next_power2=next_power2,
+                                        conv_exec_type=cuda_exec_type,
+                                        compress_rate=compress_rate,
+                                        compress_rates=[compress_rate]
+                                        ))
+
+        # warm-up
+        conv.forward(input=x)
+
+        start = time.time()
+        for _ in range(repetitions):
+            convFFT = conv.forward(input=x)
+        convFFTtime = time.time() - start
+        print("convFFT time: ", convFFTtime)
+        speedup = convFFTtime / convStandardTime
+        print(f"Pytorch forward pass speedup is: {speedup}")
+
+        if compress_rate == 0.0 and preserve_energy == 100:
+            np.testing.assert_array_almost_equal(
+                x=convStandard.cpu().detach().numpy(),
+                y=convFFT.cpu().detach().numpy(), decimal=1,
+                err_msg="The expected array x and computed y are not almost equal.")
+
+        dout = torch.randn(list(convStandard.size()), device=device,
+                           dtype=dtype)
+        dout_clone = dout.clone()
+
+        # warm-up
+        convStandard.backward(dout, retain_graph=True)
+
+        standard_back_time_start = time.time()
+        for _ in range(repetitions):
+            convStandard.backward(dout, retain_graph=True)
+        standard_back_time = time.time() - standard_back_time_start
+        print("standard back time: ", standard_back_time)
+
+        # warm-up
+        convFFT.backward(dout_clone, retain_graph=True)
+
+        fft_back_time_start = time.time()
+        for _ in range(repetitions):
+            convFFT.backward(dout_clone, retain_graph=True)
+        conv_fft_back_time = time.time() - fft_back_time_start
+        assert conv.is_manual[0] == 1
+        print("conv fft back time: ", conv_fft_back_time)
+        speedup = conv_fft_back_time / standard_back_time
+        print(f"Pytorch speedup for backprop: {speedup}")
+
+        full_pass_fft = convFFTtime + conv_fft_back_time
+        print("full pass fft:", full_pass_fft)
+        full_pass_pytorch = convStandardTime + standard_back_time
+        print("full pass pytorch: ", full_pass_pytorch)
+        speedup_full_pass = full_pass_fft / full_pass_pytorch
+        print(f"Pytorch speedup for full pass: {speedup_full_pass}")
+
+        if compress_rate == 0.0 and preserve_energy == 100:
+            np.testing.assert_array_almost_equal(x.grad.cpu().detach().numpy(),
+                                                 x_expect.grad.cpu().detach().numpy(),
+                                                 decimal=1)
+
+            np.testing.assert_array_almost_equal(y.grad.cpu().detach().numpy(),
+                                                 y_expect.grad.cpu().detach().numpy(),
+                                                 decimal=1)
+
     def test_forward_pass_resnet18(self):
         if not torch.cuda.is_available():
             print("CUDA device is not available.")
@@ -528,7 +666,55 @@ class TestBenchmarkConv2d(unittest.TestCase):
         ifft time:  0.8536617755889893
         rfft time:  0.7074131965637207
         irfft time:  2.261291742324829
+
+        32:
+        device:  cuda
+        fft time:  0.7032897472381592
+        ifft time:  1.0962789058685303
+        rfft time:  0.8845126628875732
+        irfft time:  2.4183387756347656
+
+        33:
+        fft time:  0.6143910884857178
+        ifft time:  0.9230396747589111
+        rfft time:  2.872744083404541
+        irfft time:  2.788431406021118
+
+        34:
+        device:  cuda
+        fft time:  1.002915859222412
+        ifft time:  1.2791519165039062
+        rfft time:  0.9518625736236572
+        irfft time:  1.9876649379730225
+
+        35:
+        device:  cuda
+        fft time:  0.5803797245025635
+        ifft time:  0.885552167892456
+        rfft time:  1.023024320602417
+        irfft time:  1.3062386512756348
+
+        36:
+        device:  cuda
+        fft time:  0.7665698528289795
+        ifft time:  1.148129940032959
+        rfft time:  0.9581522941589355
+        irfft time:  3.2492034435272217
+
+        36:
+        device:  cuda
+        fft time:  0.5808541774749756
+        ifft time:  0.8961441516876221
+        rfft time:  0.7586939334869385
+        irfft time:  3.2207562923431396
+
+        fft time:  0.5677926540374756
+        ifft time:  0.8945105075836182
+        ifft time to real:  0.9578337669372559
+        rfft time:  0.7472152709960938
+        irfft time:  2.875765323638916
         """
+
         repetitions = 10000
         print("repetitions: ", repetitions)
         dtype = torch.float
@@ -538,7 +724,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
             device = torch.device("cpu")
         print("\ndevice: ", device)
 
-        N, C, H, W = 32, 3, 32, 32
+        N, C, H, W = 32, 3, 36, 36
         x = torch.randn(N, C, H, W, 2, dtype=dtype, device=device)
 
         xfft = None
@@ -546,11 +732,18 @@ class TestBenchmarkConv2d(unittest.TestCase):
         for _ in range(repetitions):
             xfft = torch.fft(x, signal_ndim=2)
         print("fft time: ", time.time() - start)
+        print("xfft size: ", xfft.size())
 
         start = time.time()
         for _ in range(repetitions):
             x_back = torch.ifft(xfft, signal_ndim=2)
         print("ifft time: ", time.time() - start)
+
+        start = time.time()
+        for _ in range(repetitions):
+            x_back = torch.ifft(xfft, signal_ndim=2)
+            x_back = x_back[..., 0]
+        print("ifft time to real: ", time.time() - start)
 
         x = torch.randn(N, C, H, W, dtype=dtype, device=device)
 
@@ -559,6 +752,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
         for _ in range(repetitions):
             xrfft = torch.rfft(x, signal_ndim=2)
         print("rfft time: ", time.time() - start)
+        print("rxfft size: ", xrfft.size())
 
         start = time.time()
         for _ in range(repetitions):

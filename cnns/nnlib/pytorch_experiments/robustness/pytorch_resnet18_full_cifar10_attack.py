@@ -21,7 +21,7 @@ if not sys.warnoptions:
     warnings.simplefilter("ignore")
 
 args = get_args()
-args.sample_count_limit = 1000
+args.sample_count_limit = 100
 train_loader, test_loader, train_dataset, test_dataset = get_cifar(args,
                                                                    "cifar10")
 
@@ -88,17 +88,24 @@ def get_foolbox_model(model_path, compress_rate):
 
 def get_attacks():
     attacks = [  # empty_attack,
-        # foolbox.attacks.SinglePixelAttack(model),
+        (foolbox.attacks.SinglePixelAttack, "PerturbPixelsAttack",
+         [x for x in range(0, 1001, 100)]),
         # foolbox.attacks.AdditiveUniformNoiseAttack,
         # foolbox.attacks.GaussianBlurAttack,
         # foolbox.attacks.AdditiveGaussianNoiseAttack,
         # foolbox.attacks.FGSM,
         # (foolbox.attacks.ContrastReductionAttack, [0.8 + x / 10 for x in range(3)]),
-        (foolbox.attacks.ContrastReductionAttack,
-         [2.1 + x / 10 for x in reversed(range(10))]),
-        (foolbox.attacks.GradientAttack, [x / 100 for x in range(21)]),
-        (
-        foolbox.attacks.BlendedUniformNoiseAttack, [x / 10 for x in range(21)]),
+        # (foolbox.attacks.SpatialAttack, "Rotations",
+        #  [x for x in range(0, 21, 1)]),
+        # (foolbox.attacks.SpatialAttack, "Translations",
+        #  [x for x in range(0, 21, 1)]),
+        # (foolbox.attacks.SpatialAttack, "All", [x for x in range(0, 21, 1)]),
+        # (foolbox.attacks.ContrastReductionAttack,
+        #  [x / 10 for x in range(10)]),
+        # (foolbox.attacks.GradientAttack, [x / 100 for x in range(21)]),
+        # (
+        #     foolbox.attacks.BlendedUniformNoiseAttack,
+        #     [x / 10 for x in range(21)]),
         # foolbox.attacks.SaltAndPepperNoiseAttack(foolbox_model),
         # foolbox.attacks.LinfinityBasicIterativeAttack(
         # model, distance=foolbox.distances.MeanSquaredDistance),
@@ -117,7 +124,6 @@ model_paths = [
      "2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model"),
     (84,
      "2019-01-21-14-30-13-992591-dataset-cifar10-preserve-energy-100.0-test-accuracy-84.55-compress-label-84-after-epoch-304.model"),
-
 ]
 
 # input_epsilons = [0.7, 0.8, 0.9, 1.0]
@@ -128,13 +134,19 @@ model_paths = [
 # input_epsilons = [0.11 + x / 100 for x in range(10)]
 # input_epsilons = [x / 100 for x in range(21)]
 # input_epsilons = range(0, 100, 10)
-attacks = get_attacks()
-for current_attack, input_epsilons in attacks:
 
+import datetime
+
+print("start time: ", datetime.datetime.now())
+
+attacks = get_attacks()
+
+for current_attack, attack_type, input_epsilons in attacks:
     for compress_rate, model_path in model_paths:
         foolbox_model = get_foolbox_model(model_path=model_path,
                                           compress_rate=compress_rate)
         attack = current_attack(foolbox_model)
+        print("attack type: ", attack_type)
         # for epsilon in [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0]:
         for epsilon in input_epsilons:
             if attack.name() == "SaltAndPepperNoiseAttack":
@@ -151,7 +163,46 @@ for current_attack, input_epsilons in attacks:
                     counter += 1
                     label = label.item()
                     image = data[i].numpy()
-                    if attack.name() == "SinglePixelAttack":
+                    if attack_type == "Rotations":
+                        image_attack = attack(image, label,
+                                              do_rotations=True,
+                                              do_translations=False,
+                                              x_shift_limits=(
+                                                  -epsilon, epsilon),
+                                              y_shift_limits=(
+                                                  -epsilon, epsilon),
+                                              angular_limits=(
+                                                  -epsilon, epsilon),
+                                              granularity=10,
+                                              random_sampling=False,
+                                              abort_early=True)
+                    elif attack_type == "Translations":
+                        image_attack = attack(image, label,
+                                              do_rotations=False,
+                                              do_translations=True,
+                                              x_shift_limits=(
+                                                  -epsilon, epsilon),
+                                              y_shift_limits=(
+                                                  -epsilon, epsilon),
+                                              angular_limits=(
+                                                  -epsilon, epsilon),
+                                              granularity=10,
+                                              random_sampling=False,
+                                              abort_early=True)
+                    elif attack.name() == "SpatialAttack":
+                        image_attack = attack(image, label,
+                                              do_rotations=True,
+                                              do_translations=True,
+                                              x_shift_limits=(
+                                                  -epsilon, epsilon),
+                                              y_shift_limits=(
+                                                  -epsilon, epsilon),
+                                              angular_limits=(
+                                                  -epsilon, epsilon),
+                                              granularity=10,
+                                              random_sampling=False,
+                                              abort_early=True)
+                    elif attack.name() == "SinglePixelAttack":
                         image_attack = attack(image, label, max_pixels=epsilon)
                     else:
                         image_attack = attack(image, label, epsilons=epsilons)
@@ -164,6 +215,11 @@ for current_attack, input_epsilons in attacks:
                     #     if np.argmax(predictions) == label:
                     #         correct += 1
             timing = time.time() - start
-            print(compress_rate, ",", attack.name(), ",", epsilon, ",", correct,
-                  ",", counter, ",", correct / counter,
-                  ",", timing)
+            with open("results.csv", "a") as out:
+                msg = "".join((str(x) for x in
+                               [compress_rate, ",", attack.name(), ",", epsilon,
+                                ",", correct,
+                                ",", counter, ",", correct / counter,
+                                ",", timing]))
+                print(msg)
+                out.write(msg + "\n")

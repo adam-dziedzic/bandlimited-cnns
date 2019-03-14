@@ -62,6 +62,7 @@ logger.addHandler(consoleLog)
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
 
+# forward pass
 global_preserve_energy_time = 0.0
 global_correlation_time = 0.0
 global_fft_time = 0.0
@@ -71,10 +72,27 @@ global_permute_time = 0.0
 global_complex_dxfft = 0.0
 global_pad_time = 0.0
 global_counter = 0
-global_threshold = 10000
 global_conjugate_time = 0.0
 global_restore_time = 0.0
 global_init_time = 0.0
+
+# backward pass
+global_init_time_back = 0.0
+global_irfft_time_back = 0.0
+global_correlation_time_back_filter = 0.0
+global_correlation_time_back_input = 0.0
+global_pad_grad = 0.0
+global_fft_grad = 0.0
+global_correlate_input_grad = 0.0
+global_correlate_filter_grad = 0.0
+global_conjugate_filter = 0.0
+global_restore_input = 0.0
+global_irfft_input = 0.0
+global_restore_filter = 0.0
+global_irfft_filter = 0.0
+
+global_threshold = 10000
+
 
 class Conv2dfftFunction(torch.autograd.Function):
     """
@@ -157,7 +175,6 @@ class Conv2dfftFunction(torch.autograd.Function):
             global global_threshold
             global_counter += 1
             # print("global_counter: ", global_counter)
-
 
         if is_debug:
             global global_init_time
@@ -256,7 +273,6 @@ class Conv2dfftFunction(torch.autograd.Function):
                 print("global init time: ", global_init_time)
 
         if is_debug:
-            global global_pad_time
             start_pad_time = time.time()
 
         # How many padded (zero) values there are because of going to the next
@@ -278,6 +294,7 @@ class Conv2dfftFunction(torch.autograd.Function):
             'constant', 0)
 
         if is_debug:
+            global global_pad_time
             global_pad_time += time.time() - start_pad_time
             if global_counter % global_threshold == 0:
                 print("global pad time: ", global_pad_time)
@@ -289,15 +306,30 @@ class Conv2dfftFunction(torch.autograd.Function):
             global global_fft_time
             start_fft_time = time.time()
 
-        # fft of the input and filters
-        xfft = torch.rfft(input, signal_ndim=Conv2dfftFunction.signal_ndim,
-                          onesided=True)
-        del input
+        if args.fft_type == "real_fft":
+            # fft of the input and filters
+            xfft = torch.rfft(input, signal_ndim=Conv2dfftFunction.signal_ndim,
+                              onesided=True)
+            del input
 
-        yfft = torch.rfft(filter,
-                          signal_ndim=Conv2dfftFunction.signal_ndim,
-                          onesided=True)
-        del filter
+            yfft = torch.rfft(filter,
+                              signal_ndim=Conv2dfftFunction.signal_ndim,
+                              onesided=True)
+            del filter
+        else:
+            # build complex tensors with 0 in the imaginary part
+            n, c, h, w = input.size()
+            zeros = torch.zeros(n, c, h, w, 1, dtype=input.dtype,
+                                device=input.device)
+            input.unsqueeze_(-1)
+            filter.unsqueeze(-1)
+            input = torch.cat((input, zeros), dim=-1)
+            filter = torch.cat((filter, zeros), dim=-1)
+            xfft = torch.fft(input, signal_ndim=Conv2dfftFunction.signal_ndim)
+            yfft = torch.fft(filter, signal_ndim=Conv2dfftFunction.signal_ndim)
+
+            del input
+            del filter
 
         if is_debug:
             global_fft_time += time.time() - start_fft_time
@@ -521,16 +553,22 @@ class Conv2dfftFunction(torch.autograd.Function):
                 global global_restore_time
                 global_restore_time += time.time() - start_restore
                 if global_counter % global_threshold == 0:
-                    print("restore time (de-compress/concat output): ", global_restore_time)
+                    print("restore time (de-compress/concat output): ",
+                          global_restore_time)
 
             if is_debug:
                 start_irfft_time = time.time()
 
-
-            out = torch.irfft(input=outfft,
-                              signal_ndim=Conv2dfftFunction.signal_ndim,
-                              signal_sizes=(init_H_fft, init_W_fft),
-                              onesided=True)
+            if args.fft_type == "real_fft":
+                out = torch.irfft(input=outfft,
+                                  signal_ndim=Conv2dfftFunction.signal_ndim,
+                                  signal_sizes=(init_H_fft, init_W_fft),
+                                  onesided=True)
+            elif args.fft_type == "complex_fft":
+                out = torch.ifft(input=outfft,
+                                 signal_ndim=Conv2dfftFunction.signal_ndim)
+                print("out: ", out)
+                out = out[..., 0]  # retain only the real numbers
 
             if is_debug:
                 global global_irfft_time
@@ -638,22 +676,27 @@ class Conv2dfftFunction(torch.autograd.Function):
             torch.cuda.empty_cache()
 
         is_debug = args.is_debug
+        # if is_debug:
+        #     print(f"execute backward pass for convolution index: {conv_index}")
+
         if is_debug:
-            print(f"execute backward pass for convolution index: {conv_index}")
+            global global_counter
+            global_counter += 1
+            start_init = time.time()
 
         need_input_grad = ctx.needs_input_grad[0]
         need_filter_grad = ctx.needs_input_grad[1]
         need_bias_grad = ctx.needs_input_grad[2]
 
-        for tensor_obj in ctx.saved_tensors:
-            del tensor_obj
-        omit_objs = [id(ctx)]
-        del ctx
-
         if args.mem_test:
+            for tensor_obj in ctx.saved_tensors:
+                del tensor_obj
+            omit_objs = [id(ctx)]
+            del ctx
+
             torch.cuda.empty_cache()
 
-        if is_debug:
+        if is_debug and args.mem_test:
             cuda_mem_show(info="backward start", omit_objs=omit_objs)
 
         dtype = xfft.dtype
@@ -694,18 +737,43 @@ class Conv2dfftFunction(torch.autograd.Function):
             for ff in range(F):
                 db[ff] += torch.sum(dout[:, ff, :])
 
+        if is_debug:
+            global global_init_time_back
+            global_init_time_back += time.time() - start_init
+            global global_threshold
+            if global_counter % global_threshold == 0:
+                print("global init time back: ", global_init_time_back)
+
+        if is_debug:
+            start_pad_grad = time.time()
+
         padded_dout = torch_pad(
             dout, (0, fft_padding_dout_W, 0, fft_padding_dout_H),
             'constant', 0)
         del dout
 
+        if is_debug:
+            global global_pad_grad
+            global_pad_grad += time.time() - start_pad_grad
+            if global_counter % global_threshold == 0:
+                print("pad gradient: ", global_pad_grad)
+
         if args.mem_test:
             torch.cuda.empty_cache()
+
+        if is_debug:
+            start_fft_grad = time.time()
 
         doutfft = torch.rfft(padded_dout,
                              signal_ndim=Conv2dfftFunction.signal_ndim,
                              onesided=True)
         del padded_dout
+
+        if is_debug:
+            global global_fft_grad
+            global_fft_grad += time.time() - start_fft_grad
+            if global_counter % global_threshold == 0:
+                print("fft gradient: ", global_fft_grad)
 
         if args.mem_test:
             torch.cuda.empty_cache()
@@ -718,7 +786,20 @@ class Conv2dfftFunction(torch.autograd.Function):
             doutfft = compress_2D_index_forward(doutfft, half_fft_compressed_W)
 
         if need_input_grad:
+            if is_debug:
+                start_conjugate_filter = time.time()
+
             yfft = pytorch_conjugate(yfft)
+
+            if is_debug:
+                global global_conjugate_filter
+                global_conjugate_filter += time.time() - start_conjugate_filter
+                if global_counter % global_threshold == 0:
+                    print("conjugate filter: ", global_conjugate_filter)
+
+            if is_debug:
+                start_correlate_input_grad = time.time()
+
             # Initialize gradient output tensors.
             # the x used for convolution was with padding
             if args.conv_exec_type is ConvExecType.SERIAL:
@@ -824,13 +905,40 @@ class Conv2dfftFunction(torch.autograd.Function):
                     raise Exception(f"Unknown conv exec "
                                     f"type: {args.conv_exec_type.name}.")
 
+                if is_debug:
+                    global global_correlate_input_grad
+                    global_correlate_input_grad += time.time() - start_correlate_input_grad
+                    if global_counter % global_threshold == 0:
+                        print("correlate input grad: ",
+                              global_correlate_input_grad)
+
+                if is_debug:
+                    start_restore_input = time.time()
+
                 dxfft = restore_size_2D(dxfft, init_H_fft=init_H_fft,
                                         init_half_W_fft=init_half_W_fft)
+
+                if is_debug:
+                    global global_restore_input
+                    global_restore_input += time.time() - start_restore_input
+                    if global_counter % global_threshold == 0:
+                        print("restore input back: ", global_restore_input)
+
+                if is_debug:
+                    start_irfft_input = time.time()
+
                 dx = torch.irfft(input=dxfft,
                                  signal_ndim=Conv2dfftFunction.signal_ndim,
                                  signal_sizes=(init_H_fft, init_W_fft),
                                  onesided=True)
                 del dxfft
+
+                if is_debug:
+                    global global_irfft_input
+                    global_irfft_input += time.time() - start_irfft_input
+                    if global_counter % global_threshold == 0:
+                        print("irfft input back: ", global_irfft_input)
+
                 dx = dx[..., pad_H:H + pad_H, pad_W:W + pad_W]
             del yfft
 
@@ -866,6 +974,9 @@ class Conv2dfftFunction(torch.autograd.Function):
             flowing back gradient dout and the input x:
             gradient L / gradient w = [x1, x2, x3, x4] * [dx1, dx2, dx3]
             """
+            if is_debug:
+                start_correlate_filter_grad = time.time()
+
             doutfft = pytorch_conjugate(doutfft)
             if args.conv_exec_type is ConvExecType.SERIAL:
                 # Serially convolve each input dout with all input maps xfft.
@@ -972,13 +1083,41 @@ class Conv2dfftFunction(torch.autograd.Function):
                     raise Exception(f"Unknown conv exec "
                                     f"type: {args.conv_exec_type.name}.")
 
+                if is_debug:
+                    global global_correlate_filter_grad
+                    global_correlate_filter_grad += time.time() - start_correlate_filter_grad
+                    if global_counter % global_threshold == 0:
+                        print("correlate filter grad: ",
+                              global_correlate_filter_grad)
+
+                if is_debug:
+                    start_restore_filter = time.time()
+
                 dwfft = restore_size_2D(dwfft, init_H_fft=init_H_fft,
                                         init_half_W_fft=init_half_W_fft)
+
+                if is_debug:
+                    global global_restore_filter
+                    global_restore_filter += time.time() - start_restore_filter
+                    if global_counter % global_threshold == 0:
+                        print("filter restore back: ", global_restore_filter)
+
+                if is_debug:
+                    start_irfft_filter = time.time()
+
                 dw = torch.irfft(input=dwfft,
                                  signal_ndim=Conv2dfftFunction.signal_ndim,
                                  signal_sizes=(init_H_fft, init_W_fft),
                                  onesided=True)
                 del dwfft
+
+                if is_debug:
+                    global global_irfft_filter
+                    global_irfft_filter += time.time() - start_irfft_filter
+                    if global_counter % global_threshold == 0:
+                        print("irfft filter back: ", global_irfft_filter)
+
+
                 dw = dw[..., :HH, :WW]
         del doutfft
         del xfft

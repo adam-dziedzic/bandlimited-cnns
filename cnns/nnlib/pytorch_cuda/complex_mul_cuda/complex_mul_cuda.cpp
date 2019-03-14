@@ -10,7 +10,7 @@ void complex_mul_shared_log_cuda(at::Tensor x, at::Tensor y, at::Tensor out);
 
 void complex_mul_deep_cuda(at::Tensor x, at::Tensor y, at::Tensor out);
 
-void complex_mul_cublas(at::Tensor x, at::Tensor y, at::Tensor out);
+// void complex_mul_cublas(at::Tensor x, at::Tensor y, at::Tensor out);
 
 //// for profiling
 //void complex_mul_stride_no_permute_cuda_pure(
@@ -45,14 +45,14 @@ void complex_mul_deep(at::Tensor x, at::Tensor y, at::Tensor out) {
     complex_mul_deep_cuda(x, y, out);
 }
 
-void complex_mul_cublas(at::Tensor x, at::Tensor y, at::Tensor out) {
-    check_input(x, y, out);
-    complex_mul_cublas(x, y, out);
-}
+//void complex_mul_cublas(at::Tensor x, at::Tensor y, at::Tensor out) {
+//    check_input(x, y, out);
+//    complex_mul_cublas(x, y, out);
+//}
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("complex_mul_stride_no_permute", &complex_mul_stride_no_permute, "CUDA based multiplication of complex tensors with stride and no permutation of the tensor.");
   m.def("complex_mul_shared_log", &complex_mul_shared_log, "CUDA based multiplication of complex tensors with shared memory, synchronization and O(log N) summation across channels.");
   m.def("complex_mul_deep", &complex_mul_deep, "CUDA based multiplication of complex tensors with shared memory, synchronization and O(log N) summation across channels.");
-  m.def("complex_mul_cublas", &complex_mul_cublas, "complex multiplication via cublas.");
+  // m.def("complex_mul_cublas", &complex_mul_cublas, "complex multiplication via cublas.");
 }

@@ -224,6 +224,7 @@ class Arguments(object):
                  test_compress_rates=False,
                  noise_sigma=0.0,
                  noise_sigmas=[0.0],
+                 fft_type="real_fft",  # real_fft or complex_fft
                  ):
         """
         The default parameters for the execution of the program.
@@ -329,7 +330,7 @@ class Arguments(object):
         self.test_compress_rates = test_compress_rates
         self.noise_sigma = noise_sigma
         self.noise_sigmas = noise_sigmas
-
+        self.fft_type = fft_type
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False

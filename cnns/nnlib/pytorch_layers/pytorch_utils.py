@@ -1913,14 +1913,14 @@ def preserve_energy2D_symmetry(xfft, yfft, preserve_energy_rate=None,
     cxfft = compress_2D_index_forward(xfft, index)
     cyfft = compress_2D_index_forward(yfft, index)
 
-    if is_debug:
-        xfft_numel = xfft.numel()
-        cxfft_numel = cxfft.numel()
-        compression_ratio = (xfft_numel - cxfft_numel) / xfft_numel
-        print(f"total width,{input_W},index forward,{index}, "
-              f"num elems xfft,{xfft_numel}, "
-              f"num elems compressed xfft,{cxfft_numel}, "
-              f"compression ratio,{compression_ratio},stop")
+    # if is_debug:
+    #     xfft_numel = xfft.numel()
+    #     cxfft_numel = cxfft.numel()
+    #     compression_ratio = (xfft_numel - cxfft_numel) / xfft_numel
+    #     print(f"total width,{input_W},index forward,{index}, "
+    #           f"num elems xfft,{xfft_numel}, "
+    #           f"num elems compressed xfft,{cxfft_numel}, "
+    #           f"compression ratio,{compression_ratio},stop")
     return cxfft, cyfft
 
 
