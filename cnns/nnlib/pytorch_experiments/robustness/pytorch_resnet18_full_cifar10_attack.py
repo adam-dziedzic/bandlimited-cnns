@@ -88,8 +88,10 @@ def get_foolbox_model(model_path, compress_rate):
 
 def get_attacks():
     attacks = [  # empty_attack,
+        (foolbox.attacks.LocalSearchAttack, "LocaclSearch",
+         [x for x in range(1000)]),
         (foolbox.attacks.SinglePixelAttack, "PerturbPixelsAttack",
-         [x for x in range(0, 301, 20)]),
+         [x for x in range(10, 301, 20)]),
         # foolbox.attacks.AdditiveUniformNoiseAttack,
         # foolbox.attacks.GaussianBlurAttack,
         # foolbox.attacks.AdditiveGaussianNoiseAttack,
@@ -204,6 +206,8 @@ for current_attack, attack_type, input_epsilons in attacks:
                                               abort_early=True)
                     elif attack.name() == "SinglePixelAttack":
                         image_attack = attack(image, label, max_pixels=epsilon)
+                    elif attack.name() == "LocalSearchAttack":
+                        image_attack = attack(image, label, t=epsilon)
                     else:
                         image_attack = attack(image, label, epsilons=epsilons)
                     if image_attack is None:
