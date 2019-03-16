@@ -4,7 +4,7 @@
 #  Written by Adam Dziedzic
 
 import foolbox
-import numpy as np
+import numpy as n
 from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
 from cnns.nnlib.utils.exec_args import get_args
 from cnns.nnlib.datasets.cifar import get_cifar
@@ -12,6 +12,7 @@ import torch
 import sys
 import os
 import time
+import numpy as np
 
 np.random.seed(31)
 
@@ -21,7 +22,7 @@ if not sys.warnoptions:
     warnings.simplefilter("ignore")
 
 args = get_args()
-args.sample_count_limit = 1000
+args.sample_count_limit = 100
 train_loader, test_loader, train_dataset, test_dataset = get_cifar(args,
                                                                    "cifar10")
 
@@ -88,11 +89,13 @@ def get_foolbox_model(model_path, compress_rate):
 
 def get_attacks():
     attacks = [  # empty_attack,
-        (foolbox.attacks.LocalSearchAttack, "LocaclSearch",
-         [x for x in range(1000)]),
-        (foolbox.attacks.SinglePixelAttack, "PerturbPixelsAttack",
-         [x for x in range(10, 301, 20)]),
-        # foolbox.attacks.AdditiveUniformNoiseAttack,
+        # (foolbox.attacks.LocalSearchAttack, "LocalSearch",
+        #  [x for x in range(1000)]),
+        (foolbox.attacks.MultiplePixelsAttack, "MultiplePixelsAttack",
+         [x for x in range(100, 301, 10)]),
+        # (foolbox.attacks.SinglePixelAttack, "SinglePixelAttack",
+        #  [x for x in range(0, 1001, 100)]),
+        # # foolbox.attacks.AdditiveUniformNoiseAttack,
         # foolbox.attacks.GaussianBlurAttack,
         # foolbox.attacks.AdditiveGaussianNoiseAttack,
         # foolbox.attacks.FGSM,
@@ -122,10 +125,10 @@ print(
     "compress rate, attack name, epsilon, correct, counter, correct rate (%), time (sec)")
 
 model_paths = [
-    (0,
-     "2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model"),
     (84,
      "2019-01-21-14-30-13-992591-dataset-cifar10-preserve-energy-100.0-test-accuracy-84.55-compress-label-84-after-epoch-304.model"),
+    (0,
+     "2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model"),
 ]
 
 # input_epsilons = [0.7, 0.8, 0.9, 1.0]
@@ -204,8 +207,11 @@ for current_attack, attack_type, input_epsilons in attacks:
                                               granularity=10,
                                               random_sampling=False,
                                               abort_early=True)
-                    elif attack.name() == "SinglePixelAttack":
-                        image_attack = attack(image, label, max_pixels=epsilon)
+                    elif attack_type == "SinglePixelAttack":
+                        image_attack = attack(image, label, max_pixels=epsilon,
+                                              pixel_type="single")
+                    elif attack_type == "MultiplePixelsAttack":
+                        image_attack = attack(image, label, num_pixels=epsilon)
                     elif attack.name() == "LocalSearchAttack":
                         image_attack = attack(image, label, t=epsilon)
                     else:
