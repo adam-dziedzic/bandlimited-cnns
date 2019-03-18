@@ -26,8 +26,11 @@ image, label = foolbox.utils.imagenet_example()
 # ::-1 reverses the color channels, because Keras ResNet50 expects BGR instead of RGB
 attack = foolbox.attacks.FGSM(fmodel)
 adversarial = attack(image[:, :, ::-1], label)
-print("adversarial: ", adversarial)
+# print("adversarial: ", adversarial)
 # if the attack fails, adversarial will be None and a warning will be printed
+
+if adversarial == None:
+    raise Exception('foolbox did not find an adversarial example')
 
 plt.figure()
 

@@ -11,8 +11,8 @@ def displayTensorImage(image):
     image = image.numpy()
     # set channels last and change to the uint8 data type
     image = np.transpose(image, (1, 2, 0)).astype("uint8")
-    plt.imshow(image.T, interpolation="nearest")
-    plt.show()
+    plt.imshow(image, interpolation="nearest")
+    plt.show(block=True)
 
 
 def plot_random_heatmap():
@@ -28,14 +28,15 @@ def show_heatmap(x, title="", file_name="heat-map"):
     """
     x_numpy = x.numpy()
     print("shape of x_numpy: ", x_numpy.shape)
-    data = x_numpy[0]
+    # data = x_numpy[0]
+    data = x_numpy.sum(axis=0)
     cmap = 'hot'
     interpolation = 'nearest'
     format = "pdf"
     plt.imshow(data, cmap=cmap, interpolation=interpolation)
     if title != "":
         plt.title(title)
-    plt.show()
+    plt.show(block=True)
     plt.imsave(fname=file_name + "." + format, arr=data, cmap=cmap,
                format=format)
 
@@ -55,9 +56,9 @@ x = x[..., :size, :size]
 print("CIFAR-10 image: ", x)
 print("image shape: ", x.size())
 
-# # displayImage(cv2.cvtColor(x.numpy(), cv2.CAP_MODE_RGB))
+# displayImage(cv2.cvtColor(x.numpy(), cv2.CAP_MODE_RGB))
 # # plot_random_heatmap()
-# # displayTensorImage(x)
+displayTensorImage(x)
 # show_heatmap(x)
 
 xdct = dct.dct_2d(x)
@@ -72,4 +73,5 @@ _, xfft_squared = get_full_energy(xfft)
 xfft_abs = torch.sqrt(xfft_squared)
 # xfft_abs = xfft_abs[..., :size, :size]
 print("xfft abs: ", xfft_abs)
-show_heatmap(xfft_abs, title="", file_name="xfft_abs")  # title="xfft_abs"
+show_heatmap(xfft_abs, title="xfft abs", file_name="xfft_abs")  # title="xfft_abs"
+
