@@ -42,11 +42,11 @@ image, label = foolbox.utils.imagenet_example()
 # apply attack on source image
 # ::-1 reverses the color channels, because Keras ResNet50 expects BGR instead of RGB
 
-# attack = foolbox.attacks.FGSM(fmodel)
-# adversarial = attack(image[:, :, ::-1], label)
+attack = foolbox.attacks.FGSM(fmodel)
+adversarial = attack(image[:, :, ::-1], label)
 
-attack = foolbox.attacks.MultiplePixelsAttack(fmodel)
-adversarial = attack(image, label, num_pixels=300)
+# attack = foolbox.attacks.MultiplePixelsAttack(fmodel)
+# adversarial = attack(image, label, num_pixels=100)
 
 # attack = foolbox.attacks.AdditiveUniformNoiseAttack(fmodel)
 # adversarial = attack(image[:, :, ::-1], label, epsilons=[0.4])
@@ -79,6 +79,8 @@ plt.axis('off')
 plt.subplot(2, 3, 4)
 plt.title('Original\nfft-ed')
 original_fft = to_fft(image)
+channel = 2
+original_fft = original_fft[channel]
 # torch.set_printoptions(profile='full')
 # print("original_fft size: ", original_fft.shape)
 # options = np.get_printoptions()
@@ -87,30 +89,35 @@ original_fft = to_fft(image)
 # print("original_fft: ", original_fft)
 
 # save to file
-# dir_path = os.path.dirname(os.path.realpath(__file__))
-# output_path = os.path.join(dir_path, "original_fft.csv")
-# print("output path: ", output_path)
-# np.save(output_path, original_fft)
+dir_path = os.path.dirname(os.path.realpath(__file__))
+output_path = os.path.join(dir_path, "original_fft.csv")
+print("output path: ", output_path)
+np.save(output_path, original_fft)
 
 # go back to the original print size
 # np.set_printoptions(threshold=options['threshold'])
-channel = 1
-plt.imshow(original_fft[channel], cmap=cmap, interpolation=interpolation)
-heatmap_legend = plt.pcolor(original_fft[channel])
+plt.imshow(original_fft, cmap=cmap, interpolation=interpolation)
+heatmap_legend = plt.pcolor(original_fft)
 plt.colorbar(heatmap_legend)
 plt.axis('off')
 
 plt.subplot(2, 3, 5)
 plt.title('Adversarial\nfft-ed')
 adversarial_fft = to_fft(adversarial)
-plt.imshow(adversarial_fft[channel], cmap=cmap, interpolation=interpolation)
-heatmap_legend = plt.pcolor(adversarial_fft[channel])
+adversarial_fft = adversarial_fft[channel]
+
+output_path = os.path.join(dir_path, "adversarial_fft.csv")
+print("output path: ", output_path)
+np.save(output_path, adversarial_fft)
+
+plt.imshow(adversarial_fft, cmap=cmap, interpolation=interpolation)
+heatmap_legend = plt.pcolor(adversarial_fft)
 plt.colorbar(heatmap_legend)
 plt.axis('off')
 
 plt.subplot(2, 3, 6)
 plt.title('Difference\nfft-ed')
-difference_fft = adversarial_fft[channel] - original_fft[channel]
+difference_fft = adversarial_fft - original_fft
 final_difference = difference_fft / abs(difference_fft).max() * 0.2 + 0.5
 plt.imshow(final_difference)
 heatmap_legend = plt.pcolor(final_difference)
@@ -118,7 +125,7 @@ plt.colorbar(heatmap_legend)
 plt.axis('off')
 
 format = 'pdf'
-file_name = "images/" + attack.name()
+file_name = "images/" + attack.name() + "-channel-" + str(channel)
 plt.savefig(fname=file_name + "." + format, format=format)
 plt.show(block=True)
 plt.close()
