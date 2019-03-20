@@ -967,7 +967,7 @@ def get_phase(x):
     >>> np.testing.assert_almost_equal(phase, np.arctan2(b, a), decimal=4)
 
     """
-    return torch.atan2(x.narrow(-1, 1, 1), x.narrow(-1, 1, 1))
+    return torch.atan2(x.narrow(-1, 1, 1), x.narrow(-1, 1, 1)).squeeze(-1)
 
 
 def get_full_energy_only(x):

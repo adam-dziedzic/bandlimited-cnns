@@ -29,7 +29,7 @@ def softmax(x):
 
 
 fft_type = "magnitude"
-
+save_out = False
 
 def to_fft(x):
     x = torch.from_numpy(x)
@@ -48,11 +48,12 @@ def to_fft_magnitude(xfft):
     _, xfft_squared = get_full_energy(xfft)
     xfft_abs = torch.sqrt(xfft_squared)
     # xfft_abs = xfft_abs.sum(dim=0)
-    return np.log(xfft_abs.numpy())
+    # return np.log(xfft_abs.numpy())
+    return xfft_abs.numpy()
 
 
 def to_fft_phase(xfft):
-    return get_phase(xfft)
+    return get_phase(xfft).numpy()
 
 
 def znormalize(x):
@@ -60,9 +61,10 @@ def znormalize(x):
 
 
 init_y, init_x = 224, 224
-# lim_y, lim_x = init_y, init_x
+lim_y, lim_x = init_y, init_x
 # lim_y, lim_x = init_y // 2, init_x // 2
-lim_y, lim_x = 10, 10
+# lim_y, lim_x = 2, 2
+# lim_y, lim_x = 3, 3
 images, labels = foolbox.utils.samples(dataset='imagenet', index=0,
                                        batchsize=20, shape=(init_y, init_x),
                                        data_format='channels_first')
@@ -79,14 +81,21 @@ fmodel = foolbox.models.PyTorchModel(resnet, bounds=(0, 1),
                                      num_classes=1000,
                                      preprocessing=(mean, std))
 
-# cmap_type = "matshow"  # "standard" or "custom"
-cmap_type = "standard"
-vmin_heatmap = -6
-vmax_heatmap = 10
-# map_labels = "Text"  # "None" or "Text"
-map_labels = "None"
+cmap_type = "matshow"  # "standard" or "custom"
+# cmap_type = "standard"
 
-if cmap_type == "custom" or cmap_type == "matshow":
+# vmin_heatmap = -6
+# vmax_heatmap = 10
+
+vmin_heatmap = None
+vmax_heatmap = None
+
+decimals = 4
+
+map_labels = "None"  # "None" or "Text"
+# map_labels = "Text"
+
+if cmap_type == "custom":
     # setting for the heat map
     # cdict = {
     #     'red': ((0.0, 0.25, .25), (0.02, .59, .59), (1., 1., 1.)),
@@ -119,6 +128,9 @@ elif cmap_type == "standard":
     interpolation = 'nearest'
 elif cmap_type == "seismic":
     cmap = "seismic"
+elif cmap_type == "matshow":
+    # cmap = "seismic"
+    cmap = 'OrRd'
 else:
     raise Exception(f"Unknown type of the cmap: {cmap_type}.")
 
@@ -134,16 +146,19 @@ def print_color_map(x, fig=None, ax=None):
                    vmax=vmax_heatmap)
         plt.colorbar()
     elif cmap_type == "matshow":
-        fig, ax = plt.subplots()
         # plt.pcolor(X, Y, original_fft, cmap=cmap, vmin=vmin_heatmap,
         #            vmax=vmax_heatmap)
-        cax = ax.matshow(original_fft, cmap='seismic', vmin=vmin_heatmap,
-                         vmax=vmax_heatmap)
+        if vmin_heatmap != None:
+            cax = ax.matshow(x, cmap=cmap, vmin=vmin_heatmap,
+                             vmax=vmax_heatmap)
+        else:
+            cax = ax.matshow(x, cmap=cmap)
         # plt.colorbar()
         fig.colorbar(cax)
         if map_labels == "Text":
             for (i, j), z in np.ndenumerate(x):
-                ax.text(j, i, '{:0.1f}'.format(z), ha='center', va='center')
+                ax.text(j, i, str(np.around(z, decimals=decimals)),
+                        ha='center', va='center')
 
 
 # get source image and label
@@ -197,8 +212,9 @@ print("model adversarial prediciton: ", adversarial_prediction)
 if adversarial is None:
     raise Exception('foolbox did not find an adversarial example')
 
-channels = [x for x in range(3)]
-rows = 1 + len(channels)
+channels_nr = 1
+channels = [x for x in range(channels_nr)]
+rows = 1 + 2 * len(channels)
 cols = 3
 
 fig = plt.figure(figsize=(15, 15))
@@ -206,7 +222,7 @@ plt.subplot(rows, cols, 1)
 plt.title('Original\nlabel: ' + str(
     original_prediction.replace(",",
                                 "\n") + "\nconfidence: " + str(
-        np.around(original_confidence, decimals=2))))
+        np.around(original_confidence, decimals=decimals))))
 image = np.moveaxis(image, 0, -1)
 plt.imshow(image)  # move channels to last dimension
 # plt.imshow(image / 255)  # division by 255 to convert [0, 255] to [0, 1]
@@ -216,7 +232,7 @@ plt.subplot(rows, cols, 2)
 plt.title('Adversarial\nlabel: ' + str(
     adversarial_prediction.replace(",",
                                    "\n") + "\nconfidence: " + str(
-        np.around(adversarial_confidence, decimals=2))))
+        np.around(adversarial_confidence, decimals=decimals))))
 adversarial = np.moveaxis(adversarial, 0, -1)
 plt.imshow(adversarial)
 plt.axis('off')
@@ -232,69 +248,81 @@ plt.imshow(difference)
 plt.axis('off')
 
 i = 4
-for channel in channels:
-    ax = plt.subplot(rows, cols, i)
-    i += 1
-    # plt.title('Original\nfft-ed')
-    original_fft = to_fft(image)
-    original_fft = original_fft[channel]
-    # torch.set_printoptions(profile='full')
-    # print("original_fft size: ", original_fft.shape)
-    # options = np.get_printoptions()
-    # np.set_printoptions(threshold=np.inf)
-    # torch.set_printoptions(profile='default')
-    # print("original_fft: ", original_fft)
+for fft_type in ["phase", "magnitude"]:
+    for channel in channels:
+        ax = plt.subplot(rows, cols, i)
+        i += 1
+        # plt.title('Original\nfft-ed')
+        original_fft = to_fft(image)
+        original_fft = original_fft[channel]
+        # torch.set_printoptions(profile='full')
+        # print("original_fft size: ", original_fft.shape)
+        # options = np.get_printoptions()
+        # np.set_printoptions(threshold=np.inf)
+        # torch.set_printoptions(profile='default')
+        # print("original_fft: ", original_fft)
 
-    # save to file
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    output_path = os.path.join(dir_path, "original_fft.csv")
-    print("output path: ", output_path)
-    np.save(output_path, original_fft)
+        # save to file
+        if save_out:
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            output_path = os.path.join(dir_path, "original_fft.csv")
+            print("output path: ", output_path)
+            np.save(output_path, original_fft)
 
-    # go back to the original print size
-    # np.set_printoptions(threshold=options['threshold'])
-    original_fft = original_fft[:lim_y, :lim_x]
-    print_color_map(original_fft, fig, ax)
+        # go back to the original print size
+        # np.set_printoptions(threshold=options['threshold'])
+        original_fft = original_fft[:lim_y, :lim_x]
+        print_color_map(original_fft, fig, ax)
 
-    # plt.axis('off')
-    plt.ylabel("fft-ed\nchannel " + str(channel))
+        # plt.axis('off')
+        plt.ylabel("fft-ed channel " + str(channel) + ": " + fft_type)
 
-    ax = plt.subplot(rows, cols, i)
-    i += 1
-    # plt.title('Adversarial\nfft-ed')
-    adversarial_fft = to_fft(adversarial)
-    adversarial_fft = adversarial_fft[channel]
+        ax = plt.subplot(rows, cols, i)
+        i += 1
+        # plt.title('Adversarial\nfft-ed')
+        adversarial_fft = to_fft(adversarial)
+        adversarial_fft = adversarial_fft[channel]
 
-    output_path = os.path.join(dir_path, "adversarial_fft.csv")
-    print("output path: ", output_path)
-    np.save(output_path, adversarial_fft)
+        if save_out:
+            output_path = os.path.join(dir_path, "adversarial_fft.csv")
+            print("output path: ", output_path)
+            np.save(output_path, adversarial_fft)
 
-    adversarial_fft = adversarial_fft[:lim_y, :lim_x]
+        adversarial_fft = adversarial_fft[:lim_y, :lim_x]
 
-    print_color_map(adversarial_fft, fig, ax)
+        print_color_map(adversarial_fft, fig, ax)
 
-    # plt.axis('off')
+        # plt.axis('off')
 
-    # plt.subplot(2, 3, 6)
-    # plt.title('FFT Difference')
-    # difference_fft = adversarial_fft - original_fft
-    # final_difference = difference_fft / abs(difference_fft).max() * 0.2 + 0.5
-    # plt.imshow(final_difference)
-    # heatmap_legend = plt.pcolor(final_difference)
-    # plt.colorbar(heatmap_legend)
-    # plt.axis('off')
+        # plt.subplot(2, 3, 6)
+        # plt.title('FFT Difference')
+        # difference_fft = adversarial_fft - original_fft
+        # final_difference = difference_fft / abs(difference_fft).max() * 0.2 + 0.5
+        # plt.imshow(final_difference)
+        # heatmap_legend = plt.pcolor(final_difference)
+        # plt.colorbar(heatmap_legend)
+        # plt.axis('off')
 
-    ax = plt.subplot(rows, cols, i)
-    i += 1
-    # plt.title('Difference\nfft-ed')
-    # difference = np.abs((image / 255) - (adversarial / 255))
-    difference = adversarial - image
-    difference_fft = to_fft(difference)
-    difference_fft = difference_fft[channel]
-    difference_fft = difference_fft[:lim_y, :lim_x]
+        ax = plt.subplot(rows, cols, i)
+        i += 1
+        # plt.title('Difference\nfft-ed')
+        # diff_type = "source"
+        diff_type = "fft"
 
-    print_color_map(difference_fft, fig, ax)
-    # plt.axis('off')
+        if diff_type == "source":
+            difference = np.abs((image / 255) - (adversarial / 255))
+            difference = adversarial - image
+            difference_fft = difference_fft[channel]
+            difference_fft = difference_fft[:lim_y, :lim_x]
+        elif diff_type == "fft":
+            # difference = (adversarial_fft - original_fft)[..., np.newaxis]
+            # difference_fft = to_fft(difference)
+            difference_fft = adversarial_fft - original_fft
+        else:
+            raise Exception(f"Unknown diff_type: {diff_type}")
+
+        print_color_map(difference_fft, fig, ax)
+        # plt.axis('off')
 
 format = 'pdf'
 file_name = "images/" + attack.name() + "-channel-" + str(
