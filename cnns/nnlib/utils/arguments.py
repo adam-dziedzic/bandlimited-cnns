@@ -225,6 +225,7 @@ class Arguments(object):
                  noise_sigma=0.0,
                  noise_sigmas=[0.0],
                  fft_type="real_fft",  # real_fft or complex_fft
+                 imagenet_path="/home/${USER}/imagenet",
                  ):
         """
         The default parameters for the execution of the program.
@@ -331,6 +332,7 @@ class Arguments(object):
         self.noise_sigma = noise_sigma
         self.noise_sigmas = noise_sigmas
         self.fft_type = fft_type
+        self.imagenet_path = imagenet_path
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False

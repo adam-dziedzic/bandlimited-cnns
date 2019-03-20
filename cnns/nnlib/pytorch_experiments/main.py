@@ -37,6 +37,7 @@ from cnns.nnlib.utils.exec_args import get_args
 # from cnns.nnlib.pytorch_experiments.track_utils.progress_bar import progress_bar
 from cnns.nnlib.pytorch_architecture.le_net import LeNet
 from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
+from cnns.nnlib.pytorch_architecture.resnet2d import resnet50_imagenet
 from cnns.nnlib.pytorch_architecture.densenet import densenet_cifar
 from cnns.nnlib.pytorch_architecture.fcnn import FCNNPytorch
 from cnns.nnlib.utils.general_utils import NetworkType
@@ -127,6 +128,8 @@ def getModelPyTorch(args):
         return resnet18(args=args)
     elif network_type == NetworkType.DenseNetCifar:
         return densenet_cifar(args=args)
+    elif network_type == NetworkType.ResNet50:
+        return resnet50_imagenet(args=args)
     else:
         raise Exception("Unknown network_type: ", network_type)
 

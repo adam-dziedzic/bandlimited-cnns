@@ -953,6 +953,23 @@ def get_full_energy(x):
     return full_energy, squared
 
 
+def get_phase(x):
+    """
+    :param x: input complex tensor
+    :return: arctan(b/a) for a complex number: z = a + bi
+
+    Get the phase of the complex numbers in the x tensor.
+
+    >>> a = 1.2
+    >>> b = -2.3
+    >>> x = torch.tensor([a, b])
+    >>> phase = get_phase(x)
+    >>> np.testing.assert_almost_equal(phase, np.arctan2(b, a), decimal=4)
+
+    """
+    return torch.atan2(x.narrow(-1, 1, 1), x.narrow(-1, 1, 1))
+
+
 def get_full_energy_only(x):
     """
     Return the full energy of the signal. The energy E(xfft) of a

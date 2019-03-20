@@ -144,6 +144,7 @@ class NetworkType(EnumWithNames):
     LE_NET = 3
     ResNet18 = 4
     DenseNetCifar = 5  # DenseNet-121 with grow rate 12
+    ResNet50 = 6  # for ImageNet
 
 
 class CompressType(EnumWithNames):

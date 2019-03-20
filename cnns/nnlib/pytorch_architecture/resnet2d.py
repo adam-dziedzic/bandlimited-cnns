@@ -21,10 +21,12 @@ model_urls = {
     'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
 }
 
+
 def conv7x7(in_planes, out_planes, stride=2, padding=3, args=None):
     return Conv(kernel_sizes=[7], in_channels=in_planes,
                 out_channels=[out_planes], strides=[stride],
                 padding=[padding], args=args, is_bias=False).get_conv()
+
 
 def conv3x3(in_planes, out_planes, stride=1, args=None):
     """3x3 convolution with padding"""
@@ -134,9 +136,12 @@ class ResNet(nn.Module):
         if args.dataset == "cifar10" or args.dataset == "cifar100":
             self.conv1 = conv3x3(in_planes=args.in_channels, out_planes=64,
                                  stride=1, args=args)
-        else:
+        elif args.dataset == "imagenet":
             self.conv1 = conv7x7(in_planes=args.in_channels, out_planes=64,
-                                 stride=2, args=args)
+                                 stride=2, padding=3, args=args)
+        else:
+            raise Exception(
+                f"Unknown dataset: {args.dataset} in ResNet architecture.")
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -215,6 +220,18 @@ def resnet18(pretrained=False, **kwargs):
     model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['resnet18']))
+    return model
+
+
+def resnet50_imagenet(pretrained=False, **kwargs):
+    """Constructs a ResNet-50 model for training on imagenet.
+
+    Arguments:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = ResNet(BasicBlock, [3, 4, 6, 3], **kwargs)
+    if pretrained:
+        model.load_state_dict(model_zoo.load_url(model_urls['resnet50']))
     return model
 
 

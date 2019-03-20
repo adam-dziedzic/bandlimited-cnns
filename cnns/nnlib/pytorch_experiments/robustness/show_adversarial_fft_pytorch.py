@@ -8,14 +8,18 @@
 
 from cnns.nnlib.utils.general_utils import get_log_time
 import matplotlib.pyplot as plt
+import matplotlib
 import foolbox
 import numpy as np
 import torch
 import torchvision.models as models
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_full_energy
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_phase
 import os
 from cnns.nnlib.benchmarks.imagenet_from_class_idx_to_label import \
     imagenet_from_class_idx_to_label
+
+
 # from scipy.special import softmax
 
 def softmax(x):
@@ -23,15 +27,32 @@ def softmax(x):
     s /= np.sum(s)
     return s
 
+
+fft_type = "magnitude"
+
+
 def to_fft(x):
-    # x = torch.from_numpy(x)
-    x = torch.tensor(x)
+    x = torch.from_numpy(x)
+    # x = torch.tensor(x)
     x = x.permute(2, 0, 1)  # move channel as the first dimension
     xfft = torch.rfft(x, onesided=False, signal_ndim=2)
+    if fft_type == "magnitude":
+        return to_fft_magnitude(xfft)
+    elif fft_type == "phase":
+        return to_fft_phase(xfft)
+    else:
+        raise Exception(f"Unknown type of fft processing: {fft_type}")
+
+
+def to_fft_magnitude(xfft):
     _, xfft_squared = get_full_energy(xfft)
     xfft_abs = torch.sqrt(xfft_squared)
     # xfft_abs = xfft_abs.sum(dim=0)
     return np.log(xfft_abs.numpy())
+
+
+def to_fft_phase(xfft):
+    return get_phase(xfft)
 
 
 def znormalize(x):
@@ -39,6 +60,9 @@ def znormalize(x):
 
 
 init_y, init_x = 224, 224
+# lim_y, lim_x = init_y, init_x
+# lim_y, lim_x = init_y // 2, init_x // 2
+lim_y, lim_x = 10, 10
 images, labels = foolbox.utils.samples(dataset='imagenet', index=0,
                                        batchsize=20, shape=(init_y, init_x),
                                        data_format='channels_first')
@@ -54,9 +78,73 @@ std = np.array([0.229, 0.224, 0.225]).reshape((3, 1, 1))
 fmodel = foolbox.models.PyTorchModel(resnet, bounds=(0, 1),
                                      num_classes=1000,
                                      preprocessing=(mean, std))
-# setting for the heat map
-cmap = 'hot'
-interpolation = 'nearest'
+
+# cmap_type = "matshow"  # "standard" or "custom"
+cmap_type = "standard"
+vmin_heatmap = -6
+vmax_heatmap = 10
+# map_labels = "Text"  # "None" or "Text"
+map_labels = "None"
+
+if cmap_type == "custom" or cmap_type == "matshow":
+    # setting for the heat map
+    # cdict = {
+    #     'red': ((0.0, 0.25, .25), (0.02, .59, .59), (1., 1., 1.)),
+    #     'green': ((0.0, 0.0, 0.0), (0.02, .45, .45), (1., .97, .97)),
+    #     'blue': ((0.0, 1.0, 1.0), (0.02, .75, .75), (1., 0.45, 0.45))
+    # }
+
+    cdict = {'red': [(0.0, 0.0, 0.0),
+                     (0.5, 1.0, 1.0),
+                     (1.0, 1.0, 1.0)],
+
+             'green': [(0.0, 0.0, 0.0),
+                       (0.25, 0.0, 0.0),
+                       (0.75, 1.0, 1.0),
+                       (1.0, 1.0, 1.0)],
+
+             'blue': [(0.0, 0.0, 0.0),
+                      (0.5, 0.0, 0.0),
+                      (1.0, 1.0, 1.0)]}
+
+    # cmap = matplotlib.colors.LinearSegmentedColormap('my_colormap', cdict, 1024)
+    cmap = "OrRd"
+
+    x = np.arange(0, lim_x, 1.)
+    y = np.arange(0, lim_y, 1.)
+    X, Y = np.meshgrid(x, y)
+elif cmap_type == "standard":
+    # cmap = 'hot'
+    cmap = 'OrRd'
+    interpolation = 'nearest'
+elif cmap_type == "seismic":
+    cmap = "seismic"
+else:
+    raise Exception(f"Unknown type of the cmap: {cmap_type}.")
+
+
+def print_color_map(x, fig=None, ax=None):
+    if cmap_type == "standard":
+        plt.imshow(x, cmap=cmap,
+                   interpolation=interpolation)
+        heatmap_legend = plt.pcolor(x)
+        plt.colorbar(heatmap_legend)
+    elif cmap_type == "custom":
+        plt.pcolor(X, Y, x, cmap=cmap, vmin=vmin_heatmap,
+                   vmax=vmax_heatmap)
+        plt.colorbar()
+    elif cmap_type == "matshow":
+        fig, ax = plt.subplots()
+        # plt.pcolor(X, Y, original_fft, cmap=cmap, vmin=vmin_heatmap,
+        #            vmax=vmax_heatmap)
+        cax = ax.matshow(original_fft, cmap='seismic', vmin=vmin_heatmap,
+                         vmax=vmax_heatmap)
+        # plt.colorbar()
+        fig.colorbar(cax)
+        if map_labels == "Text":
+            for (i, j), z in np.ndenumerate(x):
+                ax.text(j, i, '{:0.1f}'.format(z), ha='center', va='center')
+
 
 # get source image and label
 # image, label = foolbox.utils.imagenet_example()
@@ -113,7 +201,7 @@ channels = [x for x in range(3)]
 rows = 1 + len(channels)
 cols = 3
 
-fig = plt.figure(figsize=(10, 15))
+fig = plt.figure(figsize=(15, 15))
 plt.subplot(rows, cols, 1)
 plt.title('Original\nlabel: ' + str(
     original_prediction.replace(",",
@@ -145,8 +233,7 @@ plt.axis('off')
 
 i = 4
 for channel in channels:
-    lim_y, lim_x = init_y, init_x
-    plt.subplot(rows, cols, i)
+    ax = plt.subplot(rows, cols, i)
     i += 1
     # plt.title('Original\nfft-ed')
     original_fft = to_fft(image)
@@ -167,14 +254,12 @@ for channel in channels:
     # go back to the original print size
     # np.set_printoptions(threshold=options['threshold'])
     original_fft = original_fft[:lim_y, :lim_x]
-    plt.imshow(original_fft, cmap=cmap,
-               interpolation=interpolation)
-    heatmap_legend = plt.pcolor(original_fft)
-    plt.colorbar(heatmap_legend)
+    print_color_map(original_fft, fig, ax)
+
     # plt.axis('off')
     plt.ylabel("fft-ed\nchannel " + str(channel))
 
-    plt.subplot(rows, cols, i)
+    ax = plt.subplot(rows, cols, i)
     i += 1
     # plt.title('Adversarial\nfft-ed')
     adversarial_fft = to_fft(adversarial)
@@ -185,10 +270,9 @@ for channel in channels:
     np.save(output_path, adversarial_fft)
 
     adversarial_fft = adversarial_fft[:lim_y, :lim_x]
-    plt.imshow(adversarial_fft, cmap=cmap,
-               interpolation=interpolation)
-    heatmap_legend = plt.pcolor(adversarial_fft)
-    plt.colorbar(heatmap_legend)
+
+    print_color_map(adversarial_fft, fig, ax)
+
     # plt.axis('off')
 
     # plt.subplot(2, 3, 6)
@@ -200,18 +284,16 @@ for channel in channels:
     # plt.colorbar(heatmap_legend)
     # plt.axis('off')
 
-    plt.subplot(rows, cols, i)
+    ax = plt.subplot(rows, cols, i)
     i += 1
     # plt.title('Difference\nfft-ed')
     # difference = np.abs((image / 255) - (adversarial / 255))
-    difference = image - adversarial
+    difference = adversarial - image
     difference_fft = to_fft(difference)
     difference_fft = difference_fft[channel]
     difference_fft = difference_fft[:lim_y, :lim_x]
-    plt.imshow(difference_fft, cmap=cmap,
-               interpolation=interpolation)
-    heatmap_legend = plt.pcolor(difference_fft)
-    plt.colorbar(heatmap_legend)
+
+    print_color_map(difference_fft, fig, ax)
     # plt.axis('off')
 
 format = 'pdf'
