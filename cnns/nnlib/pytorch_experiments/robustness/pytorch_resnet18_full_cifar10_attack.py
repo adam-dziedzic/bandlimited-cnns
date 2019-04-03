@@ -226,9 +226,11 @@ for current_attack, attack_type, input_epsilons in attacks:
                         correct += 1
                         # print("image is None, label:", label, " i:", i)
                     elif args.is_round:
+                        print("sum difference before round: ",
+                              np.sum(np.abs(image_attack * 255 - image * 255)))
                         image_attack = np.round(image_attack * 255) / 255
-                        print("max difference: ",
-                              np.max(np.abs(image_attack * 255 - image * 255)))
+                        print("sum difference after round: ",
+                              np.sum(np.abs(image_attack * 255 - image * 255)))
                         predictions = foolbox_model.predictions(image_attack)
                         # print(np.argmax(predictions), label)
                         if np.argmax(predictions) == label:

@@ -191,7 +191,7 @@ i = 1
 for attack in attacks:
     # get source image and label, idx - is the index of the image
     # image, label = foolbox.utils.imagenet_example()
-    idx = 0
+    idx = 1
     image, label = images[idx], labels[idx]
 
     print("original label: id:", label, ", class: ",
@@ -247,10 +247,12 @@ for attack in attacks:
     plt.subplot(rows, cols, i)
     i += 1
     plt.title('Difference')
-    print("adversarial: ", adversarial)
+    difference = np.abs(adversarial * 255 - image * 255)
+    print("max difference before round: ", np.max(difference))
+    # print("adversarial: ", adversarial)
     adversarial = np.round(adversarial * 255) / 255
-    difference = np.abs(adversarial - image)
-    print("max difference: ", np.max(difference) * 255)
+    difference = np.abs(adversarial * 255 - image * 255)
+    print("max difference after round: ", np.max(difference))
     print("difference:\n", difference)
     # https://www.statisticshowto.datasciencecentral.com/normalized/
     # difference = (difference - difference.min()) / (
