@@ -22,7 +22,11 @@ if not sys.warnoptions:
     warnings.simplefilter("ignore")
 
 args = get_args()
+# should we turn pixels to the range from 0 to 255 and round them to the the
+# nearest integer value
 args.sample_count_limit = 100
+args.is_round = True
+
 train_loader, test_loader, train_dataset, test_dataset = get_cifar(args,
                                                                    "cifar10")
 
@@ -91,8 +95,8 @@ def get_attacks():
     attacks = [  # empty_attack,
         # (foolbox.attacks.LocalSearchAttack, "LocalSearch",
         #  [x for x in range(1000)]),
-        (foolbox.attacks.MultiplePixelsAttack, "MultiplePixelsAttack",
-         [x for x in range(100, 301, 10)]),
+        # (foolbox.attacks.MultiplePixelsAttack, "MultiplePixelsAttack",
+        # [x for x in range(100, 301, 10)]),
         # (foolbox.attacks.SinglePixelAttack, "SinglePixelAttack",
         #  [x for x in range(0, 1001, 100)]),
         # # foolbox.attacks.AdditiveUniformNoiseAttack,
@@ -108,6 +112,8 @@ def get_attacks():
         # (foolbox.attacks.ContrastReductionAttack,
         #  [x / 10 for x in range(10)]),
         # (foolbox.attacks.GradientAttack, [x / 100 for x in range(21)]),
+        (foolbox.attacks.GradientSignAttack, "GradientSignAttack",
+         [x for x in np.linspace(0.001, 0.2, 20)][1:]),
         # (
         #     foolbox.attacks.BlendedUniformNoiseAttack,
         #     [x / 10 for x in range(21)]),
@@ -125,8 +131,8 @@ print(
     "compress rate, attack name, epsilon, correct, counter, correct rate (%), time (sec)")
 
 model_paths = [
-    (84,
-     "2019-01-21-14-30-13-992591-dataset-cifar10-preserve-energy-100.0-test-accuracy-84.55-compress-label-84-after-epoch-304.model"),
+    # (84,
+    #  "2019-01-21-14-30-13-992591-dataset-cifar10-preserve-energy-100.0-test-accuracy-84.55-compress-label-84-after-epoch-304.model"),
     (0,
      "2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model"),
 ]
@@ -219,11 +225,14 @@ for current_attack, attack_type, input_epsilons in attacks:
                     if image_attack is None:
                         correct += 1
                         # print("image is None, label:", label, " i:", i)
-                    # else:
-                    #     predictions = foolbox_model.predictions(image_attack)
-                    #     # print(np.argmax(predictions), label)
-                    #     if np.argmax(predictions) == label:
-                    #         correct += 1
+                    elif args.is_round:
+                        image_attack = np.round(image_attack * 255) / 255
+                        print("max difference: ",
+                              np.max(np.abs(image_attack * 255 - image * 255)))
+                        predictions = foolbox_model.predictions(image_attack)
+                        # print(np.argmax(predictions), label)
+                        if np.argmax(predictions) == label:
+                            correct += 1
             timing = time.time() - start
             with open("results.csv", "a") as out:
                 msg = "".join((str(x) for x in

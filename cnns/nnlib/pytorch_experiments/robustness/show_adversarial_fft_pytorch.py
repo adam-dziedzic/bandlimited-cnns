@@ -177,9 +177,9 @@ def print_color_map(x, fig=None, ax=None):
 # choose how many channels should be plotted
 channels_nr = 1
 channels = [x for x in range(channels_nr)]
-attacks = [foolbox.attacks.FGSM(fmodel),
-           foolbox.attacks.AdditiveUniformNoiseAttack(fmodel)]
-# attacks = [foolbox.attacks.FGSM(fmodel)]
+# attacks = [foolbox.attacks.FGSM(fmodel),
+#            foolbox.attacks.AdditiveUniformNoiseAttack(fmodel)]
+attacks = [foolbox.attacks.FGSM(fmodel)]
 rows = len(attacks) * (1 + 2 * len(channels))
 cols = 3
 
@@ -247,7 +247,10 @@ for attack in attacks:
     plt.subplot(rows, cols, i)
     i += 1
     plt.title('Difference')
-    difference = adversarial - image
+    print("adversarial: ", adversarial)
+    adversarial = np.round(adversarial * 255) / 255
+    difference = np.abs(adversarial - image)
+    print("max difference: ", np.max(difference) * 255)
     print("difference:\n", difference)
     # https://www.statisticshowto.datasciencecentral.com/normalized/
     # difference = (difference - difference.min()) / (
