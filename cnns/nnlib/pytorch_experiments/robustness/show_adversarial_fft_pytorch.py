@@ -8,28 +8,29 @@
 
 from cnns.nnlib.utils.general_utils import get_log_time
 import matplotlib.pyplot as plt
-import matplotlib
 import foolbox
 import numpy as np
 import torch
 import torchvision.models as models
-from cnns.nnlib.pytorch_layers.pytorch_utils import get_full_energy
+# from cnns.nnlib.pytorch_layers.pytorch_utils import get_full_energy
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_phase
 import os
 from cnns.nnlib.benchmarks.imagenet_from_class_idx_to_label import \
     imagenet_from_class_idx_to_label
 
-
 # from scipy.special import softmax
+
+# arguments
+# save fft representations of the original and adversarial images to files
+save_out = False
+diff_type = "source"  # "source" or "fft"
+
 
 def softmax(x):
     s = np.exp(x - np.max(x))
     s /= np.sum(s)
     return s
-
-
-fft_type = "magnitude"
-save_out = False
 
 
 def to_fft(x, is_log=True):
@@ -46,17 +47,29 @@ def to_fft(x, is_log=True):
 
 
 def to_fft_magnitude(xfft, is_log=True):
-    _, xfft_squared = get_full_energy(xfft)
-    xfft_abs = torch.sqrt(xfft_squared)
+    """
+    Get the magnitude component of the fft-ed signal.
+
+    :param xfft: the fft-ed signal
+    :param is_log: for the logarithmic scale follow the dB (decibel) notation
+    where ydb = 20 * log_10(y), according to:
+    https://www.mathworks.com/help/signal/ref/mag2db.html
+    :return: the magnitude component of the fft-ed signal
+    """
+    # _, xfft_squared = get_full_energy(xfft)
+    # xfft_abs = torch.sqrt(xfft_squared)
     # xfft_abs = xfft_abs.sum(dim=0)
+    xfft = get_spectrum(xfft)
     if is_log:
-        return np.log(xfft_abs.numpy())
+        return 20 * np.log10(xfft.numpy())
     else:
-        return xfft_abs.numpy()
+        return xfft.numpy()
 
 
 def to_fft_phase(xfft):
-    return get_phase(xfft).numpy()
+    # The phase is unwrapped using the unwrap function so that we can see a
+    # continuous function of frequency.
+    return np.unwrap(get_phase(xfft).numpy())
 
 
 def znormalize(x):
@@ -72,10 +85,7 @@ images, labels = foolbox.utils.samples(dataset='imagenet', index=0,
                                        batchsize=20, shape=(init_y, init_x),
                                        data_format='channels_first')
 
-# instantiate model
 images = images / 255
-
-# instantiate the model
 resnet = models.resnet50(
     pretrained=True).cuda().eval()  # for CPU, remove cuda()
 mean = np.array([0.485, 0.456, 0.406]).reshape((3, 1, 1))
@@ -164,6 +174,7 @@ def print_color_map(x, fig=None, ax=None):
                         ha='center', va='center')
 
 
+# choose how many channels should be plotted
 channels_nr = 1
 channels = [x for x in range(channels_nr)]
 attacks = [foolbox.attacks.FGSM(fmodel),
@@ -174,22 +185,18 @@ cols = 3
 
 fig = plt.figure(figsize=(30, 30))
 
+# index for each subplot
 i = 1
 
 for attack in attacks:
-
-    # get source image and label
+    # get source image and label, idx - is the index of the image
     # image, label = foolbox.utils.imagenet_example()
-    idx = 1
+    idx = 0
     image, label = images[idx], labels[idx]
-
-    # apply attack on source image
-    # ::-1 reverses the color channels, because Keras ResNet50 expects BGR instead of RGB
 
     print("original label: id:", label, ", class: ",
           imagenet_from_class_idx_to_label[label])
 
-    # predictions_original = kmodel.predict(image[np.newaxis, :, :, ::-1])
     predictions_original, _ = fmodel.predictions_and_gradient(image=image,
                                                               label=label)
     # predictions_original = znormalize(predictions_original)
@@ -216,7 +223,6 @@ for attack in attacks:
     i += 1
 
     adversarial = attack(image, label)
-    # predictions_adversarial = kmodel.predict(adversarial[np.newaxis, ...])
     predictions_adversarial, _ = fmodel.predictions_and_gradient(
         image=adversarial, label=label)
     # predictions_adversarial = znormalize(predictions_adversarial)
@@ -227,16 +233,7 @@ for attack in attacks:
 
     print("model adversarial prediciton: ", adversarial_prediction)
 
-    # attack = foolbox.attacks.MultiplePixelsAttack(fmodel)
-    # adversarial = attack(image, label, num_pixels=100)
-
-    # attack = foolbox.attacks.AdditiveUniformNoiseAttack(fmodel)
-    # adversarial = attack(image[:, :, ::-1], label, epsilons=[0.4])
-
-    # adversarial = adversarial[:, :, ::-1].copy()  # from BGR to RGB
-    # print("adversarial: ", adversarial)
     # if the attack fails, adversarial will be None and a warning will be printed
-
     if adversarial is None:
         raise Exception('foolbox did not find an adversarial example')
 
@@ -259,7 +256,7 @@ for attack in attacks:
     plt.imshow(np.moveaxis(difference, 0, -1))
     plt.axis('off')
 
-    for fft_type in ["phase", "magnitude"]:
+    for fft_type in ["magnitude", "phase"]:
         for channel in channels:
             ax = plt.subplot(rows, cols, i)
             i += 1
@@ -318,8 +315,6 @@ for attack in attacks:
             ax = plt.subplot(rows, cols, i)
             i += 1
             # plt.title('Difference\nfft-ed')
-            # diff_type = "source"
-            diff_type = "source"
 
             if diff_type == "source":
                 difference = np.abs((image / 255) - (adversarial / 255))
