@@ -5,7 +5,6 @@
 
 import foolbox
 import numpy as np
-import torchvision.models as models
 from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
 from cnns.nnlib.utils.exec_args import get_args
 import torch

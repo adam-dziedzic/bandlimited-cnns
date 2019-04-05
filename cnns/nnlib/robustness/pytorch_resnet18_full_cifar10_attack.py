@@ -10,8 +10,8 @@ import torch
 import sys
 import time
 import numpy as np
-from cnns.nnlib.robustness import get_foolbox_model
-from cnns.nnlib.robustness import get_min_max_counter
+from cnns.nnlib.robustness.utils import get_foolbox_model
+from cnns.nnlib.robustness.utils import get_min_max_counter
 if not sys.warnoptions:
     import warnings
 

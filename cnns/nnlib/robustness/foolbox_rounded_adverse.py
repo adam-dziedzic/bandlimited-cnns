@@ -10,8 +10,8 @@ from cnns.nnlib.utils.exec_args import get_args
 import numpy as np
 import time
 from cnns.nnlib.datasets.cifar import get_cifar
-from cnns.nnlib.robustness import get_foolbox_model
-from cnns.nnlib.robustness import Rounder
+from cnns.nnlib.robustness.utils import get_foolbox_model
+from cnns.nnlib.robustness.utils import Rounder
 import tables
 
 
@@ -59,7 +59,7 @@ if __name__ == "__main__":
     np.random.seed(31)
     # arguments
     args = get_args()
-    args.dataset = "cifar10"
+    args.dataset = "cifar10"  # "cifar10" or "imagenet"
 
     args.sample_count_limit = 10
     train_loader, test_loader, train_dataset, test_dataset = get_cifar(args,

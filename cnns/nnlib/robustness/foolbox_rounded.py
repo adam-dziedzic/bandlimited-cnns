@@ -1,4 +1,5 @@
 from cnns import matplotlib_backend
+
 print("Using:", matplotlib_backend.backend)
 import torch
 from cnns.nnlib.utils.exec_args import get_args
@@ -6,8 +7,8 @@ import numpy as np
 import time
 from cnns.nnlib.datasets.cifar import get_cifar
 import foolbox
-from cnns.nnlib.robustness import get_foolbox_model
-from cnns.nnlib.robustness import Rounder
+from cnns.nnlib.robustness.utils import get_foolbox_model
+from cnns.nnlib.robustness.uitls import Rounder
 
 
 def run(args):

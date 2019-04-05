@@ -1,7 +1,6 @@
 import torch
 from cnns.nnlib.utils.exec_args import get_args
-from cnns.nnlib.robustness import \
-    get_fmodel
+from cnns.nnlib.robustness.show_adversarial_fft_pytorch import get_fmodel
 import foolbox
 import numpy as np
 import time

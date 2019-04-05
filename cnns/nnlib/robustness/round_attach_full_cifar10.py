@@ -1,12 +1,11 @@
 import torch
 from cnns.nnlib.utils.exec_args import get_args
-from cnns.nnlib.robustness import \
-    get_foolbox_model
+from cnns.nnlib.robustness.utils import get_foolbox_model
 import numpy as np
 import time
 from cnns.nnlib.datasets.cifar import get_cifar, cifar_mean, cifar_std
-from cnns.nnlib.robustness import unnormalize
-from cnns.nnlib.robustness import normalize
+from cnns.nnlib.robustness.utils import unnormalize
+from cnns.nnlib.robustness.utils import normalize
 
 
 def run(args):

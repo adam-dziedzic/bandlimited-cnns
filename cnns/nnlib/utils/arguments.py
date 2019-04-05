@@ -36,11 +36,11 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     tensor_type = TensorType.FLOAT32
     precision_type = PrecisionType.FP32
     conv_exec_type = ConvExecType.BATCH
-    visualize = True # test model for different compress rates
+    visualize = True  # test model for different compress rates
     next_power2 = False
 else:
     dataset = "cifar10"
-    network_type=NetworkType.ResNet18
+    network_type = NetworkType.ResNet18
     # network_type=NetworkType.DenseNetCifar
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
@@ -49,6 +49,10 @@ else:
     conv_exec_type = ConvExecType.CUDA
     visualize = False  # test model for different compress rates
     next_power2 = True
+
+import os
+
+USER = os.environ['USER']
 
 
 class Arguments(object):
@@ -85,7 +89,7 @@ class Arguments(object):
                  # precision_type=PrecisionType.FP16,
                  use_cuda=True,
                  compress_type=CompressType.STANDARD,
-                 #compress_rate=5,
+                 # compress_rate=5,
                  # compress_rate=0.0,
                  compress_rate=0.0,
                  compress_rates=[0.0],
@@ -211,7 +215,7 @@ class Arguments(object):
                  stride_type=StrideType.STANDARD,
                  # is_dev_dataset = True,
                  is_dev_dataset=False,
-                 dev_percent = 0,
+                 dev_percent=0,
                  adam_beta1=0.9,
                  adam_beta2=0.999,
                  cuda_block_threads=1024,
@@ -225,7 +229,8 @@ class Arguments(object):
                  noise_sigma=0.0,
                  noise_sigmas=[0.0],
                  fft_type="real_fft",  # real_fft or complex_fft
-                 imagenet_path="/home/${USER}/imagenet",
+                 imagenet_path="/home/" + str(USER) + "/imagenet",
+                 distributed=False,
                  ):
         """
         The default parameters for the execution of the program.
@@ -317,7 +322,7 @@ class Arguments(object):
         self.memory_size = memory_size
         self.is_progress_bar = is_progress_bar
         self.log_conv_size = log_conv_size
-        self.stride_type=stride_type
+        self.stride_type = stride_type
         self.is_dev_dataset = is_dev_dataset
         self.dev_percent = dev_percent
         self.adam_beta1 = adam_beta1
@@ -333,6 +338,7 @@ class Arguments(object):
         self.noise_sigmas = noise_sigmas
         self.fft_type = fft_type
         self.imagenet_path = imagenet_path
+        self.distributed = distributed
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False
@@ -365,12 +371,16 @@ class Arguments(object):
         self.visulize = self.get_bool(parsed_args.visualize)
         self.is_progress_bar = self.get_bool(parsed_args.is_progress_bar)
         self.log_conv_size = self.get_bool(parsed_args.log_conv_size)
-        self.is_data_augmentation = self.get_bool(parsed_args.is_data_augmentation)
+        self.is_data_augmentation = self.get_bool(
+            parsed_args.is_data_augmentation)
         self.is_dev_dataset = self.get_bool(parsed_args.is_dev_dataset)
         self.mem_test = self.get_bool(parsed_args.mem_test)
-        self.use_cuda = self.get_bool(parsed_args.use_cuda) and torch.cuda.is_available()
+        self.use_cuda = self.get_bool(
+            parsed_args.use_cuda) and torch.cuda.is_available()
         self.only_train = self.get_bool(parsed_args.only_train)
-        self.test_compress_rates = self.get_bool(parsed_args.test_compress_rates)
+        self.test_compress_rates = self.get_bool(
+            parsed_args.test_compress_rates)
+        self.distributed = self.get_bool(parsed_args.distributed)
 
         if hasattr(parsed_args, "preserve_energy"):
             self.preserve_energy = parsed_args.preserve_energy
@@ -389,7 +399,8 @@ class Arguments(object):
     def get_str(self):
         args_dict = self.__dict__
         args_str = " ".join(
-            ["--" + str(key) + "=" + str(value) for key, value in args_dict.items()])
+            ["--" + str(key) + "=" + str(value) for key, value in
+             args_dict.items()])
         return args_str
 
     def from_bool_arg(self, arg):

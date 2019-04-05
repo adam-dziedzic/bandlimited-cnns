@@ -8,6 +8,7 @@ from cnns.nnlib.utils.exec_args import get_args
 from cnns.nnlib.datasets.cifar import get_cifar
 from cnns.nnlib.datasets.cifar import cifar_mean_array
 from cnns.nnlib.datasets.cifar import cifar_std_array
+from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
 
 # min and max values per pixel in cifar10 test data
 cifar_min = -2.4290658
@@ -49,7 +50,8 @@ def load_model(args):
     model = resnet18(args=args)
     # load pretrained weights
     models_folder_name = "models"
-    models_dir = os.path.join(os.getcwd(), os.path.pardir, models_folder_name)
+    models_dir = os.path.join(os.getcwd(), os.path.pardir,
+                              "pytorch_experiments", models_folder_name)
     if args.model_path != "no_model":
         model.load_state_dict(
             torch.load(os.path.join(models_dir, args.model_path),
@@ -93,6 +95,16 @@ def get_min_max_counter_cifar10():
     args.sample_count_limit = 0
     train_loader, test_loader, train_dataset, test_dataset = get_cifar(args,
                                                                        "cifar10")
+    min, max, counter = get_min_max_counter(test_loader)
+    return min, max, counter
+
+
+def get_min_max_counter_imagenet():
+    args = get_args()
+    # should we turn pixels to the range from 0 to 255 and round them to the the
+    # nearest integer value
+    args.sample_count_limit = 100
+    train_loader, test_loader, train_dataset, test_dataset = load_imagenet(args)
     min, max, counter = get_min_max_counter(test_loader)
     return min, max, counter
 
@@ -161,5 +173,6 @@ class Rounder():
 
 if __name__ == "__main__":
     print("run utils examples")
-    min, max, counter = get_min_max_counter_cifar10()
+    # min, max, counter = get_min_max_counter_cifar10()
+    min, max, counter = get_min_max_counter_imagenet()
     print("counter: ", counter, " min: ", min, " max: ", max)

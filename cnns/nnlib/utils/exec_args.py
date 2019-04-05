@@ -89,7 +89,8 @@ def get_args():
                         help="The path to a saved model.")
     parser.add_argument("--dataset", default=args.dataset,
                         help="the type of datasets: all, debug, cifar10, mnist.")
-    parser.add_argument("--compress_rate", default=args.compress_rate, type=float,
+    parser.add_argument("--compress_rate", default=args.compress_rate,
+                        type=float,
                         help="Percentage of indexes (values) from the back of the "
                              "frequency representation that should be discarded. "
                              "This is the compression in the FFT domain.")
@@ -258,6 +259,12 @@ def get_args():
                         help="how much Gaussian noise to add: {args.noise_sigmas}")
     parser.add_argument("--fft_type", default=args.fft_type,
                         help="the type of fft used: real_fft or complex_fft.")
+    parser.add_argument("--imagenet_path", default=args.imagenet_path,
+                        help="The path to the imagenet data.")
+    parser.add_argument('--distributed',
+                        default="FALSE" if args.distributed is False else "TRUE",
+                        help="Distributed training: " + ",".join(
+                            Bool.get_names()))
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)
