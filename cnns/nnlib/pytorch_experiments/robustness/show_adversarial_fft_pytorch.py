@@ -16,8 +16,10 @@ import torchvision.models as models
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_phase
 import os
-from cnns.nnlib.benchmarks.imagenet_from_class_idx_to_label import \
+from cnns.nnlib.datasets.imagenet.imagenet_from_class_idx_to_label import \
     imagenet_from_class_idx_to_label
+from cnns.nnlib.datasets.cifar10_from_class_idx_to_label import \
+    cifar10_from_class_idx_to_label
 from cnns.nnlib.utils.exec_args import get_args
 # from scipy.special import softmax
 from cnns.nnlib.pytorch_experiments.robustness.pytorch_resnet18_full_cifar10_attack import \
@@ -81,6 +83,7 @@ def get_fmodel(args):
         mean = np.array([0.485, 0.456, 0.406]).reshape((3, 1, 1))
         std = np.array([0.229, 0.224, 0.225]).reshape((3, 1, 1))
         args.num_classes = 1000
+        from_class_idx_to_label = imagenet_from_class_idx_to_label
 
     elif args.dataset == "cifar10":
         args.init_y, args.init_x = 32, 32
@@ -92,6 +95,7 @@ def get_fmodel(args):
         resnet = load_model(args=args)
         mean = np.array([0.4914, 0.4822, 0.4465]).reshape((3, 1, 1))
         std = np.array([0.2023, 0.1994, 0.2010]).reshape((3, 1, 1))
+        from_class_idx_to_label = cifar10_from_class_idx_to_label
 
     else:
         raise Exception(f"Unknown dataset type: {args.dataset}")
@@ -100,10 +104,10 @@ def get_fmodel(args):
                                          num_classes=args.num_classes,
                                          preprocessing=(mean, std))
 
-    return fmodel
+    return fmodel, from_class_idx_to_label
 
 def run(args):
-    fmodel = get_fmodel(args=args)
+    fmodel, from_class_idx_to_label = get_fmodel(args=args)
     images, labels = foolbox.utils.samples(dataset=args.dataset, index=0,
                                            batchsize=20,
                                            shape=(args.init_y, args.init_x),
@@ -214,17 +218,17 @@ def run(args):
         image, label = images[args.idx], labels[args.idx]
 
         print("original label: id:", label, ", class: ",
-              imagenet_from_class_idx_to_label[label])
+              from_class_idx_to_label[label])
 
         predictions_original, _ = fmodel.predictions_and_gradient(image=image,
                                                                   label=label)
         # predictions_original = znormalize(predictions_original)
         predictions_original = softmax(predictions_original)
-        original_prediction = imagenet_from_class_idx_to_label[
+        original_prediction = from_class_idx_to_label[
             np.argmax(predictions_original)]
         print("model original prediction: ", original_prediction)
         original_confidence = np.max(predictions_original)
-        sum_predictions = np.sum(predictions_original)
+        # sum_predictions = np.sum(predictions_original)
         # print("sum predictions: ", sum_predictions)
         # print("predictions_original: ", predictions_original)
 
@@ -246,7 +250,7 @@ def run(args):
             image=adversarial, label=label)
         # predictions_adversarial = znormalize(predictions_adversarial)
         predictions_adversarial = softmax(predictions_adversarial)
-        adversarial_prediction = imagenet_from_class_idx_to_label[
+        adversarial_prediction = from_class_idx_to_label[
             np.argmax(predictions_adversarial)]
         adversarial_confidence = np.max(predictions_adversarial)
 
@@ -375,7 +379,7 @@ if __name__ == "__main__":
     # save fft representations of the original and adversarial images to files
     args.save_out = False
     args.diff_type = "source"  # "source" or "fft"
-    args.dataset = "imagenet" # "cifar10" or "imagenet"
+    args.dataset = "cifar10" # "cifar10" or "imagenet"
     args.idx = 0  # index of the image (out of 20) to be used
 
     if torch.cuda.is_available() and args.use_cuda:

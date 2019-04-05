@@ -8,14 +8,16 @@ from cnns.nnlib.datasets.transformations.flat_transformation import \
 from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import NetworkType
 
+mean = (0.4914, 0.4822, 0.4465)
+std = (0.2023, 0.1994, 0.2010)
+
 
 def get_transform_train(dtype=torch.float32, signal_dimension=2):
     transformations = [
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465),
-                             (0.2023, 0.1994, 0.2010))
+        transforms.Normalize(mean, std)
     ]
     if signal_dimension == 1:
         transformations.append(FlatTransformation())

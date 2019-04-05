@@ -4,56 +4,24 @@
 #  Written by Adam Dziedzic
 
 import foolbox
-from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
 from cnns.nnlib.utils.exec_args import get_args
 from cnns.nnlib.datasets.cifar import get_cifar
 import torch
 import sys
-import os
 import time
 import numpy as np
-
+from cnns.nnlib.pytorch_experiments.robustness.utils import get_foolbox_model
+from cnns.nnlib.pytorch_experiments.robustness.utils import get_min_max_counter
 if not sys.warnoptions:
     import warnings
 
     warnings.simplefilter("ignore")
 
 
-def load_model(args):
-    model = resnet18(args=args)
-    # load pretrained weights
-    models_folder_name = "models"
-    models_dir = os.path.join(os.getcwd(), os.path.pardir, models_folder_name)
-    if args.model_path != "no_model":
-        model.load_state_dict(
-            torch.load(os.path.join(models_dir, args.model_path),
-                       map_location=args.device))
-        msg = "loaded model: " + args.model_path
-        # logger.info(msg)
-        # print(msg)
-    return model.eval()
-
-
 class empty_attack(foolbox.attacks.base.Attack):
 
     def __call__(self, input_or_adv, label=None, unpack=True, **kwargs):
         return input_or_adv
-
-
-def get_foolbox_model(model_path, compress_rate=0):
-    args.model_path = model_path
-    args.compress_rate = compress_rate
-    args.compress_rates = [compress_rate]
-    pytorch_model = load_model(args=args)
-    # do not change the mean and standard deviation when they are 0 and 1
-    mean = 0
-    std = 1
-    foolbox_model = foolbox.models.PyTorchModel(model=pytorch_model,
-                                                bounds=(min, max),
-                                                num_classes=args.num_classes,
-                                                preprocessing=(mean, std),
-                                                device=args.device)
-    return foolbox_model
 
 
 def get_attacks():
@@ -120,7 +88,7 @@ def run(args):
 
     for current_attack, attack_type, input_epsilons in attacks:
         for compress_rate, model_path in model_paths:
-            foolbox_model = get_foolbox_model(model_path=model_path,
+            foolbox_model = get_foolbox_model(args, model_path=model_path,
                                               compress_rate=compress_rate)
             attack = current_attack(foolbox_model)
             print("attack type: ", attack_type)
@@ -224,7 +192,7 @@ if __name__ == "__main__":
     args = get_args()
     # should we turn pixels to the range from 0 to 255 and round them to the the
     # nearest integer value
-    args.sample_count_limit = 100
+    args.sample_count_limit = 0
     args.is_round = True
 
     train_loader, test_loader, train_dataset, test_dataset = get_cifar(args,
@@ -238,20 +206,7 @@ if __name__ == "__main__":
         print("cuda id not available")
         args.device = torch.device("cpu")
 
-    min = float("inf")
-    max = float("-inf")
-
-    counter = 0
-    for batch_idx, (data, target) in enumerate(test_loader):
-        # print("batch_idx: ", batch_idx)
-        for i, label in enumerate(target):
-            counter += 1
-            label = label.item()
-            image = data[i].numpy()
-            if image.min() < min:
-                min = image.min()
-            if image.max() > max:
-                max = image.max()
+    min, max, counter = get_min_max_counter(test_loader=test_loader)
     print("counter: ", counter, " min: ", min, " max: ", max)
 
     run(args)

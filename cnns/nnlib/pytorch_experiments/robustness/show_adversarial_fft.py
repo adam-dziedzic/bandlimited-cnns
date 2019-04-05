@@ -15,7 +15,7 @@ from keras.applications.resnet50 import ResNet50
 import torch
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_full_energy
 import os
-from cnns.nnlib.benchmarks.imagenet_from_class_idx_to_label import \
+from cnns.nnlib.datasets.imagenet.imagenet_from_class_idx_to_label import \
     imagenet_from_class_idx_to_label
 
 

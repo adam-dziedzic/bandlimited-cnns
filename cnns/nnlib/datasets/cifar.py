@@ -1,6 +1,5 @@
 from torchvision import transforms
 from torchvision import datasets
-import torchvision
 import torch
 from cnns.nnlib.datasets.transformations.dtype_transformation import \
     DtypeTransformation
@@ -17,6 +16,12 @@ from cnns.nnlib.utils.arguments import Arguments
 import os
 
 print("current directory is: ", os.getcwd())
+
+cifar_mean = (0.4914, 0.4822, 0.4465)
+cifar_std = (0.2023, 0.1994, 0.2010)
+
+cifar_mean_array = np.array(cifar_mean, dtype=np.float32).reshape((3, 1, 1))
+cifar_std_array = np.array(cifar_std, dtype=np.float32).reshape((3, 1, 1))
 
 def show_images():
     """
@@ -46,8 +51,7 @@ def get_transform_train(dtype=torch.float32, signal_dimension=2):
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465),
-                             (0.2023, 0.1994, 0.2010))
+        transforms.Normalize(cifar_mean, cifar_std)
     ]
     if signal_dimension == 1:
         transformations.append(FlatTransformation())
@@ -59,8 +63,7 @@ def get_transform_train(dtype=torch.float32, signal_dimension=2):
 def get_transform_test(dtype=torch.float32, signal_dimension=2, noise_sigma=0):
     transformations = [
         transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465),
-                             (0.2023, 0.1994, 0.2010))
+        transforms.Normalize(cifar_mean, cifar_std)
     ]
     if signal_dimension == 1:
         transformations.append(FlatTransformation())
