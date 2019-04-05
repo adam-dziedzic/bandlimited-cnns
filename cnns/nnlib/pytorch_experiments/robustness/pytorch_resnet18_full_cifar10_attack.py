@@ -30,7 +30,7 @@ def load_model(args):
                        map_location=args.device))
         msg = "loaded model: " + args.model_path
         # logger.info(msg)
-        print(msg)
+        # print(msg)
     return model.eval()
 
 
@@ -45,6 +45,7 @@ def get_foolbox_model(model_path, compress_rate=0):
     args.compress_rate = compress_rate
     args.compress_rates = [compress_rate]
     pytorch_model = load_model(args=args)
+    # do not change the mean and standard deviation when they are 0 and 1
     mean = 0
     std = 1
     foolbox_model = foolbox.models.PyTorchModel(model=pytorch_model,

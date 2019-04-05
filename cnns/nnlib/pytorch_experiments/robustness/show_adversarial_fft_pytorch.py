@@ -73,9 +73,9 @@ def znormalize(x):
     return (x - x.min()) / (x.max() - x.min())
 
 
-def run(args):
+def get_fmodel(args):
     if args.dataset == "imagenet":
-        init_y, init_x = 224, 224
+        args.init_y, args.init_x = 224, 224
         resnet = models.resnet50(
             pretrained=True).cuda().eval()  # for CPU, remove cuda()
         mean = np.array([0.485, 0.456, 0.406]).reshape((3, 1, 1))
@@ -83,7 +83,7 @@ def run(args):
         args.num_classes = 1000
 
     elif args.dataset == "cifar10":
-        init_y, init_x = 32, 32
+        args.init_y, args.init_x = 32, 32
         args.num_classes = 10
         args.model_path = "2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model"
         args.compress_rate = 0
@@ -96,19 +96,25 @@ def run(args):
     else:
         raise Exception(f"Unknown dataset type: {args.dataset}")
 
+    fmodel = foolbox.models.PyTorchModel(resnet, bounds=(0, 1),
+                                         num_classes=args.num_classes,
+                                         preprocessing=(mean, std))
+
+    return fmodel
+
+def run(args):
+    fmodel = get_fmodel(args=args)
     images, labels = foolbox.utils.samples(dataset=args.dataset, index=0,
-                                           batchsize=20, shape=(init_y, init_x),
+                                           batchsize=20,
+                                           shape=(args.init_y, args.init_x),
                                            data_format='channels_first')
     print("max value in images pixels: ", np.max(images))
     images = images / 255
     print("max value in images after 255 division: ", np.max(images))
-    lim_y, lim_x = init_y, init_x
+    lim_y, lim_x = args.init_y, args.init_x
     # lim_y, lim_x = init_y // 2, init_x // 2
     # lim_y, lim_x = 2, 2
     # lim_y, lim_x = 3, 3
-    fmodel = foolbox.models.PyTorchModel(resnet, bounds=(0, 1),
-                                         num_classes=args.num_classes,
-                                         preprocessing=(mean, std))
 
     cmap_type = "matshow"  # "standard" or "custom"
     # cmap_type = "standard"
@@ -363,6 +369,7 @@ def run(args):
 
 
 if __name__ == "__main__":
+    np.random.seed(31)
     # arguments
     args = get_args()
     # save fft representations of the original and adversarial images to files
