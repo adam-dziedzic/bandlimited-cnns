@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/home/ady/code/time-series-ml/cnns/nnlib/pytorch_experiments/main.py", line 23, in <module>
+    from cnns.nnlib.pytorch_layers.AdamFloat16 import AdamFloat16
+ModuleNotFoundError: No module named 'cnns'
