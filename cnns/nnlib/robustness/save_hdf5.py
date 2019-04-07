@@ -110,7 +110,7 @@ if __name__ == "__main__":
     np.random.seed(31)
     args = get_args()
     # args.dataset = "cifar10"  # "imagenet" or "cifar10"
-    args.max_advers_imgs = 10000
+    args.max_advers_imgs = 2000000
     if torch.cuda.is_available() and args.use_cuda:
         print("cuda is available")
         args.device = torch.device("cuda")

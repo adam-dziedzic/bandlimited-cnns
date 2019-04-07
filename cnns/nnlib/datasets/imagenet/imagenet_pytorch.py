@@ -16,6 +16,7 @@ imagenet_min = -3 # -2.1179039478302
 imagenet_max = 3  # 2.640000104904175
 
 def load_imagenet(args):
+    args.num_classes = 1000
     traindir = os.path.join(args.imagenet_path, 'train')
     valdir = os.path.join(args.imagenet_path, 'val')
     normalize = transforms.Normalize(mean=imagenet_mean, std=imagenet_std)

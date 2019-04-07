@@ -231,6 +231,7 @@ class Arguments(object):
                  fft_type="real_fft",  # real_fft or complex_fft
                  imagenet_path="/home/" + str(USER) + "/imagenet",
                  distributed=False,
+                 in_channels=3,
                  ):
         """
         The default parameters for the execution of the program.
@@ -339,6 +340,7 @@ class Arguments(object):
         self.fft_type = fft_type
         self.imagenet_path = imagenet_path
         self.distributed = distributed
+        self.in_channels = in_channels
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False
@@ -388,7 +390,7 @@ class Arguments(object):
         tensor_type = self.tensor_type
         if tensor_type is TensorType.FLOAT32:
             dtype = torch.float32
-        elif tensor_type is TensorType.FLOAT16 or args.precision_type is PrecisionType.FP16:
+        elif tensor_type is TensorType.FLOAT16 or precision_type is PrecisionType.FP16:
             dtype = torch.float16
         elif tensor_type is TensorType.DOUBLE:
             dtype = torch.double

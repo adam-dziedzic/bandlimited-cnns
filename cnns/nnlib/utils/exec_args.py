@@ -265,7 +265,9 @@ def get_args():
                         default="FALSE" if args.distributed is False else "TRUE",
                         help="Distributed training: " + ",".join(
                             Bool.get_names()))
-
+    parser.add_argument('--in_channels', type=int,
+                        default=args.in_channels,
+                        help=f"number of input channels (default): {args.in_channels})")
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)
     return args

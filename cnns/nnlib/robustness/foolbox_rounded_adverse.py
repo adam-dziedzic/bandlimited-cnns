@@ -9,22 +9,39 @@ import torch
 from cnns.nnlib.utils.exec_args import get_args
 import numpy as np
 import time
-from cnns.nnlib.datasets.cifar import get_cifar
 from cnns.nnlib.robustness.utils import get_foolbox_model
 from cnns.nnlib.robustness.utils import Rounder
 import tables
-
+from cnns.nnlib.datasets.cifar import get_cifar
+from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_min
+from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_max
+import foolbox
+from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
+import torchvision.models as models
 
 def run(args):
-    model_path = "2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model"
-    compress_rate = 0
-    fmodel = get_foolbox_model(args, model_path=model_path,
-                               compress_rate=compress_rate)
+    if args.dataset == "cifar10":
+        get_cifar(args, args.dataset)
+        model_path = "2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model"
+        compress_rate = 0
+        fmodel = get_foolbox_model(args, model_path=model_path,
+                                   compress_rate=compress_rate)
+    elif args.dataset == "imagenet":
+        load_imagenet(args)
+        # model = models.resnet18(pretrained=True).eval()
+        model = models.resnet50(pretrained=True).eval()
+        model.to(device=args.device)
+        fmodel = foolbox.models.PyTorchModel(model, bounds=(
+            imagenet_min, imagenet_max), num_classes=1000)
+
+    # input data
     # filename = 'outarray.h5'  # test example
     # filename = 'outarray_adverse'
-    filename = 'outarray_adverse_200'
+    # filename = 'outarray_adverse_200'
+    filename = args.dataset + '_outarray_adverse_2_10000'
     f = tables.open_file(filename + ".h5", mode='r')
     max_advers_imgs = len(f.root.data)
+    # max_advers_imgs = 10
     # labels = [x for x in range(max_advers_imgs)]
     labels = np.load(filename + '.labels.npy')
     for spacing in [2 ** x for x in range(0, 8)]:
@@ -36,17 +53,20 @@ def run(args):
             label = labels[i]
             image = f.root.data[i]
 
-            counter += 1
-
-            # round the adversarial image
-            image = rounder.round(image)
-
             predictions = fmodel.predictions(image)
-            # print(np.argmax(predictions), label)
-            if np.argmax(predictions) == label:
-                correct += 1
+            # This has to be an adversarial image.
+            if np.argmax(predictions) != label:
+                counter += 1
+
+                # round the adversarial image
+                image = rounder.round(image)
+
+                predictions = fmodel.predictions(image)
+                # print(np.argmax(predictions), label)
+                if np.argmax(predictions) == label:
+                    correct += 1
         timing = time.time() - start_time
-        with open("results_round_attack.csv", "a") as out:
+        with open(args.out_file_name, "a") as out:
             msg = ",".join((str(x) for x in
                             [spacing, correct, counter, correct / counter,
                              timing, rounder.get_average_diff_per_pixel()]))
@@ -59,11 +79,8 @@ if __name__ == "__main__":
     np.random.seed(31)
     # arguments
     args = get_args()
-    args.dataset = "cifar10"  # "cifar10" or "imagenet"
-
-    args.sample_count_limit = 10
-    train_loader, test_loader, train_dataset, test_dataset = get_cifar(args,
-                                                                       args.dataset)
+    args.dataset = "imagenet"  # "cifar10" or "imagenet"
+    # args.sample_count_limit = 0
 
     if torch.cuda.is_available() and args.use_cuda:
         print("cuda is available")
@@ -76,7 +93,8 @@ if __name__ == "__main__":
     header = "spacing, correct, counter, correct rate (%), time (sec), " \
              "avg diff per pixel"
     print(header)
-    with open("results_round_attack_after_foolbox.csv", "a") as out:
+    args.out_file_name = "results_round_defense_after_foolbox_attack_" + args.dataset + ".csv"
+    with open(args.out_file_name, "a") as out:
         out.write(header + "\n")
 
     run(args)

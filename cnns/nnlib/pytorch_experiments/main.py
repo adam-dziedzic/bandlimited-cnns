@@ -3,6 +3,10 @@
 """
 Created on Fri Sep 07 17:20:19 2018
 """
+from cnns import matplotlib_backend
+
+print("Using:", matplotlib_backend.backend)
+
 import os
 import sys
 import pathlib
