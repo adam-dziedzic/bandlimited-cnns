@@ -27,7 +27,8 @@ def run(args):
         fmodel = get_foolbox_model(args, model_path=model_path,
                                    compress_rate=compress_rate)
     elif args.dataset == "imagenet":
-        load_imagenet(args)
+        # load_imagenet(args)
+        args.num_classes = 1000
         # model = models.resnet18(pretrained=True).eval()
         model = models.resnet50(pretrained=True).eval()
         model.to(device=args.device)
@@ -79,7 +80,7 @@ if __name__ == "__main__":
     np.random.seed(31)
     # arguments
     args = get_args()
-    args.dataset = "imagenet"  # "cifar10" or "imagenet"
+    # args.dataset = "imagenet"  # "cifar10" or "imagenet"
     # args.sample_count_limit = 0
 
     if torch.cuda.is_available() and args.use_cuda:
