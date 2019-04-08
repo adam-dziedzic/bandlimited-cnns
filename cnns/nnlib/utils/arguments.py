@@ -115,7 +115,7 @@ class Arguments(object):
                  # weight_decay=5e-4,
                  # weight_decay=0,
                  weight_decay=0.0005,
-                 epochs=1,
+                 epochs=10,
                  min_batch_size=32,
                  test_batch_size=32,
                  learning_rate=0.01,
@@ -189,7 +189,7 @@ class Arguments(object):
                  mem_test=False,
                  is_data_augmentation=True,
                  # sample_count_limit=0,  # run on full data
-                 sample_count_limit=32,
+                 sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
                  # sample_count_limit=100,
