@@ -581,7 +581,9 @@ def main(args):
                                       "-compress-rate-" + str(
                                           args.compress_rate) + \
                                       "-test-accuracy-" + str(
-                                          test_accuracy) + ".model")
+                                          test_accuracy) +
+                                      "-channel-vals-" + str(
+                                          args.values_per_channel) + ".model")
             torch.save(model.state_dict(), model_path)
 
         # Save the checkpoint (to resume training).
