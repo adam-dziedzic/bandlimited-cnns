@@ -43,7 +43,6 @@ def run(args):
         for batch_idx, (data, target) in enumerate(test_loader):
             # print("batch_idx: ", batch_idx)
             for i, label in enumerate(target):
-                counter += 1
                 label = label.item()
                 image = data[i].numpy()
 
@@ -75,7 +74,7 @@ if __name__ == "__main__":
     args = get_args()
     # customized arguments
     # args.dataset = "imagenet"  # "cifar10" or "imagenet"
-    args.sample_count_limit = 1000
+    # args.sample_count_limit = 1000
 
     if torch.cuda.is_available() and args.use_cuda:
         print("cuda is available")
@@ -88,7 +87,7 @@ if __name__ == "__main__":
     header = "spacing, incorrect, counter, incorrect rate (%), time (sec), " \
              "avg diff per pixel"
     print(header)
-    args.out_file_name = "rounding_attack_" + args.dataset + ".csv"
+    args.out_file_name = "rounding_attack_" + args.dataset + "_2.csv"
     with open(args.out_file_name, "a") as out:
         out.write(header + "\n")
 
