@@ -1,5 +1,9 @@
 """
 Import only the adversarial examples.
+
+It uses the images distorted by the gradient sign attack and then applies
+the rounding defense. Finally, we check how many images can be "recovered"
+and classified correctly despite the attack because of the rounding.
 """
 
 from cnns import matplotlib_backend
@@ -16,7 +20,7 @@ from cnns.nnlib.datasets.cifar import get_cifar
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_min
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_max
 import foolbox
-from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
+# from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
 import torchvision.models as models
 
 def run(args):
@@ -33,7 +37,7 @@ def run(args):
         model = models.resnet50(pretrained=True).eval()
         model.to(device=args.device)
         fmodel = foolbox.models.PyTorchModel(model, bounds=(
-            imagenet_min, imagenet_max), num_classes=1000)
+            imagenet_min, imagenet_max), num_classes=args.num_classes)
 
     # input data
     # filename = 'outarray.h5'  # test example
