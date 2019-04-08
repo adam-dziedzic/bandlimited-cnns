@@ -7,13 +7,14 @@ from cnns.nnlib.datasets.transformations.flat_transformation import \
     FlatTransformation
 from cnns.nnlib.datasets.transformations.gaussian_noise import \
     AddGaussianNoiseTransformation
+from cnns.nnlib.datasets.transformations.rounding import RoundingTransformation
 from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import NetworkType
 import numpy as np
 import matplotlib.pyplot as plt
 from six.moves import cPickle
-from cnns.nnlib.utils.arguments import Arguments
 import os
+from cnns.nnlib.utils.exec_args import get_args
 
 print("current directory is: ", os.getcwd())
 
@@ -23,21 +24,22 @@ cifar_std = (0.2023, 0.1994, 0.2010)
 cifar_mean_array = np.array(cifar_mean, dtype=np.float32).reshape((3, 1, 1))
 cifar_std_array = np.array(cifar_std, dtype=np.float32).reshape((3, 1, 1))
 
+
 def show_images():
     """
     Prints 5X5 grid of random Cifar10 images. It isn't blurry, though not perfect either.
     https://stackoverflow.com/questions/35995999/why-cifar-10-images-are-not-displayed-properly-using-matplotlib
     """
     f = open('./data/cifar-10-batches-py/data_batch_1', 'rb')
-    datadict = cPickle.load(f,encoding='latin1')
+    datadict = cPickle.load(f, encoding='latin1')
     f.close()
     X = datadict["data"]
     Y = datadict['labels']
-    X = X.reshape(10000, 3, 32, 32).transpose(0,2,3,1).astype("uint8")
+    X = X.reshape(10000, 3, 32, 32).transpose(0, 2, 3, 1).astype("uint8")
     Y = np.array(Y)
 
-    #Visualizing CIFAR 10
-    fig, axes1 = plt.subplots(5,5,figsize=(3,3))
+    # Visualizing CIFAR 10
+    fig, axes1 = plt.subplots(5, 5, figsize=(3, 3))
     for j in range(5):
         for k in range(5):
             i = np.random.choice(range(len(X)))
@@ -46,13 +48,16 @@ def show_images():
             axes1[j][k].imshow(X[i])
     plt.show()
 
-def get_transform_train(dtype=torch.float32, signal_dimension=2):
+
+def get_transform_train(args, dtype=torch.float32, signal_dimension=2):
     transformations = [
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
-        transforms.Normalize(cifar_mean, cifar_std)
     ]
+    if args.values_per_channel > 0:
+        transformations.append(RoundingTransformation(args))
+    transformations.append(transforms.Normalize(cifar_mean, cifar_std))
     if signal_dimension == 1:
         transformations.append(FlatTransformation())
     transformations.append(DtypeTransformation(dtype=dtype))
@@ -60,11 +65,12 @@ def get_transform_train(dtype=torch.float32, signal_dimension=2):
     return transform_train
 
 
-def get_transform_test(dtype=torch.float32, signal_dimension=2, noise_sigma=0):
-    transformations = [
-        transforms.ToTensor(),
-        transforms.Normalize(cifar_mean, cifar_std)
-    ]
+def get_transform_test(args, dtype=torch.float32, signal_dimension=2,
+                       noise_sigma=0):
+    transformations = [transforms.ToTensor()]
+    if args.values_per_channel > 0:
+        transformations.append(RoundingTransformation(args))
+    transformations.append(transforms.Normalize(cifar_mean, cifar_std))
     if signal_dimension == 1:
         transformations.append(FlatTransformation())
     if noise_sigma > 0:
@@ -121,6 +127,7 @@ def get_cifar(args, dataset_name):
     train_dataset = dataset_loader(root='./data', train=True,
                                    download=True,
                                    transform=get_transform_train(
+                                       args=args,
                                        dtype=torch.float,
                                        signal_dimension=args.signal_dimension))
     if sample_count > 0:
@@ -140,6 +147,7 @@ def get_cifar(args, dataset_name):
     test_dataset = dataset_loader(root='./data', train=False,
                                   download=True,
                                   transform=get_transform_test(
+                                      args = args,
                                       dtype=torch.float,
                                       signal_dimension=args.signal_dimension,
                                       noise_sigma=args.noise_sigma))
@@ -160,5 +168,14 @@ def get_cifar(args, dataset_name):
 
 
 if __name__ == "__main__":
-    get_cifar(Arguments(), "cifar10")
-    show_images()
+    args = get_args()
+    args.sample_count_limit = 3
+    train_loader, test_loader, train_dataset, test_dataset = get_cifar(args,
+                                                                       "cifar10")
+    for batch_idx, (data, target) in enumerate(train_loader):
+        # print("batch_idx: ", batch_idx)
+        for i, label in enumerate(target):
+            label = label.item()
+            image = data[i].numpy()
+            print(i, np.max(image), np.min(image))
+    # show_images()

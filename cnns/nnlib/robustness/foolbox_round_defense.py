@@ -49,11 +49,12 @@ def run(args):
     # max_advers_imgs = 10
     # labels = [x for x in range(max_advers_imgs)]
     labels = np.load(filename + '.labels.npy')
-    for spacing in [2 ** x for x in range(0, 8)]:
+    for values_per_channel in [2 ** x for x in range(0, 7)].append(0):
         start_time = time.time()
         correct = 0
         counter = 0
-        rounder = Rounder(spacing)
+        if values_per_channel > 0:
+            rounder = Rounder(values_per_channel=values_per_channel)
         for i in range(max_advers_imgs):
             label = labels[i]
             image = f.root.data[i]
@@ -64,16 +65,18 @@ def run(args):
                 counter += 1
 
                 # round the adversarial image
-                image = rounder.round(image)
-
-                predictions = fmodel.predictions(image)
-                # print(np.argmax(predictions), label)
-                if np.argmax(predictions) == label:
-                    correct += 1
+                if values_per_channel > 0:
+                    image = rounder.round(image)
+                    predictions = fmodel.predictions(image)
+                    # print(np.argmax(predictions), label)
+                    if np.argmax(predictions) == label:
+                        correct += 1
         timing = time.time() - start_time
         with open(args.out_file_name, "a") as out:
             msg = ",".join((str(x) for x in
-                            [spacing, correct, counter, correct / counter,
+                            [values_per_channel,
+                             correct, counter,
+                             correct / counter,
                              timing, rounder.get_average_diff_per_pixel()]))
             print(msg)
             out.write(msg + "\n")

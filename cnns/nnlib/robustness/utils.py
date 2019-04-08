@@ -137,12 +137,12 @@ class Rounder():
     values, e.g. 128 values per channel.
     """
 
-    def __init__(self, spacing,
+    def __init__(self,
                  values_per_channel=255,
                  mean=cifar_mean_array,
                  std=cifar_std_array):
-        self.round_multiplier = values_per_channel // spacing
-        self.ext_muliplier = 1.0 / self.round_multiplier
+        self.round_multiplier = values_per_channel
+        self.ext_multiplier = 1.0 / self.round_multiplier
         self.mean = np.array(mean, dtype=np.float32).reshape((3, 1, 1))
         self.std = np.array(std, dtype=np.float32).reshape((3, 1, 1))
         self.sum_diff = 0.0
@@ -154,7 +154,7 @@ class Rounder():
         # print("image max min: ", np.max(image), np.min(image))
 
         # round the image
-        round_image = self.ext_muliplier * np.round(
+        round_image = self.ext_multiplier * np.round(
             self.round_multiplier * image)
 
         # stats

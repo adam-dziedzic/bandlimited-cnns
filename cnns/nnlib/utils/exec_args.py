@@ -268,6 +268,13 @@ def get_args():
     parser.add_argument('--in_channels', type=int,
                         default=args.in_channels,
                         help=f"number of input channels (default): {args.in_channels})")
+    parser.add_argument('--values_per_channel',
+                        default=args.values_per_channel, type=int,
+                        help="we apply the rounding if "
+                             "values_per_channel is > 0 "
+                             "and input has to be in range [0,1]"
+                             "img = 1.0/values_per_channel * round(values_per_channel * img)")
+
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)
     return args

@@ -25,8 +25,8 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 # conv_type = ConvType.STANDARD
 
 # 2D
-# conv_type = ConvType.STANDARD2D
-conv_type = ConvType.FFT2D
+conv_type = ConvType.STANDARD2D
+# conv_type = ConvType.FFT2D
 
 if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     dataset = "ucr"
@@ -232,6 +232,7 @@ class Arguments(object):
                  imagenet_path="/home/" + str(USER) + "/imagenet",
                  distributed=False,
                  in_channels=3,
+                 values_per_channel=32,
                  ):
         """
         The default parameters for the execution of the program.
@@ -341,6 +342,7 @@ class Arguments(object):
         self.imagenet_path = imagenet_path
         self.distributed = distributed
         self.in_channels = in_channels
+        self.values_per_channel = values_per_channel
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False

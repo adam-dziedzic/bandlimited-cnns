@@ -45,6 +45,7 @@ from cnns.nnlib.pytorch_architecture.resnet2d import resnet50_imagenet
 from cnns.nnlib.pytorch_architecture.densenet import densenet_cifar
 from cnns.nnlib.pytorch_architecture.fcnn import FCNNPytorch
 from cnns.nnlib.utils.general_utils import NetworkType
+from cnns.nnlib.pytorch_experiments.utils.progress_bar import progress_bar
 
 # from memory_profiler import profile
 
@@ -312,7 +313,6 @@ def main(args):
 
     :param dataset_name: the name of the dataset from UCR.
     """
-    is_debug = args.is_debug
     dataset_name = args.dataset_name
     preserve_energy = args.preserve_energy
     compress_rate = args.compress_rate

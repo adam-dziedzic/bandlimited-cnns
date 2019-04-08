@@ -35,11 +35,12 @@ def run(args):
         fmodel = foolbox.models.PyTorchModel(model, bounds=(
             imagenet_min, imagenet_max), num_classes=args.num_classes)
 
-    for spacing in [2 ** x for x in range(0, 8)]:
+    for values_per_channel in [2 ** x for x in range(0, 7)].append(0):
         start_time = time.time()
         incorrect = 0
         counter = 0
-        rounder = Rounder(spacing)
+        if values_per_channel > 0:
+            rounder = Rounder(values_per_channel=values_per_channel)
         for batch_idx, (data, target) in enumerate(test_loader):
             # print("batch_idx: ", batch_idx)
             for i, label in enumerate(target):
@@ -52,12 +53,12 @@ def run(args):
                     counter += 1
 
                     # round the adversarial image
-                    image = rounder.round(image)
-
-                    predictions = fmodel.predictions(image)
-                    # print(np.argmax(predictions), label)
-                    if np.argmax(predictions) != label:
-                        incorrect += 1
+                    if values_per_channel > 0:
+                        image = rounder.round(image)
+                        predictions = fmodel.predictions(image)
+                        # print(np.argmax(predictions), label)
+                        if np.argmax(predictions) != label:
+                            incorrect += 1
         timing = time.time() - start_time
         with open(args.out_file_name, "a") as out:
             msg = ",".join((str(x) for x in
