@@ -18,6 +18,9 @@ from cnns.nnlib.robustness.utils import get_foolbox_model
 # from cnns.nnlib.robustness.utils import get_min_max_counter
 from cnns.nnlib.datasets.cifar import cifar_min
 from cnns.nnlib.datasets.cifar import cifar_max
+import socket
+from cnns.nnlib.utils.general_utils import get_log_time
+import os
 
 if not sys.warnoptions:
     import warnings
@@ -61,7 +64,7 @@ def get_attacks():
         # foolbox.attacks.LinfinityBasicIterativeAttack(
         # model, distance=foolbox.distances.MeanSquaredDistance),
         (foolbox.attacks.CarliniWagnerL2Attack, "CarliniWagnerL2Attack",
-         [x for x in range(1, 21, 1)].append(1000)),
+         [x for x in range(1, 21, 1)] + [1000]),
          # [1000]),
          # [2]),
     ]
@@ -72,7 +75,6 @@ def get_attacks():
 # attack = empty_attack
 
 def run(args):
-    out_file_name = __file__ + "_" + args.dataset + ".csv"
     header = ",".join([
         "compress rate",
         "attack name",
@@ -86,7 +88,7 @@ def run(args):
         "corrected by round rate (%)",
         "time (sec)"])
     print(header)
-    with open(out_file_name, "a") as out:
+    with open(args.out_file_name, "a") as out:
         out.write(header + "\n")
 
     model_paths = [
@@ -244,7 +246,7 @@ def run(args):
                                         values_per_channel]]))
                                     break
                 timing = time.time() - start
-                with open(out_file_name, "a") as out:
+                with open(args.out_file_name, "a") as out:
                     if adversarials > 0:
                         corrected_round_rate = correct_round / adversarials * 100
                     else:
@@ -294,5 +296,17 @@ if __name__ == "__main__":
 
     # min, max, counter = get_min_max_counter(test_loader=test_loader)
     # print("counter: ", counter, " min: ", min, " max: ", max)
+    hostname = socket.gethostname()
+    try:
+        cuda_visible_devices = os.environ['CUDA_VISIBLE_DEVICES']
+    except KeyError:
+        cuda_visible_devices = 0
+    args_str = args.get_str()
+    HEADER = "hostname," + str(
+        hostname) + ",timestamp," + get_log_time() + "," + str(
+        args_str) + ",cuda_visible_devices," + str(cuda_visible_devices)
+    args.out_file_name = __file__ + "_" + args.dataset + ".csv"
+    with open(args.out_file_name, "a") as file:  # Write the metadata.
+        file.write(HEADER + "\n")
 
     run(args)
