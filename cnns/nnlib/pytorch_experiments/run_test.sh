@@ -63,4 +63,18 @@ CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/py
 
 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type='STANDARD2D' --conv_exec_type=CUDA --dataset='cifar10' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=350  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.01 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='ResNet18' --next_power2='TRUE' --optimizer_type='MOMENTUM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0005 --workers=6  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=8 >> 2019-04-08-train-with-rounding-8.txt 2>&1 &
 
-PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 pytorch_resnet18_full_cifar10_attack.py --values_per_channel=8 --conv_type=STANDARD2D --model_path="2019-04-08-19-53-50-779103-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-rounding-32-values-per-channel.model" >> 2019-04-08-test-with-rounding-32-model.txt 2>&1 &
+PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 pytorch_resnet18_full_cifar10_attack.py --values_per_channel=32 --conv_type=STANDARD2D --model_path="2019-04-08-19-53-50-779103-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-rounding-32-values-per-channel.model" --sample_count_limit=100 >> 2019-04-08-test-with-rounding-32-model.txt 2>&1 &
+
+2019-04-08-17-00-31-329586-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-
+92.64-channel-vals-16.model
+
+PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 pytorch_resnet18_full_cifar10_attack.py --values_per_channel=16 --conv_type=STANDARD2D --model_path="2019-04-08-17-00-31-329586-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-92.64-channel-vals-16.model" --sample_count_limit=100 >> 2019-04-08-test-with-rounding-16-model.txt 2>&1 &
+
+
+2019-04-08-16-51-16-845688-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.22-channel-vals-0.model
+
+PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 pytorch_resnet18_full_cifar10_attack.py --values_per_channel=0 --conv_type=STANDARD2D --model_path="2019-04-08-16-51-16-845688-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.22-channel-vals-0.model" --sample_count_limit=100 >> 2019-04-08-test-with-rounding-0-model.txt 2>&1 &
+
+2019-04-09-00-00-55-758110-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-91.98-channel-vals-8.model
+
+PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 pytorch_resnet18_full_cifar10_attack.py --values_per_channel=8 --conv_type=STANDARD2D --model_path="2019-04-09-00-00-55-758110-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-91.98-channel-vals-8.model" --sample_count_limit=100 >> 2019-04-08-test-with-rounding-8-model.txt 2>&1 &

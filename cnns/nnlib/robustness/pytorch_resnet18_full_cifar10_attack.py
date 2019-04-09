@@ -274,7 +274,7 @@ if __name__ == "__main__":
     args = get_args()
     # should we turn pixels to the range from 0 to 255 and round them to
     # the nearest integer values?
-    args.sample_count_limit = 10
+    # args.sample_count_limit = 10
     args.is_round = True
 
     # for model with rounding

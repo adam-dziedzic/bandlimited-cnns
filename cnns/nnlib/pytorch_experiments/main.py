@@ -587,16 +587,16 @@ def main(args):
             torch.save(model.state_dict(), model_path)
 
         # Save the checkpoint (to resume training).
-        save_checkpoint({
-            'epoch': epoch + 1,
-            'state_dict': model.state_dict(),
-            'max_train_accuracy': max_train_accuracy,
-            'optimizer': optimizer.state_dict(),
-        }, is_best,
-            filename="dataset-" + dataset_name + "-max-train-accuracy-" + str(
-                max_train_accuracy) + "-max-test-accuracy-" + str(
-                max_test_accuracy) + "-compress-rate-" + str(
-                args.compress_rate) + "-" + "checkpoint.tar")
+        # save_checkpoint({
+        #     'epoch': epoch + 1,
+        #     'state_dict': model.state_dict(),
+        #     'max_train_accuracy': max_train_accuracy,
+        #     'optimizer': optimizer.state_dict(),
+        # }, is_best,
+        #     filename="dataset-" + dataset_name + "-max-train-accuracy-" + str(
+        #         max_train_accuracy) + "-max-test-accuracy-" + str(
+        #         max_test_accuracy) + "-compress-rate-" + str(
+        #         args.compress_rate) + "-" + "checkpoint.tar")
 
     with open(global_log_file, "a") as file:
         file.write(dataset_name + "," + str(min_train_loss) + "," + str(
