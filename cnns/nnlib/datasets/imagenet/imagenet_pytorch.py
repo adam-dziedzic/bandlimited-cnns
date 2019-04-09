@@ -12,8 +12,8 @@ imagenet_mean_array = np.array(imagenet_mean).reshape((3, 1, 1))
 imagenet_std_array = np.array(imagenet_std).reshape((3, 1, 1))
 
 # the min/max value per pixel after normalization
-imagenet_min = -3 # -2.1179039478302
-imagenet_max = 3  # 2.640000104904175
+imagenet_min = -2.2 # -2.1179039478302
+imagenet_max = 2.7  # 2.640000104904175
 
 def load_imagenet(args):
     args.num_classes = 1000

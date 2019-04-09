@@ -9,10 +9,8 @@ from cnns.nnlib.datasets.cifar import get_cifar
 from cnns.nnlib.datasets.cifar import cifar_mean_array
 from cnns.nnlib.datasets.cifar import cifar_std_array
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
-
-# min and max values per pixel in cifar10 test data
-cifar_min = -2.4290658
-cifar_max = 2.7537313
+from cnns.nnlib.datasets.cifar import cifar_min
+from cnns.nnlib.datasets.cifar import cifar_max
 
 
 def normalize(x, mean, std):

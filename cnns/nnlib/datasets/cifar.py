@@ -24,6 +24,12 @@ cifar_std = (0.2023, 0.1994, 0.2010)
 cifar_mean_array = np.array(cifar_mean, dtype=np.float32).reshape((3, 1, 1))
 cifar_std_array = np.array(cifar_std, dtype=np.float32).reshape((3, 1, 1))
 
+# the min/max value per pixel after normalization
+# exact values:
+# counter:  10000  min:  -2.429065704345703  max:  2.7537312507629395
+cifar_min = -2.5  # -2.429065704345703
+cifar_max = 2.8  # 2.7537312507629395
+
 
 def show_images():
     """
@@ -147,7 +153,7 @@ def get_cifar(args, dataset_name):
     test_dataset = dataset_loader(root='./data', train=False,
                                   download=True,
                                   transform=get_transform_test(
-                                      args = args,
+                                      args=args,
                                       dtype=torch.float,
                                       signal_dimension=args.signal_dimension,
                                       noise_sigma=args.noise_sigma))
