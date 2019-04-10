@@ -78,3 +78,14 @@ PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 pytorch_resnet1
 2019-04-09-00-00-55-758110-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-91.98-channel-vals-8.model
 
 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 pytorch_resnet18_full_cifar10_attack.py --values_per_channel=8 --conv_type=STANDARD2D --model_path="2019-04-09-00-00-55-758110-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-91.98-channel-vals-8.model" --sample_count_limit=100 >> 2019-04-08-test-with-rounding-8-model.txt 2>&1 &
+
+-rw-rw---- 1 ady ady 44756184 Apr  8 16:52 2019-04-08-16-52-57-724359-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-
+93.17-channel-vals-128.model
+-rw-rw---- 1 ady ady  2539520 Apr  8 16:53 2019-04-08-16-53-56-823707-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-
+92.79-channel-vals-64.model
+-rw-rw---- 1 ady ady 44756184 Apr  9 12:12 2019-04-09-12-12-27-148680-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-
+59.91-channel-vals-64.model
+
+PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 pytorch_resnet18_full_cifar10_attack.py --values_per_channel=64 --conv_type=STANDARD2D --model_path="2019-04-09-12-12-27-148680-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-59.91-channel-vals-64.model" --sample_count_limit=100 >> 2019-04-08-test-with-rounding-64-model.txt 2>&1 &
+
+PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 pytorch_resnet18_full_cifar10_attack.py --values_per_channel=128 --conv_type=STANDARD2D --model_path="2019-04-08-16-52-57-724359-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.17-channel-vals-128.model" --sample_count_limit=100 >> 2019-04-08-test-with-rounding-128-model.txt 2>&1 &

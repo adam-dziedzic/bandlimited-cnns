@@ -64,9 +64,10 @@ def get_attacks():
         # foolbox.attacks.LinfinityBasicIterativeAttack(
         # model, distance=foolbox.distances.MeanSquaredDistance),
         (foolbox.attacks.CarliniWagnerL2Attack, "CarliniWagnerL2Attack",
-         [x for x in range(1, 21, 1)] + [1000]),
-         # [1000]),
-         # [2]),
+         [x for x in range(1, 21, 1)] + [1000] + [x for x in
+                                                  range(30, 1000, 10)]),
+        # [1000]),
+        # [2]),
     ]
     return attacks
 
@@ -305,7 +306,7 @@ if __name__ == "__main__":
     HEADER = "hostname," + str(
         hostname) + ",timestamp," + get_log_time() + "," + str(
         args_str) + ",cuda_visible_devices," + str(cuda_visible_devices)
-    args.out_file_name = __file__ + "_" + args.dataset + ".csv"
+    args.out_file_name = get_log_time() + "_" + __file__ + "_" + args.dataset + ".csv"
     with open(args.out_file_name, "a") as file:  # Write the metadata.
         file.write(HEADER + "\n")
 
