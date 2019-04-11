@@ -21,6 +21,7 @@ from cnns.nnlib.datasets.cifar import cifar_max
 import socket
 from cnns.nnlib.utils.general_utils import get_log_time
 import os
+from cnns.nnlib.datasets.transformations.rounding import RoundingTransformation
 
 if not sys.warnoptions:
     import warnings
@@ -152,8 +153,9 @@ def run(args):
                         # place
                         model_image = image
                         if args.values_per_channel > 0:
-                            model_image = 1.0 / args.values_per_channel * np.round(
-                                args.values_per_channel * image)
+                            model_image = RoundingTransformation(
+                                    values_per_channel=values_per_channel,
+                                    round=np.round)(image_attack)
                         predictions = foolbox_model.predictions(
                             model_image)
                         if np.argmax(predictions) != label:
@@ -228,8 +230,9 @@ def run(args):
                             # for values_per_channel in [256 // (2 ** x) for x in
                             #                            range(0, 7)]:
                             for values_per_channel in [args.values_per_channel]:
-                                image_attack = 1.0 * np.round(
-                                    image_attack * values_per_channel) / values_per_channel
+                                image_attack = RoundingTransformation(
+                                    values_per_channel=values_per_channel,
+                                    round=np.round)(image_attack)
                                 # print("sum difference after round: ",
                                 #       np.sum(
                                 #           np.abs(image_attack * 255 - image * 255)))
@@ -275,14 +278,14 @@ if __name__ == "__main__":
     args = get_args()
     # should we turn pixels to the range from 0 to 255 and round them to
     # the nearest integer values?
-    # args.sample_count_limit = 10
     args.is_round = True
 
     # for model with rounding
 
-    # args.model_path = "2019-04-08-19-53-50-779103-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-rounding-32-values-per-channel.model"
-    # args.conv_type = ConvType.STANDARD2D
-    # args.values_per_channel = 32
+    args.model_path = "2019-04-08-19-53-50-779103-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-rounding-32-values-per-channel.model"
+    args.conv_type = ConvType.STANDARD2D
+    args.values_per_channel = 0
+    args.sample_count_limit = 10
 
     train_loader, test_loader, train_dataset, test_dataset = get_cifar(
         args=args, dataset_name=args.dataset)
@@ -306,7 +309,8 @@ if __name__ == "__main__":
     HEADER = "hostname," + str(
         hostname) + ",timestamp," + get_log_time() + "," + str(
         args_str) + ",cuda_visible_devices," + str(cuda_visible_devices)
-    args.out_file_name = get_log_time() + "_" + __file__ + "_" + args.dataset + ".csv"
+    args.out_file_name = get_log_time() + os.path.basename(
+        __file__) + "_" + args.dataset + ".csv"
     with open(args.out_file_name, "a") as file:  # Write the metadata.
         file.write(HEADER + "\n")
 

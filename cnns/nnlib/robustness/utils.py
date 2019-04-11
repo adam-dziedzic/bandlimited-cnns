@@ -11,6 +11,7 @@ from cnns.nnlib.datasets.cifar import cifar_std_array
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
 from cnns.nnlib.datasets.cifar import cifar_min
 from cnns.nnlib.datasets.cifar import cifar_max
+from cnns.nnlib.datasets.transformations.rounding import RoundingTransformation
 
 
 def normalize(x, mean, std):
@@ -136,11 +137,11 @@ class Rounder():
     """
 
     def __init__(self,
-                 values_per_channel=255,
+                 values_per_channel=256,
                  mean=cifar_mean_array,
                  std=cifar_std_array):
-        self.round_multiplier = values_per_channel
-        self.ext_multiplier = 1.0 / self.round_multiplier
+        self.rounder = RoundingTransformation(
+            values_per_channel=values_per_channel, round=np.round)
         self.mean = np.array(mean, dtype=np.float32).reshape((3, 1, 1))
         self.std = np.array(std, dtype=np.float32).reshape((3, 1, 1))
         self.sum_diff = 0.0
@@ -152,8 +153,7 @@ class Rounder():
         # print("image max min: ", np.max(image), np.min(image))
 
         # round the image
-        round_image = self.ext_multiplier * np.round(
-            self.round_multiplier * image)
+        round_image = self.rounder(image)
 
         # stats
         diff = np.abs(round_image - image)

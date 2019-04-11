@@ -62,7 +62,8 @@ def get_transform_train(args, dtype=torch.float32, signal_dimension=2):
         transforms.ToTensor(),
     ]
     if args.values_per_channel > 0:
-        transformations.append(RoundingTransformation(args))
+        transformations.append(
+            RoundingTransformation(values_per_channel=args.values_per_channel))
     transformations.append(transforms.Normalize(cifar_mean, cifar_std))
     if signal_dimension == 1:
         transformations.append(FlatTransformation())
@@ -75,7 +76,8 @@ def get_transform_test(args, dtype=torch.float32, signal_dimension=2,
                        noise_sigma=0):
     transformations = [transforms.ToTensor()]
     if args.values_per_channel > 0:
-        transformations.append(RoundingTransformation(args))
+        transformations.append(
+            RoundingTransformation(values_per_channel=args.values_per_channel))
     transformations.append(transforms.Normalize(cifar_mean, cifar_std))
     if signal_dimension == 1:
         transformations.append(FlatTransformation())

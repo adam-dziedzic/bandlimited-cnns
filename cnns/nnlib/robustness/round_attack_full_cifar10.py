@@ -6,6 +6,7 @@ import time
 from cnns.nnlib.datasets.cifar import get_cifar, cifar_mean, cifar_std
 from cnns.nnlib.robustness.utils import unnormalize
 from cnns.nnlib.robustness.utils import normalize
+from cnns.nnlib.datasets.transformations.rounding import RoundingTransformation
 
 
 def run(args):
@@ -17,8 +18,8 @@ def run(args):
     correct = 0
     counter = 0
     sum_difference = 0
-    round_multiplier = 255 // spacing
-    ext_muliplier = 1.0 / round_multiplier
+    rounder = RoundingTransformation(values_per_channel=args.values_per_channel,
+                                     round=np.round)
     for batch_idx, (data, target) in enumerate(test_loader):
         # print("batch_idx: ", batch_idx)
         for i, label in enumerate(target):
@@ -31,7 +32,7 @@ def run(args):
             std = np.array(cifar_std, dtype=np.float32).reshape((3, 1, 1))
             image = unnormalize(image, mean, std)
             # print("image max min: ", np.max(image), np.min(image))
-            round_image = ext_muliplier * np.round(round_multiplier * image)
+            round_image = rounder(image)
             sum_difference += np.sum(np.abs(round_image - image))
             image = normalize(round_image, mean, std)
 
@@ -42,7 +43,8 @@ def run(args):
     timing = time.time() - start_time
     with open("results_round_attack.csv", "a") as out:
         msg = ",".join((str(x) for x in
-                        [spacing, correct, counter, correct / counter,
+                        [values_per_channel, correct, counter,
+                         correct / counter,
                          timing, sum_difference]))
         print(msg)
         out.write(msg + "\n")
@@ -74,6 +76,6 @@ if __name__ == "__main__":
         out.write(header + "\n")
 
     # for spacing in [2 ** x for x in range(0, 8)]:
-    for spacing in range(1, 256):
-        args.spacing = spacing
+    for values_per_channel in range(1, 256):
+        args.values_per_channel = values_per_channel
         run(args)

@@ -10,9 +10,10 @@ class RoundingTransformation(object):
 
     """
 
-    def __init__(self, args):
-        self.round_multiplier = args.values_per_channel
+    def __init__(self, values_per_channel, round=torch.round):
+        self.round_multiplier = values_per_channel - 1
         self.ext_multiplier = 1.0 / self.round_multiplier
+        self.round = round
 
     def __call__(self, img):
         """
@@ -22,4 +23,4 @@ class RoundingTransformation(object):
         Returns:
             Tensor: rounded tensor
         """
-        return self.ext_multiplier * torch.round(self.round_multiplier * img)
+        return self.ext_multiplier * self.round(self.round_multiplier * img)

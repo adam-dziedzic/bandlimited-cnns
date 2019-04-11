@@ -273,7 +273,7 @@ def get_args():
                         help="we apply the rounding if "
                              "values_per_channel is > 0 "
                              "and input has to be in range [0,1]"
-                             "img = 1.0/values_per_channel * round(values_per_channel * img)")
+                             "img = 1.0/(values_per_channel - 1) * round((values_per_channel - 1) * img)")
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)

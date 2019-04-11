@@ -4,6 +4,7 @@ from cnns.nnlib.robustness.show_adversarial_fft_pytorch import get_fmodel
 import foolbox
 import numpy as np
 import time
+from cnns.nnlib.datasets.transformations.rounding import RoundingTransformation
 
 
 def run(args):
@@ -17,11 +18,10 @@ def run(args):
     correct = 0
     counter = 0
     sum_difference = 0
-    round_multiplier = 255 // spacing
-    ext_muliplier = 1.0 / round_multiplier
+    rounder = RoundingTransformation(args.values_per_channel, np.round)
     for image, label in zip(images, labels):
         counter += 1
-        round_image = ext_muliplier * np.round(round_multiplier * image)
+        round_image = rounder(image)
         sum_difference += np.sum(np.abs(round_image - image))
         predictions = fmodel.predictions(round_image)
         # print(np.argmax(predictions), label)
@@ -30,7 +30,8 @@ def run(args):
     timing = time.time() - start_time
     with open("results_round_attack.csv", "a") as out:
         msg = ",".join((str(x) for x in
-                        [spacing, correct, counter, correct / counter,
+                        [values_per_channel, correct, counter,
+                         correct / counter,
                          timing, sum_difference]))
         print(msg)
         out.write(msg + "\n")
@@ -57,6 +58,6 @@ if __name__ == "__main__":
     with open("results_round_attack.csv", "a") as out:
         out.write(header + "\n")
 
-    for spacing in [2 ** x for x in range(0, 8)]:
-        args.spacing = spacing
+    for values_per_channel in [2 ** x for x in range(1, 8)]:
+        args.values_per_channel = values_per_channel
         run(args)

@@ -232,7 +232,7 @@ class Arguments(object):
                  imagenet_path="/home/" + str(USER) + "/imagenet",
                  distributed=False,
                  in_channels=3,
-                 values_per_channel=32,
+                 values_per_channel=4,
                  ):
         """
         The default parameters for the execution of the program.
