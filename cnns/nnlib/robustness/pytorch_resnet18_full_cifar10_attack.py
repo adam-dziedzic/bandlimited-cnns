@@ -61,11 +61,11 @@ def get_attacks():
         # (
         #     foolbox.attacks.BlendedUniformNoiseAttack,
         #     [x / 10 for x in range(21)]),
-        # foolbox.attacks.SaltAndPepperNoiseAttack(foolbox_model),
+        # foolbox.attacks.SaltAndPepprunerNoiseAttack(foolbox_model),
         # foolbox.attacks.LinfinityBasicIterativeAttack(
         # model, distance=foolbox.distances.MeanSquaredDistance),
         (foolbox.attacks.CarliniWagnerL2Attack, "CarliniWagnerL2Attack",
-         [x for x in range(100, 1000, 10)] + [x for x in range(1, 21, 1)] + [
+         [x for x in range(1, 100, 1)] + [x for x in range(100, 1000, 10)] + [
              1000]),
         # [1000]),
         # [2]),
@@ -282,10 +282,10 @@ if __name__ == "__main__":
 
     # for model with rounding
 
-    args.model_path = "2019-04-08-19-53-50-779103-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-rounding-32-values-per-channel.model"
-    args.conv_type = ConvType.STANDARD2D
-    args.values_per_channel = 0
-    args.sample_count_limit = 10
+    # args.model_path = "2019-04-08-19-53-50-779103-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-rounding-32-values-per-channel.model"
+    # args.conv_type = ConvType.STANDARD2D
+    # args.values_per_channel = 0
+    # args.sample_count_limit = 10
 
     train_loader, test_loader, train_dataset, test_dataset = get_cifar(
         args=args, dataset_name=args.dataset)
