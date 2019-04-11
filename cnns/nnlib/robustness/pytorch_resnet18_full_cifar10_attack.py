@@ -154,7 +154,7 @@ def run(args):
                         model_image = image
                         if args.values_per_channel > 0:
                             model_image = RoundingTransformation(
-                                values_per_channel=values_per_channel,
+                                values_per_channel=args.values_per_channel,
                                 round=np.round)(image_attack)
                         predictions = foolbox_model.predictions(
                             model_image)
