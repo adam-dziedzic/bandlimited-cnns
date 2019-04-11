@@ -65,7 +65,7 @@ def get_attacks():
         # foolbox.attacks.LinfinityBasicIterativeAttack(
         # model, distance=foolbox.distances.MeanSquaredDistance),
         (foolbox.attacks.CarliniWagnerL2Attack, "CarliniWagnerL2Attack",
-         [x for x in range(1, 100, 1)] + [x for x in range(100, 1000, 10)] + [
+         [x for x in range(1, 20, 1)] + [x for x in range(20, 1000, 10)] + [
              1000]),
         # [1000]),
         # [2]),
@@ -152,10 +152,10 @@ def run(args):
                         # the image has to be classified correctly in the first
                         # place
                         model_image = image
-                        if args.values_per_channel > 0:
-                            model_image = RoundingTransformation(
-                                values_per_channel=args.values_per_channel,
-                                round=np.round)(image_attack)
+                        # if args.values_per_channel > 0:
+                        #     model_image = RoundingTransformation(
+                        #         values_per_channel=args.values_per_channel,
+                        #         round=np.round)(model_image)
                         predictions = foolbox_model.predictions(
                             model_image)
                         if np.argmax(predictions) != label:
@@ -230,9 +230,9 @@ def run(args):
                             # for values_per_channel in [256 // (2 ** x) for x in
                             #                            range(0, 7)]:
                             for values_per_channel in [args.values_per_channel]:
-                                image_attack = RoundingTransformation(
-                                    values_per_channel=values_per_channel,
-                                    round=np.round)(image_attack)
+                                # image_attack = RoundingTransformation(
+                                #     values_per_channel=values_per_channel,
+                                #     round=np.round)(image_attack)
                                 # print("sum difference after round: ",
                                 #       np.sum(
                                 #           np.abs(image_attack * 255 - image * 255)))
@@ -284,7 +284,7 @@ if __name__ == "__main__":
 
     # args.model_path = "2019-04-08-19-53-50-779103-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-rounding-32-values-per-channel.model"
     # args.conv_type = ConvType.STANDARD2D
-    # args.values_per_channel = 0
+    # args.values_per_channel = 33
     # args.sample_count_limit = 10
 
     train_loader, test_loader, train_dataset, test_dataset = get_cifar(

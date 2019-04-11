@@ -9,6 +9,7 @@ from cnns.nnlib.utils.general_utils import TensorType
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.arguments import Arguments
 from torch.nn.parameter import Parameter
+from cnns.nnlib.datasets.transformations.rounding import RoundingTransformation
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152']
@@ -142,6 +143,12 @@ class ResNet(nn.Module):
         else:
             raise Exception(
                 f"Unknown dataset: {args.dataset} in ResNet architecture.")
+        if args.values_per_channel > 0:
+            self.rounder = RoundingTransformation(
+                values_per_channel=args.values_per_channel, round=torch.round)
+        else:
+            # identity function
+            self.rounder = lambda x: x
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -190,6 +197,7 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
+        x = self.rounder(x)
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
