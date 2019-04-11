@@ -65,8 +65,8 @@ def get_attacks():
         # foolbox.attacks.LinfinityBasicIterativeAttack(
         # model, distance=foolbox.distances.MeanSquaredDistance),
         (foolbox.attacks.CarliniWagnerL2Attack, "CarliniWagnerL2Attack",
-         [x for x in range(1, 21, 1)] + [1000] + [x for x in
-                                                  range(30, 1000, 10)]),
+         [x for x in range(100, 1000, 10)] + [x for x in range(1, 21, 1)] + [
+             1000]),
         # [1000]),
         # [2]),
     ]
@@ -154,8 +154,8 @@ def run(args):
                         model_image = image
                         if args.values_per_channel > 0:
                             model_image = RoundingTransformation(
-                                    values_per_channel=values_per_channel,
-                                    round=np.round)(image_attack)
+                                values_per_channel=values_per_channel,
+                                round=np.round)(image_attack)
                         predictions = foolbox_model.predictions(
                             model_image)
                         if np.argmax(predictions) != label:
