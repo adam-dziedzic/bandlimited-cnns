@@ -65,8 +65,8 @@ def get_attacks():
         # foolbox.attacks.LinfinityBasicIterativeAttack(
         # model, distance=foolbox.distances.MeanSquaredDistance),
         (foolbox.attacks.CarliniWagnerL2Attack, "CarliniWagnerL2Attack",
-         [x for x in range(1, 20, 1)] + [x for x in range(20, 1000, 10)] + [
-             1000]),
+         [x for x in range(1, 20, 1)] + [x for x in
+                                                  range(20, 1000, 10)] + [1000]),
         # [1000]),
         # [2]),
     ]
@@ -164,7 +164,8 @@ def run(args):
                         counter += 1
                         if attack.name() == "CarliniWagnerL2Attack":
                             image_attack = attack(image, label,
-                                                  max_iterations=epsilon)
+                                                  max_iterations=epsilon,
+                                                  abort_early=False)
                         elif attack_type == "Rotations":
                             image_attack = attack(image, label,
                                                   do_rotations=True,
@@ -283,9 +284,10 @@ if __name__ == "__main__":
     # for model with rounding
 
     # args.model_path = "2019-04-08-19-53-50-779103-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-rounding-32-values-per-channel.model"
-    # args.conv_type = ConvType.STANDARD2D
-    # args.values_per_channel = 33
-    # args.sample_count_limit = 10
+    args.model_path = "saved_model_2019-04-11-04-51-57-429818-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-channel-vals-256.model"
+    args.conv_type = ConvType.STANDARD2D
+    args.values_per_channel = 256
+    args.sample_count_limit = 100
 
     train_loader, test_loader, train_dataset, test_dataset = get_cifar(
         args=args, dataset_name=args.dataset)

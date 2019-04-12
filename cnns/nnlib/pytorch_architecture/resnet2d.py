@@ -9,7 +9,11 @@ from cnns.nnlib.utils.general_utils import TensorType
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.arguments import Arguments
 from torch.nn.parameter import Parameter
-from cnns.nnlib.datasets.transformations.rounding import RoundingTransformation
+from cnns.nnlib.datasets.transformations.denorm_round_norm import \
+    DenormRoundNorm
+from cnns.nnlib.datasets.cifar import cifar_std, cifar_mean
+from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_std, \
+    imagenet_mean
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152']
@@ -137,15 +141,22 @@ class ResNet(nn.Module):
         if args.dataset == "cifar10" or args.dataset == "cifar100":
             self.conv1 = conv3x3(in_planes=args.in_channels, out_planes=64,
                                  stride=1, args=args)
+            self.std = cifar_std
+            self.mean = cifar_mean
         elif args.dataset == "imagenet":
             self.conv1 = conv7x7(in_planes=args.in_channels, out_planes=64,
                                  stride=2, padding=3, args=args)
+            self.std = imagenet_std
+            self.mean = imagenet_mean
         else:
             raise Exception(
                 f"Unknown dataset: {args.dataset} in ResNet architecture.")
         if args.values_per_channel > 0:
-            self.rounder = RoundingTransformation(
-                values_per_channel=args.values_per_channel, round=torch.round)
+            # self.rounder = RoundingTransformation(
+            #     values_per_channel=args.values_per_channel, round=torch.round)
+            self.rounder = DenormRoundNorm(
+                std=self.std, mean=self.mean,
+                values_per_channel=args.values_per_channel)
         else:
             # identity function
             self.rounder = lambda x: x
