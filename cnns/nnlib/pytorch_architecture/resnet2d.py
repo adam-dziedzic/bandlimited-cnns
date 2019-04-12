@@ -155,8 +155,8 @@ class ResNet(nn.Module):
             # self.rounder = RoundingTransformation(
             #     values_per_channel=args.values_per_channel, round=torch.round)
             self.rounder = DenormRoundNorm(
-                std=self.std, mean=self.mean,
-                values_per_channel=args.values_per_channel)
+                values_per_channel=args.values_per_channel,
+                std=self.std, mean=self.mean, device=args.device)
         else:
             # identity function
             self.rounder = lambda x: x

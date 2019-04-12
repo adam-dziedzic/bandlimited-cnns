@@ -1,8 +1,8 @@
 import torch
 
 
-class Denormalize(object):
-    """De-Normalize a tensor image with mean and standard deviation.
+class Normalize(object):
+    """Normalize a tensor image with mean and standard deviation.
     Given mean: ``(M1,...,Mn)`` and std: ``(S1,..,Sn)`` for ``n`` channels, this transform
     will denormalize each channel of the input ``torch.*Tensor`` i.e.
     ``input[channel] = input[channel] * std[channel] + mean[channel]``
@@ -24,11 +24,8 @@ class Denormalize(object):
         Returns:
             Tensor: De-Normalized Tensor image.
         """
-        # cannot use the in-place operator because it is used for forward pass,
-        # otherwise the error is thrown: RuntimeError: a leaf Variable that
-        # requires grad has been used in an in-place operation.
-        # return tensor.mul_(self.std).add_(self.mean)
-        return tensor * self.std + self.mean
+        # return tensor.sub_(self.mean).div_(self.std)
+        return (tensor - self.mean) / self.std
 
     def __repr__(self):
         return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean,

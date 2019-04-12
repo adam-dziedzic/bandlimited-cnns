@@ -2,7 +2,6 @@ import os
 import torch
 from torchvision import transforms
 import torchvision.datasets as datasets
-from cnns.nnlib.utils.exec_args import get_args
 import numpy as np
 
 imagenet_mean = [0.485, 0.456, 0.406]
@@ -63,6 +62,7 @@ def load_imagenet(args):
 
 
 if __name__ == "__main__":
+    from cnns.nnlib.utils.exec_args import get_args
     args = get_args()
     args.dataset = "imagenet"
     load_imagenet(args)

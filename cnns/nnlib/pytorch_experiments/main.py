@@ -100,13 +100,6 @@ args = get_args()
 current_file_name = __file__.split("/")[-1].split(".")[0]
 print("current file name: ", current_file_name)
 
-if torch.cuda.is_available() and args.use_cuda:
-    print("cuda is available: ")
-    device = torch.device("cuda")
-    # torch.set_default_tensor_type('torch.cuda.FloatTensor')
-else:
-    device = torch.device("cpu")
-
 
 def getModelPyTorch(args):
     """
@@ -175,12 +168,11 @@ def getData(fname):
 
 
 # @profile
-def train(model, device, train_loader, optimizer, loss_function, epoch, args):
+def train(model, train_loader, optimizer, loss_function, epoch, args):
     """
     Train the model.
 
     :param model: deep learning model.
-    :param device: cpu or gpu.
     :param train_loader: the training dataset.
     :param optimizer: Adam, Momemntum, etc.
     :param epoch: the current epoch number.
@@ -194,8 +186,8 @@ def train(model, device, train_loader, optimizer, loss_function, epoch, args):
 
     for batch_idx, (data, target) in enumerate(train_loader):
         # fp16 (apex) - the data is cast explicitely to fp16 via data.to() method.
-        data, target = data.to(device=device, dtype=args.dtype), target.to(
-            device=device)
+        data, target = data.to(device=args.device, dtype=args.dtype), target.to(
+            device=args.device)
         optimizer.zero_grad()
         output = model(data)
         loss = loss_function(output, target)
@@ -255,12 +247,11 @@ def train(model, device, train_loader, optimizer, loss_function, epoch, args):
     return train_loss, accuracy
 
 
-def test(model, device, test_loader, loss_function, args, epoch=None):
+def test(model, test_loader, loss_function, args, epoch=None):
     """
     Test the model and return test loss and accuracy.
 
     :param model: deep learning model.
-    :param device: cpu or gpu.
     :param test_loader: the input data.
     :param dataset_type: test or train.
     :param dtype: the data type of the tensor.
@@ -273,8 +264,9 @@ def test(model, device, test_loader, loss_function, args, epoch=None):
     total = 0
     with torch.no_grad():
         for batch_idx, (data, target) in enumerate(test_loader):
-            data, target = data.to(device=device, dtype=args.dtype), target.to(
-                device)
+            data, target = data.to(device=args.device,
+                                   dtype=args.dtype), target.to(
+                args.device)
             output = model(data)
             test_loss += loss_function(output,
                                        target).item()  # sum up batch loss
@@ -354,7 +346,6 @@ def main(args):
     loss_reduction = args.loss_reduction
 
     use_cuda = args.use_cuda
-    device = torch.device("cuda" if use_cuda else "cpu")
     tensor_type = args.tensor_type
     if use_cuda and args.noise_sigma is False:
         if tensor_type is TensorType.FLOAT32:
@@ -389,14 +380,14 @@ def main(args):
         raise ValueError(f"Unknown dataset: {dataset_name}")
 
     model = getModelPyTorch(args=args)
-    model.to(device)
+    model.to(args.device)
     # model = torch.nn.DataParallel(model)
 
     # https://pytorch.org/docs/master/notes/serialization.html
     if args.model_path != "no_model":
         model.load_state_dict(
             torch.load(os.path.join(models_dir, args.model_path),
-                       map_location=device))
+                       map_location=args.device))
         msg = "loaded model: " + args.model_path
         # logger.info(msg)
         print(msg)
@@ -497,7 +488,7 @@ def main(args):
     if args.visulize is True:
         start_visualize_time = time.time()
         test_loss, test_accuracy = test(
-            model=model, device=device, test_loader=test_loader,
+            model=model, device=args.device, test_loader=test_loader,
             loss_function=loss_function, args=args)
         elapsed_time = time.time() - start_visualize_time
         print("test time: ", elapsed_time)
@@ -522,7 +513,8 @@ def main(args):
                 file.write(str(args.compress_rate) + ",")
         train_start_time = time.time()
         train_loss, train_accuracy = train(
-            model=model, device=device, train_loader=train_loader, args=args,
+            model=model, train_loader=train_loader,
+            args=args,
             optimizer=optimizer, loss_function=loss_function, epoch=epoch)
         train_time = time.time() - train_start_time
         if args.is_dev_dataset:
@@ -530,7 +522,7 @@ def main(args):
                 raise Exception("The dev_loader was not set! Check methods to"
                                 "get the data, e.g. get_ucr()")
             dev_loss, dev_accuracy = test(
-                model=model, device=device, test_loader=dev_loader,
+                model=model, test_loader=dev_loader,
                 loss_function=loss_function, args=args)
         # print("\ntest:")
         test_start_time = time.time()
@@ -538,7 +530,7 @@ def main(args):
             test_loss, test_accuracy = 0, 0
         else:
             test_loss, test_accuracy = test(
-                model=model, device=device, test_loader=test_loader,
+                model=model, test_loader=test_loader,
                 loss_function=loss_function, args=args)
         test_time = time.time() - test_start_time
         # Scheduler step is based only on the train data, we do not use the
@@ -614,6 +606,14 @@ if __name__ == '__main__':
         cuda_visible_devices = os.environ['CUDA_VISIBLE_DEVICES']
     except KeyError:
         cuda_visible_devices = 0
+
+    if torch.cuda.is_available() and args.use_cuda:
+        print("cuda is available: ")
+        args.device = torch.device("cuda")
+        # torch.set_default_tensor_type('torch.cuda.FloatTensor')
+    else:
+        args.device = torch.device("cpu")
+
     global_log_file = os.path.join(results_folder_name,
                                    get_log_time() + "-ucr-fcnn.log")
     args_str = args.get_str()

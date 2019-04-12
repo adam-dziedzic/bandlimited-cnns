@@ -1,7 +1,8 @@
 import torch
-from torchvision.transforms import Normalize
 from cnns.nnlib.datasets.transformations.denormalize import Denormalize
+from cnns.nnlib.datasets.transformations.normalize import Normalize
 from cnns.nnlib.datasets.transformations.rounding import RoundingTransformation
+
 
 class DenormRoundNorm(object):
     """De-Normalize a tensor image with mean and standard deviation.
@@ -15,12 +16,14 @@ class DenormRoundNorm(object):
         std (sequence): Sequence of standard deviations for each channel.
     """
 
-    def __init__(self, mean, std, values_per_channel):
+    def __init__(self, values_per_channel, mean, std, device):
         self.values_per_channel = values_per_channel
-        self.denorm = Denormalize(std=torch.tensor(std).view(3,1,1),
-                                  mean=torch.tensor(mean).view(3,1,1))
-        self.round = RoundingTransformation(values_per_channel=values_per_channel)
-        self.norm = Normalize(std=std, mean=mean)
+        self.mean = mean
+        self.std = std
+        self.denorm = Denormalize(std=std, mean=mean, device=device)
+        self.round = RoundingTransformation(
+            values_per_channel=values_per_channel)
+        self.norm = Normalize(std=std, mean=mean, device=device)
 
     def __call__(self, tensor):
         """
@@ -33,5 +36,5 @@ class DenormRoundNorm(object):
         return self.norm(self.round(self.denorm(tensor)))
 
     def __repr__(self):
-        return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean,
-                                                                      self.std)
+        return self.__class__.__name__ + '(mean={0}, std={1}, values_per_channel={2})'.format(
+            self.mean, self.std, self.values_per_channel)
