@@ -14,7 +14,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from six.moves import cPickle
 import os
-from cnns.nnlib.utils.exec_args import get_args
+
 
 print("current directory is: ", os.getcwd())
 
@@ -176,6 +176,7 @@ def get_cifar(args, dataset_name):
 
 
 if __name__ == "__main__":
+    from cnns.nnlib.utils.exec_args import get_args
     args = get_args()
     args.sample_count_limit = 3
     train_loader, test_loader, train_dataset, test_dataset = get_cifar(args,
