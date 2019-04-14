@@ -50,10 +50,12 @@ class UCRDataset(Dataset):
         conversion.
         :param ucr_path: the path to the ucr dataset.
         """
+        dir_path = os.path.dirname(os.path.realpath(__file__))
         if ucr_path is None:
-            dir_path = os.path.dirname(os.path.realpath(__file__))
             ucr_path = os.path.join(dir_path, os.pardir, os.pardir, os.pardir,
                                     "TimeSeriesDatasets")
+        else:
+            ucr_path = os.path.join(dir_path, ucr_path)
         if train is True:
             suffix = "_TRAIN"
         else:

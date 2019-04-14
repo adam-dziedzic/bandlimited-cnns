@@ -16,7 +16,8 @@ class DenormRoundNorm(object):
         std (sequence): Sequence of standard deviations for each channel.
     """
 
-    def __init__(self, values_per_channel, mean, std, device):
+    def __init__(self, values_per_channel, mean, std,
+                 device=torch.device("cpu")):
         self.values_per_channel = values_per_channel
         self.mean = mean
         self.std = std

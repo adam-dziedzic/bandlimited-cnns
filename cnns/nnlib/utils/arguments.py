@@ -26,23 +26,27 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 
 # 2D
 # conv_type = ConvType.STANDARD2D
-conv_type = ConvType.FFT2D
+# conv_type = ConvType.FFT2D
+conv_type = ConvType.STANDARD
 
 if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
-    dataset = "ucr"
+    # dataset = "ucr"
+    dataset = "WIFI64"
     network_type = NetworkType.FCNN_STANDARD
-    preserved_energy = 99  # for unit tests
+    preserved_energy = 100  # for unit tests
+    learning_rate = 0.0001
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
     precision_type = PrecisionType.FP32
     conv_exec_type = ConvExecType.BATCH
-    visualize = True  # test model for different compress rates
-    next_power2 = False
+    visualize = False  # test model for different compress rates
+    next_power2 = True
 else:
     dataset = "cifar10"
     network_type = NetworkType.ResNet18
     # network_type=NetworkType.DenseNetCifar
     preserved_energy = 100  # for unit tests
+    learning_rate = 0.01
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
     precision_type = PrecisionType.FP32
@@ -115,10 +119,10 @@ class Arguments(object):
                  # weight_decay=5e-4,
                  # weight_decay=0,
                  weight_decay=0.0005,
-                 epochs=10,
+                 epochs=100,
                  min_batch_size=32,
                  test_batch_size=32,
-                 learning_rate=0.01,
+                 learning_rate=learning_rate,
                  momentum=0.9,
                  seed=31,
                  log_interval=1,
@@ -188,8 +192,8 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 # sample_count_limit=0,  # run on full data
-                 sample_count_limit=1024,
+                 sample_count_limit=0,  # run on full data
+                 # sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
                  # sample_count_limit=100,
@@ -233,6 +237,7 @@ class Arguments(object):
                  distributed=False,
                  in_channels=3,
                  values_per_channel=4,
+                 ucr_path = "../sathya",
                  ):
         """
         The default parameters for the execution of the program.
@@ -343,6 +348,7 @@ class Arguments(object):
         self.distributed = distributed
         self.in_channels = in_channels
         self.values_per_channel = values_per_channel
+        self.ucr_path = ucr_path
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False

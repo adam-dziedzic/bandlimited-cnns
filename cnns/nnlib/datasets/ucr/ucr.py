@@ -63,7 +63,8 @@ def get_ucr(args):
     train_dataset = UCRDataset(dataset_name, train=True,
                                transformations=transforms.Compose(
                                    [ToTensor(dtype=torch.float),
-                                    AddChannel()]))
+                                    AddChannel()]),
+                               ucr_path=args.ucr_path)
     if sample_count > 0:
         train_dataset.set_length(sample_count)
 
@@ -89,7 +90,8 @@ def get_ucr(args):
     test_dataset = UCRDataset(dataset_name, train=False,
                               transformations=transforms.Compose(
                                   [ToTensor(dtype=torch.float),
-                                   AddChannel()]))
+                                   AddChannel()]),
+                              ucr_path=args.ucr_path)
     if sample_count > 0:
         test_dataset.set_length(sample_count)
 

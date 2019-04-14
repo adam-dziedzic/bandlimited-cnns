@@ -188,6 +188,7 @@ def train(model, train_loader, optimizer, loss_function, epoch, args):
         # fp16 (apex) - the data is cast explicitely to fp16 via data.to() method.
         data, target = data.to(device=args.device, dtype=args.dtype), target.to(
             device=args.device)
+        # print("target: ", target)
         optimizer.zero_grad()
         output = model(data)
         loss = loss_function(output, target)
@@ -370,10 +371,13 @@ def main(args):
         torch.set_default_tensor_type(cpu_type)
 
     train_loader, dev_loader, test_loader = None, None, None
-    if dataset_name is "cifar10" or dataset_name is "cifar100":
+    if dataset_name == "cifar10" or dataset_name == "cifar100":
         train_loader, test_loader, _, _ = get_cifar(args, dataset_name)
-    elif dataset_name is "mnist":
+    elif dataset_name == "mnist":
         train_loader, test_loader = get_mnist(args)
+    elif dataset_name.startswith("WIFI"):
+        # train_loader, test_loader, dev_loader = get_ucr(args)
+        test_loader, train_loader, dev_loader = get_ucr(args)
     elif dataset_name in os.listdir(ucr_path):  # dataset from UCR archive
         train_loader, test_loader, dev_loader = get_ucr(args)
     else:
@@ -655,9 +659,10 @@ if __name__ == '__main__':
         flist = ["cifar100"]
     elif args.dataset == "mnist":
         flist = ["mnist"]
-    elif args.dataset == "debug":
+    elif args.dataset.startswith("WIFI"):
+        flist = [args.dataset]
         # flist = ["50words"]
-        flist = ["Adiac"]
+        # flist = ["Adiac"]
         # flist = ['ItalyPowerDemand']
         # flist = ['Lighting7']
         # flist = ['Trace']

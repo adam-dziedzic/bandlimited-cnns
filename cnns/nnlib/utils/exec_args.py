@@ -274,6 +274,9 @@ def get_args():
                              "values_per_channel is > 0 "
                              "and input has to be in range [0,1]"
                              "img = 1.0/(values_per_channel - 1) * round((values_per_channel - 1) * img)")
+    parser.add_argument("--ucr_path",
+                        default=args.ucr_path,
+                        help="The path to a UCR dataset.")
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)

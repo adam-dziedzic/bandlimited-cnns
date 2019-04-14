@@ -18,10 +18,13 @@ from cnns.nnlib.robustness.utils import get_foolbox_model
 # from cnns.nnlib.robustness.utils import get_min_max_counter
 from cnns.nnlib.datasets.cifar import cifar_min
 from cnns.nnlib.datasets.cifar import cifar_max
+from cnns.nnlib.datasets.cifar import cifar_mean
+from cnns.nnlib.datasets.cifar import cifar_std
 import socket
 from cnns.nnlib.utils.general_utils import get_log_time
 import os
-from cnns.nnlib.datasets.transformations.rounding import RoundingTransformation
+from cnns.nnlib.datasets.transformations.denorm_round_norm import \
+    DenormRoundNorm
 
 if not sys.warnoptions:
     import warnings
@@ -65,8 +68,8 @@ def get_attacks():
         # foolbox.attacks.LinfinityBasicIterativeAttack(
         # model, distance=foolbox.distances.MeanSquaredDistance),
         (foolbox.attacks.CarliniWagnerL2Attack, "CarliniWagnerL2Attack",
-         [x for x in range(1, 20, 1)] + [x for x in
-                                                  range(20, 1000, 10)] + [1000]),
+         [x for x in range(2, 20, 1)] + [x for x in
+                                         range(20, 1000, 10)] + [1000]),
         # [1000]),
         # [2]),
     ]
@@ -159,7 +162,7 @@ def run(args):
                         predictions = foolbox_model.predictions(
                             model_image)
                         if np.argmax(predictions) != label:
-                            print("not classified correctly")
+                            # print("not classified correctly")
                             continue
                         counter += 1
                         if attack.name() == "CarliniWagnerL2Attack":
@@ -221,8 +224,9 @@ def run(args):
                         if image_attack is None:
                             no_adversarials += 1
                             # print("image is None, label:", label, " i:", i)
-
                         elif args.is_round:
+                            print("batch idx: ", batch_idx, " image idx: ", i,
+                                  " label: ", label)
                             adversarials += 1
                             # print("sum difference before round: ",
                             #       np.sum(
@@ -231,12 +235,12 @@ def run(args):
                             # for values_per_channel in [256 // (2 ** x) for x in
                             #                            range(0, 7)]:
                             for values_per_channel in [args.values_per_channel]:
-                                # image_attack = RoundingTransformation(
-                                #     values_per_channel=values_per_channel,
-                                #     round=np.round)(image_attack)
-                                # print("sum difference after round: ",
-                                #       np.sum(
-                                #           np.abs(image_attack * 255 - image * 255)))
+                                image_attack_torch = torch.from_numpy(
+                                    image_attack)
+                                image_attack = DenormRoundNorm(
+                                    mean=cifar_mean, std=cifar_std,
+                                    values_per_channel=values_per_channel)(
+                                    image_attack_torch)
                                 predictions = foolbox_model.predictions(
                                     image_attack)
 
@@ -284,10 +288,11 @@ if __name__ == "__main__":
     # for model with rounding
 
     # args.model_path = "2019-04-08-19-53-50-779103-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-rounding-32-values-per-channel.model"
-    # # args.model_path = "saved_model_2019-04-11-04-51-57-429818-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-channel-vals-256.model"
-    # args.conv_type = ConvType.STANDARD2D
-    # args.values_per_channel = 33
-    # args.sample_count_limit = 100
+    # args.model_path = "saved_model_2019-04-11-04-51-57-429818-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-channel-vals-256.model"
+    args.model_path = "saved_model_2019-04-13-07-22-56-806744-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.23-channel-vals-256.model"
+    args.conv_type = ConvType.STANDARD2D
+    args.values_per_channel = 256
+    args.sample_count_limit = 100
 
     train_loader, test_loader, train_dataset, test_dataset = get_cifar(
         args=args, dataset_name=args.dataset)
