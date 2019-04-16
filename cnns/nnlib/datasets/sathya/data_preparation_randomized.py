@@ -8,7 +8,7 @@ import os
 # type = "_small"  # nothing i.e. "" normal or "_small" for small files
 type = ""
 # sample_size: 1000, 500, 250, 32, 64
-sample_size = 512  # 500 for small data # how many values in a single sample collected
+sample_size = 4096  # 500 for small data # how many values in a single sample collected
 train_rate = 0.5  # rate of training data, test data rate is 1 - train_rate
 outlier_std_count = 4
 
@@ -58,8 +58,8 @@ def get_samples(array):
     with_step = True
     if with_step:
         # make more data by overlapping the signals
-        # step = sample_size // 4
-        step = 1
+        step = sample_size // 4
+        # step = 1
         samples = []
         # i - a start index for a sample
         for i in range(0, len(array) - sample_size, step):
