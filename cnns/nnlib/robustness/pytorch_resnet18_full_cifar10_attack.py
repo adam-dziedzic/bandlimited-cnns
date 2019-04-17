@@ -285,6 +285,9 @@ if __name__ == "__main__":
     args.is_round = True
     # for model with rounding
 
+    # args.model_path = "2019-01-21-14-30-13-992591-dataset-cifar10-preserve-energy-100.0-test-accuracy-84.55-compress-label-84-after-epoch-304.model"
+    # args.values_per_channel = 0
+
     # args.model_path = "2019-04-08-19-53-50-779103-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-rounding-32-values-per-channel.model"
     # args.model_path = "saved_model_2019-04-11-04-51-57-429818-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-channel-vals-256.model"
     # args.values_per_channel = 256
@@ -293,8 +296,9 @@ if __name__ == "__main__":
     # args.model_path = "saved_model_2019-04-11-07-18-28-194468-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-78.25-channel-vals-2.model"
     # args.values_per_channel = 2
 
-    args.conv_type = ConvType.STANDARD2D
-    args.sample_count_limit = 1000
+    # args.conv_type = ConvType.STANDARD2D
+    # args.conv_type = ConvType.FFT2D
+    # args.sample_count_limit = 10
 
     train_loader, test_loader, train_dataset, test_dataset = get_cifar(
         args=args, dataset_name=args.dataset)
