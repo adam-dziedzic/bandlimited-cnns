@@ -56,8 +56,8 @@ def get_attacks():
         # (foolbox.attacks.SpatialAttack, "Translations",
         #  [x for x in range(0, 21, 1)]),
         # (foolbox.attacks.SpatialAttack, "All", [x for x in range(0, 21, 1)]),
-        # (foolbox.attacks.ContrastReductionAttack,
-        #  [x / 10 for x in range(10)]),
+        (foolbox.attacks.ContrastReductionAttack, "ContrastReductionAttack",
+         [x / 10 for x in range(0,11,1)]),
         # (foolbox.attacks.GradientAttack, [x / 100 for x in range(21)]),
         # (foolbox.attacks.GradientSignAttack, "GradientSignAttack",
         #  [x for x in np.linspace(0.001, 0.2, 20)][1:]),
@@ -67,9 +67,9 @@ def get_attacks():
         # foolbox.attacks.SaltAndPepprunerNoiseAttack(foolbox_model),
         # foolbox.attacks.LinfinityBasicIterativeAttack(
         # model, distance=foolbox.distances.MeanSquaredDistance),
-        (foolbox.attacks.CarliniWagnerL2Attack, "CarliniWagnerL2Attack",
-         [x for x in range(2, 20, 1)] + [x for x in
-                                         range(20, 1000, 10)] + [1000]),
+        # (foolbox.attacks.CarliniWagnerL2Attack, "CarliniWagnerL2Attack",
+        #  [x for x in range(2, 20, 1)] + [x for x in
+        #                                  range(20, 1000, 10)] + [1000]),
         # [1000]),
         # [2]),
     ]
@@ -220,13 +220,12 @@ def run(args):
                         else:
                             image_attack = attack(image, label,
                                                   epsilons=epsilons)
-
                         if image_attack is None:
                             no_adversarials += 1
                             # print("image is None, label:", label, " i:", i)
                         elif args.is_round:
-                            print("batch idx: ", batch_idx, " image idx: ", i,
-                                  " label: ", label)
+                            # print("batch idx: ", batch_idx, " image idx: ", i,
+                            #       " label: ", label)
                             adversarials += 1
                             # print("sum difference before round: ",
                             #       np.sum(
@@ -240,19 +239,19 @@ def run(args):
                                 image_attack = DenormRoundNorm(
                                     mean=cifar_mean, std=cifar_std,
                                     values_per_channel=values_per_channel)(
-                                    image_attack_torch)
+                                    image_attack_torch).numpy()
                                 predictions = foolbox_model.predictions(
                                     image_attack)
 
                                 # print(np.argmax(predictions), label)
                                 if np.argmax(predictions) == label:
                                     correct_round += 1
-                                    print(",".join([str(x) for x in [
-                                        "epsilon", epsilon,
-                                        "batch_idx", batch_idx,
-                                        "i", i,
-                                        "values per channel",
-                                        values_per_channel]]))
+                                    # print(",".join([str(x) for x in [
+                                    #     "epsilon", epsilon,
+                                    #     "batch_idx", batch_idx,
+                                    #     "i", i,
+                                    #     "values per channel",
+                                    #     values_per_channel]]))
                                     break
                 timing = time.time() - start
                 with open(args.out_file_name, "a") as out:
@@ -284,15 +283,18 @@ if __name__ == "__main__":
     # should we turn pixels to the range from 0 to 255 and round them to
     # the nearest integer values?
     args.is_round = True
-
     # for model with rounding
 
     # args.model_path = "2019-04-08-19-53-50-779103-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-rounding-32-values-per-channel.model"
     # args.model_path = "saved_model_2019-04-11-04-51-57-429818-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-channel-vals-256.model"
-    args.model_path = "saved_model_2019-04-13-07-22-56-806744-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.23-channel-vals-256.model"
+    # args.values_per_channel = 256
+    # args.model_path = "saved_model_2019-04-13-07-22-56-806744-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.23-channel-vals-256.model"
+    # args.model_path = "2019-04-08-19-53-50-779103-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-rounding-32-values-per-channel.model
+    # args.model_path = "saved_model_2019-04-11-07-18-28-194468-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-78.25-channel-vals-2.model"
+    # args.values_per_channel = 2
+
     args.conv_type = ConvType.STANDARD2D
-    args.values_per_channel = 256
-    args.sample_count_limit = 100
+    args.sample_count_limit = 1000
 
     train_loader, test_loader, train_dataset, test_dataset = get_cifar(
         args=args, dataset_name=args.dataset)

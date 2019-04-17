@@ -12,6 +12,7 @@ sample_size = 4096  # 500 for small data # how many values in a single sample co
 train_rate = 0.5  # rate of training data, test data rate is 1 - train_rate
 outlier_std_count = 4
 
+
 csv_path1 = "test_one_wifi_1" + type + ".txt"
 
 # data1 = pd.read_csv(csv_path1, header=None)

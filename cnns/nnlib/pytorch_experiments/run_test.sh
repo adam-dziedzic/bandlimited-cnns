@@ -173,3 +173,40 @@ PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_
 
 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type='STANDARD' --conv_exec_type=CUDA --dataset='WIFI2-4096' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=350  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0001 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_STANDARD' --next_power2='TRUE' --optimizer_type='MOMENTUM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=6  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 >> 2019-04-15-train-sathya-4096-WIFI2.txt 2>&1 &
 
+
+PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 pytorch_resnet18_full_cifar10_attack.py --values_per_channel=32 --conv_type=STANDARD2D --model_path="saved_model_2019-04-11-09-32-24-695308-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-92.92-channel-vals-32.model" --sample_count_limit=100 >> 2019-04-11-test-with-rounding-32-values-model.txt 2>&1 &
+
+saved_model_2019-04-08-16-53-56-823707-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-92.79-channel-vals-64.model
+
+
+quadro1
+PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 pytorch_resnet18_full_cifar10_attack.py --values_per_channel=64 --conv_type=STANDARD2D --model_path="saved_model_2019-04-08-16-53-56-823707-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-92.79-channel-vals-64.model" --sample_count_limit=1000 >> 2019-04-16-test-with-rounding-64-values-model.txt 2>&1 &
+
+saved_model_2019-04-08-16-52-57-724359-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.17-channel-vals-128.model
+
+PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 pytorch_resnet18_full_cifar10_attack.py --values_per_channel=64 --conv_type=STANDARD2D --model_path="saved_model_2019-04-08-16-52-57-724359-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.17-channel-vals-128.model" --sample_count_limit=1000 >> 2019-04-16-test-with-rounding-128-values-model.txt 2>&1 &
+
+titan
+saved_model_2019-04-11-04-24-55-097400-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-91.56-channel-vals-8.model
+
+PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 pytorch_resnet18_full_cifar10_attack.py --values_per_channel=8 --conv_type=STANDARD2D --model_path="saved_model_2019-04-11-04-24-55-097400-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-91.56-channel-vals-8.model" --sample_count_limit=1000 >> 2019-04-16-test-with-rounding-8-values-model.txt 2>&1 &
+
+titan
+saved_model2019-04-12-02-48-37-057083-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.09-channel-vals-16.model
+
+PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 pytorch_resnet18_full_cifar10_attack.py --values_per_channel=16 --conv_type=STANDARD2D --model_path="saved_model2019-04-12-02-48-37-057083-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.09-channel-vals-16.model" --sample_count_limit=1000 >> 2019-04-16-test-with-rounding-16-values-model.txt 2>&1 &
+
+pascal 4
+
+saved_model_2019-04-11-13-53-22-183925-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-87.19-channel-vals-4.model
+
+PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 pytorch_resnet18_full_cifar10_attack.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type=STANDARD2D --dataset="cifar10" --conv_exec_type=CUDA --dataset='cifar10' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=350 --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.001 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path="saved_model_2019-04-11-13-53-22-183925-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-87.19-channel-vals-4.model" --momentum=0.9 --network_type='ResNet18' --next_power2='TRUE' --optimizer_type='MOMENTUM' --preserve_energies=100 --sample_count_limit=1000 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=6  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=4 >> 2019-04-16-22-47-test-with-rounding-4-values-model.txt 2>&1 &
+
+pasal
+saved_model_2019-04-11-13-53-22-183925-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-87.19-channel-vals-4.model
+saved_model_2019-04-13-01-00-52-362503-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-79.14-channel-vals-2.model
+saved_model_2019-04-13-07-22-56-806744-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.23-channel-vals-256.model
+
+
+pascal
+PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type='STANDARD' --conv_exec_type=CUDA --dataset='WIFI3-192' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=350  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.001 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_STANDARD' --next_power2='TRUE' --optimizer_type='MOMENTUM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=6  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 >> 2019-04-16-train-sathya-192-WIFI3.txt 2>&1 &
