@@ -57,7 +57,7 @@ def get_attacks():
         #  [x for x in range(0, 21, 1)]),
         # (foolbox.attacks.SpatialAttack, "All", [x for x in range(0, 21, 1)]),
         (foolbox.attacks.ContrastReductionAttack, "ContrastReductionAttack",
-         [x / 10 for x in range(0,11,1)]),
+         [x / 10 for x in range(10,0,-1)]),
         # (foolbox.attacks.GradientAttack, [x / 100 for x in range(21)]),
         # (foolbox.attacks.GradientSignAttack, "GradientSignAttack",
         #  [x for x in np.linspace(0.001, 0.2, 20)][1:]),
@@ -68,8 +68,8 @@ def get_attacks():
         # foolbox.attacks.LinfinityBasicIterativeAttack(
         # model, distance=foolbox.distances.MeanSquaredDistance),
         # (foolbox.attacks.CarliniWagnerL2Attack, "CarliniWagnerL2Attack",
-        #  [x for x in range(2, 20, 1)] + [x for x in
-        #                                  range(20, 1000, 10)] + [1000]),
+        # [x for x iŁn range(2, 20, 1)] + [x for x in
+        #                                 range(20, 1000, 10)] + [1000]),
         # [1000]),
         # [2]),
     ]
@@ -285,8 +285,11 @@ if __name__ == "__main__":
     args.is_round = True
     # for model with rounding
 
-    # args.model_path = "2019-01-21-14-30-13-992591-dataset-cifar10-preserve-energy-100.0-test-accuracy-84.55-compress-label-84-after-epoch-304.model"
-    # args.values_per_channel = 0
+    args.model_path = "2019-01-21-14-30-13-992591-dataset-cifar10-preserve-energy-100.0-test-accuracy-84.55-compress-label-84-after-epoch-304.model"
+    args.values_per_channel = 0
+    args.compress_rate = 84
+    args.conv_type = ConvType.FFT2D
+    args.sample_count_limit = 0
 
     # args.model_path = "2019-04-08-19-53-50-779103-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-rounding-32-values-per-channel.model"
     # args.model_path = "saved_model_2019-04-11-04-51-57-429818-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-channel-vals-256.model"
@@ -297,8 +300,6 @@ if __name__ == "__main__":
     # args.values_per_channel = 2
 
     # args.conv_type = ConvType.STANDARD2D
-    # args.conv_type = ConvType.FFT2D
-    # args.sample_count_limit = 10
 
     train_loader, test_loader, train_dataset, test_dataset = get_cifar(
         args=args, dataset_name=args.dataset)
@@ -327,4 +328,5 @@ if __name__ == "__main__":
     with open(args.out_file_name, "a") as file:  # Write the metadata.
         file.write(HEADER + "\n")
 
+    print(args.get_str())
     run(args)
