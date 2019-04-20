@@ -59,10 +59,10 @@ ncols = [2, 3]
 bbox = [(0.0, 0.1), (0.0, 0.2)]
 columns = 11
 colors = [get_color(color) for color in
-          ["", MY_GREEN, MY_BLUE, MY_ORANGE, MY_GREEN, MY_BLACK, MY_PURPLE,
-           MY_LIME, MY_BRICK, MY_GRAY, MY_RED, MY_RED]]
+          ["", MY_GREEN, MY_BLUE, MY_ORANGE, MY_LIME, MY_BLACK, MY_PURPLE,
+           MY_GRAY, MY_BRICK, MY_RED, MY_RED]]
 markers = ["", "+", "o", "v", "s", "D", "^", "+", "o", "v", "s", "D", "^"]
-linestyles = ["", "-", "--", ":", "-", "--", ":", "-", "--", ":", "-", "--"]
+linestyles = ["", ":", "-", "-.", "--", ":", "-", "-.", "--", ":", "-"]
 
 for j, dataset in enumerate(datasets):
     plt.subplot(2, 1, j + 1)
