@@ -22,9 +22,13 @@ from cnns.nnlib.datasets.cifar10_from_class_idx_to_label import \
     cifar10_from_class_idx_to_label
 from cnns.nnlib.utils.exec_args import get_args
 # from scipy.special import softmax
-from cnns.nnlib.robustness import \
-    load_model
-
+from cnns.nnlib.robustness.utils import load_model
+from cnns.nnlib.datasets.cifar import cifar_max, cifar_min
+from cnns.nnlib.datasets.cifar import cifar_std_array, cifar_mean_array
+from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_max
+from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_min
+from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_mean_array
+from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_std_array
 
 def softmax(x):
     s = np.exp(x - np.max(x))
@@ -80,8 +84,10 @@ def get_fmodel(args):
         args.init_y, args.init_x = 224, 224
         resnet = models.resnet50(
             pretrained=True).cuda().eval()  # for CPU, remove cuda()
-        mean = np.array([0.485, 0.456, 0.406]).reshape((3, 1, 1))
-        std = np.array([0.229, 0.224, 0.225]).reshape((3, 1, 1))
+        min = imagenet_min
+        max = imagenet_max
+        mean = imagenet_mean_array
+        std = imagenet_std_array
         args.num_classes = 1000
         from_class_idx_to_label = imagenet_from_class_idx_to_label
 
@@ -93,18 +99,21 @@ def get_fmodel(args):
         args.compress_rates = [args.compress_rate]
         args.in_channels = 3
         resnet = load_model(args=args)
-        mean = np.array([0.4914, 0.4822, 0.4465]).reshape((3, 1, 1))
-        std = np.array([0.2023, 0.1994, 0.2010]).reshape((3, 1, 1))
+        min = cifar_min
+        max = cifar_max
+        mean = cifar_mean_array
+        std = cifar_std_array
         from_class_idx_to_label = cifar10_from_class_idx_to_label
 
     else:
         raise Exception(f"Unknown dataset type: {args.dataset}")
 
-    fmodel = foolbox.models.PyTorchModel(resnet, bounds=(0, 1),
+    fmodel = foolbox.models.PyTorchModel(resnet, bounds=(min, max),
                                          num_classes=args.num_classes,
                                          preprocessing=(mean, std))
 
     return fmodel, from_class_idx_to_label
+
 
 def run(args):
     fmodel, from_class_idx_to_label = get_fmodel(args=args)
@@ -200,14 +209,19 @@ def run(args):
 
     # choose how many channels should be plotted
     channels_nr = 1
+    # fft_types = ["magnitude", "phase"]
+    fft_types = []
     channels = [x for x in range(channels_nr)]
-    # attacks = [foolbox.attacks.FGSM(fmodel),
-    #            foolbox.attacks.AdditiveUniformNoiseAttack(fmodel)]
-    attacks = [foolbox.attacks.FGSM(fmodel)]
-    rows = len(attacks) * (1 + 2 * len(channels))
+    attacks = [
+        foolbox.attacks.CarliniWagnerL2Attack(fmodel),
+        # foolbox.attacks.FGSM(fmodel),
+        # foolbox.attacks.AdditiveUniformNoiseAttack(fmodel)
+    ]
+    # 1 is for the first row of images
+    rows = len(attacks) * (1 + len(fft_types) * len(channels))
     cols = 3
 
-    fig = plt.figure(figsize=(30, 30))
+    fig = plt.figure(figsize=(30, rows * 10))
 
     # index for each subplot
     i = 1
@@ -246,6 +260,10 @@ def run(args):
         i += 1
 
         adversarial = attack(image, label)
+        if adversarial is None:
+            raise Exception(
+                f"No adversarial was found for attack: {attack.name()},"
+                f"and image index: {args.idx}")
         predictions_adversarial, _ = fmodel.predictions_and_gradient(
             image=adversarial, label=label)
         # predictions_adversarial = znormalize(predictions_adversarial)
@@ -267,7 +285,7 @@ def run(args):
         plt.imshow(np.moveaxis(adversarial, 0, -1))
         plt.axis('off')
 
-        plt.subplot(rows, cols, i)
+        ax = plt.subplot(rows, cols, i)
         i += 1
         plt.title('Difference')
         difference = np.abs(adversarial - image)
@@ -283,10 +301,17 @@ def run(args):
         # difference = (difference - difference.min()) / (
         #         difference.max() - difference.min())
         # plt.imshow(difference / abs(difference).max() * 0.2 + 0.5)
-        plt.imshow(np.moveaxis(difference, 0, -1))
+
+        # plt.imshow(np.moveaxis(difference, 0, -1))
+
+        # print 0th channel only
+        # print_color_map(difference[0], fig=fig, ax=ax)
+
+        print_color_map(difference.sum(axis=0), fig=fig, ax=ax)
+
         plt.axis('off')
 
-        for fft_type in ["magnitude", "phase"]:
+        for fft_type in fft_types:
             for channel in channels:
                 ax = plt.subplot(rows, cols, i)
                 i += 1
@@ -364,9 +389,10 @@ def run(args):
 
         plt.subplots_adjust(hspace=0.6)
 
-    format = 'pdf'
+    format = 'png'  # "pdf" or "png"
     file_name = "images/" + attack.name() + "-channel-" + str(
-        channel) + "-" + get_log_time()
+        channels_nr) + "-" + get_log_time()
+    print("file name: ", file_name)
     plt.savefig(fname=file_name + "." + format, format=format)
     plt.show(block=True)
     plt.close()
@@ -379,8 +405,9 @@ if __name__ == "__main__":
     # save fft representations of the original and adversarial images to files
     args.save_out = False
     args.diff_type = "source"  # "source" or "fft"
-    args.dataset = "cifar10" # "cifar10" or "imagenet"
-    args.idx = 0  # index of the image (out of 20) to be used
+    # args.dataset = "cifar10"  # "cifar10" or "imagenet"
+    args.dataset = "imagenet"
+    args.idx = 2  # index of the image (out of 20) to be used
 
     if torch.cuda.is_available() and args.use_cuda:
         print("cuda is available")

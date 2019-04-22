@@ -27,8 +27,8 @@ cifar_std_array = np.array(cifar_std, dtype=np.float32).reshape((3, 1, 1))
 # the min/max value per pixel after normalization
 # exact values:
 # counter:  10000  min:  -2.429065704345703  max:  2.7537312507629395
-cifar_min = -2.5  # -2.429065704345703
-cifar_max = 2.8  # 2.7537312507629395
+cifar_min = -2.429065704345703
+cifar_max = 2.7537312507629395
 
 
 def show_images():
