@@ -47,6 +47,17 @@ from cnns.nnlib.utils.general_utils import plot_signal_freq
 from cnns.nnlib.utils.general_utils import plot_signal_time
 from cnns.nnlib.utils.arguments import Arguments
 
+if torch.cuda.is_available():
+    # from complex_mul_cpp import complex_mul as complex_mul_cpp
+    # from complex_mul_cuda import complex_mul as complex_mul_cuda
+    # from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
+    from complex_mul_cuda import \
+        complex_mul_stride_no_permute as complex_mul_stride_no_permute_cuda
+    from complex_mul_cuda import \
+        complex_mul_shared_log as complex_mul_shared_log_cuda
+    from complex_mul_cuda import \
+        complex_mul_deep as complex_mul_deep_cuda
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 consoleLog = logging.StreamHandler()
@@ -566,6 +577,9 @@ class Conv1dfftFunction(torch.autograd.Function):
                                      dtype=dtype, device=device)
                 # complex_mul_cuda(xfft, yfft, outfft)
                 yfft = pytorch_conjugate(yfft)
+                xfft = xfft.contiguous()
+                yfft = yfft.contiguous()
+
                 complex_mul_stride_no_permute_cuda(xfft, yfft, outfft,
                                                    cuda_block_threads)
                 torch.cuda.synchronize()
@@ -914,6 +928,9 @@ class Conv1dfftFunction(torch.autograd.Function):
                     # start_complex = time.time()
                     dxfft = torch.zeros([N, C, half_fft_size, 2],
                                         dtype=dtype, device=device)
+
+                    doutfft = doutfft.contiguous()
+                    dxfft = dxfft.contiguous()
                     # dout: N, F, W, I
                     complex_mul_stride_no_permute_cuda(doutfft, yfft, dxfft,
                                                        cuda_block_threads)
@@ -927,7 +944,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                         # out_fft = out_fft[..., :out_W]
                         dx = dx.narrow(dim=-1, start=padding, length=W)
                     elif dx.shape[-1] < W:
-                        dx = torch_pad(dx, (0, W - dxout.shape[-1]))
+                        dx = torch_pad(dx, (0, W - dx.shape[-1]))
                     # global_complex_dxfft += time.time() - start_complex
                     # print("complex dxfft: ", global_complex_dxfft)
                     del yfft

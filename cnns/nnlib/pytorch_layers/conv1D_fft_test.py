@@ -117,11 +117,12 @@ class TestPyTorchConv1d(unittest.TestCase):
         expected_result = np.correlate(x[0, 0, :], y[0, 0, :], mode="valid")
         for convType in convTypes:
             print("Conv type: ", convType)
-            conv = convType(filter_value=torch.from_numpy(y),
-                            bias_value=torch.from_numpy(b))
-            result = conv.forward(input=torch.from_numpy(x))
+            conv = convType(filter_value=torch.from_numpy(y).to(self.device),
+                            bias_value=torch.from_numpy(b).to(self.device))
+
+            result = conv.forward(input=torch.from_numpy(x).to(self.device))
             np.testing.assert_array_almost_equal(
-                result, np.array([[expected_result]]))
+                result.cpu(), np.array([[expected_result]]))
 
     def test_FunctionForwardNoCompressionCUDA(self):
         if torch.cuda.is_available():
@@ -163,11 +164,11 @@ class TestPyTorchConv1d(unittest.TestCase):
         expected_result = np.correlate(x[0, 0, :], y[0, 0, :], mode="valid")
         for convType in convTypes:
             print("Conv type: ", convType)
-            conv = convType(filter_value=torch.from_numpy(y),
-                            bias_value=torch.from_numpy(b))
-            result = conv.forward(input=torch.from_numpy(x))
+            conv = convType(filter_value=torch.from_numpy(y).to(self.device),
+                            bias_value=torch.from_numpy(b).to(self.device))
+            result = conv.forward(input=torch.from_numpy(x).to(self.device))
             np.testing.assert_array_almost_equal(
-                result, np.array([[expected_result]]))
+                result.cpu(), np.array([[expected_result]]))
 
     def test_FunctionForwardNoCompressionLongInputLength6(self):
         x = np.array([[[1., 2., 3., 1., 4., 5.]]])
@@ -176,11 +177,11 @@ class TestPyTorchConv1d(unittest.TestCase):
         # get the expected results from numpy correlate
         expected_result = np.correlate(x[0, 0, :], y[0, 0, :], mode="valid")
 
-        conv = Conv1dfft(filter_value=torch.from_numpy(y),
-                         bias_value=torch.from_numpy(b))
-        result = conv.forward(input=torch.from_numpy(x))
+        conv = Conv1dfft(filter_value=torch.from_numpy(y).to(self.device),
+                         bias_value=torch.from_numpy(b).to(self.device))
+        result = conv.forward(input=torch.from_numpy(x).to(self.device))
         np.testing.assert_array_almost_equal(
-            result, np.array([[expected_result]]))
+            result.cpu(), np.array([[expected_result]]))
 
     def test_FunctionForwardNoCompressionLongInputLength7(self):
         x = np.array([[[1., 2., 3., 1., 4., 5., 10.]]])
@@ -189,11 +190,11 @@ class TestPyTorchConv1d(unittest.TestCase):
         # get the expected results from numpy correlate
         expected_result = np.correlate(x[0, 0, :], y[0, 0, :], mode="valid")
 
-        conv = Conv1dfft(filter_value=torch.from_numpy(y),
-                         bias_value=torch.from_numpy(b))
-        result = conv.forward(input=torch.from_numpy(x))
+        conv = Conv1dfft(filter_value=torch.from_numpy(y).to(self.device),
+                         bias_value=torch.from_numpy(b).to(self.device))
+        result = conv.forward(input=torch.from_numpy(x).to(self.device))
         np.testing.assert_array_almost_equal(
-            result, np.array([[expected_result]]))
+            result.cpu(), np.array([[expected_result]]))
 
     def test_FunctionForwardWithCompressionLongInputLength7(self):
         x = np.array([[[1., 2., 3., 1., 4., 5., 10.]]])
@@ -205,21 +206,23 @@ class TestPyTorchConv1d(unittest.TestCase):
         print("\nexpected_result_full: ", expected_result_full)
         # expected_result_compressed = np.array(
         #     [14.59893, 31.640892, 46.518675, 24.199734, 26.882395])
+        # expected_result_compressed = np.array(
+        #     [9.742255, 13.940483, 14.548998, 25.766991, 38.12536])
         expected_result_compressed = np.array(
-            [9.742255, 13.940483, 14.548998, 25.766991, 38.12536])
+            [10.5, 12.5, 16.5, 23.5, 40.5])
 
         print("\nexpected_result_compressed: ", expected_result_compressed)
 
-        conv = Conv1dfft(filter_value=torch.from_numpy(y),
-                         bias_value=torch.from_numpy(b),
+        conv = Conv1dfft(filter_value=torch.from_numpy(y).to(self.device),
+                         bias_value=torch.from_numpy(b).to(self.device),
                          args=Arguments(compress_rate=5))
-        result = conv.forward(input=torch.from_numpy(x))
+        result = conv.forward(input=torch.from_numpy(x).to(self.device))
 
         expected = np.array([[expected_result_compressed]])
         np.testing.assert_array_almost_equal(
-            x=result, y=expected, decimal=6,
-            err_msg="obtained x:{result} is different than "
-                    "expected: {expected}!")
+            x=result.cpu(), y=expected, decimal=6,
+            err_msg=f"obtained x:{result} is different than "
+            f"expected: {expected}!")
 
     def test_FunctionForwardWithCompressionPreserveEnergyLongInputLength7(self):
         x = np.array([[[1., 2., 3., 1., 4., 5., 10.]]])
@@ -934,7 +937,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         np.testing.assert_array_almost_equal(
             result, np.array(expected_result))
 
-    def test_FunctionForwardRandom(self):
+    def test_FunctionForwardRandom1(self):
         num_channels = 3
         num_data_points = 11
         num_values_data = 21
@@ -952,14 +955,14 @@ class TestPyTorchConv1d(unittest.TestCase):
         self.logger.debug("expected result: " + str(expected_result))
 
         conv = Conv1dfftFunction()
-        result = conv.forward(ctx=None, input=torch.from_numpy(x),
-                              filter=torch.from_numpy(y),
-                              bias=torch.from_numpy(b))
+        result = conv.forward(ctx=None, input=torch.from_numpy(x).to(self.device),
+                              filter=torch.from_numpy(y).to(self.device),
+                              bias=torch.from_numpy(b).to(self.device)).cpu()
         self.logger.debug("obtained result: " + str(result))
         np.testing.assert_array_almost_equal(
             result, np.array(expected_result))
 
-    def test_FunctionForwardRandomCUDA(self):
+    def test_FunctionForwardRandomCUDA2(self):
         if torch.cuda.is_available():
             args = Arguments(conv_exec_type=ConvExecType.CUDA)
             num_channels = 3
@@ -983,10 +986,10 @@ class TestPyTorchConv1d(unittest.TestCase):
                                   input=torch.from_numpy(x).to(self.device),
                                   filter=torch.from_numpy(y).to(self.device),
                                   bias=torch.from_numpy(b).to(self.device),
-                                  args=args)
+                                  args=args).cpu()
             self.logger.debug("obtained result: " + str(result))
             np.testing.assert_array_almost_equal(
-                result.cpu().detach().numpy(), np.array(expected_result))
+                result, np.array(expected_result))
 
     def test_FunctionForwardRandomSipleFFTConv(self):
         num_channels = 3
@@ -1042,9 +1045,9 @@ class TestPyTorchConv1d(unittest.TestCase):
         y = np.array([[[2.0, 1.0]]])
         b = np.array([2.0])
         dtype = torch.float
-        x_torch = tensor(x, requires_grad=True, dtype=dtype)
-        y_torch = tensor(y, requires_grad=True, dtype=dtype)
-        b_torch = tensor(b, requires_grad=True, dtype=dtype)
+        x_torch = tensor(x, requires_grad=True, dtype=dtype, device=self.device)
+        y_torch = tensor(y, requires_grad=True, dtype=dtype, device=self.device)
+        b_torch = tensor(b, requires_grad=True, dtype=dtype, device=self.device)
 
         conv_param = {'pad': 0, 'stride': 1}
         expected_result, cache = conv_forward_naive_1D(x, y, b,
@@ -1053,18 +1056,23 @@ class TestPyTorchConv1d(unittest.TestCase):
         ctx.set_needs_input_grad(3)
         result_torch = Conv1dfftFunction.forward(
             ctx, input=x_torch, filter=y_torch, bias=b_torch)
-        result = result_torch.detach().numpy()
+        result = result_torch.cpu().detach().numpy()
         np.testing.assert_array_almost_equal(
             result, np.array(expected_result))
 
-        dout = tensor([[[0.1, -0.2]]], dtype=dtype)
+        dout = tensor([[[0.1, -0.2]]], dtype=dtype, device=self.device)
         # get the expected result from the backward pass
         expected_dx, expected_dw, expected_db = \
-            conv_backward_naive_1D(dout.numpy(), cache)
+            conv_backward_naive_1D(dout.cpu().numpy(), cache)
 
         dx, dw, db, _, _, _, _, _, _ = Conv1dfftFunction.backward(
             ctx,
             dout)
+
+        dx = dx.cpu()
+        dw = dw.cpu()
+        db = db.cpu()
+
 
         self.logger.debug("expected dx: " + str(expected_dx))
         self.logger.debug("computed dx: " + str(dx))

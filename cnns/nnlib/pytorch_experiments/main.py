@@ -77,7 +77,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 
 ucr_data_folder = "TimeSeriesDatasets"
 # ucr_path = os.path.join(dir_path, os.pardir, data_folder)
-ucr_path = os.path.join(os.pardir, os.pardir, ucr_data_folder)
+ucr_path = os.path.join(os.pardir, ucr_data_folder)
 
 results_folder_name = "results"
 results_dir = os.path.join(os.getcwd(), results_folder_name)
@@ -1006,8 +1006,10 @@ if __name__ == '__main__':
                  'Worms',
                  'WormsTwoClass',  # start from almost the beginning
                  'Earthquakes']
-    elif args.dataset == 'debug20':
+    elif args.dataset == "debug20":
         flist = ["Coffee", "Car", "ArrowHead"]
+    elif args.dataset == "debug21":
+        flist = ["50words"]
     else:
         raise AttributeError("Unknown dataset: ", args.dataset)
 

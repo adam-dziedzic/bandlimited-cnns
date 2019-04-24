@@ -21,24 +21,25 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 """
 
 # 1D
-# conv_type = ConvType.FFT1D
+conv_type = ConvType.FFT1D
 # conv_type = ConvType.STANDARD
 
 # 2D
-conv_type = ConvType.STANDARD2D
+# conv_type = ConvType.STANDARD2D
 # conv_type = ConvType.FFT2D
-# conv_type = ConvType.STANDARD
 
 if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # dataset = "ucr"
-    dataset = "WIFI64"
+    # dataset = "WIFI64"
+    dataset = "debug21"
     network_type = NetworkType.FCNN_STANDARD
     preserved_energy = 100  # for unit tests
     learning_rate = 0.0001
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
     precision_type = PrecisionType.FP32
-    conv_exec_type = ConvExecType.BATCH
+    # conv_exec_type = ConvExecType.BATCH
+    conv_exec_type = ConvExecType.CUDA
     visualize = False  # test model for different compress rates
     next_power2 = True
 else:
@@ -237,7 +238,8 @@ class Arguments(object):
                  distributed=False,
                  in_channels=3,
                  values_per_channel=4,
-                 ucr_path = "../sathya",
+                 # ucr_path = "../sathya",
+                 ucr_path="../../TimeSeriesDatasets",
                  ):
         """
         The default parameters for the execution of the program.

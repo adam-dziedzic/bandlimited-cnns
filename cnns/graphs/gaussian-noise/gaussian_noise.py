@@ -47,7 +47,11 @@ def read_columns(dataset):
 fig = plt.figure(figsize=(8, 6))
 
 dataset = "cifar10-on-ResNet18-add-gaussian-noise"
-labels = ["sigma", "FP32-C=0%", "FP16-C=0%", "FP32-C=0% early stopping", "FP32-C=50%", "FP32-C=85%"]
+labels = ["sigma", "FP32-C=0% full spectra",
+          "FP16-C=0% full spectra\n(reduced precision: 16 bits)",
+          "FP32-C=0% early stopping",
+          "FP32-C=50% band-limited",
+          "FP32-C=85% band-limited"]
 
 cols = read_columns(dataset)
 colors = [get_color(color) for color in
@@ -74,4 +78,5 @@ plt.xlim(0, 2)
 # plt.imshow()
 plt.show(block=True)
 plt.interactive(False)
-fig.savefig(dir_path + "/" + "gaussian_noise.pdf", bbox_inches='tight')
+fig.savefig(dir_path + "/" + "gaussian_noise_extended.pdf",
+            bbox_inches='tight')
