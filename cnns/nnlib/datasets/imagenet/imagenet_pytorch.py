@@ -4,6 +4,13 @@ from torchvision import transforms
 import torchvision.datasets as datasets
 import numpy as np
 from cnns.nnlib.utils.general_utils import MemoryType
+from cnns.nnlib.datasets.transformations.dtype_transformation import \
+    DtypeTransformation
+from cnns.nnlib.datasets.transformations.flat_transformation import \
+    FlatTransformation
+from cnns.nnlib.datasets.transformations.gaussian_noise import \
+    AddGaussianNoiseTransformation
+from cnns.nnlib.datasets.transformations.rounding import RoundingTransformation
 
 imagenet_mean = [0.485, 0.456, 0.406]
 imagenet_std = [0.229, 0.224, 0.225]
@@ -14,6 +21,43 @@ imagenet_std_array = np.array(imagenet_std).reshape((3, 1, 1))
 # the min/max value per pixel after normalization
 imagenet_min = -2.1179039478301 # -2.1179039478302
 imagenet_max = 2.640000104904174  # 2.640000104904175
+
+normalize = transforms.Normalize(mean=imagenet_mean, std=imagenet_std)
+
+def get_transform_train(args, dtype=torch.float32, signal_dimension=2):
+    transformations = []
+    transformations.append(transforms.RandomResizedCrop(224))
+    transformations.append(transforms.RandomHorizontalFlip())
+    transformations.append(transforms.ToTensor())
+    # if args.values_per_channel > 0:
+    #     transformations.append(
+    #         RoundingTransformation(values_per_channel=args.values_per_channel))
+    transformations.append(normalize)
+    if signal_dimension == 1:
+        transformations.append(FlatTransformation())
+    # transformations.append(DtypeTransformation(dtype=dtype))
+    transform_train = transforms.Compose(transformations)
+    return transform_train
+
+
+def get_transform_test(args, dtype=torch.float32, signal_dimension=2,
+                       noise_sigma=0):
+    transformations = []
+    transformations.append(transforms.Resize(256))
+    transformations.append(transforms.CenterCrop(224))
+    transformations.append(transforms.ToTensor())
+    transformations.append(normalize)
+    # if args.values_per_channel > 0:
+    #     transformations.append(
+    #         RoundingTransformation(values_per_channel=args.values_per_channel))
+    if signal_dimension == 1:
+        transformations.append(FlatTransformation())
+    if noise_sigma > 0:
+        transformations.append(
+            AddGaussianNoiseTransformation(sigma=noise_sigma))
+    # transformations.append(DtypeTransformation(dtype))
+    transform_test = transforms.Compose(transformations)
+    return transform_test
 
 def load_imagenet(args):
     args.num_classes = 1000
@@ -26,41 +70,35 @@ def load_imagenet(args):
 
     traindir = os.path.join(args.imagenet_path, 'train')
     valdir = os.path.join(args.imagenet_path, 'val')
-    normalize = transforms.Normalize(mean=imagenet_mean, std=imagenet_std)
 
     train_dataset = datasets.ImageFolder(
-        traindir,
-        transforms.Compose([
-            transforms.RandomResizedCrop(224),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            normalize,
-        ]))
+        traindir, get_transform_train(args=args))
 
     sample_count = args.sample_count_limit
     if sample_count > 0:
         train_dataset.imgs = train_dataset.imgs[:sample_count]
+        train_dataset.samples = train_dataset.samples[:sample_count]
+        train_dataset.classes = train_dataset.classes[:sample_count]
 
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(
             train_dataset)
+        train_sampler.num_samples = sample_count
     else:
         train_sampler = None
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.min_batch_size,
-        shuffle=(train_sampler is None),
+        shuffle=(train_sampler is None),  # has to be False if train_sampler provided
         num_workers=args.workers, pin_memory=pin_memory, sampler=train_sampler)
+    # train_loader.batch_sampler.sampler.num_samples = sample_count
 
-    val_dataset = datasets.ImageFolder(valdir, transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        normalize,
-    ]))
+    val_dataset = datasets.ImageFolder(valdir, get_transform_test(args=args))
 
     if sample_count > 0:
         val_dataset.imgs = val_dataset.imgs[:sample_count]
+        val_dataset.samples = val_dataset.samples[:sample_count]
+        val_dataset.classes = val_dataset.classes[:sample_count]
 
     val_loader = torch.utils.data.DataLoader(
         val_dataset, batch_size=args.min_batch_size, shuffle=False,

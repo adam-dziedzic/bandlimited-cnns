@@ -27,6 +27,7 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 # 2D
 # conv_type = ConvType.STANDARD2D
 conv_type = ConvType.FFT2D
+compress_rate = 0.0
 
 if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # dataset = "ucr"
@@ -112,10 +113,8 @@ class Arguments(object):
                  # precision_type=PrecisionType.FP16,
                  use_cuda=True,
                  compress_type=CompressType.STANDARD,
-                 # compress_rate=5,
-                 # compress_rate=0.0,
-                 compress_rate=0.0,
-                 compress_rates=[0.0],
+                 compress_rate=compress_rate,
+                 compress_rates=[compress_rate],
                  # ndexes_back=[5,15,25,35,45],
                  # compress_rates=range(0, 101),
                  # compress_rates=[x/2 for x in range(28,111,1)],
@@ -211,7 +210,7 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=1024,  # run on full data
+                 sample_count_limit=32,  # run on full data
                  # sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
