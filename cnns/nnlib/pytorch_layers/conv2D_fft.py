@@ -405,9 +405,10 @@ class Conv2dfftFunction(torch.autograd.Function):
                 # file.write("C:" + str(C) + "," + "H:" + str(
                 #     half_fft_compressed_H) + "," + "W:" + str(
                 #     half_fft_compressed_W) + ",")
-        cuda_block_threads = min(1024,
-                                 half_fft_compressed_H * half_fft_compressed_W)
+        # cuda_block_threads = min(1024,
+        #                          half_fft_compressed_H * half_fft_compressed_W)
         # cuda_block_threads = 1024
+        cuda_block_threads = half_fft_compressed_H * half_fft_compressed_W
 
         if bias is not None:
             unsqueezed_bias = bias.unsqueeze(-1).unsqueeze(-1)

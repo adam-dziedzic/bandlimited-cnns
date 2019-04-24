@@ -21,12 +21,12 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 """
 
 # 1D
-conv_type = ConvType.FFT1D
+# conv_type = ConvType.FFT1D
 # conv_type = ConvType.STANDARD
 
 # 2D
 # conv_type = ConvType.STANDARD2D
-# conv_type = ConvType.FFT2D
+conv_type = ConvType.FFT2D
 
 if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # dataset = "ucr"
@@ -34,7 +34,10 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     dataset = "debug21"
     network_type = NetworkType.FCNN_STANDARD
     preserved_energy = 100  # for unit tests
-    learning_rate = 0.0001
+    # learning_rate = 0.0001
+    learning_rate = 0.01
+    batch_size = 32
+    weight_decay=0.0005
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
     precision_type = PrecisionType.FP32
@@ -43,11 +46,26 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     visualize = False  # test model for different compress rates
     next_power2 = True
 else:
-    dataset = "cifar10"
-    network_type = NetworkType.ResNet18
-    # network_type=NetworkType.DenseNetCifar
-    preserved_energy = 100  # for unit tests
+    # dataset = "cifar10"
+    # dataset = "cifar100"
+    dataset = "imagenet"
+
+    batch_size = 32
     learning_rate = 0.01
+    weight_decay=0.0005
+    if dataset == "cifar10":
+        network_type = NetworkType.ResNet18
+    elif dataset == "cifar100":
+        network_type=NetworkType.DenseNetCifar
+        weight_decay = 0.0001
+    elif dataset == "imagenet":
+        network_type = NetworkType.ResNet50
+        batch_size = 32
+        learning_rate = 0.1
+        weight_decay = 0.0001
+    else:
+        raise Exception(f"Unknown dataset name: {dataset}")
+    preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
     precision_type = PrecisionType.FP32
@@ -119,10 +137,10 @@ class Arguments(object):
                  layers_compress_rates=None,
                  # weight_decay=5e-4,
                  # weight_decay=0,
-                 weight_decay=0.0005,
-                 epochs=100,
-                 min_batch_size=32,
-                 test_batch_size=32,
+                 weight_decay=weight_decay,
+                 epochs=2,
+                 min_batch_size=batch_size,
+                 test_batch_size=batch_size,
                  learning_rate=learning_rate,
                  momentum=0.9,
                  seed=31,
@@ -133,7 +151,7 @@ class Arguments(object):
                  loss_type=LossType.CROSS_ENTROPY,
                  loss_reduction=LossReduction.ELEMENTWISE_MEAN,
                  memory_type=MemoryType.PINNED,
-                 workers=6,
+                 workers=4,
                  model_path="no_model",
                  # model_path="2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model",
                  # model_path="2019-01-08-14-41-44-026589-dataset-cifar10-preserve-energy-100.0-test-accuracy-91.39-fp16-amp-no-compression.model",
@@ -193,7 +211,7 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=0,  # run on full data
+                 sample_count_limit=1024,  # run on full data
                  # sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,

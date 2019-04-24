@@ -3,6 +3,7 @@ import torch
 from torchvision import transforms
 import torchvision.datasets as datasets
 import numpy as np
+from cnns.nnlib.utils.general_utils import MemoryType
 
 imagenet_mean = [0.485, 0.456, 0.406]
 imagenet_std = [0.229, 0.224, 0.225]
@@ -16,6 +17,13 @@ imagenet_max = 2.640000104904174  # 2.640000104904175
 
 def load_imagenet(args):
     args.num_classes = 1000
+    pin_memory = False
+    if args.memory_type is MemoryType.PINNED:
+        pin_memory = True
+    args.in_channels = 3  # number of channels in the input data
+    args.out_channels = None
+    args.signal_dimension = 2
+
     traindir = os.path.join(args.imagenet_path, 'train')
     valdir = os.path.join(args.imagenet_path, 'val')
     normalize = transforms.Normalize(mean=imagenet_mean, std=imagenet_std)
@@ -42,7 +50,7 @@ def load_imagenet(args):
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.min_batch_size,
         shuffle=(train_sampler is None),
-        num_workers=args.workers, pin_memory=True, sampler=train_sampler)
+        num_workers=args.workers, pin_memory=pin_memory, sampler=train_sampler)
 
     val_dataset = datasets.ImageFolder(valdir, transforms.Compose([
         transforms.Resize(256),
@@ -56,7 +64,7 @@ def load_imagenet(args):
 
     val_loader = torch.utils.data.DataLoader(
         val_dataset, batch_size=args.min_batch_size, shuffle=False,
-        num_workers=args.workers, pin_memory=True)
+        num_workers=args.workers, pin_memory=pin_memory)
 
     return train_loader, val_loader, train_dataset, val_dataset
 
