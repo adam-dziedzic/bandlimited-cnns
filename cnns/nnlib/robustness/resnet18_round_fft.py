@@ -84,6 +84,9 @@ def get_attacks():
 # attack = empty_attack
 
 def run(args):
+    import datetime
+    print("start time: ", datetime.datetime.now())
+
     header = ",".join([
         "compress rate",
         "attack name",
@@ -124,10 +127,6 @@ def run(args):
     # input_epsilons = [x / 100 for x in range(21)]
     # input_epsilons = range(0, 100, 10)
 
-    import datetime
-
-    print("start time: ", datetime.datetime.now())
-
     # full_model_path = "2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model"
     full_model_spectra_path = "full_spectra.model"
     full_model_path = "2019-04-08-18-32-59-787750-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.47.model"
@@ -149,7 +148,7 @@ def run(args):
     full_attack = CarliniWagnerL2AttackRound(full_model)
     # full_attack = CarliniWagnerL2AttackRound(band_model)
     # input_epsilons = [1000]
-    input_epsilons = range(0, 1000, 10)
+    input_epsilons = range(100, 1000, 100)
     values_per_channel = 256
 
     # for epsilon in [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0]:
@@ -192,8 +191,11 @@ def run(args):
                     image, label, max_iterations=epsilon, abort_early=False,
                     unpack=False, values_per_channel=values_per_channel)
                 image_attack = rounded_adversarial.image
-                original_distance += original_adversarial.distance.value
-                rounded_distance += rounded_adversarial.distance.value
+                # print("original distance: ", original_adversarial.distance.value)
+                if original_adversarial.distance.value < np.inf:
+                    original_distance += original_adversarial.distance.value
+                if rounded_adversarial.distance.value < np.inf:
+                    rounded_distance += rounded_adversarial.distance.value
                 if image_attack is None:
                     no_adversarials += 1
                     # print("image is None, label:", label, " i:", i)
