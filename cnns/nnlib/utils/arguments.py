@@ -47,9 +47,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     visualize = False  # test model for different compress rates
     next_power2 = True
 else:
-    # dataset = "cifar10"
+    dataset = "cifar10"
     # dataset = "cifar100"
-    dataset = "imagenet"
+    # dataset = "imagenet"
 
     batch_size = 32
     learning_rate = 0.01

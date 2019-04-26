@@ -22,7 +22,7 @@ class DenormRoundNorm(object):
         self.mean = mean
         self.std = std
         self.denorm = Denormalize(std=std, mean=mean, device=device)
-        self.round = RoundingTransformation(
+        self.rounder = RoundingTransformation(
             values_per_channel=values_per_channel)
         self.norm = Normalize(std=std, mean=mean, device=device)
 
@@ -34,7 +34,19 @@ class DenormRoundNorm(object):
         Returns:
             Tensor: De-Normalized Tensor image.
         """
-        return self.norm(self.round(self.denorm(tensor)))
+        return self.norm(self.rounder(self.denorm(tensor)))
+
+    def round(self, numpy_array):
+        """
+        Execute rounding for numpy arrays. Wrapper around __call__ to call it
+        for numpy arrays.
+
+        :param numpy_array: the numpy array representing the image.
+        :return: the rounded image as a numpy array.
+        """
+        image_attack_torch = torch.from_numpy(numpy_array)
+        return self.__call__(image_attack_torch).numpy()
+
 
     def __repr__(self):
         return self.__class__.__name__ + '(mean={0}, std={1}, values_per_channel={2})'.format(

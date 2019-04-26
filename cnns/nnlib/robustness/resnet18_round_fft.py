@@ -26,6 +26,7 @@ from cnns.nnlib.utils.general_utils import get_log_time
 import os
 from cnns.nnlib.datasets.transformations.denorm_round_norm import \
     DenormRoundNorm
+from cnns.nnlib.utils.general_utils import NetworkType
 
 if not sys.warnoptions:
     import warnings
@@ -74,7 +75,7 @@ def get_attacks():
         # [1000]),
         # [2]),
         (CarliniWagnerL2AttackRound, "CarliniWagnerL2AttackRound",
-         [1000]),
+         [x for x in range(1000)]),
     ]
     return attacks
 
@@ -137,9 +138,8 @@ def run(args):
                                    min=cifar_min, max=cifar_max)
 
     full_attack = CarliniWagnerL2AttackRound(full_model)
-    band_attack = CarliniWagnerL2AttackRound(band_model)
-    input_epsilons = [1000]
-    # input_epsilons = range(1000)
+    # input_epsilons = [1000]
+    input_epsilons = range(1000)
 
     # for epsilon in [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0]:
     for epsilon in input_epsilons:
@@ -165,23 +165,18 @@ def run(args):
                 #         round=np.round)(model_image)
 
                 # check if the image is classified correctly by both models
-                predictions = full_model.predictions(
-                    model_image)
+                predictions = band_model.predictions(model_image)
                 if np.argmax(predictions) != label:
                     # print("not classified correctly")
                     continue
-                predictions = band_model.predictions(
-                    model_image)
+                predictions = full_model.predictions(model_image)
                 if np.argmax(predictions) != label:
                     # print("not classified correctly")
                     continue
 
                 counter += 1
-                adversarial = full_attack(image, label,
-                                          max_iterations=epsilon,
-                                          abort_early=False,
-                                          unpack=False)
-                image_attack = adversarial.round_image
+                image_attack = full_attack(image, label, max_iterations=epsilon,
+                                           abort_early=False, unpack=False)
                 if image_attack is None:
                     no_adversarials += 1
                     # print("image is None, label:", label, " i:", i)
@@ -196,12 +191,10 @@ def run(args):
                     # for values_per_channel in [256 // (2 ** x) for x in
                     #                            range(0, 7)]:
                     for values_per_channel in [args.values_per_channel]:
-                        image_attack_torch = torch.from_numpy(
-                            image_attack)
                         image_attack = DenormRoundNorm(
                             mean=cifar_mean, std=cifar_std,
-                            values_per_channel=values_per_channel)(
-                            image_attack_torch).numpy()
+                            values_per_channel=values_per_channel).round(
+                            image_attack)
                         predictions = full_model.predictions(image_attack)
 
                         # print(np.argmax(predictions), label)
@@ -255,7 +248,7 @@ if __name__ == "__main__":
     args.values_per_channel = 256
     # args.compress_rate = 84
     args.conv_type = ConvType.FFT2D
-    args.sample_count_limit = 0
+    args.sample_count_limit = 100
 
     # args.model_path = "2019-04-08-19-53-50-779103-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-rounding-32-values-per-channel.model"
     # args.model_path = "saved_model_2019-04-11-04-51-57-429818-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-channel-vals-256.model"
@@ -268,7 +261,8 @@ if __name__ == "__main__":
     # args.values_per_channel = 2
 
     # args.conv_type = ConvType.STANDARD2D
-
+    args.dataset = "cifar10"
+    args.network_type = NetworkType.ResNet18
     train_loader, test_loader, train_dataset, test_dataset = get_cifar(
         args=args, dataset_name=args.dataset)
 

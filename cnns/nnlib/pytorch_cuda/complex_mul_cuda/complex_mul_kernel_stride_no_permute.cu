@@ -34,7 +34,7 @@ and avoid any additional synchronization by focusing on computation
 of a single output cell (of coordinates: [n,f,h,w] in an output map.
 
 The total number of GPU thread blocks is N * F * max threads per block: number
-of input maps (e.g. images) in the batch and number of filers in the filter
+of input maps (e.g. images) in the batch and number of filters in the filter
 bank.
 Each block of threads is used to compute a single output plane of size
 (H x W x I), which corresponds to the f-th channel plane in the n-th output map.

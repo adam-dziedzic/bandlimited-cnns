@@ -68,7 +68,7 @@ class MockContext(object):
         Save intermediate results in the forward pass for the backward pass.
         :param args: the intermediate results to be saved.
         """
-        self.args = args
+        self.__args__ = args
 
     @property
     def saved_tensors(self):
@@ -76,7 +76,7 @@ class MockContext(object):
         Retrieve the saved tensors in the forward pass for the backward pass.
         :return: the saved tensors
         """
-        return self.args
+        return self.__args__
 
     def set_needs_input_grad(self, number_needed):
         """

@@ -75,13 +75,6 @@ class TestPyTorchConv2d(unittest.TestCase):
                     "equal.")
 
     def test_ForwardNoCompressionForConv2dfft(self):
-        if torch.cuda.is_available():
-            device = torch.device("cuda")
-            print("cuda is available")
-        else:
-            device = torch.device("cpu")
-            print("cuda is not available")
-        dtype = torch.float
         # Don't use next power of 2.
         # A single input map.
         x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]],
@@ -100,13 +93,6 @@ class TestPyTorchConv2d(unittest.TestCase):
             rtol=1e-6, err_msg=self.ERR_MESSAGE_ALL_CLOSE)
 
     def test_FunctionForwardNoCompression(self):
-        if torch.cuda.is_available():
-            device = torch.device("cuda")
-            print("cuda is available")
-        else:
-            device = torch.device("cpu")
-            print("cuda is not available")
-        dtype = torch.float
         # Don't use next power of 2.
         # A single input map.
         x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]],
@@ -123,7 +109,7 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         expect = np.array([[[[22.0, 22.0], [18., 14.]]]])
         np.testing.assert_allclose(
-            desired=expect, actual=result.cpu().detach().numpy(), rtol=1e-6,
+            desired=expect, actual=get_numpy(result), rtol=1e-6,
             err_msg=self.ERR_MESSAGE_ALL_CLOSE)
 
     def test_2_channels_2_filters(self):
@@ -141,21 +127,24 @@ class TestPyTorchConv2d(unittest.TestCase):
         expect = np.array([[[[23.0, 32.0], [30., 4.]], [[11.0, 12.0],
                                                         [13.0, -11.0]]]])
         np.testing.assert_allclose(
-            desired=expect, actual=result.cpu().detach().numpy(), rtol=1e-6,
+            desired=expect, actual=get_numpy(result), rtol=1e-6,
             err_msg=self.ERR_MESSAGE_ALL_CLOSE)
 
     def test_bias(self):
         # A single 2D input map.
-        x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]])
+        x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]],
+                   device=self.device, dtype=self.dtype)
         # A single filter.
-        y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]])
-        b = tensor([-1.0])
+        y = tensor([[[[1.0, 2.0], [3.0, 2.0]]]],
+                   device=self.device, dtype=self.dtype)
+        b = tensor([-1.0],
+                   device=self.device, dtype=self.dtype)
         conv = Conv2dfftFunction()
         result = conv.forward(ctx=None, input=x, filter=y, bias=b)
         expect = np.array([[[[21.0, 21.0], [17., 13.]]]])
-        np.testing.assert_array_almost_equal(
-            x=expect, y=result,
-            err_msg="The expected array x and computed y are not almost equal.")
+        np.testing.assert_allclose(
+            desired=expect, actual=get_numpy(result), rtol=1e-6,
+            err_msg=self.ERR_MESSAGE_ALL_CLOSE)
 
     def testExact2DConvWith3channels2filters(self):
         # This example is from Stanford CS231n course:
@@ -309,14 +298,6 @@ class TestPyTorchConv2d(unittest.TestCase):
         expect, _ = conv_forward_naive(x, y, b, conv_param)
         self.logger.debug("expected result: " + str(expect))
 
-        if torch.cuda.is_available():
-            device = torch.device("cuda")
-            print("cuda is available")
-        else:
-            device = torch.device("cpu")
-            print("cuda is not available")
-        dtype = torch.float
-
         x_torch = tensor(x, device=self.device, dtype=self.dtype)
         y_torch = tensor(y, device=self.device, dtype=self.dtype)
         b_torch = tensor(b, device=self.device, dtype=self.dtype)
@@ -345,15 +326,6 @@ class TestPyTorchConv2d(unittest.TestCase):
         # Bias: one for each filter
         # b = np.random.rand(num_filters)
         b = np.zeros(num_filters)
-
-        print("\n")
-        if torch.cuda.is_available():
-            device = torch.device("cuda")
-            print("cuda is available")
-        else:
-            device = torch.device("cpu")
-            print("cuda is not available")
-        dtype = torch.float
 
         x_torch = tensor(x, device=self.device, dtype=self.dtype)
         y_torch = tensor(y, device=self.device, dtype=self.dtype)
@@ -436,15 +408,6 @@ class TestPyTorchConv2d(unittest.TestCase):
         # b = np.random.rand(num_filters)
         b = np.zeros(num_filters)
 
-        print("\n")
-        if torch.cuda.is_available():
-            device = torch.device("cuda")
-            print("cuda is available")
-        else:
-            device = torch.device("cpu")
-            print("cuda is not available")
-        dtype = torch.float
-
         x_torch = tensor(x, device=self.device, dtype=self.dtype)
         x_torch_clone = tensor(x, device=self.device, dtype=self.dtype)
         b_torch = tensor(b, device=self.device, dtype=self.dtype)
@@ -457,9 +420,9 @@ class TestPyTorchConv2d(unittest.TestCase):
         # weight taken from torch's Conv2d
         weight = convTorch.weight.clone()
         weight = weight.requires_grad_(True)
-        weight = weight.to(device)
+        weight = weight.to(self.device)
 
-        convTorch.to(device)
+        convTorch.to(self.device)
         expect = convTorch(input=x_torch_clone)
 
         conv = Conv2dfftFunction()
@@ -489,21 +452,25 @@ class TestPyTorchConv2d(unittest.TestCase):
         print("expected result: ", expected_result)
 
         ctx = MockContext()
+        args = Arguments()
         ctx.set_needs_input_grad(3)
         is_manual = tensor([0])
         result_torch = Conv2dfftFunction.forward(
-            ctx, input=x_torch, filter=y_torch, bias=b_torch, args=Arguments(),
+            ctx, input=x_torch, filter=y_torch, bias=b_torch, args=args,
             is_manual=is_manual)
         result = get_numpy(result_torch)
         np.testing.assert_array_almost_equal(result, np.array(expected_result))
 
-        dout = tensor([[[[0.1, -0.2], [0.3, -0.1]]]], dtype=self.dtype)
-        # get the expected result from the backward pass
-        expected_dx, expected_dw, expected_db = \
-            conv_backward_naive(dout.numpy(), cache)
+        dout = tensor([[[[0.1, -0.2], [0.3, -0.1]]]], dtype=self.dtype,
+                      device=self.device)
 
         dx, dw, db, _, _, _, _, _, _ = Conv2dfftFunction.backward(
             ctx, dout)
+
+        dout_numpy = get_numpy(dout.clone())
+        # get the expected result from the backward pass
+        expected_dx, expected_dw, expected_db = \
+            conv_backward_naive(dout_numpy, cache)
 
         self.logger.debug("\nexpected dx: " + str(expected_dx))
         self.logger.debug("\ncomputed dx: " + str(dx))
@@ -549,15 +516,16 @@ class TestPyTorchConv2d(unittest.TestCase):
 
         result_torch_2 = Conv2dfft(weight_value=y_torch, bias=b_torch).forward(
             input=x_torch)
-        result2 = result_torch_2.detach().numpy()
+        result2 = get_numpy(result_torch_2)
         print("actual result 2: ", result2)
         np.testing.assert_array_almost_equal(result2, np.array(expected_result))
 
         dout = torch.autograd.Variable(
-            tensor([[[[0.1, -0.2], [0.3, -0.1]]]], dtype=self.dtype))
+            tensor([[[[0.1, -0.2], [0.3, -0.1]]]], dtype=self.dtype,
+                   device=self.device))
         # get the expected result from the backward pass
         expected_dx, expected_dw, expected_db = \
-            conv_backward_naive(dout.numpy(), cache)
+            conv_backward_naive(get_numpy(dout.clone()), cache)
 
         dx, dw, db, _, _, _, _, _, _ = Conv2dfftFunction.backward(ctx, dout)
 
@@ -580,13 +548,7 @@ class TestPyTorchConv2d(unittest.TestCase):
                         [1.0, -1.0, -2.0]]]])
         y = np.array([[[[2.0, 1.0], [-1.0, 2.0]]]])
         b = np.array([0.0])
-        if torch.cuda.is_available():
-            device = torch.device("cuda")
-            print("cuda is available")
-        else:
-            device = torch.device("cpu")
-            print("cuda is not available")
-        dtype = torch.float
+
         x_torch = tensor(x, requires_grad=True, dtype=self.dtype,
                          device=self.device)
         y_torch = tensor(y, requires_grad=True, dtype=self.dtype,
@@ -653,13 +615,7 @@ class TestPyTorchConv2d(unittest.TestCase):
                        ]])
         y = np.array([[[[2.0, 1.0], [-1.0, 2.0]], [[1.0, 0.0], [2.0, 1.0]]]])
         b = np.array([1.0])
-        if torch.cuda.is_available():
-            device = torch.device("cuda")
-            print("cuda is available")
-        else:
-            device = torch.device("cpu")
-            print("cuda is not available")
-        dtype = torch.float
+
         x_torch = tensor(x, requires_grad=True, dtype=self.dtype,
                          device=self.device)
         print("x size: ", x_torch.size())

@@ -25,6 +25,7 @@ from cnns.nnlib.utils.general_utils import get_log_time
 import os
 from cnns.nnlib.datasets.transformations.denorm_round_norm import \
     DenormRoundNorm
+from cnns.nnlib.utils.general_utils import NetworkType
 
 if not sys.warnoptions:
     import warnings
@@ -102,7 +103,7 @@ def run(args):
         #  "2019-04-08-14-21-46-099982-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-88.41.model"),
         # (0,  # FFT based model
         #  "2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model"),
-        # (84,  # FFT based modle
+        # (84,  # FFT based model
         #  "2019-01-21-14-30-13-992591-dataset-cifar10-preserve-energy-100.0-test-accuracy-84.55-compress-label-84-after-epoch-304.model"),
         # (0,
         #  "2019-04-08-19-53-50-779103-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-rounding-32-values-per-channel.model")
@@ -283,19 +284,23 @@ if __name__ == "__main__":
     # should we turn pixels to the range from 0 to 255 and round them to
     # the nearest integer values?
     args.is_round = True
+    args.dataset = "cifar10"
+    args.network_type = NetworkType.ResNet18
     # for model with rounding
 
-    # args.model_path = "2019-01-21-14-30-13-992591-dataset-cifar10-preserve-energy-100.0-test-accuracy-84.55-compress-label-84-after-epoch-304.model"
-    # args.values_per_channel = 0
-    # args.compress_rate = 84
-    # args.conv_type = ConvType.FFT2D
-    # args.sample_count_limit = 0
+    args.model_path = "2019-01-21-14-30-13-992591-dataset-cifar10-preserve-energy-100.0-test-accuracy-84.55-compress-label-84-after-epoch-304.model"
+    args.values_per_channel = 0
+    args.compress_rate = 84
+    args.conv_type = ConvType.FFT2D
+    args.sample_count_limit = 100
 
     # args.model_path = "2019-04-08-19-53-50-779103-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-rounding-32-values-per-channel.model"
-    args.model_path = "saved_model_2019-04-11-04-51-57-429818-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-channel-vals-256.model"
-    args.values_per_channel = 256
-    args.conv_type = ConvType.STANDARD2D
-    args.sample_count_limit = 100
+    # args.model_path = "saved_model_2019-04-11-04-51-57-429818-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-channel-vals-256.model"
+    # args.values_per_channel = 256
+    # args.compress_rate = 0
+    # args.conv_type = ConvType.STANDARD2D
+    # args.sample_count_limit = 100
+
     # args.model_path = "saved_model_2019-04-13-07-22-56-806744-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.23-channel-vals-256.model"
     # args.model_path = "2019-04-08-19-53-50-779103-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-rounding-32-values-per-channel.model
     # args.model_path = "saved_model_2019-04-11-07-18-28-194468-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-78.25-channel-vals-2.model"
