@@ -148,7 +148,7 @@ def run(args):
     full_attack = CarliniWagnerL2AttackRound(full_model)
     # full_attack = CarliniWagnerL2AttackRound(band_model)
     # input_epsilons = [1000]
-    input_epsilons = range(1000, 5000, 1000)
+    input_epsilons = range(0, 5000, 1)
     values_per_channel = 256
 
     # for epsilon in [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0]:
@@ -272,7 +272,7 @@ if __name__ == "__main__":
     args.values_per_channel = 0
     # args.compress_rate = 84
     args.conv_type = ConvType.FFT2D
-    args.sample_count_limit = 100
+    args.sample_count_limit = 1000
 
     # args.model_path = "2019-04-08-19-53-50-779103-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-rounding-32-values-per-channel.model"
     # args.model_path = "saved_model_2019-04-11-04-51-57-429818-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-channel-vals-256.model"
