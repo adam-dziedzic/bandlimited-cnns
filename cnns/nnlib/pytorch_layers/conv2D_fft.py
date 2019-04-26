@@ -44,6 +44,8 @@ from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.arguments import Arguments
 from cnns.nnlib.utils.general_utils import additional_log_file
 
+MAX_BLOCK_THREADS = 1024
+
 if torch.cuda.is_available():
     # from complex_mul_cpp import complex_mul as complex_mul_cpp
     # from complex_mul_cuda import complex_mul as complex_mul_cuda
@@ -405,10 +407,8 @@ class Conv2dfftFunction(torch.autograd.Function):
                 # file.write("C:" + str(C) + "," + "H:" + str(
                 #     half_fft_compressed_H) + "," + "W:" + str(
                 #     half_fft_compressed_W) + ",")
-        cuda_block_threads = min(1024,
+        cuda_block_threads = min(MAX_BLOCK_THREADS,
                                  half_fft_compressed_H * half_fft_compressed_W)
-        # cuda_block_threads = 1024
-        # cuda_block_threads = half_fft_compressed_H * half_fft_compressed_W
 
         if bias is not None:
             unsqueezed_bias = bias.unsqueeze(-1).unsqueeze(-1)

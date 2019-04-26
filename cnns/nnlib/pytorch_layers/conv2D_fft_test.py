@@ -393,7 +393,6 @@ class TestPyTorchConv2d(unittest.TestCase):
         filter_W = 3
         num_filters = 64
 
-
         x = cifar10_image
         # repeat the data point num_data_points times
         repetition = num_data_points
@@ -850,12 +849,6 @@ class TestPyTorchConv2d(unittest.TestCase):
         num_filters = 5
 
         print("\nstart test:")
-        if torch.cuda.is_available():
-            device = torch.device("cuda")
-            print("cuda is available")
-        else:
-            device = torch.device("cpu")
-            print("cuda is not available")
 
         # Input signal: 5 data points, 3 channels, 10 values.
         x = np.random.rand(num_data_points, num_channels, input_H, input_W)
@@ -883,7 +876,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         result_torch = conv.forward(ctx=ctx, input=x_torch, filter=y_torch,
                                     bias=b_torch, is_manual=is_manual,
                                     args=Arguments(
-                                        preserve_energy=preserve_energy))
+                                        preserved_energy=preserve_energy))
         # dout = tensor(result/100.0, dtype=self.dtype)
         dout = torch.randn(result_torch.shape, device=self.device)
 
@@ -939,11 +932,11 @@ class TestPyTorchConv2d(unittest.TestCase):
         input_fft = torch.randn(N, C, H, W, dtype=self.dtype,
                                 device=self.device,
                                 requires_grad=True)
-        input_torch = input_fft.clone()
+        input_torch = input_fft.clone().requires_grad_()
 
         conv_torch = torch.nn.Conv2d(
             in_channels=C, out_channels=F, kernel_size=K)
-        conv_torch.to(device)
+        conv_torch.to(self.device)
 
         is_manual = tensor([0])
         conv_fft = Conv2dfft(weight_value=conv_torch.weight.clone(),
@@ -989,14 +982,6 @@ class TestPyTorchConv2d(unittest.TestCase):
             rtol=1e-6, err_msg=self.ERR_MESSAGE_ALL_CLOSE)
 
     def test_ForwardCompressionForConv2dfftPreserveEenrgy(self):
-        if torch.cuda.is_available():
-            device = torch.device("cuda")
-            print("cuda is available")
-        else:
-            device = torch.device("cpu")
-            print("cuda is not available")
-        dtype = torch.float
-
         # Don't use next power of 2.
         # A single input map.
         x = tensor([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]],
@@ -1006,9 +991,8 @@ class TestPyTorchConv2d(unittest.TestCase):
                    dtype=self.dtype)
         b = tensor([0.0], device=self.device, dtype=self.dtype)
         convManual = Conv2dfft(weight_value=y, bias=b,
-                               args=Arguments(index_back=0,
-                                              next_power2=True,
-                                              preserve_energy=80))
+                               args=Arguments(next_power2=True,
+                                              preserved_energy=80))
         result = convManual.forward(input=x)
         print("result of manual convolution: ", result)
         expect_full_correct = np.array([[[[22.0, 22.0], [18., 14.]]]])
@@ -1167,7 +1151,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         Conv2dfft backward (sec):  0.2832372188568115
 
         """
-        seed=31
+        seed = 31
         torch.cuda.manual_seed_all(seed)
         x = cifar10_image
         x.requires_grad_()
@@ -1202,18 +1186,21 @@ class TestPyTorchConv2d(unittest.TestCase):
         print("pytorch Conv2d forward (sec): ", time.time() - start)
 
         preserve_energy = 100.0
-        compress_rate=0.0
+        compress_rate = 0.0
+
+        args = Arguments(
+            preserved_energy=preserve_energy,
+            compress_rate=compress_rate,
+            is_debug=False,
+            next_power2=True,
+            compress_type=CompressType.STANDARD)
+        args.dtype = self.dtype
+
         conv = Conv2dfft(in_channels=y.shape[1],
                          out_channels=y.shape[0],
                          kernel_size=(y.shape[2], y.shape[3]),
                          bias=False,
-                         args=Arguments(
-                             dtype=dtype,
-                             preserved_energy=preserve_energy,
-                             compress_rate=compress_rate,
-                             is_debug=False,
-                             next_power2=True,
-                             compress_type=CompressType.STANDARD))
+                         args=args)
         conv.to(device)
         start = time.time()
         for _ in range(repeat):
@@ -1303,7 +1290,7 @@ class TestPyTorchConv2d(unittest.TestCase):
                             out_channels=y.shape[0],
                             kernel_size=(y.shape[2], y.shape[3]),
                             bias=False,
-                            args=Arguments(preserve_energy=preserve_energy,
+                            args=Arguments(preserved_energy=preserve_energy,
                                            is_debug=False, next_power2=True))
         convFFT.to(device)
         ctx = MockContext()
@@ -1454,7 +1441,7 @@ class TestPyTorchConv2d(unittest.TestCase):
 
             preserve_energy = None
             convFFT = Conv2dfft(weight_value=weight, bias=False, padding=1,
-                                args=Arguments(preserve_energy=preserve_energy,
+                                args=Arguments(preserved_energy=preserve_energy,
                                                is_debug=False,
                                                next_power2=True))
             convFFT.to(self.device)
@@ -1689,6 +1676,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         out_planes = 64
         stride = 1
         args = Arguments(conv_type=ConvType.FFT2D)
+        args.dtype = self.dtype
         from cnns.nnlib.pytorch_layers.conv_picker import Conv
         conv = Conv(kernel_sizes=[3], in_channels=in_planes,
                     out_channels=[out_planes], strides=[stride],
@@ -1782,7 +1770,7 @@ class TestPyTorchConv2d(unittest.TestCase):
 
             preserve_energy = 100.0
             convFFT = Conv2dfft(weight_value=weight, bias=False,
-                                args=Arguments(preserve_energy=preserve_energy,
+                                args=Arguments(preserved_energy=preserve_energy,
                                                is_debug=False, next_power2=True,
                                                conv_exec_type=conv_exec_type))
             convFFT.to(self.device)

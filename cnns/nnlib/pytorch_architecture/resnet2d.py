@@ -152,11 +152,12 @@ class ResNet(nn.Module):
             raise Exception(
                 f"Unknown dataset: {args.dataset} in ResNet architecture.")
         if args.values_per_channel > 0:
+            pass
             # self.rounder = RoundingTransformation(
             #     values_per_channel=args.values_per_channel, round=torch.round)
-            self.rounder = DenormRoundNorm(
-                values_per_channel=args.values_per_channel,
-                std=self.std, mean=self.mean, device=args.device)
+            # self.rounder = DenormRoundNorm(
+            #     values_per_channel=args.values_per_channel,
+            #     std=self.std, mean=self.mean, device=args.device)
         else:
             # identity function
             self.rounder = lambda x: x

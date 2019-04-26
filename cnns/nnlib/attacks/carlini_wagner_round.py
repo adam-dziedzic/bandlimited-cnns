@@ -14,6 +14,7 @@ from cnns.nnlib.datasets.cifar import cifar_std
 from cnns.nnlib.datasets.transformations.denorm_round_norm import \
     DenormRoundNorm
 
+
 class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
     """The L2 version of the Carlini & Wagner attack.
 
@@ -67,12 +68,12 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
 
         :param image_attack: the perturbed image
         :param values_per_channel: the values per channel for rounding
+        :return: predictions, is_adv
         """
         image_attack = DenormRoundNorm(
             mean=cifar_mean, std=cifar_std,
             values_per_channel=values_per_channel).round(image_attack)
-        self.rounded_adversarial.predictions(image_attack)
-
+        return self.rounded_adversarial.predictions(image_attack)
 
     def attack(call_fn):
         @functools.wraps(call_fn)
@@ -86,8 +87,11 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
             """
             self.init_rounded_adversarial(original_image=input_or_adv,
                                           original_class=label)
-            call_fn(self, input_or_adv, label=label, **kwargs)
-            return self.get_rounded_adversarial()
+            original_adversarial = call_fn(self, input_or_adv, label=label,
+                                          **kwargs)
+            # return self.get_rounded_adversarial()
+            return original_adversarial, self.rounded_adversarial
+
         return wrapper
 
     @attack
@@ -212,8 +216,8 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
 
                 # We try to find the rounded adversarial in parallel to finding
                 # the normal adversarial for this attack.
-                self.rounded_predictions(image_attack=x,
-                                         values_per_channel=values_per_channel)
+                _, is_round_adv = self.rounded_predictions(
+                    image_attack=x, values_per_channel=values_per_channel)
 
                 logits, is_adv = a.predictions(x)
                 loss, dldx = self.loss_function(
