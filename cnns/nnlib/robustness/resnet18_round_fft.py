@@ -147,7 +147,8 @@ def run(args):
                                    compress_rate=84,
                                    min=cifar_min, max=cifar_max)
 
-    round_model = band_model
+    # round_model = band_model
+    round_model = full_model
 
     # full_attack = CarliniWagnerL2AttackRound(full_model)
     full_attack = CarliniWagnerL2AttackRound(round_model)
@@ -258,6 +259,8 @@ def run(args):
                 corrected_round_rate = 0.0
                 mean_original_distance = 0.0
                 mean_rounded_distance = 0.0
+                mean_original_L2_distance = 0.0
+                mean_rounded_L2_distance = 0.0
             msg = ",".join((str(x) for x in
                             ["0 and 84",
                              "CarliniWagnerL2Round",
