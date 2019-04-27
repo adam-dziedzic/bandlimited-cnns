@@ -16,7 +16,6 @@ import time
 import numpy as np
 from cnns.nnlib.attacks.carlini_wagner_round import CarliniWagnerL2AttackRound
 from cnns.nnlib.robustness.utils import get_foolbox_model
-# from cnns.nnlib.robustness.utils import get_min_max_counter
 from cnns.nnlib.datasets.cifar import cifar_min
 from cnns.nnlib.datasets.cifar import cifar_max
 from cnns.nnlib.datasets.cifar import cifar_mean
@@ -26,6 +25,7 @@ from cnns.nnlib.utils.general_utils import get_log_time
 import os
 from cnns.nnlib.datasets.transformations.denorm_round_norm import \
     DenormRoundNorm
+from cnns.nnlib.datasets.transformations.denorm_distance import DenormDistance
 from cnns.nnlib.utils.general_utils import NetworkType
 
 if not sys.warnoptions:
@@ -100,7 +100,9 @@ def run(args):
         "corrected by round rate (%)",
         "corrected by band",
         "mean original distance",
-        "mean rounded distance"
+        "mean rounded distance",
+        "original L2 distance",
+        "rounded L2 distance",
         "time (sec)"])
     print(header)
     with open(args.out_file_name, "a") as out:
@@ -145,14 +147,18 @@ def run(args):
                                    compress_rate=84,
                                    min=cifar_min, max=cifar_max)
 
-    full_attack = CarliniWagnerL2AttackRound(full_model)
-    # full_attack = CarliniWagnerL2AttackRound(band_model)
+    # full_attack = CarliniWagnerL2AttackRound(full_model)
+    full_attack = CarliniWagnerL2AttackRound(band_model)
     # input_epsilons = [1000]
-    input_epsilons = range(500, 5000, 100)
+    input_epsilons = range(2,1000,1)
     values_per_channel = 256
+
+    distance_measure = DenormDistance(mean=cifar_mean, std=cifar_std)
 
     # for epsilon in [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0]:
     for epsilon in input_epsilons:
+        original_L2_distance = 0.0
+        rounded_L2_distance = 0.0
         original_distance = 0.0
         rounded_distance = 0.0
         no_adversarials = 0  # no adversarial found
@@ -190,13 +196,21 @@ def run(args):
                 original_adversarial, rounded_adversarial = full_attack(
                     image, label, max_iterations=epsilon, abort_early=False,
                     unpack=False, values_per_channel=values_per_channel)
-                image_attack = rounded_adversarial.image
+                original_image_attack = original_adversarial.image
+                rounded_image_attack = rounded_adversarial.image
                 # print("original distance: ", original_adversarial.distance.value)
                 if original_adversarial.distance.value < np.inf:
                     original_distance += original_adversarial.distance.value
                 if rounded_adversarial.distance.value < np.inf:
                     rounded_distance += rounded_adversarial.distance.value
-                if image_attack is None:
+                if original_image_attack is not None:
+                    original_L2_distance += distance_measure.measure(image,
+                                                                     original_image_attack)
+                if rounded_image_attack is not None:
+                    rounded_L2_distance += distance_measure.measure(image,
+                                                                    rounded_image_attack)
+
+                if rounded_image_attack is None:
                     no_adversarials += 1
                     # print("image is None, label:", label, " i:", i)
                 elif args.is_round:
@@ -209,11 +223,11 @@ def run(args):
                     # image_attack = np.round(image_attack * 255) / 255
                     # for values_per_channel in [256 // (2 ** x) for x in
                     #                            range(0, 7)]:
-                    image_attack = DenormRoundNorm(
+                    rounded_image_attack = DenormRoundNorm(
                         mean=cifar_mean, std=cifar_std,
                         values_per_channel=values_per_channel).round(
-                        image_attack)
-                    predictions = full_model.predictions(image_attack)
+                        rounded_image_attack)
+                    predictions = full_model.predictions(rounded_image_attack)
 
                     # print(np.argmax(predictions), label)
                     if np.argmax(predictions) == label:
@@ -226,7 +240,8 @@ def run(args):
                         #     values_per_channel]]))
                         break
                     else:
-                        predictions = band_model.predictions(image_attack)
+                        predictions = band_model.predictions(
+                            rounded_image_attack)
                         if np.argmax(predictions) == label:
                             correct_band += 1
         timing = time.time() - start
@@ -235,10 +250,12 @@ def run(args):
                 corrected_round_rate = correct_round / adversarials * 100
                 mean_original_distance = original_distance / adversarials
                 mean_rounded_distance = rounded_distance / adversarials
+                mean_original_L2_distance = original_L2_distance / adversarials
+                mean_rounded_L2_distance = rounded_L2_distance / adversarials
             else:
-                corrected_round_rate = 100.0
-                mean_original_distance = 0
-                mean_rounded_distance = 0
+                corrected_round_rate = 0.0
+                mean_original_distance = 0.0
+                mean_rounded_distance = 0.0
             msg = ",".join((str(x) for x in
                             ["0 and 84",
                              "CarliniWagnerL2Round",
@@ -253,6 +270,8 @@ def run(args):
                              correct_band,
                              mean_original_distance,
                              mean_rounded_distance,
+                             mean_original_L2_distance,
+                             mean_rounded_L2_distance,
                              timing]))
             print(msg)
             out.write(msg + "\n")
@@ -272,7 +291,7 @@ if __name__ == "__main__":
     args.values_per_channel = 0
     # args.compress_rate = 84
     args.conv_type = ConvType.FFT2D
-    args.sample_count_limit = 1000
+    args.sample_count_limit = 100
 
     # args.model_path = "2019-04-08-19-53-50-779103-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-rounding-32-values-per-channel.model"
     # args.model_path = "saved_model_2019-04-11-04-51-57-429818-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-channel-vals-256.model"

@@ -3,9 +3,10 @@ import torch
 
 class Normalize(object):
     """Normalize a tensor image with mean and standard deviation.
-    Given mean: ``(M1,...,Mn)`` and std: ``(S1,..,Sn)`` for ``n`` channels, this transform
-    will denormalize each channel of the input ``torch.*Tensor`` i.e.
-    ``input[channel] = input[channel] * std[channel] + mean[channel]``
+    Given mean: ``(M1,...,Mn)`` and std: ``(S1,..,Sn)`` for ``n`` channels,
+    this transform will normalize each channel of the input
+    ``torch.*Tensor`` i.e.
+    ``input[channel] = (input[channel] - mean[channel]) * std[channel]``
 
     Args:
         mean (sequence): Sequence of means for each channel.
