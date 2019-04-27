@@ -148,7 +148,7 @@ def run(args):
     full_attack = CarliniWagnerL2AttackRound(full_model)
     # full_attack = CarliniWagnerL2AttackRound(band_model)
     # input_epsilons = [1000]
-    input_epsilons = range(1000, 5000, 1000)
+    input_epsilons = range(500, 5000, 100)
     values_per_channel = 256
 
     # for epsilon in [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0]:
