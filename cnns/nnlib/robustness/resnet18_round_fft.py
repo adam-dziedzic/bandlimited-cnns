@@ -147,10 +147,12 @@ def run(args):
                                    compress_rate=84,
                                    min=cifar_min, max=cifar_max)
 
+    round_model = band_model
+
     # full_attack = CarliniWagnerL2AttackRound(full_model)
-    full_attack = CarliniWagnerL2AttackRound(band_model)
+    full_attack = CarliniWagnerL2AttackRound(round_model)
     # input_epsilons = [1000]
-    input_epsilons = range(2,1000,1)
+    input_epsilons = range(1000)
     values_per_channel = 256
 
     distance_measure = DenormDistance(mean=cifar_mean, std=cifar_std)
@@ -227,7 +229,8 @@ def run(args):
                         mean=cifar_mean, std=cifar_std,
                         values_per_channel=values_per_channel).round(
                         rounded_image_attack)
-                    predictions = full_model.predictions(rounded_image_attack)
+                    # predictions = full_model.predictions(rounded_image_attack)
+                    predictions = round_model.predictions(rounded_image_attack)
 
                     # print(np.argmax(predictions), label)
                     if np.argmax(predictions) == label:
@@ -238,7 +241,6 @@ def run(args):
                         #     "i", i,
                         #     "values per channel",
                         #     values_per_channel]]))
-                        break
                     else:
                         predictions = band_model.predictions(
                             rounded_image_attack)
