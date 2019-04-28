@@ -257,6 +257,8 @@ class Arguments(object):
                  values_per_channel=4,
                  # ucr_path = "../sathya",
                  ucr_path="../../TimeSeriesDatasets",
+                 start_epsilon=0,
+                 attack_type="band", # band or full
                  ):
         """
         The default parameters for the execution of the program.
@@ -368,6 +370,8 @@ class Arguments(object):
         self.in_channels = in_channels
         self.values_per_channel = values_per_channel
         self.ucr_path = ucr_path
+        self.start_epsilon = start_epsilon
+        self.attack_type = attack_type
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False

@@ -147,13 +147,17 @@ def run(args):
                                    compress_rate=84,
                                    min=cifar_min, max=cifar_max)
 
-    round_model = band_model
-    # round_model = full_model
+    if args.attack_type == "band":
+        round_model = band_model
+    elif args.attack_type == "full":
+        round_model = full_model
+    else:
+        raise Exception(f"Unknown attack type: {args.attack_type}")
 
     # full_attack = CarliniWagnerL2AttackRound(full_model)
     full_attack = CarliniWagnerL2AttackRound(round_model)
     # input_epsilons = [1000]
-    input_epsilons = range(17,1000,1)
+    input_epsilons = range(args.start_epsilon,1000,1)
     values_per_channel = 256
 
     distance_measure = DenormDistance(mean=cifar_mean, std=cifar_std)
@@ -290,13 +294,16 @@ if __name__ == "__main__":
     # should we turn pixels to the range from 0 to 255 and round them to
     # the nearest integer values?
     args.is_round = True
+    args.conv_type = ConvType.FFT2D
+
     # for model with rounding
 
     # args.model_path = "2019-01-21-14-30-13-992591-dataset-cifar10-preserve-energy-100.0-test-accuracy-84.55-compress-label-84-after-epoch-304.model"
-    args.values_per_channel = 0
+    # args.values_per_channel = 0
     # args.compress_rate = 84
-    args.conv_type = ConvType.FFT2D
-    args.sample_count_limit = 100
+    # args.sample_count_limit = 100
+    # args.start_epsilon = 0
+    # args.attack_type = "band"
 
     # args.model_path = "2019-04-08-19-53-50-779103-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-rounding-32-values-per-channel.model"
     # args.model_path = "saved_model_2019-04-11-04-51-57-429818-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-channel-vals-256.model"

@@ -277,6 +277,13 @@ def get_args():
     parser.add_argument("--ucr_path",
                         default=args.ucr_path,
                         help="The path to a UCR dataset.")
+    parser.add_argument("--attack_type",
+                        default=args.attack_type,
+                        help="The type of the attack: band or full.")
+    parser.add_argument('--start_epsilon',
+                        default=args.start_epsilon, type=int,
+                        help="The start epsilon value for the attack.")
+
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)
