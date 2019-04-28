@@ -157,8 +157,8 @@ def run(args):
     # full_attack = CarliniWagnerL2AttackRound(full_model)
     full_attack = CarliniWagnerL2AttackRound(round_model)
     # input_epsilons = [1000]
-    input_epsilons = range(args.start_epsilon,10000,1)
-    values_per_channel = 256
+    input_epsilons = range(args.start_epsilon, 10000, 1)
+    values_per_channel = args.values_per_channel
 
     distance_measure = DenormDistance(mean=cifar_mean, std=cifar_std)
 
@@ -184,25 +184,27 @@ def run(args):
                 # the image has to be classified correctly in the first
                 # place
                 model_image = image
-                # if args.values_per_channel > 0:
-                #     model_image = RoundingTransformation(
-                #         values_per_channel=args.values_per_channel,
-                #         round=np.round)(model_image)
+                if args.values_per_channel > 0:
+                    model_image = DenormRoundNorm(
+                        mean=cifar_mean, std=cifar_std,
+                        values_per_channel=values_per_channel).round(
+                        model_image)
 
                 # check if the image is classified correctly by both models
                 predictions = band_model.predictions(model_image)
                 if np.argmax(predictions) != label:
                     # print("not classified correctly")
                     continue
-                predictions = full_model.predictions(model_image)
-                if np.argmax(predictions) != label:
-                    # print("not classified correctly")
-                    continue
+                # predictions = full_model.predictions(model_image)
+                # if np.argmax(predictions) != label:
+                #     # print("not classified correctly")
+                #     continue
 
                 counter += 1
                 original_adversarial, rounded_adversarial = full_attack(
-                    image, label, max_iterations=epsilon, abort_early=False,
-                    unpack=False, values_per_channel=values_per_channel)
+                    model_image, label, max_iterations=epsilon,
+                    abort_early=False, unpack=False,
+                    values_per_channel=values_per_channel)
                 original_image_attack = original_adversarial.image
                 rounded_image_attack = rounded_adversarial.image
                 # print("original distance: ", original_adversarial.distance.value)
@@ -299,7 +301,7 @@ if __name__ == "__main__":
     # for model with rounding
 
     # args.model_path = "2019-01-21-14-30-13-992591-dataset-cifar10-preserve-energy-100.0-test-accuracy-84.55-compress-label-84-after-epoch-304.model"
-    # args.values_per_channel = 0
+    # args.values_per_channel = 8
     # args.compress_rate = 84
     # args.sample_count_limit = 100
     # args.start_epsilon = 0

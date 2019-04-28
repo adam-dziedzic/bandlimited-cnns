@@ -18,6 +18,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import del_object
 from cnns.nnlib.utils.log_utils import get_logger
 from cnns.nnlib.utils.log_utils import set_up_logging
 from cnns.nnlib.utils.arguments import Arguments
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_numpy
 
 from cnns.nnlib.utils.general_utils import ConvExecType
 
@@ -122,7 +123,7 @@ class TestPyTorchConv1d(unittest.TestCase):
 
             result = conv.forward(input=torch.from_numpy(x).to(self.device))
             np.testing.assert_array_almost_equal(
-                result.cpu(), np.array([[expected_result]]))
+                get_numpy(result), np.array([[expected_result]]))
 
     def test_FunctionForwardNoCompressionCUDA(self):
         if torch.cuda.is_available():
@@ -1008,10 +1009,11 @@ class TestPyTorchConv1d(unittest.TestCase):
         expected_result, _ = conv_forward_naive_1D(x, y, b, conv_param)
         self.logger.debug("expected result: " + str(expected_result))
 
-        conv = Conv1dfft(filter_value=torch.from_numpy(y),
-                         bias_value=torch.from_numpy(b))
-        result = conv.forward(input=torch.from_numpy(x))
+        conv = Conv1dfft(filter_value=torch.from_numpy(y).to(self.device),
+                         bias_value=torch.from_numpy(b).to(self.device))
+        result = conv.forward(input=torch.from_numpy(x).to(self.device))
 
+        result = get_numpy(result)
         self.logger.debug("obtained result: " + str(result))
         np.testing.assert_array_almost_equal(
             result, np.array(expected_result))
@@ -1033,9 +1035,10 @@ class TestPyTorchConv1d(unittest.TestCase):
         expected_result, _ = conv_forward_naive_1D(x, y, b, conv_param)
         self.logger.debug("expected result: " + str(expected_result))
 
-        conv = Conv1dfft(filter_value=torch.from_numpy(y),
-                         bias_value=torch.from_numpy(b))
-        result = conv.forward(input=torch.from_numpy(x))
+        conv = Conv1dfft(filter_value=torch.from_numpy(y).to(self.device),
+                         bias_value=torch.from_numpy(b).to(self.device))
+        result = conv.forward(input=torch.from_numpy(x).to(self.device))
+        result = get_numpy(result)
         self.logger.debug("obtained result: " + str(result))
         np.testing.assert_array_almost_equal(
             result, np.array(expected_result))
