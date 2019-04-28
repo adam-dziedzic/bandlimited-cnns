@@ -147,13 +147,13 @@ def run(args):
                                    compress_rate=84,
                                    min=cifar_min, max=cifar_max)
 
-    # round_model = band_model
-    round_model = full_model
+    round_model = band_model
+    # round_model = full_model
 
     # full_attack = CarliniWagnerL2AttackRound(full_model)
     full_attack = CarliniWagnerL2AttackRound(round_model)
     # input_epsilons = [1000]
-    input_epsilons = range(1000)
+    input_epsilons = range(17,1000,1)
     values_per_channel = 256
 
     distance_measure = DenormDistance(mean=cifar_mean, std=cifar_std)
