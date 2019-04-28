@@ -157,7 +157,7 @@ def run(args):
     # full_attack = CarliniWagnerL2AttackRound(full_model)
     full_attack = CarliniWagnerL2AttackRound(round_model)
     # input_epsilons = [1000]
-    input_epsilons = range(args.start_epsilon,1000,1)
+    input_epsilons = range(args.start_epsilon,10000,1)
     values_per_channel = 256
 
     distance_measure = DenormDistance(mean=cifar_mean, std=cifar_std)
