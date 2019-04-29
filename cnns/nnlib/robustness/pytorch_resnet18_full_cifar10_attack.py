@@ -238,7 +238,7 @@ def run(args):
                                 image_attack_torch = torch.from_numpy(
                                     image_attack)
                                 image_attack = DenormRoundNorm(
-                                    mean=cifar_mean, std=cifar_std,
+                                    mean_array=cifar_mean, std_array=cifar_std,
                                     values_per_channel=values_per_channel)(
                                     image_attack_torch).numpy()
                                 predictions = foolbox_model.predictions(

@@ -16,15 +16,15 @@ class DenormRoundNorm(object):
         std (sequence): Sequence of standard deviations for each channel.
     """
 
-    def __init__(self, values_per_channel, mean, std,
+    def __init__(self, values_per_channel, mean_array, std_array,
                  device=torch.device("cpu")):
         self.values_per_channel = values_per_channel
-        self.mean = mean
-        self.std = std
-        self.denorm = Denormalize(std=std, mean=mean, device=device)
+        self.mean_array = mean_array
+        self.std_array = std_array
+        self.denorm = Denormalize(std_array=std_array, mean_array=mean_array, device=device)
         self.rounder = RoundingTransformation(
             values_per_channel=values_per_channel)
-        self.norm = Normalize(std=std, mean=mean, device=device)
+        self.norm = Normalize(std_array=std_array, mean_array=mean_array, device=device)
 
     def __call__(self, tensor):
         """
@@ -50,4 +50,4 @@ class DenormRoundNorm(object):
 
     def __repr__(self):
         return self.__class__.__name__ + '(mean={0}, std={1}, values_per_channel={2})'.format(
-            self.mean, self.std, self.values_per_channel)
+            self.mean_array, self.std_array, self.values_per_channel)

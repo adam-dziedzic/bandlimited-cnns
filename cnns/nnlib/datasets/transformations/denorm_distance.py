@@ -11,12 +11,13 @@ class DenormDistance(object):
         std (sequence): Sequence of standard deviations for each channel.
     """
 
-    def __init__(self, mean, std, distance_metric=torch.dist,
+    def __init__(self, mean_array, std_array, distance_metric=torch.dist,
                  device=torch.device("cpu")):
         self.distance_metric = distance_metric
-        self.mean = mean
-        self.std = std
-        self.denorm = Denormalize(std=std, mean=mean, device=device)
+        self.mean_array = mean_array
+        self.std_array = std_array
+        self.denorm = Denormalize(std_array=std_array, mean_array=mean_array,
+                                  device=device)
 
     def __call__(self, tensor1, tensor2, norm=2):
         """
@@ -44,4 +45,4 @@ class DenormDistance(object):
     def __repr__(self):
         return self.__class__.__name__ + '(mean={0}, std={1}, ' \
                                          'distance_metric={2})'.format(
-            self.mean, self.std, self.distance_metric)
+            self.mean_array, self.std_array, self.distance_metric)

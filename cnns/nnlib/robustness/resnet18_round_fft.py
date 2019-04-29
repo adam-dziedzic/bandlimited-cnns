@@ -18,8 +18,8 @@ from cnns.nnlib.attacks.carlini_wagner_round import CarliniWagnerL2AttackRound
 from cnns.nnlib.robustness.utils import get_foolbox_model
 from cnns.nnlib.datasets.cifar import cifar_min
 from cnns.nnlib.datasets.cifar import cifar_max
-from cnns.nnlib.datasets.cifar import cifar_mean
-from cnns.nnlib.datasets.cifar import cifar_std
+from cnns.nnlib.datasets.cifar import cifar_mean_array
+from cnns.nnlib.datasets.cifar import cifar_std_array
 import socket
 from cnns.nnlib.utils.general_utils import get_log_time
 import os
@@ -160,7 +160,7 @@ def run(args):
     input_epsilons = range(args.start_epsilon, 10000, 1)
     values_per_channel = args.values_per_channel
 
-    distance_measure = DenormDistance(mean=cifar_mean, std=cifar_std)
+    distance_measure = DenormDistance(mean_array=cifar_mean_array, std_array=cifar_std_array)
 
     # for epsilon in [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0]:
     for epsilon in input_epsilons:
@@ -186,7 +186,7 @@ def run(args):
                 model_image = image
                 if args.values_per_channel > 0:
                     model_image = DenormRoundNorm(
-                        mean=cifar_mean, std=cifar_std,
+                        mean_array=cifar_mean_array, std_array=cifar_std_array,
                         values_per_channel=values_per_channel).round(
                         model_image)
 
@@ -233,7 +233,7 @@ def run(args):
                     # for values_per_channel in [256 // (2 ** x) for x in
                     #                            range(0, 7)]:
                     rounded_image_attack = DenormRoundNorm(
-                        mean=cifar_mean, std=cifar_std,
+                        mean_array=cifar_mean_array, std_array=cifar_std_array,
                         values_per_channel=values_per_channel).round(
                         rounded_image_attack)
                     # predictions = full_model.predictions(rounded_image_attack)

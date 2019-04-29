@@ -12,9 +12,9 @@ class Denormalize(object):
         std (sequence): Sequence of standard deviations for each channel.
     """
 
-    def __init__(self, mean, std, device=torch.device('cpu')):
-        self.mean = torch.tensor(mean, device=device).view(3, 1, 1)
-        self.std = torch.tensor(std, device=device).view(3, 1, 1)
+    def __init__(self, mean_array, std_array, device=torch.device('cpu')):
+        self.mean = torch.tensor(mean_array, device=device)
+        self.std = torch.tensor(std_array, device=device)
 
     def __call__(self, tensor):
         """

@@ -67,6 +67,8 @@ def load_imagenet(args):
     args.in_channels = 3  # number of channels in the input data
     args.out_channels = None
     args.signal_dimension = 2
+    args.mean_array = imagenet_mean_array
+    args.std_array = imagenet_std_array
 
     traindir = os.path.join(args.imagenet_path, 'train')
     valdir = os.path.join(args.imagenet_path, 'val')

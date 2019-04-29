@@ -690,7 +690,7 @@ if __name__ == "__main__":
         example = torch.tensor(cifar10_example)
         # print("input example: ", example)
         a = example.clone()
-        a = Denormalize(std=cifar_std, mean=cifar_mean)(a)
+        a = Denormalize(std_array=cifar_std, mean_array=cifar_mean)(a)
         # print("denormalized a min: ", a.min())
         # print("denormalized a max: ", a.max())
         a = rounder(a)

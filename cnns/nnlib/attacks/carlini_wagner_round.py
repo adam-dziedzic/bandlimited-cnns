@@ -71,7 +71,7 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
         :return: predictions, is_adv
         """
         image_attack = DenormRoundNorm(
-            mean=cifar_mean, std=cifar_std,
+            mean_array=cifar_mean, std_array=cifar_std,
             values_per_channel=values_per_channel).round(image_attack)
         return self.rounded_adversarial.predictions(image_attack)
 

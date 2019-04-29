@@ -13,9 +13,9 @@ class Normalize(object):
         std (sequence): Sequence of standard deviations for each channel.
     """
 
-    def __init__(self, mean, std, device=torch.device('cpu')):
-        self.mean = torch.tensor(mean, device=device).view(3, 1, 1)
-        self.std = torch.tensor(std, device=device).view(3, 1, 1)
+    def __init__(self, mean_array, std_array, device=torch.device('cpu')):
+        self.mean_array = torch.tensor(mean_array, device=device)
+        self.std_array = torch.tensor(std_array, device=device)
 
     def __call__(self, tensor):
         """
@@ -26,8 +26,9 @@ class Normalize(object):
             Tensor: De-Normalized Tensor image.
         """
         # return tensor.sub_(self.mean).div_(self.std)
-        return (tensor - self.mean) / self.std
+        return (tensor - self.mean_array) / self.std_array
 
     def __repr__(self):
-        return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean,
-                                                                      self.std)
+        return self.__class__.__name__ + '(mean={0}, std={1})'.format(
+            self.mean_array,
+            self.std_array)
