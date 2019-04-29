@@ -4,6 +4,8 @@ import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 from cnns.nnlib.pytorch_layers.conv_picker import Conv
 from cnns.nnlib.pytorch_layers.conv2D_fft import Conv2dfft
+from cnns.nnlib.pytorch_layers.round import Round
+from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBand2D
 from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.general_utils import TensorType
 from cnns.nnlib.utils.general_utils import CompressType
@@ -152,7 +154,8 @@ class ResNet(nn.Module):
             raise Exception(
                 f"Unknown dataset: {args.dataset} in ResNet architecture.")
         if args.values_per_channel > 0:
-            pass
+            self.rounder = Round(args=args)
+            # pass
             # self.rounder = RoundingTransformation(
             #     values_per_channel=args.values_per_channel, round=torch.round)
             # self.rounder = DenormRoundNorm(
@@ -161,6 +164,7 @@ class ResNet(nn.Module):
         else:
             # identity function
             self.rounder = lambda x: x
+        self.band = FFTBand2D(args=args)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -210,6 +214,10 @@ class ResNet(nn.Module):
 
     def forward(self, x):
         # x = self.rounder(x)
+        # color depth reduction
+        x = self.rounder(x)  # round to nearest integers - feature squeezing
+        x = self.band(x)  # compression in the FFT domain
+
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)

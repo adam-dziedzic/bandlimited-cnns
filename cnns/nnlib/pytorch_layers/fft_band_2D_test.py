@@ -28,11 +28,13 @@ class TestFFTBand2D(unittest.TestCase):
                          dtype=args.dtype, device=args.device)
         print("a grad: ", a.grad)
 
+        print('L2 distance between the input image and compressed image:')
+        print("compress rate, L2 distance")
         for compress_rate in [x/10 for x in range(0,11,1)]:
             args.compress_rate = compress_rate
             band = FFTBand2D(args)
             result = band(a)
-            print(f"L2 distance from origin for compresss rate {args.compress_rate}: ", torch.dist(a, result, 2).item())
+            print(args.compress_rate, ",", torch.dist(a, result, 2).item())
 
         args.compress_rate = 0.1
         band = FFTBand2D(args)

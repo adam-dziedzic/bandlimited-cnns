@@ -25,9 +25,9 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 # conv_type = ConvType.STANDARD
 
 # 2D
-# conv_type = ConvType.STANDARD2D
-conv_type = ConvType.FFT2D
-compress_rate = 0.0
+conv_type = ConvType.STANDARD2D
+# conv_type = ConvType.FFT2D
+compress_rate = 0.1
 
 if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # dataset = "ucr"
@@ -137,7 +137,7 @@ class Arguments(object):
                  # weight_decay=5e-4,
                  # weight_decay=0,
                  weight_decay=weight_decay,
-                 epochs=2,
+                 epochs=350,
                  min_batch_size=batch_size,
                  test_batch_size=batch_size,
                  learning_rate=learning_rate,
@@ -210,7 +210,7 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=32,  # run on full data
+                 sample_count_limit=0,  # run on full data
                  # sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
@@ -254,7 +254,7 @@ class Arguments(object):
                  imagenet_path="/home/" + str(USER) + "/imagenet",
                  distributed=False,
                  in_channels=3,
-                 values_per_channel=4,
+                 values_per_channel=8,
                  # ucr_path = "../sathya",
                  ucr_path="../../TimeSeriesDatasets",
                  start_epsilon=0,
