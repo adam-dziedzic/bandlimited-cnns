@@ -214,8 +214,9 @@ def run(args):
                 #     continue
 
                 counter += 1
+                # should we start attack from original or rounded image?
                 original_adversarial, rounded_adversarial = full_attack(
-                    model_image, label, max_iterations=epsilon,
+                    image, label, max_iterations=epsilon,
                     abort_early=False, unpack=False,
                     values_per_channel=values_per_channel)
                 original_image_attack = original_adversarial.image
