@@ -15,6 +15,7 @@ import sys
 import time
 import numpy as np
 from cnns.nnlib.attacks.carlini_wagner_round import CarliniWagnerL2AttackRound
+from foolbox.attacks.carlini_wagner import CarliniWagnerL2Attack
 from cnns.nnlib.robustness.utils import get_foolbox_model
 from cnns.nnlib.datasets.cifar import cifar_min
 from cnns.nnlib.datasets.cifar import cifar_max
@@ -147,20 +148,32 @@ def run(args):
                                    compress_rate=84,
                                    min=cifar_min, max=cifar_max)
 
+    args.conv_type = ConvType.STANDARD2D
+    band_round_model = get_foolbox_model(args, model_path=args.model_path,
+                                         compress_rate=args.compress_rate,
+                                         min=cifar_min, max=cifar_max)
+
     if args.attack_type == "band":
         round_model = band_model
+        attack = CarliniWagnerL2AttackRound
     elif args.attack_type == "full":
         round_model = full_model
+        attack = CarliniWagnerL2AttackRound
+    elif args.attack_type == "band+round":
+        round_model = band_round_model
+        attack = CarliniWagnerL2Attack
     else:
         raise Exception(f"Unknown attack type: {args.attack_type}")
 
     # full_attack = CarliniWagnerL2AttackRound(full_model)
-    full_attack = CarliniWagnerL2AttackRound(round_model)
+    # full_attack = CarliniWagnerL2AttackRound(round_model)
+    full_attack = attack(full_model)
     # input_epsilons = [1000]
     input_epsilons = range(args.start_epsilon, 10000, 1)
     values_per_channel = args.values_per_channel
 
-    distance_measure = DenormDistance(mean_array=cifar_mean_array, std_array=cifar_std_array)
+    distance_measure = DenormDistance(mean_array=cifar_mean_array,
+                                      std_array=cifar_std_array)
 
     # for epsilon in [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0]:
     for epsilon in input_epsilons:

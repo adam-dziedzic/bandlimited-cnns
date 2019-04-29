@@ -164,7 +164,13 @@ class ResNet(nn.Module):
         else:
             # identity function
             self.rounder = lambda x: x
-        self.band = FFTBand2D(args=args)
+
+        if args.compress_rate > 0:
+            self.band = FFTBand2D(args=args)
+        else:
+            # identity function
+            self.band = lambda x: x
+
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
