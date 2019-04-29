@@ -72,7 +72,7 @@ def get_attacks():
          # [x for x in range(2, 20, 1)] + [x for x in
          #                                 range(20, 1000, 10)] + [1000]),
          # [1000]),
-         [2]),
+         range(args.start_epsilon, 10000)),
     ]
     return attacks
 
