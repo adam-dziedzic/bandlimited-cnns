@@ -236,7 +236,7 @@ def run(args):
                     no_adversarials += 1
                     # print("image is None, label:", label, " i:", i)
                 else:
-                    print("batch_idx: ", batch_idx, " image_idx: ", i)
+                    # print("batch_idx: ", batch_idx, " image_idx: ", i)
                     adversarials += 1
 
                 if args.is_round and rounded_image_attack is not None:
