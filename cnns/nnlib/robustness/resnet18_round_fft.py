@@ -168,9 +168,8 @@ def run(args):
     # full_attack = CarliniWagnerL2AttackRound(full_model)
     # full_attack = CarliniWagnerL2AttackRound(round_model)
     full_attack = attack(round_model)
-    # input_epsilons = [1000]
-    input_epsilons = range(args.start_epsilon, 10000, 1)
-    values_per_channel = args.values_per_channel
+    input_epsilons = [0]
+    # input_epsilons = range(args.start_epsilon, 10000, 1)
 
     distance_measure = DenormDistance(mean_array=cifar_mean_array,
                                       std_array=cifar_std_array)
@@ -200,7 +199,7 @@ def run(args):
                 if args.values_per_channel > 0:
                     model_image = DenormRoundNorm(
                         mean_array=cifar_mean_array, std_array=cifar_std_array,
-                        values_per_channel=values_per_channel).round(
+                        values_per_channel=args.values_per_channel).round(
                         model_image)
 
                 # check if the image is classified correctly by both models
@@ -218,28 +217,29 @@ def run(args):
                 original_adversarial, rounded_adversarial = full_attack(
                     image, label, max_iterations=epsilon,
                     abort_early=False, unpack=False,
-                    values_per_channel=values_per_channel)
+                    values_per_channel=args.values_per_channel)
                 original_image_attack = original_adversarial.image
                 rounded_image_attack = rounded_adversarial.image
                 # print("original distance: ", original_adversarial.distance.value)
-                if original_adversarial.distance.value < np.inf:
-                    original_distance += original_adversarial.distance.value
-                if rounded_adversarial.distance.value < np.inf:
-                    rounded_distance += rounded_adversarial.distance.value
                 if original_image_attack is not None:
-                    original_L2_distance += distance_measure.measure(image,
-                                                                     original_image_attack)
+                    original_L2_distance += distance_measure.measure(
+                        image, original_image_attack)
+                    if original_adversarial.distance.value < np.inf:
+                        original_distance += original_adversarial.distance.value
                 if rounded_image_attack is not None:
-                    rounded_L2_distance += distance_measure.measure(image,
-                                                                    rounded_image_attack)
+                    rounded_L2_distance += distance_measure.measure(
+                        image, rounded_image_attack)
+                    if rounded_adversarial.distance.value < np.inf:
+                        rounded_distance += rounded_adversarial.distance.value
 
                 if rounded_image_attack is None:
                     no_adversarials += 1
                     # print("image is None, label:", label, " i:", i)
                 else:
+                    print("batch_idx: ", batch_idx, " image_idx: ", i)
                     adversarials += 1
 
-                if args.is_round:
+                if args.is_round and rounded_image_attack is not None:
                     # print("batch idx: ", batch_idx, " image idx: ", i,
                     #       " label: ", label)
                     # print("sum difference before round: ",
@@ -250,7 +250,7 @@ def run(args):
                     #                            range(0, 7)]:
                     rounded_image_attack = DenormRoundNorm(
                         mean_array=cifar_mean_array, std_array=cifar_std_array,
-                        values_per_channel=values_per_channel).round(
+                        values_per_channel=args.values_per_channel).round(
                         rounded_image_attack)
                     # predictions = full_model.predictions(rounded_image_attack)
                     predictions = round_model.predictions(rounded_image_attack)
@@ -317,7 +317,7 @@ if __name__ == "__main__":
     # for model with rounding
 
     # args.model_path = "2019-01-21-14-30-13-992591-dataset-cifar10-preserve-energy-100.0-test-accuracy-84.55-compress-label-84-after-epoch-304.model"
-    # args.values_per_channel = 8
+    # args.values_per_channel = 2
     # args.compress_rate = 84
     # args.sample_count_limit = 100
     # args.start_epsilon = 0

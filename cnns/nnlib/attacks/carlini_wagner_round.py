@@ -46,12 +46,13 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
             self.mean_array = cifar_mean_array
 
 
-    def init_rounded_adversarial(self, original_image, original_class):
+    def init_rounded_adversarial(self, original_image, original_class,
+                                 values_per_channel):
         """
         Initialize the state of the adversarial object to save the adversarial
         examples that break the rounding defense.
 
-        :param original_image: current image to be adversarial against the
+        :param rounded_image: current image to be adversarial against the
         rounding defense
         :param original_class: the class (label) for the original image
         """
@@ -64,8 +65,11 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
                              ' with a model and a criterion or it'
                              ' needs to be called with an Adversarial'
                              ' instance.')
+        rounded_image = DenormRoundNorm(
+            mean_array=self.mean_array, std_array=self.std_array,
+            values_per_channel=values_per_channel).round(original_image)
         self.rounded_adversarial = Adversarial(
-            model=model, criterion=criterion, original_image=original_image,
+            model=model, criterion=criterion, original_image=rounded_image,
             original_class=original_class, distance=distance,
             threshold=threshold)
 
@@ -92,7 +96,8 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
 
     def attack(call_fn):
         @functools.wraps(call_fn)
-        def wrapper(self, input_or_adv, label, **kwargs):
+        def wrapper(self, input_or_adv, label, values_per_channel=255,
+                    **kwargs):
             """
             Attack the model starting from the original_image by perturbing it.
             The same params as in the __call__ method.
@@ -101,9 +106,11 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
             image is adversarial.
             """
             self.init_rounded_adversarial(original_image=input_or_adv,
-                                          original_class=label)
-            original_adversarial = call_fn(self, input_or_adv, label=label,
-                                          **kwargs)
+                                          original_class=label,
+                                          values_per_channel=values_per_channel)
+            original_adversarial = call_fn(
+                self, input_or_adv, label=label,
+                values_per_channel=values_per_channel, **kwargs)
             # return self.get_rounded_adversarial()
             return original_adversarial, self.rounded_adversarial
 
