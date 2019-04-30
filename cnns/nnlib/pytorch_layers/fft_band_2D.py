@@ -40,8 +40,9 @@ class FFTBandFunction2D(torch.autograd.Function):
                           onesided=True)
         del input
         _, _, H_xfft, W_xfft, _ = xfft.size()
-        H_compress = np.sqrt(1.0 - compress_rate) * H_xfft
-        W_compress = int(np.sqrt(1.0 - compress_rate) * W_xfft)
+        retain_rate = np.sqrt((100 - compress_rate)/100)
+        H_compress = retain_rate * H_xfft
+        W_compress = int(retain_rate * W_xfft)
         H_top = int(H_compress // 2 + 1)
         H_bottom = H_compress // 2
         H_end = int(H_xfft - H_bottom)

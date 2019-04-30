@@ -140,6 +140,7 @@ class ResNet(nn.Module):
         super(ResNet, self).__init__()
         # self.global_layer1_time = 0.0
         self.inplanes = 64
+        self.args = args
         if args.dataset == "cifar10" or args.dataset == "cifar100":
             self.conv1 = conv3x3(in_planes=args.in_channels, out_planes=64,
                                  stride=1, args=args)
@@ -221,8 +222,9 @@ class ResNet(nn.Module):
     def forward(self, x):
         # x = self.rounder(x)
         # color depth reduction
-        x = self.rounder(x)  # round to nearest integers - feature squeezing
-        x = self.band(x)  # compression in the FFT domain
+        if self.args.attack_type == "band+round":
+            x = self.rounder(x)  # round to nearest integers - feature squeezing
+            x = self.band(x)  # compression in the FFT domain
 
         x = self.conv1(x)
         x = self.bn1(x)
