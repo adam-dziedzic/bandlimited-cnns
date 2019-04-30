@@ -203,7 +203,7 @@ def run(args):
                         model_image)
 
                 # check if the image is classified correctly by both models
-                predictions = band_model.predictions(model_image)
+                predictions = round_model.predictions(model_image)
                 if np.argmax(predictions) != label:
                     # print("not classified correctly")
                     continue
