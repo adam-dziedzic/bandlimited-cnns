@@ -167,7 +167,7 @@ def run(args):
 
     # full_attack = CarliniWagnerL2AttackRound(full_model)
     # full_attack = CarliniWagnerL2AttackRound(round_model)
-    full_attack = attack(full_model)
+    full_attack = attack(round_model)
     # input_epsilons = [1000]
     input_epsilons = range(args.start_epsilon, 10000, 1)
     values_per_channel = args.values_per_channel
@@ -236,10 +236,12 @@ def run(args):
                 if rounded_image_attack is None:
                     no_adversarials += 1
                     # print("image is None, label:", label, " i:", i)
-                elif args.is_round:
+                else:
+                    adversarials += 1
+
+                if args.is_round:
                     # print("batch idx: ", batch_idx, " image idx: ", i,
                     #       " label: ", label)
-                    adversarials += 1
                     # print("sum difference before round: ",
                     #       np.sum(
                     #           np.abs(image_attack * 255 - image * 255)))
@@ -309,8 +311,8 @@ if __name__ == "__main__":
     args = get_args()
     # should we turn pixels to the range from 0 to 255 and round them to
     # the nearest integer values?
-    args.is_round = True
-    args.conv_type = ConvType.FFT2D
+    args.is_round = False
+    # args.conv_type = ConvType.FFT2D
 
     # for model with rounding
 

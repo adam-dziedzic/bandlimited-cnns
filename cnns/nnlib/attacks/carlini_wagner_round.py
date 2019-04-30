@@ -9,10 +9,12 @@ from foolbox.attacks.base import call_decorator
 from foolbox.attacks.carlini_wagner import CarliniWagnerL2Attack
 from foolbox.attacks.carlini_wagner import AdamOptimizer
 from foolbox.adversarial import Adversarial
-from cnns.nnlib.datasets.cifar import cifar_mean
-from cnns.nnlib.datasets.cifar import cifar_std
+from cnns.nnlib.datasets.cifar import cifar_mean_array
+from cnns.nnlib.datasets.cifar import cifar_std_array
 from cnns.nnlib.datasets.transformations.denorm_round_norm import \
     DenormRoundNorm
+from foolbox.criteria import Misclassification
+from foolbox.distances import MSE
 
 
 class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
@@ -30,6 +32,19 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
     .. [2] https://github.com/carlini/nn_robust_attacks
 
     """
+    def __init__(self, model=None, criterion=Misclassification(),
+                 distance=MSE, threshold=None, args=None):
+        super(CarliniWagnerL2AttackRound, self).__init__(
+            model=model, criterion=criterion, distance=distance,
+            threshold=threshold)
+        if args != None:
+            self.args = args
+            self.std_array = args.std_array
+            self.mean_array = args.mean_array
+        else:
+            self.std_array = cifar_std_array
+            self.mean_array = cifar_mean_array
+
 
     def init_rounded_adversarial(self, original_image, original_class):
         """
@@ -71,7 +86,7 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
         :return: predictions, is_adv
         """
         image_attack = DenormRoundNorm(
-            mean_array=cifar_mean, std_array=cifar_std,
+            mean_array=self.mean_array, std_array=self.std_array,
             values_per_channel=values_per_channel).round(image_attack)
         return self.rounded_adversarial.predictions(image_attack)
 
