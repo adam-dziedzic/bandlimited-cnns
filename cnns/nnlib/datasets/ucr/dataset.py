@@ -42,8 +42,11 @@ class UCRDataset(Dataset):
 
     def __init__(
             self, dataset_name, transformations=transforms.Compose(
-                [ToTensor(), AddChannel()]), train=True,
-            ucr_path=None):
+                [ToTensor(),
+                 AddChannel()]),
+            train=True,
+            ucr_path=None,
+            mean=None, std=None):
         """
         :param dataset_name: the name of the dataset to fetch from file on disk.
         :param transformations: pytorch transforms for transforms and tensor
@@ -52,7 +55,7 @@ class UCRDataset(Dataset):
         """
         dir_path = os.path.dirname(os.path.realpath(__file__))
         if ucr_path is None:
-            ucr_path = os.path.join(dir_path, os.pardir, os.pardir, os.pardir,
+            ucr_path = os.path.join(dir_path, os.pardir, os.pardir,
                                     "TimeSeriesDatasets")
         else:
             ucr_path = os.path.join(dir_path, ucr_path)
@@ -61,13 +64,29 @@ class UCRDataset(Dataset):
         else:
             suffix = "_TEST"
         csv_path = os.path.join(ucr_path, dataset_name, dataset_name + suffix)
-        self.data = pd.read_csv(csv_path, header=None).astype(int)
-        self.labels = np.asarray(self.data.iloc[:, 0])
+        self.data_all = pd.read_csv(csv_path, header=None)
+        self.labels = np.asarray(self.data_all.iloc[:, 0], dtype=np.int)
         self.num_classes = len(np.unique(self.labels))
         self.labels = self.__transform_labels(labels=self.labels,
                                               num_classes=self.num_classes)
-        self.width = len(np.asarray(self.data.iloc[0, 1:]))
-        self.transformations = transformations
+        self.data = np.asarray(self.data_all.iloc[:, 1:], dtype=np.float)
+        self.width = len(self.data[0, :])
+        # the data is already z-normalized in the UCR archive
+        # # normalize the data
+        # if train:
+        #     self.mean = self.data.mean()
+        #     self.std = self.data.std()
+        # else:
+        #     self.mean = mean
+        #     self.std = std
+        # self.data = (self.data - self.mean) / self.std
+
+        # self.transformations = transformations
+        self.dtype = torch.float
+        self.data = torch.tensor(self.data, device=torch.device("cpu"),
+                     dtype=self.dtype)
+        # add the dimension for the channel
+        self.data = torch.unsqueeze(self.data, dim=1)
 
     @staticmethod
     def __transform_labels(labels, num_classes):
@@ -116,16 +135,18 @@ class UCRDataset(Dataset):
     def __getitem__(self, index):
         label = self.labels[index]
         # Take the row index and all values starting from the second column.
-        input = np.asarray(self.data.iloc[index][1:])
+        # input = np.asarray(self.data.iloc[index][1:])
+        input = self.data[index]
         # Transform time-series input to tensor.
-        if self.transformations is not None:
-            input = self.transformations(input)
+        # if self.transformations is not None:
+        #     input = self.transformations(input)
         # Return the time-series and the label.
         return input, label
 
     def __len__(self):
         # self.data.index - The index(row labels) of the DataFrame.
-        length = len(self.data.index)
+        # length = len(self.data.index)
+        length = len(self.data)
         assert length == len(self.labels)
         return length
 
@@ -151,7 +172,12 @@ class UCRDataset(Dataset):
 
 
 if __name__ == "__main__":
-    train_dataset = UCRDataset("50words", train=True,
+    # train_dataset = UCRDataset("50words", train=True,
+    #                            transformations=transforms.Compose(
+    #                                [ToTensor(dtype=torch.float),
+    #                                 AddChannel()]))
+    # print("length of the train dataset: ", len(train_dataset))
+    train_dataset = UCRDataset("Adiac", train=True,
                                transformations=transforms.Compose(
                                    [ToTensor(dtype=torch.float),
                                     AddChannel()]))

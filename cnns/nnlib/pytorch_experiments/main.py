@@ -555,12 +555,14 @@ def main(args):
             lr = raw_optimizer.param_groups[0]['lr']
 
         with open(dataset_log_file, "a") as file:
-            file.write(str(epoch) + "," + str(train_loss) + "," + str(
+            msg = str(epoch) + "," + str(train_loss) + "," + str(
                 train_accuracy) + "," + str(dev_loss) + "," + str(
                 dev_accuracy) + "," + str(test_loss) + "," + str(
                 test_accuracy) + "," + str(epoch_time) + "," + str(
                 lr) + "," + str(train_time) + "," + str(test_time) + "," + str(
-                args.compress_rate) + "\n")
+                args.compress_rate)
+            print(msg)
+            file.write(msg + "\n")
 
         # Metric: select the best model based on the best train loss (minimal).
         is_best = False

@@ -27,18 +27,18 @@ conv_type = ConvType.FFT1D
 # 2D
 # conv_type = ConvType.STANDARD2D
 # conv_type = ConvType.FFT2D
-compress_rate = 30.0
+compress_rate = 0.0
 
 if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # dataset = "ucr"
     # dataset = "WIFI64"
-    dataset = "debug21"
+    dataset = "debug22"  # only Adiac
     network_type = NetworkType.FCNN_STANDARD
     preserved_energy = 100  # for unit tests
     # learning_rate = 0.0001
-    learning_rate = 0.01
-    batch_size = 32
-    weight_decay=0.0005
+    learning_rate = 0.001
+    batch_size = 16
+    weight_decay = 0.0001
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
     precision_type = PrecisionType.FP32
@@ -46,6 +46,10 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     conv_exec_type = ConvExecType.CUDA
     visualize = False  # test model for different compress rates
     next_power2 = True
+    schedule_patience = 50
+    schedule_factor = 0.5
+    epochs = 2000
+    optimizer_type = OptimizerType.ADAM
 else:
     dataset = "cifar10"
     # dataset = "cifar100"
@@ -53,11 +57,11 @@ else:
 
     batch_size = 32
     learning_rate = 0.01
-    weight_decay=0.0005
+    weight_decay = 0.0005
     if dataset == "cifar10":
         network_type = NetworkType.ResNet18
     elif dataset == "cifar100":
-        network_type=NetworkType.DenseNetCifar
+        network_type = NetworkType.DenseNetCifar
         weight_decay = 0.0001
     elif dataset == "imagenet":
         network_type = NetworkType.ResNet50
@@ -73,6 +77,10 @@ else:
     conv_exec_type = ConvExecType.CUDA
     visualize = False  # test model for different compress rates
     next_power2 = True
+    schedule_patience = 10
+    schedule_factor = 0.1
+    epochs = 350
+    optimizer_type = OptimizerType.MOMENTUM
 
 import os
 
@@ -137,14 +145,14 @@ class Arguments(object):
                  # weight_decay=5e-4,
                  # weight_decay=0,
                  weight_decay=weight_decay,
-                 epochs=350,
+                 epochs=epochs,
                  min_batch_size=batch_size,
                  test_batch_size=batch_size,
                  learning_rate=learning_rate,
                  momentum=0.9,
                  seed=31,
                  log_interval=1,
-                 optimizer_type=OptimizerType.MOMENTUM,
+                 optimizer_type=optimizer_type,
                  scheduler_type=SchedulerType.ReduceLROnPlateau,
                  # scheduler_type=SchedulerType.Custom,
                  loss_type=LossType.CROSS_ENTROPY,
@@ -259,9 +267,9 @@ class Arguments(object):
                  # ucr_path = "../sathya",
                  ucr_path="../../TimeSeriesDatasets",
                  start_epsilon=0,
-                 attack_type=None, # band or full
-                 schedule_patience=10,
-                 schedule_factor=0.1,
+                 attack_type=None,  # band or full
+                 schedule_patience=schedule_patience,
+                 schedule_factor=schedule_factor,
                  ):
         """
         The default parameters for the execution of the program.
