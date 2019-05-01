@@ -27,7 +27,7 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 # 2D
 conv_type = ConvType.STANDARD2D
 # conv_type = ConvType.FFT2D
-compress_rate = 0.1
+compress_rate = 0.0
 
 if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # dataset = "ucr"
