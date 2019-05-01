@@ -260,6 +260,8 @@ class Arguments(object):
                  ucr_path="../../TimeSeriesDatasets",
                  start_epsilon=0,
                  attack_type=None, # band or full
+                 schedule_patience=10,
+                 schedule_factor=0.1,
                  ):
         """
         The default parameters for the execution of the program.
@@ -373,6 +375,8 @@ class Arguments(object):
         self.ucr_path = ucr_path
         self.start_epsilon = start_epsilon
         self.attack_type = attack_type
+        self.schedule_factor = schedule_factor
+        self.schedule_patience = schedule_patience
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False

@@ -283,7 +283,12 @@ def get_args():
     parser.add_argument('--start_epsilon',
                         default=args.start_epsilon, type=int,
                         help="The start epsilon value for the attack.")
-
+    parser.add_argument('--schedule_factor',
+                        default=args.schedule_factor, type=float,
+                        help="Factor for scheduler.")
+    parser.add_argument('--schedule_patience',
+                        default=args.schedule_patience, type=int,
+                        help="Factor for scheduler.")
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)

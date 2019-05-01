@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from torch.nn.functional import log_softmax
 from cnns.nnlib.pytorch_layers.conv_picker import Conv
 
+
 class FCNNPytorch(nn.Module):
 
     # @profile

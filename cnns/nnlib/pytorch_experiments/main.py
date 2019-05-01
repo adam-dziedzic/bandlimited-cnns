@@ -1039,6 +1039,8 @@ if __name__ == '__main__':
                  "MoteStrain",
                  "ProximalPhalanxOutlineCorrect",
                  "ProximalPhalanxTW"]
+    elif args.dataset == "debug22":
+        flist = ["Adiac"]
     else:
         raise AttributeError("Unknown dataset: ", args.dataset)
 
