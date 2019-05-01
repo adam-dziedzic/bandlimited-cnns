@@ -167,7 +167,7 @@ def run(args):
 
     # full_attack = CarliniWagnerL2AttackRound(full_model)
     # full_attack = CarliniWagnerL2AttackRound(round_model)
-    full_attack = attack(round_model)
+    round_attack = attack(round_model)
     # input_epsilons = [0]
     input_epsilons = range(args.start_epsilon, 10000, 1)
 
@@ -214,8 +214,8 @@ def run(args):
 
                 counter += 1
                 # should we start attack from original or rounded image?
-                original_adversarial, rounded_adversarial = full_attack(
-                    image, label, max_iterations=epsilon,
+                original_adversarial, rounded_adversarial = round_attack(
+                    model_image, label, max_iterations=epsilon,
                     abort_early=False, unpack=False,
                     values_per_channel=args.values_per_channel)
                 original_image_attack = original_adversarial.image
