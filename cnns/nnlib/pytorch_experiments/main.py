@@ -1057,15 +1057,15 @@ if __name__ == '__main__':
     # flist = flist[3:]  # start from Beef
     # reversed(flist)
     print("flist: ", flist)
-    for dataset_name in flist:
-        args.dataset_name = dataset_name
-        print("Dataset: ", dataset_name)
-        for preserve_energy in args.preserve_energies:
-            print("preserve energy: ", preserve_energy)
-            args.preserve_energy = preserve_energy
-            for compress_rate in args.compress_rates:
-                print("compress rate: ", compress_rate)
-                args.compress_rate = compress_rate
+    for compress_rate in args.compress_rates:
+        print("compress rate: ", compress_rate)
+        args.compress_rate = compress_rate
+        for dataset_name in flist:
+            args.dataset_name = dataset_name
+            print("Dataset: ", dataset_name)
+            for preserve_energy in args.preserve_energies:
+                print("preserve energy: ", preserve_energy)
+                args.preserve_energy = preserve_energy
                 for noise_sigma in args.noise_sigmas:
                     print("noise sigma: ", noise_sigma)
                     args.noise_sigma = noise_sigma
