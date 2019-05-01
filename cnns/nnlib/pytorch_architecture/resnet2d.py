@@ -225,6 +225,8 @@ class ResNet(nn.Module):
         if self.args.attack_type == "band+round":
             x = self.rounder(x)  # round to nearest integers - feature squeezing
             x = self.band(x)  # compression in the FFT domain
+        elif self.args.attack_type == "round-only":
+            x = self.rounder(x)  # round to nearest integers - feature squeezing
 
         x = self.conv1(x)
         x = self.bn1(x)
