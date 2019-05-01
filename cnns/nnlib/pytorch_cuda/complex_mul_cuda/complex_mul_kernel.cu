@@ -8,6 +8,20 @@
 namespace {
 
 template <typename scalar_t>
+__device__ __forceinline__ void single_mul(
+    scalar_t x_re,
+    scalar_t x_im,
+    scalar_t y_re,
+    scalar_t y_im,
+    scalar_t* out_re,
+    scalar_t* out_im) {
+
+    scalar_t uavc = x_re * (y_re + y_im);
+    *out_re += uavc - (x_re + x_im) * y_im;
+    *out_im += (x_im - x_re) * y_re + uavc;
+}
+
+template <typename scalar_t>
 __global__ void complex_mul_cuda_kernel(
     const scalar_t* __restrict__ x,
     const scalar_t* __restrict__ y,
@@ -53,20 +67,6 @@ __global__ void complex_mul_cuda_kernel(
     }
     out[O_idx] = out_re;
     out[O_idx + 1] = out_im;
-}
-
-template <typename scalar_t>
-__device__ __forceinline__ void single_mul(
-    scalar_t x_re,
-    scalar_t x_im,
-    scalar_t y_re,
-    scalar_t y_im,
-    scalar_t* out_re,
-    scalar_t* out_im) {
-
-    scalar_t uavc = x_re * (y_re + y_im);
-    *out_re += uavc - (x_re + x_im) * y_im;
-    *out_im += (x_im - x_re) * y_re + uavc;
 }
 
 } // namespace

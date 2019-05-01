@@ -8,6 +8,33 @@
 
 namespace {
 
+template <typename scalar_t>
+__device__ __forceinline__ void single_mul(
+    scalar_t x_re,
+    scalar_t x_im,
+    scalar_t y_re,
+    scalar_t y_im,
+    scalar_t* out_re,
+    scalar_t* out_im) {
+
+    scalar_t uavc = x_re * (y_re + y_im);
+    *out_re += uavc - (x_re + x_im) * y_im;
+    *out_im += (x_im - x_re) * y_re + uavc;
+}
+
+template <typename scalar_t>
+__device__ __forceinline__ void single_add(
+    scalar_t x_re,
+    scalar_t x_im,
+    scalar_t y_re,
+    scalar_t y_im,
+    scalar_t* out_re,
+    scalar_t* out_im) {
+
+    *out_re += x_re + y_re;
+    *out_im += x_im + y_im;
+}
+
 /**
 Complex multiplication of tensors using shared memory and barrier
 synchronization.
@@ -129,32 +156,6 @@ __global__ void complex_mul_cuda_kernel(
     }
 }
 
-template <typename scalar_t>
-__device__ __forceinline__ void single_mul(
-    scalar_t x_re,
-    scalar_t x_im,
-    scalar_t y_re,
-    scalar_t y_im,
-    scalar_t* out_re,
-    scalar_t* out_im) {
-
-    scalar_t uavc = x_re * (y_re + y_im);
-    *out_re += uavc - (x_re + x_im) * y_im;
-    *out_im += (x_im - x_re) * y_re + uavc;
-}
-
-template <typename scalar_t>
-__device__ __forceinline__ void single_add(
-    scalar_t x_re,
-    scalar_t x_im,
-    scalar_t y_re,
-    scalar_t y_im,
-    scalar_t* out_re,
-    scalar_t* out_im) {
-
-    *out_re += x_re + y_re;
-    *out_im += x_im + y_im;
-}
 
 } // namespace
 

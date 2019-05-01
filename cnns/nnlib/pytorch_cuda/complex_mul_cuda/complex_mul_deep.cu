@@ -37,6 +37,46 @@ inline bool is_power_2_host(int n) {
     return (n & (n - 1)) == 0;
 }
 
+template <typename scalar_t>
+__device__ __forceinline__ void single_mul(
+    scalar_t x_re,
+    scalar_t x_im,
+    scalar_t y_re,
+    scalar_t y_im,
+    scalar_t* out_re,
+    scalar_t* out_im) {
+
+    scalar_t uavc = x_re * (y_re + y_im);
+    *out_re += uavc - (x_re + x_im) * y_im;
+    *out_im += (x_im - x_re) * y_re + uavc;
+}
+
+template <typename scalar_t>
+void single_mul_simple(
+    scalar_t x_re,
+    scalar_t x_im,
+    scalar_t y_re,
+    scalar_t y_im,
+    scalar_t* out_re,
+    scalar_t* out_im) {
+
+    *out_re += x_re * y_re - x_im * y_im;
+    *out_im += x_re * y_im + x_im * y_re;
+}
+
+template <typename scalar_t>
+__device__ __forceinline__ void single_add(
+    scalar_t x_re,
+    scalar_t x_im,
+    scalar_t y_re,
+    scalar_t y_im,
+    scalar_t* out_re,
+    scalar_t* out_im) {
+
+    *out_re += x_re + y_re;
+    *out_im += x_im + y_im;
+}
+
 /**
 Cache is with complex numbers. Sum the complex channels for a given pixel.
 
@@ -184,45 +224,6 @@ __global__ void complex_mul_cuda_kernel(
     }
 }
 
-template <typename scalar_t>
-__device__ __forceinline__ void single_mul(
-    scalar_t x_re,
-    scalar_t x_im,
-    scalar_t y_re,
-    scalar_t y_im,
-    scalar_t* out_re,
-    scalar_t* out_im) {
-
-    scalar_t uavc = x_re * (y_re + y_im);
-    *out_re += uavc - (x_re + x_im) * y_im;
-    *out_im += (x_im - x_re) * y_re + uavc;
-}
-
-template <typename scalar_t>
-void single_mul_simple(
-    scalar_t x_re,
-    scalar_t x_im,
-    scalar_t y_re,
-    scalar_t y_im,
-    scalar_t* out_re,
-    scalar_t* out_im) {
-
-    *out_re += x_re * y_re - x_im * y_im;
-    *out_im += x_re * y_im + x_im * y_re;
-}
-
-template <typename scalar_t>
-__device__ __forceinline__ void single_add(
-    scalar_t x_re,
-    scalar_t x_im,
-    scalar_t y_re,
-    scalar_t y_im,
-    scalar_t* out_re,
-    scalar_t* out_im) {
-
-    *out_re += x_re + y_re;
-    *out_im += x_im + y_im;
-}
 
 template <typename scalar_t>
 __global__ void test_sum_power_2_channels_device(scalar_t* cache, int C) {
