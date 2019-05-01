@@ -21,13 +21,13 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 """
 
 # 1D
-# conv_type = ConvType.FFT1D
+conv_type = ConvType.FFT1D
 # conv_type = ConvType.STANDARD
 
 # 2D
-conv_type = ConvType.STANDARD2D
+# conv_type = ConvType.STANDARD2D
 # conv_type = ConvType.FFT2D
-compress_rate = 0.0
+compress_rate = 30.0
 
 if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # dataset = "ucr"
@@ -151,8 +151,8 @@ class Arguments(object):
                  loss_reduction=LossReduction.ELEMENTWISE_MEAN,
                  memory_type=MemoryType.PINNED,
                  workers=4,
-                 # model_path="no_model",
-                 model_path = "2019-04-29-08-31-35-212961-dataset-cifar10-preserve-energy-100-compress-rate-0.1-test-accuracy-84.27-channel-vals-8.model",
+                 model_path="no_model",
+                 # model_path = "2019-04-29-08-31-35-212961-dataset-cifar10-preserve-energy-100-compress-rate-0.1-test-accuracy-84.27-channel-vals-8.model",
                  # model_path="2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model",
                  # model_path="2019-01-08-14-41-44-026589-dataset-cifar10-preserve-energy-100.0-test-accuracy-91.39-fp16-amp-no-compression.model",
                  # model_path="2019-01-21-14-30-13-992591-dataset-cifar10-preserve-energy-100.0-test-accuracy-84.55-compress-label-84-after-epoch-304.model",
@@ -211,7 +211,7 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=100,  # run on full data
+                 sample_count_limit=0,  # run on full data
                  # sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
@@ -254,12 +254,12 @@ class Arguments(object):
                  fft_type="real_fft",  # real_fft or complex_fft
                  imagenet_path="/home/" + str(USER) + "/imagenet",
                  distributed=False,
-                 in_channels=3,
-                 values_per_channel=8,
+                 in_channels=1,
+                 values_per_channel=0,
                  # ucr_path = "../sathya",
                  ucr_path="../../TimeSeriesDatasets",
                  start_epsilon=0,
-                 attack_type="band", # band or full
+                 attack_type=None, # band or full
                  ):
         """
         The default parameters for the execution of the program.

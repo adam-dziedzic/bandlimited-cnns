@@ -280,6 +280,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         # fft of the input signals.
         xfft = torch.rfft(input, signal_ndim=Conv1dfftFunction.signal_ndim,
                           onesided=True)
+        N, C, init_xfft_size, _ = xfft.size()
         del input
 
         if args.visulize is True:
@@ -585,6 +586,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                 torch.cuda.synchronize()
                 outfft = complex_pad_simple(xfft=outfft, fft_size=fft_size)
                 # print("freq mul size: ", freq_mul.size())
+
                 output = torch.irfft(
                     input=outfft, signal_ndim=1, signal_sizes=(fft_size,))
                 # global global_complex_time
@@ -623,6 +625,7 @@ class Conv1dfftFunction(torch.autograd.Function):
             ctx.padding = padding
             ctx.cuda_block_threads = cuda_block_threads
             ctx.half_fft_size = half_fft_size
+            ctx.init_xfft_size = init_xfft_size
             ctx.save_for_backward(xfft, yfft, to_tensor(W), to_tensor(WW),
                                   to_tensor(fft_size), is_manual,
                                   to_tensor(conv_index),
@@ -676,6 +679,7 @@ class Conv1dfftFunction(torch.autograd.Function):
         padding = ctx.padding
         cuda_block_threads = ctx.cuda_block_threads
         half_fft_size = ctx.half_fft_size
+        init_xfft_size = ctx.init_xfft_size
         conv_index = from_tensor(conv_index)  # for the debug/test purposes
 
         is_debug = from_tensor(is_debug)
@@ -935,8 +939,13 @@ class Conv1dfftFunction(torch.autograd.Function):
                     complex_mul_stride_no_permute_cuda(doutfft, yfft, dxfft,
                                                        cuda_block_threads)
                     torch.cuda.synchronize()
-                    dx = torch.irfft(
-                        input=dxfft, signal_ndim=1, signal_sizes=(fft_size,))
+
+                    dxfft = complex_pad_simple(xfft=dxfft, fft_size=fft_size)
+
+                    dx = torch.irfft(input=dxfft,
+                                     signal_ndim=Conv1dfftFunction.signal_ndim,
+                                     signal_sizes=(fft_size,),
+                                     onesided=True)
                     # global global_complex_time
                     # global_complex_time += time.time() - start_complex_time
                     # print("complex multiply time: ", global_complex_time)
@@ -1042,8 +1051,12 @@ class Conv1dfftFunction(torch.autograd.Function):
                     complex_mul_stride_no_permute_cuda(doutfft, xfft, dwfft,
                                                        cuda_block_threads)
                     torch.cuda.synchronize()
+
+                    dwfft = complex_pad_simple(xfft=dwfft, fft_size=fft_size)
+
                     dw = torch.irfft(
-                        input=dwfft, signal_ndim=1, signal_sizes=(fft_size,))
+                        input=dwfft, signal_ndim=1, signal_sizes=(fft_size,),
+                        onesided=True)
                     if dw.shape[-1] > WW:
                         dw = dw.narrow(dim=-1, start=0, length=WW)
                     elif dw.shape[-1] < W:
