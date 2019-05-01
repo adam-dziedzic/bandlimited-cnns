@@ -561,7 +561,7 @@ def main(args):
                 test_accuracy) + "," + str(epoch_time) + "," + str(
                 lr) + "," + str(train_time) + "," + str(test_time) + "," + str(
                 args.compress_rate)
-            print(msg)
+            # print(msg)
             file.write(msg + "\n")
 
         # Metric: select the best model based on the best train loss (minimal).
