@@ -430,7 +430,8 @@ def main(args):
     # https://pytorch.org/docs/stable/optim.html#torch.optim.lr_scheduler.ReduceLROnPlateau
     if scheduler_type is SchedulerType.ReduceLROnPlateau:
         scheduler = ReduceLROnPlateauPyTorch(optimizer=optimizer, mode='min',
-                                             factor=0.1, patience=10)
+                                             factor=args.schedule_factor,
+                                             patience=args.schedule_patience)
     elif scheduler_type is SchedulerType.MultiStepLR:
         scheduler = MultiStepLR(optimizer=optimizer, milestones=[150, 250])
     else:
