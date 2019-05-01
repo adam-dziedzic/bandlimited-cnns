@@ -1053,9 +1053,9 @@ class TestPyTorchConv1d(unittest.TestCase):
         y = np.array([[[2.0, 1.0]]])
         b = np.array([2.0])
         dtype = torch.float
-        x_torch = tensor(x, requires_grad=True, dtype=dtype)
-        y_torch = tensor(y, requires_grad=True, dtype=dtype)
-        b_torch = tensor(b, requires_grad=True, dtype=dtype)
+        x_torch = tensor(x, requires_grad=True, dtype=dtype, device=self.device)
+        y_torch = tensor(y, requires_grad=True, dtype=dtype, device=self.device)
+        b_torch = tensor(b, requires_grad=True, dtype=dtype, device=self.device)
 
         conv_param = {'pad': 0, 'stride': 1}
         expected_result, cache = conv_forward_naive_1D(x, y, b, conv_param)
@@ -1063,13 +1063,16 @@ class TestPyTorchConv1d(unittest.TestCase):
         ctx.set_needs_input_grad(3)
         result_torch = Conv1dfftFunction.forward(
             ctx, input=x_torch, filter=y_torch, bias=b_torch)
-        result = result_torch.detach().numpy()
+        result = get_numpy(result_torch)
         np.testing.assert_array_almost_equal(result, np.array(expected_result))
 
-        dout = tensor([[[0.1, -0.2]], [[0.2, -0.1]]], dtype=dtype)
+        dout_numpy = np.array([[[0.1, -0.2]], [[0.2, -0.1]]])
+
         # get the expected result from the backward pass
         expected_dx, expected_dw, expected_db = \
-            conv_backward_naive_1D(dout.numpy(), cache)
+            conv_backward_naive_1D(dout_numpy, cache)
+
+        dout = tensor(dout_numpy, dtype=dtype, device=self.device)
 
         print("expected_dx: ", expected_dx)
         print("expected_dw: ", expected_dw)
@@ -1078,15 +1081,18 @@ class TestPyTorchConv1d(unittest.TestCase):
         dx, dw, db, _, _, _, _, _, _ = Conv1dfftFunction.backward(
             ctx, dout)
 
+        dx = get_numpy(dx)
+        dw = get_numpy(dw)
+        db = get_numpy(db)
+
         # are the gradients correct
         np.testing.assert_array_almost_equal(
-            x=expected_dx, y=dx.detach().numpy(),
+            x=expected_dx, y=dx,
             err_msg="Expected x is different from computed y.")
         np.testing.assert_array_almost_equal(
-            x=expected_dw, y=dw.detach().numpy(),
+            x=expected_dw, y=dw,
             err_msg="Expected x is different from computed y.")
-        np.testing.assert_array_almost_equal(db.detach().numpy(),
-                                             expected_db)
+        np.testing.assert_array_almost_equal(db, expected_db)
 
     def test_FunctionBackwardNoCompressionWithBias2Filters(self):
         x = np.array([[[1.0, 2.0, 3.0]]])
@@ -1501,7 +1507,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         np.testing.assert_array_almost_equal(
             result, np.array([[expected_result]]))
 
-    def test_FunctionForwardBackwardRandomAutoGrad(self):
+    def test_FunctionForwardBackwardRandomFull1(self):
         print()
         print("Test forward backward passes with random data.")
         num_channels = 3
@@ -1522,25 +1528,35 @@ class TestPyTorchConv1d(unittest.TestCase):
         # self.logger.debug("expected result: " + str(expected_result))
 
         dtype = torch.float
-        x_torch = tensor(x, requires_grad=True, dtype=dtype)
-        y_torch = tensor(y, requires_grad=True, dtype=dtype)
-        b_torch = tensor(b, requires_grad=True, dtype=dtype)
+        x_torch = tensor(x, requires_grad=True, dtype=dtype, device=self.device)
+        y_torch = tensor(y, requires_grad=True, dtype=dtype, device=self.device)
+        b_torch = tensor(b, requires_grad=True, dtype=dtype, device=self.device)
         conv = Conv1dfft(filter_value=y_torch, bias_value=b_torch)
         result_torch = conv.forward(input=x_torch)
-        result = result_torch.detach().numpy()
-        # self.logger.debug("obtained result: " + str(result))
-        np.testing.assert_array_almost_equal(result, np.array(expected_result))
 
+        # dout = tensor(result/100.0, dtype=dtype)
+        dout = torch.randn(result_torch.shape, dtype=dtype, device=self.device)
+
+        result_torch.backward(dout)
+
+        # compute the expected forward and backward values
         conv_param = {'pad': 0, 'stride': 1}
         expected_result, cache = conv_forward_naive_1D(x, y, b, conv_param)
 
-        # dout = tensor(result/100.0, dtype=dtype)
-        dout = torch.randn(result_torch.shape)
+        dout_numpy = dout.clone()
+        dout_numpy = get_numpy(dout_numpy)
+
         # get the expected result from the backward pass
         expected_dx, expected_dw, expected_db = \
-            conv_backward_naive_1D(dout.numpy(), cache)
+            conv_backward_naive_1D(dout_numpy, cache)
 
-        result_torch.backward(dout)
+
+        # compare the results
+        result = get_numpy(result_torch)
+
+        # self.logger.debug("obtained result: " + str(result))
+        np.testing.assert_array_almost_equal(result, np.array(expected_result),
+                                             decimal=5)
 
         # Assert that we executed the backward pass via PyTorch's AutoGrad
         # (value is 0) and not manually (for manual grad the value is 1:
@@ -1556,15 +1572,19 @@ class TestPyTorchConv1d(unittest.TestCase):
         # self.logger.debug("expected db: ", expected_db)
         # self.logger.debug("computed db: ", b_torch.grad)
 
+        dx = get_numpy(x_torch.grad)
+        dw = get_numpy(y_torch.grad)
+        db = get_numpy(b_torch.grad)
+
         # are the gradients correct
         np.testing.assert_array_almost_equal(
-            x=expected_dx, y=x_torch.grad, decimal=5,
+            x=expected_dx, y=dx, decimal=5,
             err_msg="Expected x is different from computed y.")
         np.testing.assert_array_almost_equal(
-            x=expected_dw, y=y_torch.grad, decimal=4,
+            x=expected_dw, y=dw, decimal=4,
             err_msg="Expected x is different from computed y.")
         np.testing.assert_array_almost_equal(
-            x=expected_db, y=b_torch.grad, decimal=5,
+            x=expected_db, y=db, decimal=5,
             err_msg="Expected x is different from computed y.")
 
     def test_FunctionForwardBackwardRandomManualBackprop(self):
@@ -1573,7 +1593,7 @@ class TestPyTorchConv1d(unittest.TestCase):
         num_channels = 3
         num_data_points = 11
         num_values_data = 21
-        num_values_filter = 5
+        num_values_filter = 8
         num_filters = 5
         # Input signal: 5 data points, 3 channels, 10 values.
         x = np.random.rand(num_data_points, num_channels, num_values_data)
@@ -1581,11 +1601,6 @@ class TestPyTorchConv1d(unittest.TestCase):
         y = np.random.rand(num_filters, num_channels, num_values_filter)
         # Bias: one for each filter
         b = np.random.rand(num_filters)
-        # get the expected result
-        conv_param = {'pad': 0, 'stride': 1}
-        expected_result, _ = conv_forward_naive_1D(x=x, w=y, b=b,
-                                                   conv_param=conv_param)
-        # self.logger.debug("expected result: " + str(expected_result))
 
         dtype = torch.float
         device = torch.device("cpu")
@@ -1602,17 +1617,17 @@ class TestPyTorchConv1d(unittest.TestCase):
 
         result_torch.backward(dout)
 
-        result = result_torch.cpu().detach().numpy()
-        # self.logger.debug("obtained result: " + str(result))
-        np.testing.assert_array_almost_equal(
-            np.array(expected_result), result, decimal=5)
-
+        # get expected results
         conv_param = {'pad': 0, 'stride': 1}
         expected_result, cache = conv_forward_naive_1D(x, y, b, conv_param)
-
         # get the expected result from the backward pass
         expected_dx, expected_dw, expected_db = \
             conv_backward_naive_1D(dout.cpu().numpy(), cache)
+
+        result = get_numpy(result_torch)
+        # self.logger.debug("obtained result: " + str(result))
+        np.testing.assert_array_almost_equal(
+            np.array(expected_result), result, decimal=5)
 
         # Assert that we executed the backward pass manually (value is 1) and
         # not via PyTorch's autograd (for autograd: conv.is_manual[0] == 0).

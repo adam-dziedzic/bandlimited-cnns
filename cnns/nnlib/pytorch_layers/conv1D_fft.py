@@ -1034,6 +1034,7 @@ class Conv1dfftFunction(torch.autograd.Function):
                     dw[start:stop] = out
             elif args.conv_exec_type is ConvExecType.CUDA:
                 if torch.cuda.is_available():
+                    doutfft = pytorch_conjugate(doutfft)
                     doutfft = doutfft.permute(1, 0, 2, 3).contiguous()
                     xfft = xfft.permute(1, 0, 2, 3).contiguous()
                     dwfft = torch.zeros([F, C, half_fft_size, 2],
