@@ -659,6 +659,8 @@ if __name__ == '__main__':
 
     if args.dataset == "all" or args.dataset == "ucr":
         flist = sorted(os.listdir(ucr_path))
+    elif args.dataset == "reverse-ucr":
+        flist = reversed(sorted(os.listdir(ucr_path)))
     elif args.dataset == "cifar10":
         flist = ["cifar10"]
     elif args.dataset == "cifar100":
@@ -1044,6 +1046,56 @@ if __name__ == '__main__':
                  "ProximalPhalanxTW"]
     elif args.dataset == "debug22":
         flist = ["Adiac"]
+    elif args.dataset == "debug23":
+        flist = ["Computers",
+                 "Cricket_X",
+                 "Cricket_Y",
+                 "FaceFour",
+                 "FacesUCR",
+                 "FISH",
+                 "ItalyPowerDemand",
+                 "Lighting7",
+                 "MedicalImages",
+                 "MiddlePhalanxOutlineAgeGroup",
+                 "MiddlePhalanxOutlineCorrect",
+                 "MiddlePhalanxTW",
+                 "MoteStrain",
+                 "ProximalPhalanxOutlineCorrect",
+                 "ProximalPhalanxTW",
+                 'FordB',
+                 'Gun_Point',
+                 'Ham',
+                 'HandOutlines',
+                 'Haptics',
+                 'Herring',
+                 'InlineSkate',
+                 'InsectWingbeatSound',
+                 'NonInvasiveFatalECG_Thorax1',
+                 'NonInvasiveFatalECG_Thorax2',
+                 'PhalangesOutlinesCorrect',
+                 'Phoneme',
+                 'ProximalPhalanxOutlineAgeGroup',
+                 'RefrigerationDevices',
+                 'ScreenType',
+                 'ShapeletSim',
+                 'ShapesAll',
+                 'SmallKitchenAppliances',
+                 'SonyAIBORobotSurface',
+                 'StarLightCurves',
+                 'Strawberry',
+                 'Symbols',
+                 'synthetic_control',
+                 'Trace',
+                 'Two_Patterns',
+                 'uWaveGestureLibrary_X',
+                 'uWaveGestureLibrary_Y',
+                 'uWaveGestureLibrary_Z',
+                 'UWaveGestureLibraryAll',
+                 'wafer',
+                 'Worms',
+                 'WormsTwoClass',
+                 'yoga'
+                 ]
     else:
         raise AttributeError("Unknown dataset: ", args.dataset)
 
