@@ -297,6 +297,14 @@ if __name__ == "__main__":
     # args.conv_type = ConvType.STANDARD2D
     # args.sample_count_limit = 100
 
+    # args.dataset = "cifar10"
+    # args.network_type = NetworkType.ResNet18
+    # args.model_path = "saved-model-2019-05-01-23-20-01-674392-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-87.88-channel-vals-8.model"
+    # args.values_per_channel = 8
+    # args.compress_rate = 0
+    # args.conv_type = ConvType.STANDARD2D
+    # args.sample_count_limit = 100
+
     # args.model_path = "2019-04-08-19-53-50-779103-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-rounding-32-values-per-channel.model"
     # args.model_path = "saved_model_2019-04-11-04-51-57-429818-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.48-channel-vals-256.model"
     # args.values_per_channel = 256

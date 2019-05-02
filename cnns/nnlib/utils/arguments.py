@@ -263,7 +263,7 @@ class Arguments(object):
                  imagenet_path="/home/" + str(USER) + "/imagenet",
                  distributed=False,
                  in_channels=1,
-                 values_per_channel=0,
+                 values_per_channel=8,
                  # ucr_path = "../sathya",
                  ucr_path="../../TimeSeriesDatasets",
                  start_epsilon=0,

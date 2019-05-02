@@ -215,7 +215,7 @@ def run(args):
                 counter += 1
                 # should we start attack from original or rounded image?
                 original_adversarial, rounded_adversarial = attack(
-                    model_image, label, max_iterations=epsilon,
+                    image, label, max_iterations=epsilon,
                     abort_early=False, unpack=False)
                 original_image_attack = original_adversarial.image
                 rounded_image_attack = rounded_adversarial.image

@@ -36,16 +36,20 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
         super(CarliniWagnerL2AttackRound, self).__init__(
             model=model, criterion=criterion, distance=distance,
             threshold=threshold)
-        if args != None:
-            self.args = args
-            self.std_array = args.std_array
-            self.mean_array = args.mean_array
-        else:
+        if args is None:
             raise Exception("args have to be provided!")
             # from cnns.nnlib.datasets.cifar import cifar_mean_array
             # from cnns.nnlib.datasets.cifar import cifar_std_array
             # self.std_array = cifar_std_array
             # self.mean_array = cifar_mean_array
+        else:
+            self.args = args
+            self.std_array = args.std_array
+            self.mean_array = args.mean_array
+
+        if args.values_per_channel <= 0:
+            raise Exception("Round attack requires more than zero values per "
+                            "channel!")
 
         self.rounder = DenormRoundNorm(
             mean_array=self.mean_array, std_array=self.std_array,
@@ -247,9 +251,10 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
 
                 # the perturbations are with respect to the original image
                 logits, is_adv = a.predictions(x_rounded)
+                # logits, is_adv = a.predictions(x)
 
                 loss, dldx = self.loss_function(
-                    const, a, x_rounded, logits, reconstructed_original,
+                    const, a, x, logits, reconstructed_original,
                     confidence, min_, max_)
 
                 logging.info('loss: {}; best overall distance: {}'.format(
