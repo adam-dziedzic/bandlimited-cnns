@@ -158,10 +158,10 @@ def run(args):
 
     if args.attack_type == "band":
         round_model = band_model
-        attack = CarliniWagnerL2AttackRound(round_model, args=args)
+        attack = CarliniWagnerL2AttackRound(model=round_model, args=args)
     elif args.attack_type == "full":
         round_model = full_model
-        attack = CarliniWagnerL2AttackRound(round_model, args=args)
+        attack = CarliniWagnerL2AttackRound(model=round_model, args=args)
     elif args.attack_type == "band+round":
         round_model = band_round_model
         attack = CarliniWagnerL2Attack(round_model)
@@ -216,8 +216,7 @@ def run(args):
                 # should we start attack from original or rounded image?
                 original_adversarial, rounded_adversarial = attack(
                     model_image, label, max_iterations=epsilon,
-                    abort_early=False, unpack=False,
-                    values_per_channel=args.values_per_channel)
+                    abort_early=False, unpack=False)
                 original_image_attack = original_adversarial.image
                 rounded_image_attack = rounded_adversarial.image
                 # print("original distance: ", original_adversarial.distance.value)

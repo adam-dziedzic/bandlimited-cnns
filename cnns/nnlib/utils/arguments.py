@@ -21,11 +21,11 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 """
 
 # 1D
-conv_type = ConvType.FFT1D
+# conv_type = ConvType.FFT1D
 # conv_type = ConvType.STANDARD
 
 # 2D
-# conv_type = ConvType.STANDARD2D
+conv_type = ConvType.STANDARD2D
 # conv_type = ConvType.FFT2D
 compress_rate = 0.0
 
@@ -219,7 +219,7 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=0,  # run on full data
+                 sample_count_limit=100,  # run on full data
                  # sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
@@ -267,7 +267,7 @@ class Arguments(object):
                  # ucr_path = "../sathya",
                  ucr_path="../../TimeSeriesDatasets",
                  start_epsilon=0,
-                 attack_type=None,  # band or full
+                 attack_type="full",  # band or full
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
                  ):

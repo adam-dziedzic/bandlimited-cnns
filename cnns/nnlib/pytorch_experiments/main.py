@@ -736,8 +736,7 @@ if __name__ == '__main__':
         #          'Two_Patterns',
         #          'TwoLeadECG', 'uWaveGestureLibrary_X', 'uWaveGestureLibrary_Y',
         #          'uWaveGestureLibrary_Z', 'UWaveGestureLibraryAll', 'wafer',
-        #          'Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass', 'yoga',
-        #          'ztest']
+        #          'Wine', 'WordsSynonyms', 'Worms', 'WormsTwoClass', 'yoga']
         # flist = ['DiatomSizeReduction',
         #          'DistalPhalanxOutlineAgeGroup', 'DistalPhalanxOutlineCorrect',
         #          'DistalPhalanxTW', 'Earthquakes', 'ECG200', 'ECG5000',
@@ -1096,6 +1095,45 @@ if __name__ == '__main__':
                  'WormsTwoClass',
                  'yoga'
                  ]
+    elif args.dataset == "debug24":
+        flist = ['Beef', 'BeetleFly', 'BirdChicken',
+         'CBF', 'Car', 'ChlorineConcentration', 'CinC_ECG_torso', 'Coffee',
+         'Computers', 'Cricket_X', 'Cricket_Y', 'Cricket_Z',
+         'DiatomSizeReduction', 'DistalPhalanxOutlineAgeGroup',
+         'DistalPhalanxOutlineCorrect', 'DistalPhalanxTW', 'ECG200', 'ECG5000',
+         'ECGFiveDays', 'Earthquakes', 'ElectricDevices', 'FISH', 'FaceAll',
+         'FaceFour', 'FacesUCR', 'FordA', 'FordB', 'Gun_Point', 'Ham',
+         'HandOutlines', 'Haptics', 'Herring', 'InlineSkate',
+         'InsectWingbeatSound', 'ItalyPowerDemand', 'LargeKitchenAppliances',
+         'Lighting2', 'Lighting7', 'MALLAT', 'Meat', 'MedicalImages',
+         'MiddlePhalanxOutlineAgeGroup', 'MiddlePhalanxOutlineCorrect',
+         'MiddlePhalanxTW', 'MoteStrain', 'NonInvasiveFatalECG_Thorax1',
+         'NonInvasiveFatalECG_Thorax2', 'OSULeaf', 'OliveOil',
+         'PhalangesOutlinesCorrect', 'Phoneme', 'Plane',
+         'ProximalPhalanxOutlineAgeGroup', 'ProximalPhalanxOutlineCorrect',
+         'ProximalPhalanxTW', 'RefrigerationDevices', 'ScreenType',
+         'ShapeletSim', 'ShapesAll', 'SmallKitchenAppliances',
+         'SonyAIBORobotSurface', 'SonyAIBORobotSurfaceII', 'StarLightCurves',
+         'Strawberry', 'SwedishLeaf', 'Symbols', 'ToeSegmentation1',
+         'ToeSegmentation2', 'Trace', 'TwoLeadECG', 'Two_Patterns',
+         'UWaveGestureLibraryAll', 'Wine', 'WordsSynonyms', 'Worms',
+         'WormsTwoClass', 'synthetic_control', 'uWaveGestureLibrary_X',
+         'uWaveGestureLibrary_Y', 'uWaveGestureLibrary_Z', 'wafer', 'yoga']
+    elif args.dataset == "debug25":
+        flist = ['Meat', 'MedicalImages',
+         'MiddlePhalanxOutlineAgeGroup', 'MiddlePhalanxOutlineCorrect',
+         'MiddlePhalanxTW', 'MoteStrain', 'NonInvasiveFatalECG_Thorax1',
+         'NonInvasiveFatalECG_Thorax2', 'OSULeaf', 'OliveOil',
+         'PhalangesOutlinesCorrect', 'Phoneme', 'Plane',
+         'ProximalPhalanxOutlineAgeGroup', 'ProximalPhalanxOutlineCorrect',
+         'ProximalPhalanxTW', 'RefrigerationDevices', 'ScreenType',
+         'ShapeletSim', 'ShapesAll', 'SmallKitchenAppliances',
+         'SonyAIBORobotSurface', 'SonyAIBORobotSurfaceII', 'StarLightCurves',
+         'Strawberry', 'SwedishLeaf', 'Symbols', 'ToeSegmentation1',
+         'ToeSegmentation2', 'Trace', 'TwoLeadECG', 'Two_Patterns',
+         'UWaveGestureLibraryAll', 'Wine', 'WordsSynonyms', 'Worms',
+         'WormsTwoClass', 'synthetic_control', 'uWaveGestureLibrary_X',
+         'uWaveGestureLibrary_Y', 'uWaveGestureLibrary_Z', 'wafer', 'yoga']
     else:
         raise AttributeError("Unknown dataset: ", args.dataset)
 
