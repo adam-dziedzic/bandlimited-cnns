@@ -9,8 +9,6 @@ from foolbox.attacks.base import call_decorator
 from foolbox.attacks.carlini_wagner import CarliniWagnerL2Attack
 from foolbox.attacks.carlini_wagner import AdamOptimizer
 from foolbox.adversarial import Adversarial
-from cnns.nnlib.datasets.cifar import cifar_mean_array
-from cnns.nnlib.datasets.cifar import cifar_std_array
 from cnns.nnlib.datasets.transformations.denorm_round_norm import \
     DenormRoundNorm
 from foolbox.criteria import Misclassification
@@ -32,8 +30,9 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
     .. [2] https://github.com/carlini/nn_robust_attacks
 
     """
-    def __init__(self, model=None, criterion=Misclassification(),
-                 distance=MSE, threshold=None, args=None):
+
+    def __init__(self, args, model=None, criterion=Misclassification(),
+                 distance=MSE, threshold=None):
         super(CarliniWagnerL2AttackRound, self).__init__(
             model=model, criterion=criterion, distance=distance,
             threshold=threshold)
@@ -42,12 +41,17 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
             self.std_array = args.std_array
             self.mean_array = args.mean_array
         else:
-            self.std_array = cifar_std_array
-            self.mean_array = cifar_mean_array
+            raise Exception("args have to be provided!")
+            # from cnns.nnlib.datasets.cifar import cifar_mean_array
+            # from cnns.nnlib.datasets.cifar import cifar_std_array
+            # self.std_array = cifar_std_array
+            # self.mean_array = cifar_mean_array
 
+        self.rounder = DenormRoundNorm(
+            mean_array=self.mean_array, std_array=self.std_array,
+            values_per_channel=args.values_per_channel)
 
-    def init_rounded_adversarial(self, original_image, original_class,
-                                 values_per_channel):
+    def init_rounded_adversarial(self, original_image, original_class):
         """
         Initialize the state of the adversarial object to save the adversarial
         examples that break the rounding defense.
@@ -65,9 +69,7 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
                              ' with a model and a criterion or it'
                              ' needs to be called with an Adversarial'
                              ' instance.')
-        rounded_image = DenormRoundNorm(
-            mean_array=self.mean_array, std_array=self.std_array,
-            values_per_channel=values_per_channel).round(original_image)
+        rounded_image = self.rounder.round(original_image)
         self.rounded_adversarial = Adversarial(
             model=model, criterion=criterion, original_image=rounded_image,
             original_class=original_class, distance=distance,
@@ -81,7 +83,7 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
         """
         return self.rounded_adversarial.image
 
-    def rounded_predictions(self, image_attack, values_per_channel=255):
+    def rounded_predictions(self, adversarial, image_attack):
         """
         Check if the perturbed image is still adversarial after rounding.
 
@@ -89,15 +91,12 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
         :param values_per_channel: the values per channel for rounding
         :return: predictions, is_adv
         """
-        image_attack = DenormRoundNorm(
-            mean_array=self.mean_array, std_array=self.std_array,
-            values_per_channel=values_per_channel).round(image_attack)
-        return self.rounded_adversarial.predictions(image_attack)
+        image_attack = self.rounder.round(image_attack)
+        return adversarial.predictions(image_attack)
 
     def attack(call_fn):
         @functools.wraps(call_fn)
-        def wrapper(self, input_or_adv, label, values_per_channel=255,
-                    **kwargs):
+        def wrapper(self, input_or_adv, label, **kwargs):
             """
             Attack the model starting from the original_image by perturbing it.
             The same params as in the __call__ method.
@@ -106,11 +105,9 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
             image is adversarial.
             """
             self.init_rounded_adversarial(original_image=input_or_adv,
-                                          original_class=label,
-                                          values_per_channel=values_per_channel)
+                                          original_class=label)
             original_adversarial = call_fn(
-                self, input_or_adv, label=label,
-                values_per_channel=values_per_channel, **kwargs)
+                self, input_or_adv, label=label, **kwargs)
             # return self.get_rounded_adversarial()
             return original_adversarial, self.rounded_adversarial
 
@@ -120,8 +117,7 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
     @call_decorator
     def __call__(self, input_or_adv, label=None, unpack=True,
                  binary_search_steps=5, max_iterations=1000, confidence=0,
-                 learning_rate=5e-3, initial_const=1e-2, abort_early=True,
-                 values_per_channel=255):
+                 learning_rate=5e-3, initial_const=1e-2, abort_early=True):
 
         """The L2 version of the Carlini & Wagner attack.
 
@@ -158,7 +154,6 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
         abort_early : bool
             If True, Adam will be aborted if the loss hasn't decreased
             for some time (a tenth of max_iterations).
-        values_per_channel: number of value in the pixel channel.
         """
 
         a = input_or_adv
@@ -238,12 +233,23 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
 
                 # We try to find the rounded adversarial in parallel to finding
                 # the normal adversarial for this attack.
-                _, is_round_adv = self.rounded_predictions(
-                    image_attack=x, values_per_channel=values_per_channel)
+                # _, is_round_adv = self.rounded_predictions(
+                #     image_attack=x, values_per_channel=values_per_channel)
+                # logits, is_round_adv = self.rounded_predictions(
+                #     adversarial=a, image_attack=x,
+                #     values_per_channel=values_per_channel)
+                # logits, is_adv = a.predictions(x)
 
-                logits, is_adv = a.predictions(x)
+                x_rounded = self.rounder.round(x)
+
+                # update the adversarial for the rounded version of the image
+                self.rounded_adversarial.predictions(x_rounded)
+
+                # the perturbations are with respect to the original image
+                logits, is_adv = a.predictions(x_rounded)
+
                 loss, dldx = self.loss_function(
-                    const, a, x, logits, reconstructed_original,
+                    const, a, x_rounded, logits, reconstructed_original,
                     confidence, min_, max_)
 
                 logging.info('loss: {}; best overall distance: {}'.format(

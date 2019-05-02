@@ -135,6 +135,9 @@ def run(args):
     full_model_path = "2019-04-08-18-32-59-787750-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.47.model"
     band_model_path = "2019-01-21-14-30-13-992591-dataset-cifar10-preserve-energy-100.0-test-accuracy-84.55-compress-label-84-after-epoch-304.model"
     args.conv_type = ConvType.STANDARD2D
+
+
+
     full_model = get_foolbox_model(args, model_path=full_model_path,
                                    compress_rate=0,
                                    min=cifar_min, max=cifar_max)
@@ -155,19 +158,16 @@ def run(args):
 
     if args.attack_type == "band":
         round_model = band_model
-        attack = CarliniWagnerL2AttackRound
+        attack = CarliniWagnerL2AttackRound(round_model, args=args)
     elif args.attack_type == "full":
         round_model = full_model
-        attack = CarliniWagnerL2AttackRound
+        attack = CarliniWagnerL2AttackRound(round_model, args=args)
     elif args.attack_type == "band+round":
         round_model = band_round_model
-        attack = CarliniWagnerL2Attack
+        attack = CarliniWagnerL2Attack(round_model)
     else:
         raise Exception(f"Unknown attack type: {args.attack_type}")
 
-    # full_attack = CarliniWagnerL2AttackRound(full_model)
-    # full_attack = CarliniWagnerL2AttackRound(round_model)
-    round_attack = attack(round_model)
     # input_epsilons = [0]
     input_epsilons = range(args.start_epsilon, 10000, 1)
 
@@ -214,7 +214,7 @@ def run(args):
 
                 counter += 1
                 # should we start attack from original or rounded image?
-                original_adversarial, rounded_adversarial = round_attack(
+                original_adversarial, rounded_adversarial = attack(
                     model_image, label, max_iterations=epsilon,
                     abort_early=False, unpack=False,
                     values_per_channel=args.values_per_channel)

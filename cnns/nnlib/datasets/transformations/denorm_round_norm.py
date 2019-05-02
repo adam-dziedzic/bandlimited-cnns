@@ -5,7 +5,14 @@ from cnns.nnlib.datasets.transformations.rounding import RoundingTransformation
 
 
 class DenormRoundNorm(object):
-    """De-Normalize a tensor image with mean and standard deviation.
+    """
+    Our rounder never transform images to go beyond their initial bounds. With
+    our rounding, we first de-normalize the images and go from [min, max] to
+    [0,1]. Then, we multiply the values by max 255 but never go over 1 or below
+    0. Then, we go back to [0,1] range and from there as with standard
+    normalization we transform the values to stay within the range [min, max].
+
+    De-Normalize a tensor image with mean and standard deviation.
     Given mean: ``(M1,...,Mn)`` and std: ``(S1,..,Sn)`` for ``n`` channels, this transform
     will denormalize each channel of the input ``torch.*Tensor`` i.e.
     ``input[channel] = input[channel] * std[channel] + mean[channel]``
