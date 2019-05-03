@@ -141,7 +141,7 @@ class Rounder():
                  mean=cifar_mean_array,
                  std=cifar_std_array):
         self.rounder = RoundingTransformation(
-            values_per_channel=values_per_channel, round=np.round)
+            values_per_channel=values_per_channel, rounder=np.round)
         self.mean = np.array(mean, dtype=np.float32).reshape((3, 1, 1))
         self.std = np.array(std, dtype=np.float32).reshape((3, 1, 1))
         self.sum_diff = 0.0

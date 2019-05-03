@@ -30,6 +30,16 @@ class Denormalize(object):
         # return tensor.mul_(self.std).add_(self.mean)
         return tensor * self.std + self.mean
 
+    def denormalize(self, numpy_array):
+        """
+        Wrapper around __call__ to call it for numpy arrays.
+
+        :param numpy_array: the numpy array representing the image.
+        :return: the image as a numpy array.
+        """
+        image_torch = torch.from_numpy(numpy_array)
+        return self.__call__(image_torch).numpy()
+
     def __repr__(self):
         return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean,
                                                                       self.std)

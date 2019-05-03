@@ -100,7 +100,7 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
 
     def attack(call_fn):
         @functools.wraps(call_fn)
-        def wrapper(self, input_or_adv, label, **kwargs):
+        def wrapper(self, input_or_adv, label, unpack=True, **kwargs):
             """
             Attack the model starting from the original_image by perturbing it.
             The same params as in the __call__ method.
@@ -112,8 +112,11 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
                                           original_class=label)
             original_adversarial = call_fn(
                 self, input_or_adv, label=label, **kwargs)
-            # return self.get_rounded_adversarial()
-            return original_adversarial, self.rounded_adversarial
+
+            if unpack:
+                return self.get_rounded_adversarial()
+            else:
+                return original_adversarial, self.rounded_adversarial
 
         return wrapper
 

@@ -15,14 +15,16 @@ from cnns.nnlib.datasets.transformations.rounding import RoundingTransformation
 imagenet_mean = [0.485, 0.456, 0.406]
 imagenet_std = [0.229, 0.224, 0.225]
 
-imagenet_mean_array = np.array(imagenet_mean).reshape((3, 1, 1))
-imagenet_std_array = np.array(imagenet_std).reshape((3, 1, 1))
+imagenet_mean_array = np.array(imagenet_mean, dtype=np.float32).reshape(
+    (3, 1, 1))
+imagenet_std_array = np.array(imagenet_std, dtype=np.float32).reshape((3, 1, 1))
 
 # the min/max value per pixel after normalization
-imagenet_min = np.float(-2.1179039478302) # -2.1179039478302
-imagenet_max = np.float(2.640000104904175) # 2.640000104904175
+imagenet_min = np.float(-2.1179039478302)  # -2.1179039478302
+imagenet_max = np.float(2.640000104904175)  # 2.640000104904175
 
 normalize = transforms.Normalize(mean=imagenet_mean, std=imagenet_std)
+
 
 def get_transform_train(args, dtype=torch.float32, signal_dimension=2):
     transformations = []
@@ -59,6 +61,7 @@ def get_transform_test(args, dtype=torch.float32, signal_dimension=2,
     transform_test = transforms.Compose(transformations)
     return transform_test
 
+
 def load_imagenet(args):
     args.num_classes = 1000
     pin_memory = False
@@ -91,7 +94,8 @@ def load_imagenet(args):
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.min_batch_size,
-        shuffle=(train_sampler is None),  # has to be False if train_sampler provided
+        shuffle=(train_sampler is None),
+        # has to be False if train_sampler provided
         num_workers=args.workers, pin_memory=pin_memory, sampler=train_sampler)
     # train_loader.batch_sampler.sampler.num_samples = sample_count
 
@@ -111,6 +115,7 @@ def load_imagenet(args):
 
 if __name__ == "__main__":
     from cnns.nnlib.utils.exec_args import get_args
+
     args = get_args()
     args.dataset = "imagenet"
     load_imagenet(args)

@@ -28,6 +28,16 @@ class Normalize(object):
         # return tensor.sub_(self.mean).div_(self.std)
         return (tensor - self.mean_array) / self.std_array
 
+    def normalize(self, numpy_array):
+        """
+        Wrapper around __call__ to call it for numpy arrays.
+
+        :param numpy_array: the numpy array representing the image.
+        :return: the image as a numpy array.
+        """
+        image_torch = torch.from_numpy(numpy_array)
+        return self.__call__(image_torch).numpy()
+
     def __repr__(self):
         return self.__class__.__name__ + '(mean={0}, std={1})'.format(
             self.mean_array,

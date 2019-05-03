@@ -19,7 +19,7 @@ def run(args):
     counter = 0
     sum_difference = 0
     rounder = RoundingTransformation(values_per_channel=args.values_per_channel,
-                                     round=np.round)
+                                     rounder=np.round)
     for batch_idx, (data, target) in enumerate(test_loader):
         # print("batch_idx: ", batch_idx)
         for i, label in enumerate(target):
