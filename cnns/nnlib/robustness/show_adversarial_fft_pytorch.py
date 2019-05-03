@@ -25,6 +25,10 @@ from cnns.nnlib.utils.exec_args import get_args
 from cnns.nnlib.robustness.utils import load_model
 from cnns.nnlib.datasets.cifar import cifar_max, cifar_min
 from cnns.nnlib.datasets.cifar import cifar_std_array, cifar_mean_array
+from cnns.nnlib.datasets.mnist.mnist import mnist_max, mnist_min
+from cnns.nnlib.datasets.mnist.mnist import mnist_std_array, mnist_mean_array
+from cnns.nnlib.datasets.mnist.mnist_from_class_idx_to_label import \
+    mnist_from_class_idx_to_label
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_max
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_min
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_mean_array
@@ -36,6 +40,7 @@ from cnns.nnlib.datasets.transformations.denorm_round_norm import \
 from cnns.nnlib.datasets.transformations.rounding import RoundingTransformation
 from cnns.nnlib.datasets.transformations.normalize import Normalize
 from cnns.nnlib.datasets.transformations.denormalize import Denormalize
+from cnns.nnlib.utils.general_utils import NetworkType
 
 
 def softmax(x):
@@ -89,8 +94,9 @@ def znormalize(x):
 
 def get_fmodel(args):
     if args.dataset == "imagenet":
+        args.cmap = None
         args.init_y, args.init_x = 224, 224
-        resnet = models.resnet50(
+        network_model = models.resnet50(
             pretrained=True).cuda().eval()  # for CPU, remove cuda()
         min = imagenet_min
         max = imagenet_max
@@ -100,6 +106,7 @@ def get_fmodel(args):
         from_class_idx_to_label = imagenet_from_class_idx_to_label
 
     elif args.dataset == "cifar10":
+        args.cmap = None
         args.init_y, args.init_x = 32, 32
         args.num_classes = 10
         args.values_per_channel = 8
@@ -112,13 +119,29 @@ def get_fmodel(args):
         max = cifar_max
         args.mean_array = cifar_mean_array
         args.std_array = cifar_std_array
-        resnet = load_model(args=args)
+        network_model = load_model(args=args)
         from_class_idx_to_label = cifar10_from_class_idx_to_label
+    elif args.dataset == "mnist":
+        args.cmap = "gray"
+        args.init_y, args.init_x = 28, 28
+        args.num_classes = 10
+        # args.values_per_channel = 2
+        args.model_path = "2019-05-03-10-08-51-149612-dataset-mnist-preserve-energy-100-compress-rate-0.0-test-accuracy-99.07-channel-vals-0.model"
+        args.compress_rate = 0
+        args.compress_rates = [args.compress_rate]
+        args.in_channels = 1
+        min = mnist_min
+        max = mnist_max
+        args.mean_array = mnist_mean_array
+        args.std_array = mnist_std_array
+        args.network_type = NetworkType.Net
+        network_model = load_model(args=args)
+        from_class_idx_to_label = mnist_from_class_idx_to_label
 
     else:
         raise Exception(f"Unknown dataset type: {args.dataset}")
 
-    fmodel = foolbox.models.PyTorchModel(resnet, bounds=(min, max),
+    fmodel = foolbox.models.PyTorchModel(network_model, bounds=(min, max),
                                          num_classes=args.num_classes)
 
     return fmodel, from_class_idx_to_label
@@ -227,10 +250,10 @@ def run(args):
                             ha='center', va='center')
 
     # Choose how many channels should be plotted.
-    channels_nr = 3
+    channels_nr = 1
     # Choose what fft types should be plotted.
-    fft_types = ["magnitude"]
-    # fft_types = ["magnitude", "phase"]
+    # fft_types = ["magnitude"]
+    fft_types = ["magnitude", "phase"]
     # fft_types = []
     channels = [x for x in range(channels_nr)]
     attacks = [
@@ -250,6 +273,11 @@ def run(args):
     # index for each subplot
     args.plot_index = 0
 
+    normalizer = Normalize(mean_array=args.mean_array,
+                           std_array=args.std_array)
+    denormalizer = Denormalize(mean_array=args.mean_array,
+                               std_array=args.std_array)
+
     for attack in attacks:
         # get source image and label, args.idx - is the index of the image
         # image, label = foolbox.utils.imagenet_example()
@@ -257,8 +285,6 @@ def run(args):
         image = image.astype(np.float32)
 
         # Normalize the data for the Pytorch models.
-        normalizer = Normalize(mean_array=args.mean_array,
-                               std_array=args.std_array)
         image = normalizer.normalize(image)
 
         args.original_class_id = original_class_id
@@ -276,6 +302,7 @@ def run(args):
             predicted_class_id = np.argmax(predictions)
             predicted_label = from_class_idx_to_label[predicted_class_id]
             print(title)
+            print("Number of unique values: ", len(np.unique(image)))
             print("model predicted label: ", predicted_label)
             if predicted_label != original_label:
                 print(f"The original label: {original_label} is different than "
@@ -284,22 +311,30 @@ def run(args):
             # sum_predictions = np.sum(predictions_original)
             # print("sum predictions: ", sum_predictions)
             # print("predictions_original: ", predictions_original)
-            args.plot_index += 1
-            plt.subplot(rows, cols, args.plot_index)
             title_str = title + '\nlabel: ' + str(
                 predicted_label.replace(",", "\n"))
             confidence_str = str(np.around(confidence, decimals=decimals))
-            plt.title(title_str + "\nconfidence: " + confidence_str)
-            denormalizer = Denormalize(mean_array=args.mean_array,
-                                       std_array=args.std_array)
-            image = denormalizer.denormalize(image)
-            plt.imshow(
-                np.moveaxis(image, 0, -1))  # move channels to last dimension
-            # plt.imshow(image / 255)  # division by 255 to convert [0, 255] to [0, 1]
-            # plt.axis('off')
-            if args.plot_index % cols == 1:
-                plt.ylabel("spatial domain")
-
+            full_title = title_str + "\nconfidence: " + confidence_str
+            ylabel_text = "spatial domain"
+            image_show = denormalizer.denormalize(image)
+            if args.dataset == "mnist":
+                # image_show = image_show.astype('uint8')
+                # plt.imshow(image_show.squeeze(), cmap=args.cmap,
+                #            interpolation='nearest')
+                print_heat_map(input_map=image_show[0], args=args,
+                               ylabel=ylabel_text, title=full_title)
+            else:
+                args.plot_index += 1
+                plt.subplot(rows, cols, args.plot_index)
+                plt.title(full_title)
+                plt.imshow(
+                    np.moveaxis(image, 0, -1),
+                    # move channels to last dimension
+                    cmap=args.cmap)
+                # plt.imshow(image / 255)  # division by 255 to convert [0, 255] to [0, 1]
+                # plt.axis('off')
+                if args.plot_index % cols == 1:
+                    plt.ylabel(ylabel_text)
 
         # Original image.
         show_image(image, "Original")
@@ -317,9 +352,12 @@ def run(args):
             print("rounded_image min and max: ", rounded_image.min(), ",",
                   rounded_image.max())
             show_image(rounded_image, "Rounded")
+            print("show diff between input image and rounded: ",
+                  np.sum(np.abs(rounded_image - image)))
 
         # from_file = False
-        file_name = "adversarial-saved-3"
+        file_name = args.dataset + "-vals-per-channel-" + str(
+            args.values_per_channel) + "2"
         full_name = file_name + ".npy"
         if os.path.exists(full_name):
             adversarial = np.load(file=full_name)
@@ -335,24 +373,31 @@ def run(args):
                 f"and image index: {args.index}")
         print("adversarial image min and max: ", adversarial.min(), ",",
               adversarial.max())
+        # adversarial = rounder.round(adversarial)
         show_image(adversarial, "Adversarial")
 
         # Show differences.
         # plt.title('Difference original vs. adversarial')
         difference = np.abs(adversarial - image)
         print("max 0-1 difference before round: ", np.max(difference))
-        difference_adv_org = np.abs(adversarial * 255 - image * 255)
-        print("max pixel difference before round: ",
-              np.max(difference_adv_org))
+        adversarial_normalized = denormalizer.denormalize(adversarial)
+        image_normalized = denormalizer.denormalize(image)
+        difference_adv_org = np.abs(
+            adversarial_normalized - image_normalized)
+        print("pixel difference before round: ")
+        print("max: ", np.max(difference_adv_org))
+        print("sum: ", np.sum(difference_adv_org))
         # print("adversarial: ", adversarial)
         # adversarial = np.round(adversarial * 255) / 255
         # difference = np.abs(adversarial * 255 - image * 255)
         # print("max pixel difference after round: ", np.max(difference))
         # print("difference:\n", difference)
-
-        difference_adv_round = np.abs(adversarial * 255 - rounded_image * 255)
-        print("max pixel difference between rounded and adversarial images: ",
-              np.max(difference_adv_round))
+        rounded_image_normalized = denormalizer.denormalize(rounded_image)
+        difference_adv_round = np.abs(
+            adversarial_normalized - rounded_image_normalized)
+        print("pixel difference between rounded and adversarial images ")
+        print("max: ", np.max(difference_adv_round))
+        print("sum: ", np.sum(difference_adv_round))
         # print("difference:\n", difference)
         # https://www.statisticshowto.datasciencecentral.com/normalized/
         # difference = (difference - difference.min()) / (
@@ -457,12 +502,14 @@ def run(args):
 
         plt.subplots_adjust(hspace=0.6)
 
+
     format = 'png'  # "pdf" or "png"
-    file_name = "images/" + attack.name() + "-channel-" + str(
-        channels_nr) + "-" + get_log_time()
+    file_name = "images/" + attack.name() + "-" + args.dataset + "-channel-" + str(
+        channels_nr) + "-" + "val-per-channel-" + str(
+        args.values_per_channel) + "-" + get_log_time()
     print("file name: ", file_name)
     plt.savefig(fname=file_name + "." + format, format=format)
-    # plt.show(block=True)
+    plt.show(block=True)
     plt.close()
 
 
@@ -475,8 +522,9 @@ if __name__ == "__main__":
     args.save_out = False
     # args.diff_type = "source"  # "source" or "fft"
     args.diff_type = "fft"
-    args.dataset = "cifar10"  # "cifar10" or "imagenet"
+    # args.dataset = "cifar10"  # "cifar10" or "imagenet"
     # args.dataset = "imagenet"
+    args.dataset = "mnist"
     args.index = 3  # index of the image (out of 20) to be used
 
     if torch.cuda.is_available() and args.use_cuda:
@@ -486,5 +534,13 @@ if __name__ == "__main__":
     else:
         print("cuda id not available")
         args.device = torch.device("cpu")
-    run(args)
+    # for values_per_channel in [2**x for x in range(1,8,1)]:
+    #     args.values_per_channel = values_per_channel
+    #     run(args)
+    # for values_per_channel in range(2, 256, 1):
+    #     args.values_per_channel = values_per_channel
+    #     run(args)
+    for values_per_channel in [2]:
+        args.values_per_channel = values_per_channel
+        run(args)
     print("elapsed time: ", time.time() - start_time)

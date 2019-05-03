@@ -2,7 +2,19 @@ import torchvision
 from torchvision import transforms
 import torch
 from cnns.nnlib.utils.general_utils import MemoryType
+import numpy as np
 
+mnist_mean = (0.1307,)
+mnist_std = (0.3081,)
+
+mnist_mean_array = np.array(mnist_mean, dtype=np.float32).reshape((1, 1, 1))
+mnist_std_array = np.array(mnist_std, dtype=np.float32).reshape((1, 1, 1))
+
+# -0.42421296 2.8214867 -0.42421296 2.8214867 False False
+# mnist_min = np.float(-0.42421296)
+# mnist_max = np.float(2.8214867)
+mnist_min = np.float(-0.4243)
+mnist_max = np.float(2.8215)
 
 def get_mnist(args):
     """
@@ -34,9 +46,7 @@ def get_mnist(args):
         transform=transforms.Compose(
             [
                 transforms.ToTensor(),
-                transforms.Normalize(
-                    (0.1307,),
-                    (0.3081,))
+                transforms.Normalize(mnist_mean, mnist_std)
             ])
     )
     if sample_count > 0:
@@ -55,9 +65,7 @@ def get_mnist(args):
         transform=transforms.Compose(
             [
                 transforms.ToTensor(),
-                transforms.Normalize(
-                    (0.1307,),
-                    (0.3081,))
+                transforms.Normalize(mnist_mean, mnist_std)
             ])
     )
     if sample_count > 0:
@@ -69,3 +77,27 @@ def get_mnist(args):
                                               **kwargs)
 
     return train_loader, test_loader
+
+
+if __name__ == "__main__":
+    from cnns.nnlib.utils.exec_args import get_args
+
+    args = get_args()
+    args.sample_count_limit = 0
+    train_loader, test_loader = get_mnist(args)
+    min = np.float("inf")
+    max = np.float("-inf")
+    for batch_idx, (data, target) in enumerate(train_loader):
+        # print("batch_idx: ", batch_idx)
+        for i, label in enumerate(target):
+            label = label.item()
+            image = data[i].numpy()
+            min_image = np.min(image)
+            max_image = np.max(image)
+            # print(i, min_image, max_image)
+            if min_image < min:
+                min = min_image
+            if max_image > max:
+                max = max_image
+    print("min: ", min, " max: ", max)
+    # show_images()

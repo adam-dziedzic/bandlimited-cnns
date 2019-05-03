@@ -12,7 +12,7 @@ from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
 from cnns.nnlib.datasets.cifar import cifar_min
 from cnns.nnlib.datasets.cifar import cifar_max
 from cnns.nnlib.datasets.transformations.rounding import RoundingTransformation
-
+from cnns.nnlib.pytorch_architecture.get_model_architecture import getModelPyTorch
 
 def normalize(x, mean, std):
     _mean = mean.astype(x.dtype)
@@ -46,7 +46,7 @@ def unnormalize(x, mean=cifar_mean_array, std=cifar_std_array):
 
 
 def load_model(args):
-    model = resnet18(args=args)
+    model = getModelPyTorch(args=args)
     # load pretrained weights
     models_folder_name = "models"
     models_dir = os.path.join(os.getcwd(), os.path.pardir,

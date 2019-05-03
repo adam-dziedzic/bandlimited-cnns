@@ -38,6 +38,7 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # learning_rate = 0.0001
     learning_rate = 0.001
     batch_size = 16
+    test_batch_size = batch_size
     weight_decay = 0.0001
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
@@ -50,26 +51,21 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     schedule_factor = 0.5
     epochs = 2000
     optimizer_type = OptimizerType.ADAM
+    momentum = 0.9
+    loss_type = LossType.CROSS_ENTROPY
+    loss_reduction = LossReduction.ELEMENTWISE_MEAN
 else:
-    dataset = "cifar10"
+    dataset = "mnist"
+    # dataset = "cifar10"
     # dataset = "cifar100"
     # dataset = "imagenet"
 
     batch_size = 32
+    test_batch_size = batch_size
     learning_rate = 0.01
     weight_decay = 0.0005
-    if dataset == "cifar10":
-        network_type = NetworkType.ResNet18
-    elif dataset == "cifar100":
-        network_type = NetworkType.DenseNetCifar
-        weight_decay = 0.0001
-    elif dataset == "imagenet":
-        network_type = NetworkType.ResNet50
-        batch_size = 32
-        learning_rate = 0.1
-        weight_decay = 0.0001
-    else:
-        raise Exception(f"Unknown dataset name: {dataset}")
+    momentum = 0.9
+    epochs=350
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
@@ -81,6 +77,31 @@ else:
     schedule_factor = 0.1
     epochs = 350
     optimizer_type = OptimizerType.MOMENTUM
+    loss_type = LossType.CROSS_ENTROPY
+    loss_reduction = LossReduction.ELEMENTWISE_MEAN
+
+    if dataset == "mnist":
+        batch_size = 64
+        test_batch_size = 1000
+        momentum = 0.5
+        learning_rate = 0.01
+        epochs = 100
+        loss_type = LossType.NLL
+        loss_reduction = LossReduction.SUM
+        network_type = NetworkType.Net
+    elif dataset == "cifar10":
+        network_type = NetworkType.ResNet18
+    elif dataset == "cifar100":
+        network_type = NetworkType.DenseNetCifar
+        weight_decay = 0.0001
+    elif dataset == "imagenet":
+        network_type = NetworkType.ResNet50
+        batch_size = 32
+        test_batch_size = batch_size
+        learning_rate = 0.1
+        weight_decay = 0.0001
+    else:
+        raise Exception(f"Unknown dataset name: {dataset}")
 
 import os
 
@@ -147,9 +168,9 @@ class Arguments(object):
                  weight_decay=weight_decay,
                  epochs=epochs,
                  min_batch_size=batch_size,
-                 test_batch_size=batch_size,
+                 test_batch_size=test_batch_size,
                  learning_rate=learning_rate,
-                 momentum=0.9,
+                 momentum=momentum,
                  seed=31,
                  log_interval=1,
                  optimizer_type=optimizer_type,
@@ -219,7 +240,7 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=100,  # run on full data
+                 sample_count_limit=0,  # run on full data
                  # sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
@@ -263,7 +284,7 @@ class Arguments(object):
                  imagenet_path="/home/" + str(USER) + "/imagenet",
                  distributed=False,
                  in_channels=1,
-                 values_per_channel=8,
+                 values_per_channel=0,
                  # ucr_path = "../sathya",
                  ucr_path="../../TimeSeriesDatasets",
                  start_epsilon=0,

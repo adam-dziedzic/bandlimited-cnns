@@ -34,18 +34,13 @@ from cnns.nnlib.utils.general_utils import PrecisionType
 from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import mem_log_file
 from cnns.nnlib.utils.general_utils import get_log_time
-from cnns.nnlib.datasets.mnist import get_mnist
+from cnns.nnlib.datasets.mnist.mnist import get_mnist
 from cnns.nnlib.datasets.cifar import get_cifar
 from cnns.nnlib.datasets.ucr.ucr import get_ucr
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
 from cnns.nnlib.utils.exec_args import get_args
 # from cnns.nnlib.pytorch_experiments.track_utils.progress_bar import progress_bar
-from cnns.nnlib.pytorch_architecture.le_net import LeNet
-from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
-from cnns.nnlib.pytorch_architecture.resnet2d import resnet50_imagenet
-from cnns.nnlib.pytorch_architecture.densenet import densenet_cifar
-from cnns.nnlib.pytorch_architecture.fcnn import FCNNPytorch
-from cnns.nnlib.utils.general_utils import NetworkType
+from cnns.nnlib.pytorch_architecture.get_model_architecture import getModelPyTorch
 from cnns.nnlib.pytorch_experiments.utils.progress_bar import progress_bar
 
 # from memory_profiler import profile
@@ -100,37 +95,6 @@ args = get_args()
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
 print("current file name: ", current_file_name)
-
-
-def getModelPyTorch(args):
-    """
-    Get the PyTorch version of the FCNN model.
-    :param input_size: the length (width) of the time series.
-    :param num_classes: number of output classes.
-    :param in_channels: number of channels in the input data for a convolution.
-    :param out_channels: number of channels in the output of a convolution.
-    :param dtype: global - the type of torch data/weights.
-    :param flat_size: the size of the flat vector after the conv layers.
-    :return: the model.
-    """
-    network_type = args.network_type
-    if network_type is NetworkType.LE_NET:
-        return LeNet(args=args)
-    elif network_type is NetworkType.FCNN_SMALL or (
-            network_type is NetworkType.FCNN_STANDARD):
-        if network_type is NetworkType.FCNN_SMALL:
-            args.out_channels = [1, 1, 1]
-        elif network_type is NetworkType.FCNN_STANDARD:
-            args.out_channels = [128, 256, 128]
-        return FCNNPytorch(args=args)
-    elif network_type == NetworkType.ResNet18:
-        return resnet18(args=args)
-    elif network_type == NetworkType.DenseNetCifar:
-        return densenet_cifar(args=args)
-    elif network_type == NetworkType.ResNet50:
-        return resnet50_imagenet(args=args)
-    else:
-        raise Exception("Unknown network_type: ", network_type)
 
 
 def readucr(filename, data_type):

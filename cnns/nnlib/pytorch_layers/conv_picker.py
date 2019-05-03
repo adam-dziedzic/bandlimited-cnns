@@ -37,11 +37,11 @@ class Conv(object):
         self.strides = strides
         self.padding = padding
         self.is_bias = is_bias
+        self.args = args
         self.conv_type = args.conv_type
         self.preserve_energy = args.preserve_energy
         self.is_debug = args.is_debug
         self.compress_type = args.compress_type
-        self.args = args
         self.dtype = args.dtype
         self.next_power2 = args.next_power2
         self.compress_rate = args.compress_rate

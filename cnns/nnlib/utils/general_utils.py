@@ -143,8 +143,9 @@ class NetworkType(EnumWithNames):
     FCNN_SMALL = 2
     LE_NET = 3
     ResNet18 = 4
-    DenseNetCifar = 5  # DenseNet-121 with grow rate 12
+    DenseNetCifar = 5  # DenseNet-121 with growth-rate 12
     ResNet50 = 6  # for ImageNet
+    Net = 7  # for MNIST
 
 
 class CompressType(EnumWithNames):

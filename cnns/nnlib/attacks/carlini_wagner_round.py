@@ -249,12 +249,16 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
 
                 x_rounded = self.rounder.round(x)
 
+                # print("diff between input image and rounded: ",
+                #       np.sum(np.abs(x_rounded - x)))
+
                 # update the adversarial for the rounded version of the image
-                self.rounded_adversarial.predictions(x_rounded)
+                _, is_adv = self.rounded_adversarial.predictions(x_rounded)
 
                 # the perturbations are with respect to the original image
-                logits, is_adv = a.predictions(x_rounded)
+                # logits, is_adv = a.predictions(x_rounded)
                 # logits, is_adv = a.predictions(x)
+                logits, _ = a.predictions(x_rounded)
 
                 loss, dldx = self.loss_function(
                     const, a, x, logits, reconstructed_original,
