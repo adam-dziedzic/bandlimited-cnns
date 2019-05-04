@@ -572,7 +572,12 @@ if __name__ == "__main__":
     # for values_per_channel in range(2, 256, 1):
     #     args.values_per_channel = values_per_channel
     #     run(args)
-    for values_per_channel in [8]:
-        args.values_per_channel = values_per_channel
-        run(args)
+    # for values_per_channel in [8]:
+    #     args.values_per_channel = values_per_channel
+    #     run(args)
+    for index in range(20):
+        args.index = index
+        for values_per_channel in [2**x for x in range(1,8,1)]:
+            args.values_per_channel = values_per_channel
+            run(args)
     print("elapsed time: ", time.time() - start_time)
