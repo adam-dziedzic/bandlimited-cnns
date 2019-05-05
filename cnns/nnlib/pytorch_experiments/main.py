@@ -1140,6 +1140,33 @@ if __name__ == '__main__':
                  'SwedishLeaf', 'Symbols', 'synthetic_control',
                  'UWaveGestureLibraryAll', 'Wine', 'WordsSynonyms',
                  'Worms', 'WormsTwoClass', "wafer"]
+    elif args.dataset == "debug28-all-reversed":
+        flist = [x for x in reversed(['50words', 'Adiac', 'ArrowHead', 'Beef', 'BeetleFly',
+                 'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
+                 'CinC_ECG_torso', 'Coffee', 'Computers', 'Cricket_X',
+                 'Cricket_Y', 'Cricket_Z', 'DiatomSizeReduction',
+                 'DistalPhalanxOutlineAgeGroup', 'DistalPhalanxOutlineCorrect',
+                 'DistalPhalanxTW', 'Earthquakes', 'ECG200', 'ECG5000',
+                 'ECGFiveDays', 'ElectricDevices', 'FaceAll', 'FaceFour',
+                 'FacesUCR', 'FISH', 'FordA', 'FordB', 'Gun_Point', 'Ham',
+                 'HandOutlines', 'Haptics', 'Herring', 'InlineSkate',
+                 'InsectWingbeatSound', 'ItalyPowerDemand',
+                 'LargeKitchenAppliances', 'Lighting2', 'Lighting7', 'MALLAT',
+                 'Meat', 'MedicalImages', 'MiddlePhalanxOutlineAgeGroup',
+                 'MiddlePhalanxOutlineCorrect', 'MiddlePhalanxTW', 'MoteStrain',
+                 'NonInvasiveFatalECG_Thorax1', 'NonInvasiveFatalECG_Thorax2',
+                 'OliveOil', 'OSULeaf', 'PhalangesOutlinesCorrect', 'Phoneme',
+                 'Plane', 'ProximalPhalanxOutlineAgeGroup',
+                 'ProximalPhalanxOutlineCorrect', 'ProximalPhalanxTW',
+                 'RefrigerationDevices', 'ScreenType', 'ShapeletSim',
+                 'ShapesAll', 'SmallKitchenAppliances', 'SonyAIBORobotSurface',
+                 'SonyAIBORobotSurfaceII', 'StarLightCurves', 'Strawberry',
+                 'SwedishLeaf', 'Symbols', 'synthetic_control',
+                 'ToeSegmentation1', 'ToeSegmentation2', 'Trace',
+                 'Two_Patterns', 'TwoLeadECG', 'uWaveGestureLibrary_X',
+                 'uWaveGestureLibrary_Y', 'uWaveGestureLibrary_Z',
+                 'UWaveGestureLibraryAll', 'wafer', 'Wine', 'WordsSynonyms',
+                 'Worms', 'WormsTwoClass', 'yoga'])]
     else:
         raise AttributeError("Unknown dataset: ", args.dataset)
 
