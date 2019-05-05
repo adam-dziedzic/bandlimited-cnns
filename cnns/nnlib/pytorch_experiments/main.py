@@ -1167,6 +1167,11 @@ if __name__ == '__main__':
                  'uWaveGestureLibrary_Y', 'uWaveGestureLibrary_Z',
                  'UWaveGestureLibraryAll', 'wafer', 'Wine', 'WordsSynonyms',
                  'Worms', 'WormsTwoClass', 'yoga'])]
+    elif args.dataset == "debug29-reversed":
+        flist = [x for x in reversed(['Ham',
+                 'HandOutlines', 'Haptics', 'Herring', 'InlineSkate',
+                 'InsectWingbeatSound', 'ItalyPowerDemand',
+                 'LargeKitchenAppliances', 'Lighting2', 'Lighting7', 'MALLAT'])]
     else:
         raise AttributeError("Unknown dataset: ", args.dataset)
 
