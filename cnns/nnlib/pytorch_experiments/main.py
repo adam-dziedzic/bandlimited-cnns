@@ -1135,6 +1135,11 @@ if __name__ == '__main__':
                  'uWaveGestureLibrary_Y', 'uWaveGestureLibrary_Z',
                  'UWaveGestureLibraryAll', 'wafer', 'Wine', 'WordsSynonyms',
                  'Worms', 'WormsTwoClass', 'yoga']
+    elif args.dataset == "debug27":
+        flist = ["MALLAT", 'StarLightCurves', 'Strawberry',
+                 'SwedishLeaf', 'Symbols', 'synthetic_control',
+                 'UWaveGestureLibraryAll', 'Wine', 'WordsSynonyms',
+                 'Worms', 'WormsTwoClass', "wafer"]
     else:
         raise AttributeError("Unknown dataset: ", args.dataset)
 
