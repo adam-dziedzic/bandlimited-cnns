@@ -38,7 +38,8 @@ from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_max
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_min
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_mean_array
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_std_array
-from cnns.nnlib.attacks.carlini_wagner_round import CarliniWagnerL2AttackRound
+from cnns.nnlib.attacks.carlini_wagner_round import \
+    CarliniWagnerL2AttackRoundFFT
 from cnns.nnlib.utils.general_utils import get_log_time
 from cnns.nnlib.datasets.transformations.denorm_round_norm import \
     DenormRoundNorm
@@ -268,7 +269,7 @@ def run(args):
     # fft_types = []
     channels = [x for x in range(channels_nr)]
     attacks = [
-        CarliniWagnerL2AttackRound(model=fmodel, args=args)
+        CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args)
         # foolbox.attacks.CarliniWagnerL2Attack(fmodel),
         # foolbox.attacks.FGSM(fmodel),
         # foolbox.attacks.AdditiveUniformNoiseAttack(fmodel)
@@ -291,8 +292,7 @@ def run(args):
     meter = DenormDistance(mean_array=args.mean_array,
                            std_array=args.std_array)
 
-    use_foolbox_data = False
-    if use_foolbox_data:
+    if args.use_foolbox_data:
         images, labels = foolbox.utils.samples(dataset=args.dataset, index=0,
                                                batchsize=20,
                                                shape=(args.init_y, args.init_x),
@@ -308,7 +308,7 @@ def run(args):
         # get source image and label, args.idx - is the index of the image
         # image, label = foolbox.utils.imagenet_example()
         original_image = None
-        if use_foolbox_data:
+        if args.use_foolbox_data:
             original_image, args.original_class_id = images[args.index], labels[
                 args.index]
             original_image = original_image.astype(np.float32)
@@ -348,9 +348,9 @@ def run(args):
                 predicted_label.replace(",", "\n")) + "\n"
             confidence_str = str(np.around(confidence, decimals=decimals))
             title_str += "confidence: " + confidence_str + "\n"
+            L2_distance = meter.measure(original_image, image)
             if image != original_label:
-                title_str += "L2 distance: " + str(meter.measure(original_image,
-                                                                 image)) + "\n"
+                title_str += "L2 distance: " + str(L2_distance) + "\n"
             ylabel_text = "spatial domain"
             image_show = denormalizer.denormalize(image)
             if args.dataset == "mnist":
@@ -371,12 +371,13 @@ def run(args):
                 # plt.axis('off')
                 if args.plot_index % cols == 1:
                     plt.ylabel(ylabel_text)
-                return predicted_label
+                return predicted_label, confidence, L2_distance
 
         # Original image.
-        original_label = show_image(image=original_image,
-                                    original_image=original_image,
-                                    title="Original")
+        original_label, original_confidence, original_L2_distance = show_image(
+            image=original_image,
+            original_image=original_image,
+            title="Original")
 
         # The rounded image.
         if args.values_per_channel > 0:
@@ -390,9 +391,10 @@ def run(args):
             # rounded_image = rounder(image)
             print("rounded_image min and max: ", rounded_image.min(), ",",
                   rounded_image.max())
-            rounded_label = show_image(image=rounded_image,
-                                       original_image=original_image,
-                                       title="Rounded")
+            rounded_label, rounded_confidence, rounded_L2_distance = show_image(
+                image=rounded_image,
+                original_image=original_image,
+                title="Rounded")
             print("show diff between input image and rounded: ",
                   np.sum(np.abs(rounded_image - original_image)))
 
@@ -400,10 +402,13 @@ def run(args):
         file_name = args.dataset + "-vals-per-channel-" + str(
             args.values_per_channel) + "-img-idx-" + str(args.index)
         full_name = file_name + ".npy"
+        adversarial_timing = "N/A"
         if os.path.exists(full_name):
             adversarial = np.load(file=full_name)
         else:
+            start_adv = time.time()
             adversarial = attack(original_image, args.original_class_id)
+            adversarial_timing = time.time() - start_adv
             np.save(file=file_name, arr=adversarial)
 
         if adversarial is None:
@@ -415,9 +420,10 @@ def run(args):
         print("adversarial image min and max: ", adversarial.min(), ",",
               adversarial.max())
         # adversarial = rounder.round(adversarial)
-        adversarial_label = show_image(image=adversarial,
-                                       original_image=original_image,
-                                       title="Adversarial")
+        adversarial_label, adversarial_confidence, adversarial_L2_distance = show_image(
+            image=adversarial,
+            original_image=original_image,
+            title="Adversarial")
 
         # Show differences.
         # plt.title('Difference original vs. adversarial')
@@ -473,7 +479,7 @@ def run(args):
         # print_heat_map(input_map=heat_map,
         #                title="Difference rounded vs. adversarial")
 
-        compress_rate = 60
+        # interpolate = "log"
         # compress_image = FFTBandFunction2D.forward(
         #     ctx=None,
         #     input=torch.from_numpy(adversarial).unsqueeze(0),
@@ -481,11 +487,16 @@ def run(args):
         compress_image = FFTBandFunction2DdiskMask.forward(
             ctx=None,
             input=torch.from_numpy(adversarial).unsqueeze(0),
-            compress_rate=compress_rate, val=0).numpy().squeeze()
-        fft_label = show_image(image=compress_image,
-                               original_image=original_image,
-                               title="FFT Compressed: " + str(
-                                   compress_rate) + "%")
+            compress_rate=args.compress_fft_layer, val=0,
+            interpolate=args.interpolate).numpy().squeeze()
+        title = "FFT Compressed: " + str(args.compress_fft_layer) + "%" + "\n"
+        if args.interpolate == None:
+            args.interpolate = "const"
+        title += "interpolation: " + args.interpolate
+        fft_label, fft_confidence, fft_L2_distance = show_image(
+            image=compress_image,
+            original_image=original_image,
+            title=title)
 
         # Write labels to the file.
         with open(args.file_name_labels, "a") as f:
@@ -495,7 +506,17 @@ def run(args):
                     original_label,  # for the full model
                     rounded_label,
                     adversarial_label,
-                    fft_label]]) + "\n")
+                    fft_label,
+                    original_confidence,
+                    rounded_confidence,
+                    adversarial_confidence,
+                    fft_confidence,
+                    original_L2_distance,
+                    rounded_L2_distance,
+                    adversarial_L2_distance,
+                    fft_L2_distance,
+                    adversarial_timing
+                ]]) + "\n")
 
         def print_fft(image, channel, title="", args=args):
             print("fft: ", title)
@@ -567,9 +588,44 @@ def run(args):
         args.values_per_channel) + "-" + "img-idx-" + str(
         args.index) + get_log_time()  # add + "-"
     print("file name: ", file_name)
-    # plt.savefig(fname=file_name + "." + format, format=format)
+    plt.savefig(fname=file_name + "." + format, format=format)
     # plt.show(block=True)
     plt.close()
+
+
+def index_ranges(
+        input_ranges=[(20, 58), (2500, 2516), (5000, 5050), (9967, 10000)]):
+    """
+    Generate list of indexes with the given pair of inclusive ranges.
+
+    :param ranges:
+    :return:
+    """
+    indexes = np.array([], dtype=np.int)
+    for range_start, range_end in input_ranges:
+        indexes = np.concatenate(
+            (indexes, [x for x in range(range_start, range_end + 1)]))
+    return indexes
+
+
+def result_file(args):
+    args.file_name_labels = args.interpolate + "-" + get_log_time() + "-labels.txt"
+    with open(args.file_name_labels, "a") as f:
+        f.write(";".join(["ImageNet original label",
+                          "full model label",
+                          "rounded label",
+                          "adversarial label",
+                          "fft compressed label",
+                          "original_confidence",
+                          "rounded_confidence",
+                          "adversarial_confidence",
+                          "fft_confidence",
+                          "original_L2_distance",
+                          "rounded_L2_distance",
+                          "adversarial_L2_distance",
+                          "fft_L2_distance",
+                          "adversarial timing",
+                          ]) + "\n")
 
 
 if __name__ == "__main__":
@@ -585,14 +641,11 @@ if __name__ == "__main__":
     args.dataset = "imagenet"
     # args.dataset = "mnist"
     # args.index = 13  # index of the image (out of 20) to be used
-
-    args.file_name_labels = get_log_time() + "-labels.txt"
-    with open(args.file_name_labels, "a") as f:
-        f.write(";".join(["ImageNet original label",
-                          "full model label",
-                          "rounded label",
-                          "adversarial label",
-                          "fft compressed label"]) + "\n")
+    args.compress_rate = 0
+    args.compress_fft_layer = 60
+    args.is_fft_compression = False
+    args.interpolate = "linear"
+    args.use_foolbox_data = False
 
     if torch.cuda.is_available() and args.use_cuda:
         print("cuda is available")
@@ -624,16 +677,23 @@ if __name__ == "__main__":
     #     args.index = 16
     #     args.values_per_channel = values_per_channel
     #     run(args)
-    for values_per_channel in [8]:
-        args.values_per_channel = values_per_channel
-        for index in range(20, 50000):
-            args.index = index
-            start = time.time()
-            run(args)
-            print("elapsed time: ", time.time() - start)
-    # for index in range(20):
-    #     args.index = index
-    #     for values_per_channel in [2**x for x in range(1,8,1)]:
-    #         args.values_per_channel = values_per_channel
-    #         run(args)
+
+    for interpolate in ["exp", "log", "const", "linear"]:
+        args.interpolate = interpolate
+        result_file(args)
+        for values_per_channel in [8]:
+            args.values_per_channel = values_per_channel
+            indexes = index_ranges(
+                [(20, 58), (2500, 2516), (5000, 5050), (9967, 10000)])
+            print("indexes: ", indexes)
+            for index in indexes:
+                args.index = index
+                start = time.time()
+                run(args)
+                print("elapsed time: ", time.time() - start)
+            # for index in range(20):
+            #     args.index = index
+            #     for values_per_channel in [2**x for x in range(1,8,1)]:
+            #         args.values_per_channel = values_per_channel
+            #         run(args)
     print("elapsed time: ", time.time() - start_time)

@@ -38,7 +38,7 @@ from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_max
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_min
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_mean_array
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_std_array
-from cnns.nnlib.attacks.carlini_wagner_round import CarliniWagnerL2AttackRound
+from cnns.nnlib.attacks.carlini_wagner_round import CarliniWagnerL2AttackRoundFFT
 from cnns.nnlib.utils.general_utils import get_log_time
 from cnns.nnlib.datasets.transformations.denorm_round_norm import \
     DenormRoundNorm
@@ -268,7 +268,7 @@ def run(args):
     # fft_types = []
     channels = [x for x in range(channels_nr)]
     attacks = [
-        CarliniWagnerL2AttackRound(model=fmodel, args=args)
+        CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args)
         # foolbox.attacks.CarliniWagnerL2Attack(fmodel),
         # foolbox.attacks.FGSM(fmodel),
         # foolbox.attacks.AdditiveUniformNoiseAttack(fmodel)
@@ -567,7 +567,7 @@ def run(args):
         args.values_per_channel) + "-" + "img-idx-" + str(
         args.index) + get_log_time()  # add + "-"
     print("file name: ", file_name)
-    # plt.savefig(fname=file_name + "." + format, format=format)
+    plt.savefig(fname=file_name + "." + format, format=format)
     # plt.show(block=True)
     plt.close()
 

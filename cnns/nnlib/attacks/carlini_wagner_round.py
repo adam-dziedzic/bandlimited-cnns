@@ -4,18 +4,20 @@ from __future__ import division
 import numpy as np
 import logging
 import functools
-
+import torch
 from foolbox.attacks.base import call_decorator
 from foolbox.attacks.carlini_wagner import CarliniWagnerL2Attack
 from foolbox.attacks.carlini_wagner import AdamOptimizer
 from foolbox.adversarial import Adversarial
 from cnns.nnlib.datasets.transformations.denorm_round_norm import \
     DenormRoundNorm
+from cnns.nnlib.pytorch_layers.fft_band_2D_disk_mask import \
+    FFTBandFunction2DdiskMask
 from foolbox.criteria import Misclassification
 from foolbox.distances import MSE
 
 
-class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
+class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
     """The L2 version of the Carlini & Wagner attack.
 
     This attack is described in [1]_. This implementation
@@ -33,7 +35,7 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
 
     def __init__(self, args, model=None, criterion=Misclassification(),
                  distance=MSE, threshold=None):
-        super(CarliniWagnerL2AttackRound, self).__init__(
+        super(CarliniWagnerL2AttackRoundFFT, self).__init__(
             model=model, criterion=criterion, distance=distance,
             threshold=threshold)
         if args is None:
@@ -52,10 +54,17 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
                             "channel!")
 
         self.rounder = DenormRoundNorm(
-            mean_array=self.mean_array, std_array=self.std_array,
+            mean_array=args.mean_array, std_array=args.std_array,
             values_per_channel=args.values_per_channel)
 
-    def init_rounded_adversarial(self, original_image, original_class):
+    def fft_compression(self, image):
+        return FFTBandFunction2DdiskMask.forward(
+            ctx=None,
+            input=torch.from_numpy(image).unsqueeze(0),
+            compress_rate=self.args.compress_fft_layer, val=0,
+            interpolate=self.args.interpolate).numpy().squeeze()
+
+    def init_roundfft_adversarial(self, original_image, original_class):
         """
         Initialize the state of the adversarial object to save the adversarial
         examples that break the rounding defense.
@@ -74,18 +83,18 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
                              ' needs to be called with an Adversarial'
                              ' instance.')
         rounded_image = self.rounder.round(original_image)
-        self.rounded_adversarial = Adversarial(
+        self.roundfft_adversarial = Adversarial(
             model=model, criterion=criterion, original_image=rounded_image,
             original_class=original_class, distance=distance,
             threshold=threshold)
 
-    def get_rounded_adversarial(self):
+    def get_roundfft_adversarial(self):
         """
 
         :return: the current best adversarial against the rounding defnese or
         None if no such adversarial was found.
         """
-        return self.rounded_adversarial.image
+        return self.roundfft_adversarial.image
 
     def rounded_predictions(self, adversarial, image_attack):
         """
@@ -108,13 +117,13 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
             from the CarliniWagnerL2 attack and then rounded. The final rounded
             image is adversarial.
             """
-            self.init_rounded_adversarial(original_image=input_or_adv,
-                                          original_class=label)
+            self.init_roundfft_adversarial(original_image=input_or_adv,
+                                           original_class=label)
             original_adversarial = call_fn(
                 self, input_or_adv, label=label, **kwargs)
 
             if unpack:
-                return self.get_rounded_adversarial()
+                return self.get_roundfft_adversarial()
             else:
                 return original_adversarial, self.rounded_adversarial
 
@@ -247,18 +256,20 @@ class CarliniWagnerL2AttackRound(CarliniWagnerL2Attack):
                 #     values_per_channel=values_per_channel)
                 # logits, is_adv = a.predictions(x)
 
-                x_rounded = self.rounder.round(x)
+                x_prime = self.rounder.round(x)
+                if self.args.is_fft_compression:
+                    x_prime = self.fft_compression(x_prime)
 
                 # print("diff between input image and rounded: ",
                 #       np.sum(np.abs(x_rounded - x)))
 
                 # update the adversarial for the rounded version of the image
-                _, is_adv = self.rounded_adversarial.predictions(x_rounded)
+                _, is_adv = self.roundfft_adversarial.predictions(x_prime)
 
                 # the perturbations are with respect to the original image
                 # logits, is_adv = a.predictions(x_rounded)
                 # logits, is_adv = a.predictions(x)
-                logits, _ = a.predictions(x_rounded)
+                logits, _ = a.predictions(x_prime)
 
                 loss, dldx = self.loss_function(
                     const, a, x, logits, reconstructed_original,

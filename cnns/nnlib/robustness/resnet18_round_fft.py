@@ -14,7 +14,7 @@ import torch
 import sys
 import time
 import numpy as np
-from cnns.nnlib.attacks.carlini_wagner_round import CarliniWagnerL2AttackRound
+from cnns.nnlib.attacks.carlini_wagner_round import CarliniWagnerL2AttackRoundFFT
 from foolbox.attacks.carlini_wagner import CarliniWagnerL2Attack
 from cnns.nnlib.robustness.utils import get_foolbox_model
 from cnns.nnlib.datasets.cifar import cifar_min
@@ -75,7 +75,7 @@ def get_attacks():
         #                                 range(20, 1000, 10)] + [1000]),
         # [1000]),
         # [2]),
-        (CarliniWagnerL2AttackRound, "CarliniWagnerL2AttackRound",
+        (CarliniWagnerL2AttackRoundFFT, "CarliniWagnerL2AttackRound",
          [x for x in range(1000)]),
     ]
     return attacks
@@ -158,10 +158,10 @@ def run(args):
 
     if args.attack_type == "band":
         round_model = band_model
-        attack = CarliniWagnerL2AttackRound(model=round_model, args=args)
+        attack = CarliniWagnerL2AttackRoundFFT(model=round_model, args=args)
     elif args.attack_type == "full":
         round_model = full_model
-        attack = CarliniWagnerL2AttackRound(model=round_model, args=args)
+        attack = CarliniWagnerL2AttackRoundFFT(model=round_model, args=args)
     elif args.attack_type == "band+round":
         round_model = band_round_model
         attack = CarliniWagnerL2Attack(round_model)

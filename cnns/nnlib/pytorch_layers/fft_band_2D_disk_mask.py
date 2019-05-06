@@ -15,7 +15,7 @@ class FFTBandFunction2DdiskMask(torch.autograd.Function):
     signal_ndim = 2
 
     @staticmethod
-    def forward(ctx, input, compress_rate, val=0):
+    def forward(ctx, input, compress_rate, val=0, interpolate=None):
         """
         In the forward pass we receive a Tensor containing the input
         and return a Tensor containing the output. ctx is a context
@@ -48,8 +48,8 @@ class FFTBandFunction2DdiskMask(torch.autograd.Function):
         _, _, H_xfft, W_xfft, _ = xfft.size()
         # assert H_fft == W_xfft, "The input tensor has to be squared."
 
-        mask = get_complex_mask(side_len=H_xfft, compress_rate=compress_rate,
-                                val=val)
+        mask, _ = get_complex_mask(side_len=H_xfft, compress_rate=compress_rate,
+                                   val=val, interpolate=interpolate)
         mask = mask[:, 0:W_xfft, :]
         # print(mask)
         xfft = xfft * mask
