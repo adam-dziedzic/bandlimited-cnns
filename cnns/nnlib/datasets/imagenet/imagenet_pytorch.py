@@ -118,4 +118,9 @@ if __name__ == "__main__":
 
     args = get_args()
     args.dataset = "imagenet"
-    load_imagenet(args)
+    train_loader, test_loader, train_dataset, test_dataset = load_imagenet(args)
+    counter = 0
+    while True:
+        test_dataset.__getitem__(counter)
+        counter +=1
+        print("counter: ", counter)

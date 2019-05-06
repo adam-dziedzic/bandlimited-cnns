@@ -1108,6 +1108,13 @@ if __name__ == '__main__':
                  'WormsTwoClass', 'synthetic_control', 'uWaveGestureLibrary_X',
                  'uWaveGestureLibrary_Y', 'uWaveGestureLibrary_Z', 'wafer',
                  'yoga']
+    elif args.dataset == "debug25-reversed":
+        flist = reversed(['Strawberry', 'SwedishLeaf', 'Symbols', 'ToeSegmentation1',
+                 'ToeSegmentation2', 'Trace', 'TwoLeadECG', 'Two_Patterns',
+                 'UWaveGestureLibraryAll', 'Wine', 'WordsSynonyms', 'Worms',
+                 'WormsTwoClass', 'synthetic_control', 'uWaveGestureLibrary_X',
+                 'uWaveGestureLibrary_Y', 'uWaveGestureLibrary_Z', 'wafer',
+                 'yoga'])
     elif args.dataset == "debug26-all":
         flist = ['50words', 'Adiac', 'ArrowHead', 'Beef', 'BeetleFly',
                  'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
