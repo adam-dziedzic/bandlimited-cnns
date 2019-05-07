@@ -1183,6 +1183,8 @@ if __name__ == '__main__':
         flist = ['MALLAT',
                  'Meat', 'MedicalImages', 'MiddlePhalanxOutlineAgeGroup',
                  'MiddlePhalanxOutlineCorrect', 'MiddlePhalanxTW', 'MoteStrain']
+    elif args.dataset == "debug31":
+        flist = ['uWaveGestureLibrary_X']
     else:
         raise AttributeError("Unknown dataset: ", args.dataset)
 
