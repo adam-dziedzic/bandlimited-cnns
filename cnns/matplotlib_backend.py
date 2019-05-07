@@ -1,6 +1,6 @@
 import matplotlib
 
-gui_env = ['TKAgg', 'GTKAgg', 'Qt4Agg', 'WXAgg']
+gui_env = ['Agg', 'TKAgg', 'GTKAgg', 'Qt4Agg', 'WXAgg']
 for gui in gui_env:
     try:
         # print("testing", gui)

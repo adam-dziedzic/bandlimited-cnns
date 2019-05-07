@@ -12,8 +12,8 @@ such transformations.
 # %matplotlib inline
 
 # Use the import below to run the code remotely on a server.
-from cnns import matplotlib_backend
-print("Using:", matplotlib_backend.backend)
+# from cnns import matplotlib_backend
+# print("Using:", matplotlib_backend.backend)
 
 import time
 import matplotlib.pyplot as plt
@@ -518,7 +518,6 @@ def run(args):
         with open(args.file_name_labels, "a") as f:
             f.write(
                 ";".join([str(x) for x in [
-                    args.index,
                     args.original_label,  # ImageNet label (ground truth)
                     original_label,  # for the full model
                     rounded_label,
@@ -615,8 +614,7 @@ def index_ranges(
 def result_file(args):
     args.file_name_labels = args.interpolate + "-" + get_log_time() + "-labels.txt"
     with open(args.file_name_labels, "a") as f:
-        f.write(";".join(["index",
-                          "ImageNet original label",
+        f.write(";".join(["ImageNet original label",
                           "full model label",
                           "rounded label",
                           "fft compressed label",
@@ -701,7 +699,7 @@ if __name__ == "__main__":
             args.values_per_channel = values_per_channel
             # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
             # print("indexes: ", indexes)
-            for index in range(args.start_epoch, 50000):
+            for index in range(10000, 50000):
                 args.index = index
                 start = time.time()
                 run(args)
