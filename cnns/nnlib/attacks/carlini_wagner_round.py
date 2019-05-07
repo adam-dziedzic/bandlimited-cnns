@@ -58,11 +58,12 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             values_per_channel=args.values_per_channel)
 
     def fft_compression(self, image):
-        return FFTBandFunction2DdiskMask.forward(
+        fft_image = FFTBandFunction2DdiskMask.forward(
             ctx=None,
             input=torch.from_numpy(image).unsqueeze(0),
             compress_rate=self.args.compress_fft_layer, val=0,
             interpolate=self.args.interpolate).numpy().squeeze()
+        return np.clip(fft_image, a_min=self.args.min, a_max=self.args.max)
 
     def init_roundfft_adversarial(self, original_image, original_class):
         """
@@ -82,9 +83,11 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                              ' with a model and a criterion or it'
                              ' needs to be called with an Adversarial'
                              ' instance.')
-        rounded_image = self.rounder.round(original_image)
+        image = self.rounder.round(original_image)
+        if self.args.is_fft_compression:
+            image = self.fft_compression(image)
         self.roundfft_adversarial = Adversarial(
-            model=model, criterion=criterion, original_image=rounded_image,
+            model=model, criterion=criterion, original_image=image,
             original_class=original_class, distance=distance,
             threshold=threshold)
 
@@ -263,6 +266,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                 # print("diff between input image and rounded: ",
                 #       np.sum(np.abs(x_rounded - x)))
 
+                # x_prime = np.clip(x_prime, self.args.min, self.args.max)
                 # update the adversarial for the rounded version of the image
                 _, is_adv = self.roundfft_adversarial.predictions(x_prime)
 
@@ -316,3 +320,4 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             else:
                 # binary search
                 const = (lower_bound + upper_bound) / 2
+

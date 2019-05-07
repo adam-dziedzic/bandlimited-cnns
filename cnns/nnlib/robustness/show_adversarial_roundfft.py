@@ -43,14 +43,10 @@ from cnns.nnlib.attacks.carlini_wagner_round import \
 from cnns.nnlib.utils.general_utils import get_log_time
 from cnns.nnlib.datasets.transformations.denorm_round_norm import \
     DenormRoundNorm
-from cnns.nnlib.datasets.transformations.rounding import RoundingTransformation
 from cnns.nnlib.datasets.transformations.normalize import Normalize
 from cnns.nnlib.datasets.transformations.denormalize import Denormalize
 from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.datasets.transformations.denorm_distance import DenormDistance
-from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBandFunction2D
-from cnns.nnlib.pytorch_layers.fft_band_2D_disk_mask import \
-    FFTBandFunction2DdiskMask
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
 
 
@@ -119,6 +115,8 @@ def get_fmodel(args):
             pretrained=True).cuda().eval()  # for CPU, remove cuda()
         min = imagenet_min
         max = imagenet_max
+        args.min = min
+        args.max = max
         args.mean_array = imagenet_mean_array
         args.std_array = imagenet_std_array
         args.num_classes = 1000
@@ -136,6 +134,8 @@ def get_fmodel(args):
         args.in_channels = 3
         min = cifar_min
         max = cifar_max
+        args.min = min
+        args.max = max
         args.mean_array = cifar_mean_array
         args.std_array = cifar_std_array
         network_model = load_model(args=args)
@@ -151,6 +151,8 @@ def get_fmodel(args):
         args.in_channels = 1
         min = mnist_min
         max = mnist_max
+        args.min = min
+        args.max = max
         args.mean_array = mnist_mean_array
         args.std_array = mnist_std_array
         args.network_type = NetworkType.Net
@@ -399,11 +401,7 @@ def run(args):
                   np.sum(np.abs(rounded_image - original_image)))
 
         if args.is_fft_compression:
-            compress_image = FFTBandFunction2DdiskMask.forward(
-                ctx=None,
-                input=torch.from_numpy(rounded_image).unsqueeze(0),
-                compress_rate=args.compress_fft_layer, val=0,
-                interpolate=args.interpolate).numpy().squeeze()
+            compress_image = attack.fft_compression(rounded_image)
             title = "FFT Compressed: " + str(
                 args.compress_fft_layer) + "%" + "\n"
             if args.interpolate == None:
@@ -579,7 +577,7 @@ def run(args):
         plt.subplots_adjust(hspace=0.6)
 
     format = 'png'  # "pdf" or "png"
-    file_name = "images/" + attack.name() + "-" + args.dataset + "-channel-" + str(
+    file_name = "images/" + attack.name() + "-round-fft-" + args.dataset + "-channel-" + str(
         channels_nr) + "-" + "val-per-channel-" + str(
         args.values_per_channel) + "-" + "img-idx-" + str(
         args.index) + "-" + get_log_time()

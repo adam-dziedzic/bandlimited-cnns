@@ -678,14 +678,14 @@ if __name__ == "__main__":
     #     args.values_per_channel = values_per_channel
     #     run(args)
 
-    for interpolate in ["exp", "log", "const", "linear"]:
+    for interpolate in ["const", "linear", "log", "exp"]:
         args.interpolate = interpolate
         result_file(args)
         for values_per_channel in [8]:
             args.values_per_channel = values_per_channel
             indexes = index_ranges(
                 [(20, 58), (2500, 2516), (5000, 5050), (9967, 10000)])
-            print("indexes: ", indexes)
+            # print("indexes: ", indexes)
             for index in indexes:
                 args.index = index
                 start = time.time()
