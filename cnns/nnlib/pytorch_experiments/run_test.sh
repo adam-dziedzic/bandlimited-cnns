@@ -501,3 +501,26 @@ CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/py
 
 pascal
 CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 30 10 --conv_type=FFT1D --dataset="debug29-reversed" --conv_exec_type=CUDA --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000 --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.001 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=16 --test_batch_size=16 --model_path="no_model" --momentum=0.9 --network_type='FCNN_STANDARD' --next_power2='TRUE' --optimizer_type='MOMENTUM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32'  --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_type="None" >> 2019-05-05-16-43-fft1d-debug29-compression-30-reversed-ucr-training-no-compression-fft1d.txt 2>&1 &
+
+gpu3 titan 3
+CUDA_VISIBLE_DEVICES=3 PYTHONPATH=../../../ ~/anaconda3/bin/python3.6 show_adversarial_roundfft.py --start_epoch=10000
+
+gpu3 titan 3
+CUDA_VISIBLE_DEVICES=3 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 show_adversarial_roundfft.py --start_epoch=10000 >> 2019-05-07-01-00-from-10000-show-adversarial-roundfft.log 2>&1 &
+
+CUDA_VISIBLE_DEVICES=3 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 show_adversarial_roundfft.py --start_epoch=15000 >> 2019-05-07-01-00-from-15000-show-adversarial-roundfft.log 2>&1 &
+
+gpu3 titan 1
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 show_adversarial_roundfft.py --start_epoch=20000 >> 2019-05-07-01-00-from-20000-show-adversarial-roundfft.log 2>&1 &
+
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 show_adversarial_roundfft.py --start_epoch=25000 >> 2019-05-07-01-00-from-25000-show-adversarial-roundfft.log 2>&1 &
+
+gpu3 titan 2
+CUDA_VISIBLE_DEVICES=2 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 show_adversarial_roundfft.py --start_epoch=30000 >> 2019-05-07-01-00-from-30000-show-adversarial-roundfft.log 2>&1 &
+
+CUDA_VISIBLE_DEVICES=2 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 show_adversarial_roundfft.py --start_epoch=35000 >> 2019-05-07-01-00-from-35000-show-adversarial-roundfft.log 2>&1 &
+
+gpu3 titan 0
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 show_adversarial_roundfft.py --start_epoch=40000 >> 2019-05-07-01-00-from-40000-show-adversarial-roundfft.log 2>&1 &
+
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 show_adversarial_roundfft.py --start_epoch=45000 >> 2019-05-07-01-00-from-45000-show-adversarial-roundfft.log 2>&1 &

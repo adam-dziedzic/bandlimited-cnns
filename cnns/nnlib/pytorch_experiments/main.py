@@ -1179,6 +1179,10 @@ if __name__ == '__main__':
                  'HandOutlines', 'Haptics', 'Herring', 'InlineSkate',
                  'InsectWingbeatSound', 'ItalyPowerDemand',
                  'LargeKitchenAppliances', 'Lighting2', 'Lighting7', 'MALLAT'])]
+    elif args.dataset == "debug30":
+        flist = ['MALLAT',
+                 'Meat', 'MedicalImages', 'MiddlePhalanxOutlineAgeGroup',
+                 'MiddlePhalanxOutlineCorrect', 'MiddlePhalanxTW', 'MoteStrain']
     else:
         raise AttributeError("Unknown dataset: ", args.dataset)
 

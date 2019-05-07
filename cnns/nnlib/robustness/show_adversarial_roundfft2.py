@@ -699,7 +699,7 @@ if __name__ == "__main__":
             args.values_per_channel = values_per_channel
             # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
             # print("indexes: ", indexes)
-            for index in range(10000, 50000):
+            for index in range(5000, 50000):
                 args.index = index
                 start = time.time()
                 run(args)
