@@ -12,7 +12,7 @@ from foolbox.adversarial import Adversarial
 from cnns.nnlib.datasets.transformations.denorm_round_norm import \
     DenormRoundNorm
 from cnns.nnlib.pytorch_layers.fft_band_2D_complex_mask import \
-    FFTBandFunction2DcomplexMask
+    FFTBandFunctionComplexMask2D
 from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBandFunction2D
 from foolbox.criteria import Misclassification
 from foolbox.distances import MSE
@@ -52,21 +52,30 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             self.std_array = args.std_array
             self.mean_array = args.mean_array
 
-    def fft_complex_compression(self, image, get_mask=get_disk_mask):
-        fft_image = FFTBandFunction2DcomplexMask.forward(
-            ctx=None,
+    def fft_complex_compression(self, image, get_mask=get_disk_mask,
+                                is_clip=True, ctx=None):
+        fft_image = FFTBandFunctionComplexMask2D.forward(
+            ctx=ctx,
             input=torch.from_numpy(image).unsqueeze(0),
             compress_rate=self.args.compress_fft_layer, val=0,
             interpolate=self.args.interpolate,
             get_mask=get_mask).numpy().squeeze()
-        return np.clip(fft_image, a_min=self.args.min, a_max=self.args.max)
+        if is_clip:
+            return np.clip(fft_image, a_min=self.args.min, a_max=self.args.max)
+        else:
+            return fft_image
 
-    def fft_lshape_compression(self, image):
+    def fft_lshape_compression(self, image, is_clip=True, ctx=None,
+                               onesided=True):
         fft_image = FFTBandFunction2D.forward(
-            ctx=None,
+            ctx=ctx,
             input=torch.from_numpy(image).unsqueeze(0),
-            compress_rate=self.args.compress_fft_layer).numpy().squeeze()
-        return np.clip(fft_image, a_min=self.args.min, a_max=self.args.max)
+            compress_rate=self.args.compress_fft_layer,
+            onesided=onesided).numpy().squeeze()
+        if is_clip:
+            return np.clip(fft_image, a_min=self.args.min, a_max=self.args.max)
+        else:
+            return fft_image
 
     def init_roundfft_adversarial(self, original_image, original_class):
         """

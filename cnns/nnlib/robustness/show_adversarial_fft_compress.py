@@ -38,7 +38,7 @@ from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_max
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_min
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_mean_array
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_std_array
-from cnns.nnlib.attacks.carlini_wagner_round import \
+from cnns.nnlib.attacks.carlini_wagner_round_fft import \
     CarliniWagnerL2AttackRoundFFT
 from cnns.nnlib.utils.general_utils import get_log_time
 from cnns.nnlib.datasets.transformations.denorm_round_norm import \
@@ -50,7 +50,7 @@ from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.datasets.transformations.denorm_distance import DenormDistance
 from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBandFunction2D
 from cnns.nnlib.pytorch_layers.fft_band_2D_complex_mask import \
-    FFTBandFunction2DcomplexMask
+    FFTBandFunctionComplexMask2D
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
 
 
@@ -484,7 +484,7 @@ def run(args):
         #     ctx=None,
         #     input=torch.from_numpy(adversarial).unsqueeze(0),
         #     compress_rate=compress_rate).numpy().squeeze()
-        compress_image = FFTBandFunction2DcomplexMask.forward(
+        compress_image = FFTBandFunctionComplexMask2D.forward(
             ctx=None,
             input=torch.from_numpy(adversarial).unsqueeze(0),
             compress_rate=args.compress_fft_layer, val=0,

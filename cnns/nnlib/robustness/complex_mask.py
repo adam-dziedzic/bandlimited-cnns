@@ -3,7 +3,7 @@ import torch
 
 
 def get_val_from_interpolate(interpolate, val, ceil_init_r):
-    steps = steps = int(ceil_init_r)
+    steps = int(ceil_init_r)
     if interpolate is None or interpolate == "idt" or interpolate == "const":
         get_val = lambda r, init_r: val  # apply the constant value
         steps = 0
@@ -18,13 +18,24 @@ def get_val_from_interpolate(interpolate, val, ceil_init_r):
     return get_val, steps
 
 
-def get_disk_mask(side_len, compress_rate, val=0, interpolate=None):
+def get_disk_mask(H, W, compress_rate, val=0, interpolate=None, onesided=True):
     # Compute the initial radius of the disk:
     # disk_area / image_area = compress_rate / 100
     # np.pi * r**2 / size_len ^^2 = compress_rate / 100
     # Hence, we compute the initial value of the radius r: init_r in the line
     # below in the following way:
+    side_len = H
+    # There is only a slight difference in the areas between the onesided and
+    # non-onesided cases but we perform the exact computation to limit the
+    # errors to minimum.
+    # if onesided:
+    #     init_r = np.sqrt(2 * (compress_rate / 100) * H * W / np.pi)
+    if onesided is False:
+        if H != W:
+            raise Exception("We only support squared inputs.")
+
     init_r = np.sqrt((compress_rate / 100) * side_len ** 2 / np.pi)
+
     y, x = np.ogrid[0:side_len, 0:side_len]
     ctr = side_len // 2  # center
     array_mask = np.ones((side_len, side_len), dtype=np.float32)
@@ -51,13 +62,26 @@ def get_disk_mask(side_len, compress_rate, val=0, interpolate=None):
     return tensor_mask, array_mask
 
 
-def get_hyper_mask(side_len, compress_rate, val=0, interpolate=None):
-    # Compute the initial radius of the disk:
-    # disk_area / image_area = compress_rate / 100
-    # np.pi * r**2 / size_len ^^2 = compress_rate / 100
+def get_hyper_mask(H, W, compress_rate, val=0, interpolate=None,
+                   onesided=True):
+    # Compute the initial radius of the hyperdisk for onesided=False, the whole
+    # FFT map is returned (not-halved).
+    # hyper_area / image_area = (1 - compress_rate / 100)
+    # np.pi * r**2 / size_len ^^2 = (1 - compress_rate / 100)
     # Hence, we compute the initial value of the radius r: init_r in the line
     # below in the following way:
+    side_len = H
+    # There is only a slight difference in the areas between the onesided and
+    # non-onesided cases but we perform the exact computation to limit the
+    # errors to minimum.
+    # if onesided:
+    #     init_r = np.sqrt(2 * (1 - compress_rate / 100) * H * W / np.pi)
+    if onesided is False:
+        if H != W:
+            raise Exception("We only support squared inputs.")
+
     init_r = np.sqrt((1 - compress_rate / 100) * side_len ** 2 / np.pi)
+
     y, x = np.ogrid[0:side_len, 0:side_len]
     # Start from the slightly higher denominator for the get_val function to
     # incur some decrease in the values ( < 1.0 multiplier) for the coefficients.
@@ -77,22 +101,49 @@ def get_hyper_mask(side_len, compress_rate, val=0, interpolate=None):
     # bottom-right corner
     mask3 = get_array_mask((x - n) ** 2 + (y - n) ** 2 >= r ** 2, side_len)
     array_mask = mask0 + mask1 + mask2 + mask3
-    array_mask = np.clip(array_mask, a_min = 0, a_max = 1)
+    # If the compression is small, the ones can appear in the same positions for
+    # different masks, so limit them to just 1 and does not allow to exceed the
+    # bound (otherwise, two-s can emerge).
+    array_mask = np.clip(array_mask, a_min=0, a_max=1)
+
+    if steps > 0:
+        # Prepare the quadrant masks, so that the mask(x) below can only change values
+        # in its quadrant.
+        if H % 2 == 0:
+            mid = H // 2
+        else:
+            mid = H // 2 + 1
+        # upper-left corner
+        quadrant0 = get_array_mask(np.outer(x < mid, y < mid), side_len)
+        # upper-right corner
+        quadrant1 = get_array_mask(np.outer(x >= mid, y < mid), side_len)
+        # bottom-left corner
+        quadrant2 = get_array_mask(np.outer(x < mid, y >= mid), side_len)
+        # bottom-right corner
+        quadrant3 = get_array_mask(np.outer(x >= mid, y >= mid), side_len)
+
 
     for delta in range(steps):
         val = get_val(r, ceil_init_r)
 
-        mask1 = x ** 2 + y ** 2 == r ** 2
-        array_mask[mask1] = val
+        mask0 = x ** 2 + y ** 2 == r ** 2
+        mask0 = get_array_mask(mask0, side_len, val=val)
+        mask0 *= quadrant0
 
-        mask2 = (x - (n - 1)) ** 2 + y ** 2 == r ** 2
-        array_mask[mask2] = val
+        mask1 = (x - n) ** 2 + y ** 2 == r ** 2
+        mask1 = get_array_mask(mask1, side_len, val=val)
+        mask1 *= quadrant1
 
-        mask3 = x ** 2 + (y - (n - 1)) ** 2 == r ** 2
-        array_mask[mask3] = val
+        mask2 = x ** 2 + (y - n) ** 2 == r ** 2
+        mask2 = get_array_mask(mask2, side_len, val=val)
+        mask2 *= quadrant2
 
-        mask4 = (x - (n - 1)) ** 2 + (y - (n - 1)) ** 2 == r ** 2
-        array_mask[mask4] = val
+        mask3 = (x - n) ** 2 + (y - n) ** 2 == r ** 2
+        mask3 = get_array_mask(mask3, side_len, val=val)
+        mask3 *= quadrant3
+
+        mask = mask0 + mask1 + mask2 + mask3
+        array_mask += mask
 
         r += 1
     # print("array mask:\n", array_mask)

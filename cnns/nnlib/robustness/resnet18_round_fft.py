@@ -14,7 +14,7 @@ import torch
 import sys
 import time
 import numpy as np
-from cnns.nnlib.attacks.carlini_wagner_round import CarliniWagnerL2AttackRoundFFT
+from cnns.nnlib.attacks.carlini_wagner_round_fft import CarliniWagnerL2AttackRoundFFT
 from foolbox.attacks.carlini_wagner import CarliniWagnerL2Attack
 from cnns.nnlib.robustness.utils import get_foolbox_model
 from cnns.nnlib.datasets.cifar import cifar_min

@@ -9,7 +9,7 @@ import numpy as np
 class TestGetComplexMask(unittest.TestCase):
 
     def test_get_complex_mask(self):
-        mask, array_mask = get_disk_mask(side_len=7, compress_rate=26, val=0)
+        mask, array_mask = get_disk_mask(H=7, W=7, compress_rate=26, val=0)
         print("array mask:\n", torch.tensor(array_mask))
         print("mask:\n", mask)
         desired_array_mask = np.array(

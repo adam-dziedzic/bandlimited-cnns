@@ -44,7 +44,7 @@ from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_max
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_min
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_mean_array
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_std_array
-from cnns.nnlib.attacks.carlini_wagner_round import \
+from cnns.nnlib.attacks.carlini_wagner_round_fft import \
     CarliniWagnerL2AttackRoundFFT
 from cnns.nnlib.utils.general_utils import get_log_time
 from cnns.nnlib.datasets.transformations.denorm_round_norm import \
@@ -56,6 +56,7 @@ from cnns.nnlib.datasets.transformations.denorm_distance import DenormDistance
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
 from cnns.nnlib.robustness.complex_mask import get_disk_mask
 from cnns.nnlib.robustness.complex_mask import get_hyper_mask
+from cnns.nnlib.pytorch_layers.pytorch_utils import MockContext
 
 
 def softmax(x):
@@ -69,11 +70,7 @@ def softmax(x):
 #     return s.numpy()
 
 
-def to_fft(x, fft_type, is_log=True):
-    x = torch.from_numpy(x)
-    # x = torch.tensor(x)
-    # x = x.permute(2, 0, 1)  # move channel as the first dimension
-    xfft = torch.rfft(x, onesided=False, signal_ndim=2)
+def to_fft_type(xfft, fft_type, is_log=True):
     if fft_type == "magnitude":
         return to_fft_magnitude(xfft, is_log)
     elif fft_type == "phase":
@@ -81,6 +78,13 @@ def to_fft(x, fft_type, is_log=True):
     else:
         raise Exception(f"Unknown type of fft processing: {fft_type}")
 
+
+def to_fft(x, fft_type, is_log=True):
+    x = torch.from_numpy(x)
+    # x = torch.tensor(x)
+    # x = x.permute(2, 0, 1)  # move channel as the first dimension
+    xfft = torch.rfft(x, onesided=False, signal_ndim=2)
+    return to_fft_type(xfft, fft_type=fft_type, is_log=is_log)
 
 def to_xfft(x, fft_type, args, is_log=True, channel=0):
     """
@@ -93,6 +97,12 @@ def to_xfft(x, fft_type, args, is_log=True, channel=0):
     :return:
     """
     xfft = to_fft(x, fft_type, is_log=is_log)
+    xfft = xfft[channel, :args.init_x, :args.init_y]
+    return xfft
+
+
+def from_ctx_fft(xfft, fft_type, is_log=True, channel=0):
+    xfft = to_fft_type(xfft, fft_type=fft_type, is_log=is_log)
     xfft = xfft[channel, :args.init_x, :args.init_y]
     return xfft
 
@@ -167,6 +177,7 @@ def get_fmodel(args):
         args.max = max
         args.mean_array = cifar_mean_array
         args.std_array = cifar_std_array
+        args.network_type = NetworkType.ResNet18
         network_model = load_model(args=args)
         from_class_idx_to_label = cifar10_from_class_idx_to_label
     elif args.dataset == "mnist":
@@ -270,12 +281,16 @@ def run(args):
         # zero out the center
         # H, W = input_map.shape
         # input_map[H // 2, W // 2] = 0
-
+        np.set_printoptions(threshold=np.inf)
+        print("xfft: ", input_map)
         print("xfft min: ", input_map.min())
         print("xfft max: ", input_map.max())
 
+        interpolation = "nearest",
         plt.imshow(input_map, cmap='hot', interpolation='nearest',
                    vmin=vmin, vmax=vmax)
+        # plt.contour(input_map, cmap='hot', interpolation='nearest',
+        #            vmin=vmin, vmax=vmax)
         # plt.axis('off')
 
     def print_color_map(x, fig=None, ax=None):
@@ -356,24 +371,6 @@ def run(args):
             args)
 
     for attack in attacks:
-        # get source image and label, args.idx - is the index of the image
-        # image, label = foolbox.utils.imagenet_example()
-        if args.use_foolbox_data:
-            original_image, args.original_class_id = images[args.index], labels[
-                args.index]
-            original_image = original_image.astype(np.float32)
-
-            # Normalize the data for the Pytorch models.
-            original_image = normalizer.normalize(original_image)
-        else:
-            original_image, args.original_class_id = test_dataset.__getitem__(
-                args.index)
-            original_image = original_image.numpy()
-
-        args.original_label = from_class_idx_to_label[args.original_class_id]
-        print("original class id:", args.original_class_id, ", is label: ",
-              args.original_label)
-
         def show_image(image, original_image, title="", ylabel="", args=args):
             original_class_id = args.original_class_id
             original_label = args.original_label
@@ -450,27 +447,54 @@ def run(args):
 
             return xfft
 
+        # get source image and label, args.idx - is the index of the image
+        # image, label = foolbox.utils.imagenet_example()
+        if args.use_foolbox_data:
+            original_image, args.original_class_id = images[args.index], labels[
+                args.index]
+            original_image = original_image.astype(np.float32)
+
+            # Normalize the data for the Pytorch models.
+            original_image = normalizer.normalize(original_image)
+        else:
+            original_image, args.original_class_id = test_dataset.__getitem__(
+                args.index)
+            original_image = original_image.numpy()
+
+        args.original_label = from_class_idx_to_label[args.original_class_id]
+        print("original class id:", args.original_class_id, ", is label: ",
+              args.original_label)
+
         channel = 0
         is_log = True
+
         original_xfft = to_xfft(original_image, fft_type=fft_type,
                                 args=args, channel=channel, is_log=is_log)
 
+        ctx = MockContext()
         complex_compress_image = attack.fft_complex_compression(
-            original_image, get_mask=get_hyper_mask)
-        complex_xfft = to_xfft(complex_compress_image, fft_type=fft_type,
-                               args=args, channel=channel, is_log=is_log)
+            original_image, get_mask=get_hyper_mask, ctx=ctx)
+        complex_xfft = from_ctx_fft(ctx.xfft, is_log=True, fft_type=fft_type,
+                                    channel=channel)
+        # complex_xfft = to_xfft(complex_compress_image, fft_type=fft_type,
+        #                        args=args, channel=channel, is_log=is_log)
 
-        lshaped_compress_image = attack.fft_lshape_compression(original_image)
+        lshaped_compress_image = attack.fft_lshape_compression(
+            original_image, ctx=ctx)
+        lshaped_xfft = from_ctx_fft(ctx.xfft, is_log=True, fft_type=fft_type,
+                                    channel=channel)
         lshaped_xfft = to_xfft(lshaped_compress_image, fft_type=fft_type,
                                args=args, channel=channel, is_log=is_log)
 
-        min_val = np.min([original_xfft.min(),
+        min_val_fft = np.min([original_xfft.min(),
                           complex_xfft.min(),
                           lshaped_xfft.min()])
+        print("min val: ", min_val_fft)
 
-        max_val = np.min([original_xfft.max(),
+        max_val_fft = np.max([original_xfft.max(),
                           complex_xfft.max(),
                           lshaped_xfft.max()])
+        print("max val: ", max_val_fft)
 
         title_left = "Spatial domain"
         title_right = "FFT domain"
@@ -481,7 +505,7 @@ def run(args):
 
         # print_fft(image=original_image, channel=channel, title="FFT domain")
         print_heat_map(original_xfft, args=args, title=title_right,
-                       vmin=min_val, vmax=max_val)
+                       vmin=min_val_fft, vmax=max_val_fft)
 
         # fft const disk
         show_image(image=complex_compress_image,
@@ -491,7 +515,7 @@ def run(args):
         # print_fft(image=complex_compress_image, channel=channel,
         #           title="FFT domain")
         print_heat_map(complex_xfft, args=args, title=title_right,
-                       vmin=min_val, vmax=max_val)
+                       vmin=min_val_fft, vmax=max_val_fft)
 
         # fft lshape
 
@@ -504,7 +528,7 @@ def run(args):
         # print_fft(image=lshaped_compress_image, channel=channel,
         #           title="FFT domain")
         print_heat_map(lshaped_xfft, args=args, title=title_right,
-                       vmin=min_val, vmax=max_val)
+                       vmin=min_val_fft, vmax=max_val_fft)
 
         plt.subplots_adjust(hspace=0.6)
 
@@ -525,16 +549,16 @@ if __name__ == "__main__":
     args = get_args()
     # args.diff_type = "source"  # "source" or "fft"
     args.diff_type = "fft"
-    # args.dataset = "cifar10"  # "cifar10" or "imagenet"
-    args.dataset = "imagenet"
+    args.dataset = "cifar10"  # "cifar10" or "imagenet"
+    # args.dataset = "imagenet"
     # args.dataset = "mnist"
     # args.index = 13  # index of the image (out of 20) to be used
     args.compress_rate = 0
-    args.compress_fft_layer = 60
+    args.compress_fft_layer = 50
     args.is_fft_compression = True
     args.interpolate = "const"
     args.use_foolbox_data = True
-    args.index = 0
+    args.index = 1
 
     if torch.cuda.is_available() and args.use_cuda:
         print("cuda is available")
