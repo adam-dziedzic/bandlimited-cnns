@@ -59,11 +59,14 @@ class FFTBandFunction2D(torch.autograd.Function):
         # 4 * r ** 2 / (H * W) = (1 - c)
         # r = np.sqrt((1 - c) * (H * W) / 4)
 
-        if onesided:
-            r = int(np.sqrt((1 - compress_rate / 100) * H_xfft * W_xfft / 2))
-        else:
-            r = int(np.sqrt((1 - compress_rate / 100) * H_xfft ** 2 / 4))
+        compress_rate = compress_rate / 100
 
+        if onesided:
+            divisor = 2
+        else:
+            divisor = 4
+
+        r = int(np.sqrt((1 - compress_rate) * H_xfft * W_xfft / divisor))
 
         # zero out high energy coefficients
         test = True
