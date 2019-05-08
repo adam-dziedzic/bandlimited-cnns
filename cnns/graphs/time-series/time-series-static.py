@@ -45,7 +45,7 @@ def read_columns(dataset, columns=7):
 
 fig = plt.figure(figsize=(10, 8))
 
-dataset = "data2"
+dataset = "data3"
 labels = ["", "80", "90", "95"]
 legend_pos = ["center left", "upper left"]
 columns = 7
@@ -92,8 +92,8 @@ plt.legend(loc="upper left", ncol=1, frameon=False,
 plt.xlabel('Epoch')
 plt.xlabel('full-spectra model')
 plt.ylabel('band-limited model')
-plt.xlim(50, 100)
-plt.ylim(50, 100)
+plt.xlim(60, 100)
+plt.ylim(60, 100)
 
 # plt.gcf().autofmt_xdate()
 # plt.xticks(rotation=0)

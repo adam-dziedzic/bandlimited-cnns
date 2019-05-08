@@ -48,8 +48,8 @@ from cnns.nnlib.datasets.transformations.denormalize import Denormalize
 from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.datasets.transformations.denorm_distance import DenormDistance
 from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBandFunction2D
-from cnns.nnlib.pytorch_layers.fft_band_2D_disk_mask import \
-    FFTBandFunction2DdiskMask
+from cnns.nnlib.pytorch_layers.fft_band_2D_complex_mask import \
+    FFTBandFunction2DcomplexMask
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
 
 
@@ -478,7 +478,7 @@ def run(args):
         #     ctx=None,
         #     input=torch.from_numpy(adversarial).unsqueeze(0),
         #     compress_rate=compress_rate).numpy().squeeze()
-        compress_image = FFTBandFunction2DdiskMask.forward(
+        compress_image = FFTBandFunction2DcomplexMask.forward(
             ctx=None,
             input=torch.from_numpy(adversarial).unsqueeze(0),
             compress_rate=compress_rate, val=0).numpy().squeeze()

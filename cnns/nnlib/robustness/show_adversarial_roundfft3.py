@@ -410,7 +410,7 @@ def run(args):
                   np.sum(np.abs(rounded_image - original_image)))
 
         if args.is_fft_compression:
-            compress_image = attack.fft_compression(rounded_image)
+            compress_image = attack.fft_complex_compression(rounded_image)
             title = "FFT Compressed: " + str(
                 args.compress_fft_layer) + "%" + "\n"
             if args.interpolate == None:

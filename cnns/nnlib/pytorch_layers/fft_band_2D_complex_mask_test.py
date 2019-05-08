@@ -1,5 +1,5 @@
-from cnns.nnlib.pytorch_layers.fft_band_2D_disk_mask import \
-    FFTBandFunction2DdiskMask
+from cnns.nnlib.pytorch_layers.fft_band_2D_complex_mask import \
+    FFTBandFunction2DcomplexMask
 
 import unittest
 import torch
@@ -22,6 +22,6 @@ class TestFFTBandFunction2DdiskMask(unittest.TestCase):
         a = torch.tensor(input, requires_grad=True,
                          dtype=args.dtype, device=args.device)
 
-        result = FFTBandFunction2DdiskMask.forward(ctx=None, input=a,
-                                                 compress_rate=26, val=0)
+        result = FFTBandFunction2DcomplexMask.forward(ctx=None, input=a,
+                                                      compress_rate=26, val=0)
         print("result: ", result)

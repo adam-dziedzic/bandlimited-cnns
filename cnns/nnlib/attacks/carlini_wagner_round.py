@@ -11,10 +11,13 @@ from foolbox.attacks.carlini_wagner import AdamOptimizer
 from foolbox.adversarial import Adversarial
 from cnns.nnlib.datasets.transformations.denorm_round_norm import \
     DenormRoundNorm
-from cnns.nnlib.pytorch_layers.fft_band_2D_disk_mask import \
-    FFTBandFunction2DdiskMask
+from cnns.nnlib.pytorch_layers.fft_band_2D_complex_mask import \
+    FFTBandFunction2DcomplexMask
+from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBandFunction2D
 from foolbox.criteria import Misclassification
 from foolbox.distances import MSE
+from cnns.nnlib.robustness.complex_mask import get_disk_mask
+from cnns.nnlib.robustness.complex_mask import get_hyper_mask
 
 
 class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
@@ -49,20 +52,20 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             self.std_array = args.std_array
             self.mean_array = args.mean_array
 
-        if args.values_per_channel <= 0:
-            raise Exception("Round attack requires more than zero values per "
-                            "channel!")
-
-        self.rounder = DenormRoundNorm(
-            mean_array=args.mean_array, std_array=args.std_array,
-            values_per_channel=args.values_per_channel)
-
-    def fft_compression(self, image):
-        fft_image = FFTBandFunction2DdiskMask.forward(
+    def fft_complex_compression(self, image, get_mask=get_disk_mask):
+        fft_image = FFTBandFunction2DcomplexMask.forward(
             ctx=None,
             input=torch.from_numpy(image).unsqueeze(0),
             compress_rate=self.args.compress_fft_layer, val=0,
-            interpolate=self.args.interpolate).numpy().squeeze()
+            interpolate=self.args.interpolate,
+            get_mask=get_mask).numpy().squeeze()
+        return np.clip(fft_image, a_min=self.args.min, a_max=self.args.max)
+
+    def fft_lshape_compression(self, image):
+        fft_image = FFTBandFunction2D.forward(
+            ctx=None,
+            input=torch.from_numpy(image).unsqueeze(0),
+            compress_rate=self.args.compress_fft_layer).numpy().squeeze()
         return np.clip(fft_image, a_min=self.args.min, a_max=self.args.max)
 
     def init_roundfft_adversarial(self, original_image, original_class):
@@ -85,7 +88,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                              ' instance.')
         image = self.rounder.round(original_image)
         if self.args.is_fft_compression:
-            image = self.fft_compression(image)
+            image = self.fft_complex_compression(image)
         self.roundfft_adversarial = Adversarial(
             model=model, criterion=criterion, original_image=image,
             original_class=original_class, distance=distance,
@@ -261,7 +264,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
 
                 x_prime = self.rounder.round(x)
                 if self.args.is_fft_compression:
-                    x_prime = self.fft_compression(x_prime)
+                    x_prime = self.fft_complex_compression(x_prime)
 
                 # print("diff between input image and rounded: ",
                 #       np.sum(np.abs(x_rounded - x)))
@@ -320,4 +323,3 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             else:
                 # binary search
                 const = (lower_bound + upper_bound) / 2
-

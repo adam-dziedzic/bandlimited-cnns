@@ -2,10 +2,11 @@ import torch
 from torch.nn import Module
 from cnns.nnlib.pytorch_layers.pytorch_utils import next_power2
 from torch.nn.functional import pad as torch_pad
-from cnns.nnlib.robustness.disk_mask import get_complex_mask
+from cnns.nnlib.robustness.complex_mask import get_disk_mask
+from cnns.nnlib.robustness.complex_mask import get_hyper_mask
 
 
-class FFTBandFunction2DdiskMask(torch.autograd.Function):
+class FFTBandFunction2DcomplexMask(torch.autograd.Function):
     """
     We can implement our own custom autograd Functions by subclassing
     torch.autograd.Function and implementing the forward and backward
@@ -15,7 +16,8 @@ class FFTBandFunction2DdiskMask(torch.autograd.Function):
     signal_ndim = 2
 
     @staticmethod
-    def forward(ctx, input, compress_rate, val=0, interpolate=None):
+    def forward(ctx, input, compress_rate, val=0, interpolate=None,
+                get_mask=get_disk_mask):
         """
         In the forward pass we receive a Tensor containing the input
         and return a Tensor containing the output. ctx is a context
@@ -28,7 +30,7 @@ class FFTBandFunction2DdiskMask(torch.autograd.Function):
         """
         # ctx.save_for_backward(input)
         # print("round forward")
-        FFTBandFunction2DdiskMask.mark_dirty(input)
+        FFTBandFunction2DcomplexMask.mark_dirty(input)
 
         N, C, H, W = input.size()
         is_next_power2 = False
@@ -42,20 +44,20 @@ class FFTBandFunction2DdiskMask(torch.autograd.Function):
             H_fft = H
             W_fft = W
         xfft = torch.rfft(input,
-                          signal_ndim=FFTBandFunction2DdiskMask.signal_ndim,
+                          signal_ndim=FFTBandFunction2DcomplexMask.signal_ndim,
                           onesided=True)
         del input
         _, _, H_xfft, W_xfft, _ = xfft.size()
         # assert H_fft == W_xfft, "The input tensor has to be squared."
 
-        mask, _ = get_complex_mask(side_len=H_xfft, compress_rate=compress_rate,
-                                   val=val, interpolate=interpolate)
+        mask, _ = get_mask(side_len=H_xfft, compress_rate=compress_rate,
+                                val=val, interpolate=interpolate)
         mask = mask[:, 0:W_xfft, :]
         # print(mask)
         xfft = xfft * mask
 
         out = torch.irfft(input=xfft,
-                          signal_ndim=FFTBandFunction2DdiskMask.signal_ndim,
+                          signal_ndim=FFTBandFunction2DcomplexMask.signal_ndim,
                           signal_sizes=(H_fft, W_fft),
                           onesided=True)
         out = out[..., :H, :W]
@@ -78,7 +80,7 @@ class FFTBandFunction2DdiskMask(torch.autograd.Function):
         return grad_output.clone(), None
 
 
-class FFTBand2DdiskMask(Module):
+class FFTBand2DcomplexMask(Module):
     """
     No PyTorch Autograd used - we compute backward pass on our own.
     """
@@ -87,7 +89,7 @@ class FFTBand2DdiskMask(Module):
     """
 
     def __init__(self, args):
-        super(FFTBand2DdiskMask, self).__init__()
+        super(FFTBand2DcomplexMask, self).__init__()
         self.compress_rate = args.compress_rate
 
     def forward(self, input):
@@ -98,4 +100,4 @@ class FFTBand2DdiskMask(Module):
         :param input: the input map (e.g., an image)
         :return: the result of 1D convolution
         """
-        return FFTBandFunction2DdiskMask.apply(input, self.compress_rate)
+        return FFTBandFunction2DcomplexMask.apply(input, self.compress_rate)
