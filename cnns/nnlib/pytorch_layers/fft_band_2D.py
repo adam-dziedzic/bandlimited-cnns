@@ -15,7 +15,8 @@ class FFTBandFunction2D(torch.autograd.Function):
     signal_ndim = 2
 
     @staticmethod
-    def forward(ctx, input, compress_rate, onesided=True, is_next_power2=False):
+    def forward(ctx, input, compress_rate, onesided=True, is_next_power2=False,
+                is_test=False):
         """
         In the forward pass we receive a Tensor containing the input
         and return a Tensor containing the output. ctx is a context
@@ -30,6 +31,8 @@ class FFTBandFunction2D(torch.autograd.Function):
         returned
         :param is_next_power2: the FFT is faster if the image size (each side)
         is a power of 2
+        :param is_test: test if the number of zero-ed out coefficients is
+        correct
         """
         # ctx.save_for_backward(input)
         # print("round forward")
@@ -38,7 +41,8 @@ class FFTBandFunction2D(torch.autograd.Function):
         N, C, H, W = input.size()
 
         if H != W:
-            raise Exception("We support only squared input.")
+            raise Exception(f"We support only squared input but the width: {W}"
+                            f" is differnt from height: {H}")
 
         if is_next_power2:
             H_fft = next_power2(H)
@@ -52,6 +56,7 @@ class FFTBandFunction2D(torch.autograd.Function):
 
         xfft = torch.rfft(input, signal_ndim=FFTBandFunction2D.signal_ndim,
                           onesided=onesided)
+
         del input
         _, _, H_xfft, W_xfft, _ = xfft.size()
 
@@ -66,11 +71,14 @@ class FFTBandFunction2D(torch.autograd.Function):
         else:
             divisor = 4
 
-        r = int(np.sqrt((1 - compress_rate) * H_xfft * W_xfft / divisor))
+        # r - is the length of the side that we retain after compression.
+        r = np.sqrt((1 - compress_rate) * H_xfft * W_xfft / divisor)
+        r = np.floor(r)
+        r = int(r)
 
         # zero out high energy coefficients
-        test = True
-        if test:
+        if is_test:
+            # We divide by 2 to not count zeros complex number twice.
             zero1 = torch.sum(xfft == 0.0).item() / 2
             # print(zero1)
 
@@ -80,14 +88,20 @@ class FFTBandFunction2D(torch.autograd.Function):
         else:
             xfft[..., :, r:W_fft - r, :] = 0.0
 
-        if test:
+        # print(xfft)
+
+        if ctx is not None:
+            ctx.xfft = xfft
+
+        if is_test:
             zero2 = torch.sum(xfft == 0.0).item() / 2
             # print(zero2)
             total_size = C * H_xfft * W_xfft
             # print("total size: ", total_size)
             fraction_zeroed = (zero2 - zero1) / total_size
-            # print("fraction of zeroed out: ", fraction_zeroed)
-            error = 0.057
+            ctx.fraction_zeroed = fraction_zeroed
+            # print("compress rate: ", compress_rate, " fraction of zeroed out: ", fraction_zeroed)
+            error = 0.1
             if fraction_zeroed > compress_rate + error or (
                     fraction_zeroed < compress_rate - error):
                 raise Exception(f"The compression is wrong, for compression "
@@ -116,7 +130,7 @@ class FFTBandFunction2D(torch.autograd.Function):
         Defenses that mask a network’s gradients by quantizingthe input values pose a challenge to gradient-based opti-mization  methods  for  generating  adversarial  examples,such  as  the  procedure  we  describe  in  Section  2.4.   Astraightforward application of the approach would findzero gradients, because small changes to the input do notalter the output at all.  In Section 3.1.1, we describe anapproach where we run the optimizer on a substitute net-work without the color depth reduction step, which ap-proximates the real network.
         """
         # print("round backward")
-        return grad_output.clone(), None, None
+        return grad_output.clone(), None, None, None, None
 
 
 class FFTBand2D(Module):
@@ -140,3 +154,36 @@ class FFTBand2D(Module):
         :return: the result of 1D convolution
         """
         return FFTBandFunction2D.apply(input, self.compress_rate)
+
+if __name__ == "__main__":
+    compress_rate = 0.6
+    H_xfft = 8
+    W_xfft = 5
+    divisor = 2
+    is_test = True
+
+    xfft = np.arange(H_xfft*W_xfft).reshape(H_xfft, W_xfft)
+    xfft = torch.tensor(xfft)
+
+    print("initial xfft:\n", xfft)
+
+    r = int(np.sqrt((1 - compress_rate) * H_xfft * W_xfft / divisor))
+    print("r: ", r)
+
+    # zero out high energy coefficients
+    if is_test:
+        # We divide by 2 to not count zeros complex number twice.
+        zero1 = torch.sum(xfft == 0.0).item() / 2
+        # print(zero1)
+
+    xfft[r:H_xfft - r, :] = 0.0
+    xfft[:, r:] = 0.0
+
+    print("compressed xfft:\n", xfft)
+
+    zero2 = torch.sum(xfft == 0.0).item()
+    # print(zero2)
+    total_size = H_xfft * W_xfft
+    # print("total size: ", total_size)
+    fraction_zeroed = (zero2 - zero1) / total_size
+    print("fraction_zeroed: ", fraction_zeroed)
