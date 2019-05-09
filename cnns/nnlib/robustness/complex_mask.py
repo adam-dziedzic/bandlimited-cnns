@@ -144,6 +144,7 @@ def get_hyper_mask(H, W, compress_rate, val=0, interpolate=None,
 
         mask = mask0 + mask1 + mask2 + mask3
         array_mask += mask
+        print("val: ", val, " array mask:\n", array_mask)
 
         r += 1
     # print("array mask:\n", array_mask)

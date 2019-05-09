@@ -73,7 +73,8 @@ class FFTBandFunction2D(torch.autograd.Function):
 
         # r - is the length of the side that we retain after compression.
         r = np.sqrt((1 - compress_rate) * H_xfft * W_xfft / divisor)
-        r = np.floor(r)
+        # r = np.floor(r)
+        r = np.ceil(r)
         r = int(r)
 
         # zero out high energy coefficients
@@ -101,7 +102,7 @@ class FFTBandFunction2D(torch.autograd.Function):
             fraction_zeroed = (zero2 - zero1) / total_size
             ctx.fraction_zeroed = fraction_zeroed
             # print("compress rate: ", compress_rate, " fraction of zeroed out: ", fraction_zeroed)
-            error = 0.1
+            error = 0.08
             if fraction_zeroed > compress_rate + error or (
                     fraction_zeroed < compress_rate - error):
                 raise Exception(f"The compression is wrong, for compression "

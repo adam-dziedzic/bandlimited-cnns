@@ -80,7 +80,7 @@ class TestGetComplexMask(unittest.TestCase):
         np.testing.assert_equal(actual=mask.numpy(), desired=desired.numpy())
 
     def test_get_complex_mask_linear(self):
-        mask, array_mask = get_disk_mask(side_len=7, compress_rate=26, val=0,
+        mask, array_mask = get_disk_mask(H=7, W=7, compress_rate=26, val=0,
                                          interpolate="linear")
         array_mask = torch.tensor(array_mask)
         print("array mask:\n", array_mask)
@@ -97,7 +97,7 @@ class TestGetComplexMask(unittest.TestCase):
                                    desired=desired_array_mask, rtol=1e-02)
 
     def test_get_complex_mask_exponent(self):
-        mask, array_mask = get_disk_mask(side_len=7, compress_rate=26, val=0,
+        mask, array_mask = get_disk_mask(H=7, W=7, compress_rate=26, val=0,
                                          interpolate="exponent")
         array_mask = torch.tensor(array_mask)
         print("array mask:\n", )
@@ -114,7 +114,7 @@ class TestGetComplexMask(unittest.TestCase):
                                    desired=desired_array_mask, rtol=1e-03)
 
     def test_get_complex_mask_log(self):
-        mask, array_mask = get_disk_mask(side_len=7, compress_rate=26,
+        mask, array_mask = get_disk_mask(H=7, W=7, compress_rate=26,
                                          val=0,
                                          interpolate="log")
         array_mask = torch.tensor(array_mask)
@@ -133,7 +133,7 @@ class TestGetComplexMask(unittest.TestCase):
                                    desired=desired_array_mask, rtol=1e-02)
 
     def test_get_hyper_mask1(self):
-        mask, array_mask = get_hyper_mask(side_len=7, compress_rate=26, val=0)
+        mask, array_mask = get_hyper_mask(H=7, W=7, compress_rate=26, val=0)
         print("array mask:\n", torch.tensor(array_mask))
         print("mask:\n", mask)
         desired_array_mask = np.array(
@@ -147,7 +147,7 @@ class TestGetComplexMask(unittest.TestCase):
         np.testing.assert_equal(actual=array_mask, desired=desired_array_mask)
 
     def test_get_hyper_mask2(self):
-        mask, array_mask = get_hyper_mask(side_len=7, compress_rate=5, val=0)
+        mask, array_mask = get_hyper_mask(H=7, W=7, compress_rate=5, val=0)
         print("array mask:\n", torch.tensor(array_mask))
         print("mask:\n", mask)
         desired_array_mask = np.array(
@@ -161,7 +161,7 @@ class TestGetComplexMask(unittest.TestCase):
         np.testing.assert_equal(actual=array_mask, desired=desired_array_mask)
 
     def test_get_hyper_mask3(self):
-        mask, array_mask = get_hyper_mask(side_len=7, compress_rate=50, val=0)
+        mask, array_mask = get_hyper_mask(H=7, W=7, compress_rate=50, val=0)
         print("array mask:\n", torch.tensor(array_mask))
         print("mask:\n", mask)
         desired_array_mask = np.array(
@@ -175,8 +175,23 @@ class TestGetComplexMask(unittest.TestCase):
         np.testing.assert_equal(actual=array_mask, desired=desired_array_mask)
 
 
-    def test_get_hyper_mask3(self):
-        mask, array_mask = get_hyper_mask(side_len=7, compress_rate=80, val=0)
+    def test_get_hyper_mask4(self):
+        mask, array_mask = get_hyper_mask(H=7, W=7, compress_rate=80, val=0)
+        print("array mask:\n", torch.tensor(array_mask))
+        print("mask:\n", mask)
+        desired_array_mask = np.array(
+            [[1., 1., 0., 0., 0., 1., 1.],
+             [1., 1., 0., 0., 0., 1., 1.],
+             [0., 0., 0., 0., 0., 0., 0.],
+             [0., 0., 0., 0., 0., 0., 0.],
+             [0., 0., 0., 0., 0., 0., 0.],
+             [1., 1., 0., 0., 0., 1., 1.],
+             [1., 1., 0., 0., 0., 1., 1.]])
+        np.testing.assert_equal(actual=array_mask, desired=desired_array_mask)
+
+    def test_get_hyper_mask5(self):
+        mask, array_mask = get_hyper_mask(H=7, W=7, compress_rate=80, val=0,
+                                          interpolate="linear")
         print("array mask:\n", torch.tensor(array_mask))
         print("mask:\n", mask)
         desired_array_mask = np.array(
