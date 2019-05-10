@@ -9,15 +9,12 @@ from foolbox.attacks.base import call_decorator
 from foolbox.attacks.carlini_wagner import CarliniWagnerL2Attack
 from foolbox.attacks.carlini_wagner import AdamOptimizer
 from foolbox.adversarial import Adversarial
-from cnns.nnlib.datasets.transformations.denorm_round_norm import \
-    DenormRoundNorm
 from cnns.nnlib.pytorch_layers.fft_band_2D_complex_mask import \
     FFTBandFunctionComplexMask2D
 from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBandFunction2D
 from foolbox.criteria import Misclassification
 from foolbox.distances import MSE
-from cnns.nnlib.robustness.complex_mask import get_disk_mask
-from cnns.nnlib.robustness.complex_mask import get_hyper_mask
+from cnns.nnlib.utils.complex_mask import get_disk_mask
 
 
 class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):

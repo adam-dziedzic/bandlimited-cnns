@@ -18,8 +18,6 @@ import matplotlib
 
 import time
 import matplotlib.pyplot as plt
-import os
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 import foolbox
 import numpy as np
 import torch
@@ -47,15 +45,12 @@ from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_std_array
 from cnns.nnlib.attacks.carlini_wagner_round_fft import \
     CarliniWagnerL2AttackRoundFFT
 from cnns.nnlib.utils.general_utils import get_log_time
-from cnns.nnlib.datasets.transformations.denorm_round_norm import \
-    DenormRoundNorm
 from cnns.nnlib.datasets.transformations.normalize import Normalize
 from cnns.nnlib.datasets.transformations.denormalize import Denormalize
 from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.datasets.transformations.denorm_distance import DenormDistance
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
-from cnns.nnlib.robustness.complex_mask import get_disk_mask
-from cnns.nnlib.robustness.complex_mask import get_hyper_mask
+from cnns.nnlib.utils.complex_mask import get_hyper_mask
 from cnns.nnlib.pytorch_layers.pytorch_utils import MockContext
 
 

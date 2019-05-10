@@ -2,17 +2,42 @@ import numpy as np
 import torch
 
 
-def get_val_from_interpolate(interpolate, val, ceil_init_r):
+def get_val_from_interpolate_disk(interpolate, val, ceil_init_r):
     steps = int(ceil_init_r)
     if interpolate is None or interpolate == "idt" or interpolate == "const":
         get_val = lambda r, init_r: val  # apply the constant value
         steps = 0
     elif interpolate == "lin" or interpolate == "linear":
-        get_val = lambda r, init_r: r / ceil_init_r
+        get_val = lambda r: r / ceil_init_r
     elif interpolate == "exp" or interpolate == "exponent" or interpolate == "exponential":
-        get_val = lambda r, init_r: np.exp(r - ceil_init_r)
+        get_val = lambda r: np.exp(r - ceil_init_r)
     elif interpolate == "log" or interpolate == "logarithmic":
-        get_val = lambda r, init_r: np.log(((r / ceil_init_r) * (np.e - 1)) + 1)
+        get_val = lambda r: np.log(((r / ceil_init_r) * (np.e - 1)) + 1)
+    else:
+        raise Exception(f"Unknown interpolation: {interpolate}!")
+    return get_val, steps
+
+
+def get_val_from_interpolate_hyper(interpolate, val, start_r, stop_r):
+    """
+    :param interpolate: the type of value interpolation
+    :param val: the value to be set
+    :param stop_r: the starting value of the radius
+    :param start_r:  the stoping value of the radius
+    :return: the value interpolation function, number of total steps
+    """
+    steps = (stop_r - start_r) + 1
+    delta_r = (stop_r - start_r) + 1
+    if interpolate is None or interpolate == "idt" or interpolate == "const":
+        get_val = lambda r: val  # apply the constant value
+        steps = 0
+    elif interpolate == "lin" or interpolate == "linear":
+        get_val = lambda r: (stop_r - r) / delta_r
+    elif interpolate == "exp" or interpolate == "exponent" or interpolate == "exponential":
+        get_val = lambda r: np.exp(start_r - r - 1)
+    elif interpolate == "log" or interpolate == "logarithmic":
+        get_val = lambda r: np.log(
+            (((stop_r - r) / delta_r) * (np.e - 1)) + 1)
     else:
         raise Exception(f"Unknown interpolation: {interpolate}!")
     return get_val, steps
@@ -42,9 +67,9 @@ def get_disk_mask(H, W, compress_rate, val=0, interpolate=None, onesided=True):
     # Start from the slightly higher denominator for the get_val function to
     # incur some decrease in the values ( < 1.0 multiplier) for the coefficients.
     ceil_init_r = np.ceil(init_r)
-    get_val, steps = get_val_from_interpolate(interpolate=interpolate,
-                                              val=val,
-                                              ceil_init_r=ceil_init_r)
+    get_val, steps = get_val_from_interpolate_disk(interpolate=interpolate,
+                                                   val=val,
+                                                   ceil_init_r=ceil_init_r)
 
     r = init_r
     mask = (x - ctr) ** 2 + (y - ctr) ** 2 <= r ** 2
@@ -53,7 +78,7 @@ def get_disk_mask(H, W, compress_rate, val=0, interpolate=None, onesided=True):
     # Decrease the disk size and its value of the mask in each iteration.
     for delta in range(steps):
         mask = (x - ctr) ** 2 + (y - ctr) ** 2 <= r ** 2
-        array_mask[mask] = get_val(r, ceil_init_r)
+        array_mask[mask] = get_val(r)
         r -= 1
     # print("array mask:\n", array_mask)
     # Transform the mask to the complex representation, with 2 values for the
@@ -80,17 +105,28 @@ def get_hyper_mask(H, W, compress_rate, val=0, interpolate=None,
         if H != W:
             raise Exception("We only support squared inputs.")
 
-    init_r = np.sqrt((1 - compress_rate / 100) * side_len ** 2 / np.pi)
+    if onesided == True:
+        multiplier = 2
+        WW = W
+    else:
+        multiplier = 1
+        WW = W / 2
+
+    compress_rate = compress_rate / 100
+
+    start_r = np.sqrt(multiplier * (1 - compress_rate) * H * W / np.pi)
+    stop_r = np.sqrt((H / 2) ** 2 + WW ** 2)
+
+    start_r = np.floor(start_r)
+    stop_r = np.ceil(stop_r)
 
     y, x = np.ogrid[0:side_len, 0:side_len]
-    # Start from the slightly higher denominator for the get_val function to
-    # incur some decrease in the values ( < 1.0 multiplier) for the coefficients.
-    ceil_init_r = np.ceil(init_r)
-    get_val, steps = get_val_from_interpolate(interpolate=interpolate,
-                                              val=val,
-                                              ceil_init_r=ceil_init_r)
+    get_val, steps = get_val_from_interpolate_hyper(interpolate=interpolate,
+                                                    val=val,
+                                                    start_r=start_r,
+                                                    stop_r=stop_r)
     # Decrease the disk size and its value of the mask in each iteration.
-    r = init_r
+    r = start_r
     n = side_len - 1
     # upper-left corner
     mask0 = get_array_mask(x ** 2 + y ** 2 >= r ** 2, side_len)
@@ -113,40 +149,67 @@ def get_hyper_mask(H, W, compress_rate, val=0, interpolate=None,
             mid = H // 2
         else:
             mid = H // 2 + 1
+
         # upper-left corner
-        quadrant0 = get_array_mask(np.outer(x < mid, y < mid), side_len)
+        quadrant0 = get_array_mask(np.outer(x < mid, y < mid), side_len, val=1,
+                                   back=0)
         # upper-right corner
-        quadrant1 = get_array_mask(np.outer(x >= mid, y < mid), side_len)
+        quadrant1 = get_array_mask(np.outer(x < mid, y >= mid), side_len, val=1,
+                                   back=0)
         # bottom-left corner
-        quadrant2 = get_array_mask(np.outer(x < mid, y >= mid), side_len)
+        quadrant2 = get_array_mask(np.outer(x >= mid, y < mid), side_len, val=1,
+                                   back=0)
         # bottom-right corner
-        quadrant3 = get_array_mask(np.outer(x >= mid, y >= mid), side_len)
+        quadrant3 = get_array_mask(np.outer(x >= mid, y >= mid), side_len,
+                                   val=1, back=0)
 
+    mask0 = np.ones((side_len, side_len))
+    mask1 = np.ones((side_len, side_len))
+    mask2 = np.ones((side_len, side_len))
+    mask3 = np.ones((side_len, side_len))
 
-    for delta in range(steps):
-        val = get_val(r, ceil_init_r)
+    r = start_r
+    for delta in range(int(steps)):
+        val = get_val(r)
 
-        mask0 = x ** 2 + y ** 2 == r ** 2
-        mask0 = get_array_mask(mask0, side_len, val=val)
-        mask0 *= quadrant0
+        mask0 = get_array_mask(
+            mask=(x ** 2 + y ** 2 >= r ** 2),
+            n=side_len,
+            val=val,
+            back=None,
+            array_mask=mask0)
 
-        mask1 = (x - n) ** 2 + y ** 2 == r ** 2
-        mask1 = get_array_mask(mask1, side_len, val=val)
-        mask1 *= quadrant1
+        mask1 = get_array_mask(
+            mask=((x - n) ** 2 + y ** 2 >= r ** 2),
+            n=side_len,
+            val=val,
+            back=None,
+            array_mask=mask1)
 
-        mask2 = x ** 2 + (y - n) ** 2 == r ** 2
-        mask2 = get_array_mask(mask2, side_len, val=val)
-        mask2 *= quadrant2
+        mask2 = get_array_mask(
+            mask=(x ** 2 + (y - n) ** 2 >= r ** 2),
+            n=side_len,
+            val=val,
+            back=None,
+            array_mask=mask2)
 
-        mask3 = (x - n) ** 2 + (y - n) ** 2 == r ** 2
-        mask3 = get_array_mask(mask3, side_len, val=val)
-        mask3 *= quadrant3
-
-        mask = mask0 + mask1 + mask2 + mask3
-        array_mask += mask
-        print("val: ", val, " array mask:\n", array_mask)
+        mask3 = get_array_mask(
+            mask=((x - n) ** 2 + (y - n) ** 2 >= r ** 2),
+            n=side_len,
+            val=val,
+            back=None,
+            array_mask=mask3)
 
         r += 1
+
+    if steps > 0:
+        mask0 *= quadrant0
+        mask1 *= quadrant1
+        mask2 *= quadrant2
+        mask3 *= quadrant3
+
+        array_mask = mask0 + mask1 + mask2 + mask3
+
     # print("array mask:\n", array_mask)
     # Transform the mask to the complex representation, with 2 values for the
     # last dimension being the same.
@@ -161,8 +224,18 @@ def get_tensor_mask(array_mask):
     return tensor_mask
 
 
-def get_array_mask(mask, n=7, val=0):
-    array = np.ones((n, n), dtype=np.float32)
+def get_array_mask(mask, n=7, val=0, back=1, dtype=np.float32,
+                   array_mask=None):
+    if back is None:
+        if array_mask is None:
+            raise Exception("array_mask has to be specified if back is None")
+        array = array_mask
+    elif back == 1:
+        array = np.ones((n, n), dtype=dtype)
+    elif back == 0:
+        array = np.zeros((n, n), dtype=dtype)
+    else:
+        array = np.full((n, n), fill_value=back, dtyp=dtype)
     array[mask] = val
     return array
 
