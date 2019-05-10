@@ -52,7 +52,7 @@ from cnns.nnlib.datasets.transformations.denorm_distance import DenormDistance
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
 from cnns.nnlib.utils.complex_mask import get_hyper_mask
 from cnns.nnlib.pytorch_layers.pytorch_utils import MockContext
-from cnns.nnlib.utils.shift_DC_component import shift_to_center
+from cnns.nnlib.utils.shift_DC_component import shift_DC
 
 def softmax(x):
     s = np.exp(x - np.max(x))
@@ -80,7 +80,7 @@ def to_fft(x, fft_type, is_log=True, onesided=False, to_center=False):
     # x = x.permute(2, 0, 1)  # move channel as the first dimension
     xfft = torch.rfft(x, onesided=onesided, signal_ndim=2)
     if to_center:
-        xfft = shift_to_center(xfft, onesided=onesided)
+        xfft = shift_DC(xfft, onesided=onesided)
     return to_fft_type(xfft, fft_type=fft_type, is_log=is_log)
 
 
