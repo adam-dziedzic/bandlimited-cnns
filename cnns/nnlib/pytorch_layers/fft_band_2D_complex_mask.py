@@ -58,7 +58,7 @@ class FFTBandFunctionComplexMask2D(torch.autograd.Function):
         # assert H_fft == W_xfft, "The input tensor has to be squared."
 
         mask, _ = get_mask(H=H_xfft, W=W_xfft, compress_rate=compress_rate,
-                           val=val, interpolate=interpolate)
+                           val=val, interpolate=interpolate, onesided=onesided)
         mask = mask[:, 0:W_xfft, :]
         # print(mask)
         xfft = xfft * mask

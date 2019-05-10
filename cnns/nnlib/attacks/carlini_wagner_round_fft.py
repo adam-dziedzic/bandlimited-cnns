@@ -50,13 +50,14 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             self.mean_array = args.mean_array
 
     def fft_complex_compression(self, image, get_mask=get_disk_mask,
-                                is_clip=True, ctx=None):
+                                is_clip=True, ctx=None, onesided=True):
         fft_image = FFTBandFunctionComplexMask2D.forward(
             ctx=ctx,
             input=torch.from_numpy(image).unsqueeze(0),
             compress_rate=self.args.compress_fft_layer, val=0,
             interpolate=self.args.interpolate,
-            get_mask=get_mask).numpy().squeeze()
+            get_mask=get_mask,
+            onesided=onesided).numpy().squeeze()
         if is_clip:
             return np.clip(fft_image, a_min=self.args.min, a_max=self.args.max)
         else:

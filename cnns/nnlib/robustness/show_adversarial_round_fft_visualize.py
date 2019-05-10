@@ -52,7 +52,7 @@ from cnns.nnlib.datasets.transformations.denorm_distance import DenormDistance
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
 from cnns.nnlib.utils.complex_mask import get_hyper_mask
 from cnns.nnlib.pytorch_layers.pytorch_utils import MockContext
-
+from cnns.nnlib.utils.shift_DC_component import shift_to_center
 
 def softmax(x):
     s = np.exp(x - np.max(x))
@@ -74,14 +74,18 @@ def to_fft_type(xfft, fft_type, is_log=True):
         raise Exception(f"Unknown type of fft processing: {fft_type}")
 
 
-def to_fft(x, fft_type, is_log=True):
+def to_fft(x, fft_type, is_log=True, onesided=False, to_center=False):
     x = torch.from_numpy(x)
     # x = torch.tensor(x)
     # x = x.permute(2, 0, 1)  # move channel as the first dimension
-    xfft = torch.rfft(x, onesided=False, signal_ndim=2)
+    xfft = torch.rfft(x, onesided=onesided, signal_ndim=2)
+    if to_center:
+        xfft = shift_to_center(xfft, onesided=onesided)
     return to_fft_type(xfft, fft_type=fft_type, is_log=is_log)
 
-def to_xfft(x, fft_type, args, is_log=True, channel=0):
+
+def to_xfft(x, fft_type, args, is_log=True, channel=0, onesided=False,
+            to_center=False):
     """
 
     :param x: input image
@@ -91,7 +95,8 @@ def to_xfft(x, fft_type, args, is_log=True, channel=0):
     :param channel:
     :return:
     """
-    xfft = to_fft(x, fft_type, is_log=is_log)
+    xfft = to_fft(x, fft_type, is_log=is_log, onesided=onesided,
+                  to_center=to_center)
     xfft = xfft[channel, :args.init_x, :args.init_y]
     return xfft
 
@@ -276,13 +281,13 @@ def run(args):
         # zero out the center
         # H, W = input_map.shape
         # input_map[H // 2, W // 2] = 0
-        np.set_printoptions(threshold=np.inf)
-        print("xfft: ", input_map)
+        # np.set_printoptions(threshold=np.inf)
+        # print("xfft: ", input_map)
         print("xfft min: ", input_map.min())
         print("xfft max: ", input_map.max())
 
-        interpolation = "nearest",
-        plt.imshow(input_map, cmap='hot', interpolation='nearest',
+        interpolation = "nearest"
+        plt.imshow(input_map, cmap='hot', interpolation=interpolation,
                    vmin=vmin, vmax=vmax)
         # plt.contour(input_map, cmap='hot', interpolation='nearest',
         #            vmin=vmin, vmax=vmax)
@@ -462,33 +467,52 @@ def run(args):
 
         channel = 0
         is_log = True
+        onesided = False
+        is_clipped = True
+        shift_DC_to_center = True
 
         original_xfft = to_xfft(original_image, fft_type=fft_type,
-                                args=args, channel=channel, is_log=is_log)
+                                args=args, channel=channel, is_log=is_log,
+                                onesided=onesided,
+                                to_center=shift_DC_to_center)
 
         ctx = MockContext()
         complex_compress_image = attack.fft_complex_compression(
-            original_image, get_mask=get_hyper_mask, ctx=ctx)
-        complex_xfft = from_ctx_fft(ctx.xfft, is_log=True, fft_type=fft_type,
-                                    channel=channel)
-        # complex_xfft = to_xfft(complex_compress_image, fft_type=fft_type,
-        #                        args=args, channel=channel, is_log=is_log)
+            original_image, get_mask=get_hyper_mask, ctx=ctx, onesided=onesided)
+        if is_clipped:
+            complex_xfft = to_xfft(complex_compress_image, fft_type=fft_type,
+                                   args=args, channel=channel, is_log=is_log,
+                                   onesided=onesided,
+                                   to_center=shift_DC_to_center)
+        else:
+            complex_xfft = from_ctx_fft(ctx.xfft[0], is_log=True,
+                                        fft_type=fft_type,
+                                        channel=channel)
+
 
         lshaped_compress_image = attack.fft_lshape_compression(
-            original_image, ctx=ctx)
-        lshaped_xfft = from_ctx_fft(ctx.xfft, is_log=True, fft_type=fft_type,
-                                    channel=channel)
-        lshaped_xfft = to_xfft(lshaped_compress_image, fft_type=fft_type,
-                               args=args, channel=channel, is_log=is_log)
+            original_image, ctx=ctx, onesided=onesided)
+        if is_clipped:
+            lshaped_xfft = to_xfft(lshaped_compress_image, fft_type=fft_type,
+                                   args=args, channel=channel, is_log=is_log,
+                                   onesided=onesided,
+                                   to_center=shift_DC_to_center)
+        else:
+            lshaped_xfft = from_ctx_fft(ctx.xfft[0], is_log=True,
+                                        fft_type=fft_type,
+                                        channel=channel)
 
         min_val_fft = np.min([original_xfft.min(),
-                          complex_xfft.min(),
-                          lshaped_xfft.min()])
+                              complex_xfft.min(),
+                              lshaped_xfft.min()])
+        # This is to make the visualization pretty, otherwise the FFT changes
+        # are not that visible.
+        min_val_fft = original_xfft.min() - 33
         print("min val: ", min_val_fft)
 
         max_val_fft = np.max([original_xfft.max(),
-                          complex_xfft.max(),
-                          lshaped_xfft.max()])
+                              complex_xfft.max(),
+                              lshaped_xfft.max()])
         print("max val: ", max_val_fft)
 
         title_left = "Spatial domain"
@@ -544,8 +568,8 @@ if __name__ == "__main__":
     args = get_args()
     # args.diff_type = "source"  # "source" or "fft"
     args.diff_type = "fft"
-    args.dataset = "cifar10"  # "cifar10" or "imagenet"
-    # args.dataset = "imagenet"
+    # args.dataset = "cifar10"  # "cifar10" or "imagenet"
+    args.dataset = "imagenet"
     # args.dataset = "mnist"
     # args.index = 13  # index of the image (out of 20) to be used
     args.compress_rate = 0
@@ -553,7 +577,7 @@ if __name__ == "__main__":
     args.is_fft_compression = True
     args.interpolate = "const"
     args.use_foolbox_data = True
-    args.index = 1
+    args.index = 0
 
     if torch.cuda.is_available() and args.use_cuda:
         print("cuda is available")
