@@ -1,4 +1,5 @@
 from cnns.nnlib.utils.shift_DC_component import shift_DC
+from cnns.nnlib.utils.shift_DC_component import shift_DC_elemwise
 
 import torch
 import unittest
@@ -61,7 +62,7 @@ class TestShiftDCComponent(TestCase):
     def test_to_corner_arange_9(self):
         xfft = np.arange(9, dtype=self.dtype).reshape(1, 3, 3, 1)
         xfft = torch.tensor(xfft)
-        xfft_out = shift_DC(xfft, onesided=True, shift_type="corner")
+        xfft_out = shift_DC(xfft, onesided=True, shift_to="corner")
         assert_equal(actual=xfft_out.numpy().squeeze(),
                      desired=np.array([[3., 4., 5.],
                                        [6., 7., 8.],
@@ -70,7 +71,43 @@ class TestShiftDCComponent(TestCase):
     def test_to_corner_arange_9_bothsided(self):
         xfft = np.arange(9, dtype=self.dtype).reshape(1, 3, 3, 1)
         xfft = torch.tensor(xfft)
-        xfft_out = shift_DC(xfft, onesided=False, shift_type="corner")
+        xfft_out = shift_DC(xfft, onesided=False, shift_to="corner")
+        assert_equal(actual=xfft_out.numpy().squeeze(),
+                     desired=np.array([[4., 5., 3.],
+                                       [7., 8., 6.],
+                                       [1., 2., 0.]], dtype=self.dtype))
+
+    def test_to_center_elemwise_9(self):
+        xfft = np.arange(9, dtype=self.dtype).reshape(1, 3, 3, 1)
+        xfft = torch.tensor(xfft)
+        xfft_out = shift_DC_elemwise(xfft, onesided=True)
+        assert_equal(actual=xfft_out.numpy().squeeze(),
+                     desired=np.array([[6., 7., 8.],
+                                       [0., 1., 2.],
+                                       [3., 4., 5.]], dtype=self.dtype))
+
+    def test_to_center_elemwise_9_bothsided(self):
+        xfft = np.arange(9, dtype=self.dtype).reshape(1, 3, 3, 1)
+        xfft = torch.tensor(xfft)
+        xfft_out = shift_DC_elemwise(xfft, onesided=False)
+        assert_equal(actual=xfft_out.numpy().squeeze(),
+                     desired=np.array([[8., 6., 7.],
+                                       [2., 0., 1.],
+                                       [5., 3., 4.]], dtype=self.dtype))
+
+    def test_to_corner_arange_9_elemwise(self):
+        xfft = np.arange(9, dtype=self.dtype).reshape(1, 3, 3, 1)
+        xfft = torch.tensor(xfft)
+        xfft_out = shift_DC_elemwise(xfft, onesided=True, shift_to="corner")
+        assert_equal(actual=xfft_out.numpy().squeeze(),
+                     desired=np.array([[3., 4., 5.],
+                                       [6., 7., 8.],
+                                       [0., 1., 2.]], dtype=self.dtype))
+
+    def test_to_corner_arange_9_bothsided_elemwise(self):
+        xfft = np.arange(9, dtype=self.dtype).reshape(1, 3, 3, 1)
+        xfft = torch.tensor(xfft)
+        xfft_out = shift_DC_elemwise(xfft, onesided=False)
         assert_equal(actual=xfft_out.numpy().squeeze(),
                      desired=np.array([[4., 5., 3.],
                                        [7., 8., 6.],
