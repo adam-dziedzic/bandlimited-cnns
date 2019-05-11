@@ -62,7 +62,7 @@ class FFTBandFunctionComplexMask2D(torch.autograd.Function):
                            val=val, interpolate=interpolate, onesided=onesided)
         mask = mask[:, 0:W_xfft, :]
         # print(mask)
-        mask = mask.to(xfft.dtype)
+        mask = mask.to(xfft.dtype).to(xfft.device)
         xfft = xfft * mask
 
         if ctx is not None:
