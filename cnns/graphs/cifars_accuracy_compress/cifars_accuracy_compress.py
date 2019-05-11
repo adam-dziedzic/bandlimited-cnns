@@ -1,4 +1,6 @@
 import matplotlib
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 import matplotlib.pyplot as plt
 import os
 
@@ -48,7 +50,7 @@ mix_y = (93.69,
          91.99,
          88.85,
          81.71,
-         68.33)
+         74.33)
 
 energy_x = (
 0, 0.048475708, 1.209367931, 4.962953113, 12.35137482, 18.63192462, 31.01018447,
@@ -58,8 +60,8 @@ energy_y = (
 
 plt.plot(static_x, static_y, label='static compression', lw=2, marker='o',
          color=get_color(MY_BLUE))
-# plt.plot(mix_x, mix_y, label='energy first + static rest', lw=2, marker='v',
-#          color=get_color(MY_ORANGE))
+plt.plot(mix_x, mix_y, label='energy first + static rest', lw=2, marker='v',
+         color=get_color(MY_ORANGE))
 plt.plot(energy_x, energy_y, label='energy based compression', lw=2, marker='s',
          color=get_color(MY_GREEN))
 
@@ -92,5 +94,5 @@ plt.grid()
 plt.legend(loc=legend_position, frameon=frameon, prop={'size': legend_size}, bbox_to_anchor=bbox_to_anchor)
 
 plt.show()
-fig.savefig(dir_path + "/" + "cifars-accuracy-compress.pdf",
+fig.savefig(dir_path + "/" + "cifars-accuracy-compress-font2.pdf",
             bbox_inches='tight')

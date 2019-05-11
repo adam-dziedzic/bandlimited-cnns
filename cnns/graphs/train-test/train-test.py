@@ -1,5 +1,8 @@
 import matplotlib
+
 # matplotlib.use('TkAgg')
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 import matplotlib.pyplot as plt
 import csv
 import os
@@ -14,6 +17,7 @@ MY_ORANGE = (218, 124, 48)
 MY_GREEN = (62, 150, 81)
 MY_BLACK = (83, 81, 84)
 MY_YELLOW = (255, 211, 0)
+
 
 def get_color(COLOR_TUPLE_255):
     return [x / 255 for x in COLOR_TUPLE_255]
@@ -52,9 +56,9 @@ legend_pos = ["center left", "upper left"]
 ncols = [4, 4]
 bbox = [(0.0, 0.05), (0, 1.05)]
 colors10 = [get_color(color) for color in
-          ["", MY_RED, MY_GREEN, MY_BLUE, MY_ORANGE]]
+            ["", MY_RED, MY_GREEN, MY_BLUE, MY_ORANGE]]
 colors100 = [get_color(color) for color in
-          ["", MY_RED, MY_BLUE, MY_BLACK, MY_ORANGE]]
+             ["", MY_RED, MY_BLUE, MY_BLACK, MY_ORANGE]]
 markers10 = ["+", "o", "v", "s", "D", "^"]
 markers100 = ["+", "o", "s", "^", "D", "^"]
 linestyles10 = ["-", ":", "-", "-.", ":", "-"]
@@ -82,7 +86,8 @@ for j, dataset in enumerate(datasets):
 
     for i in range(columns):
         if i > 0:  # skip sigma
-            plt.plot(cols[0], cols[i], label=f"C={labels[i]}%", lw=3, marker=markers[i],
+            plt.plot(cols[0], cols[i], label=f"C={labels[i]}%", lw=3,
+                     marker=markers[i],
                      color=colors[i], linestyle=linestyles[i])
 
     plt.grid()
@@ -100,4 +105,4 @@ for j, dataset in enumerate(datasets):
 # plt.imshow()
 plt.show(block=True)
 plt.interactive(False)
-fig.savefig(dir_path + "/" + "test-train.pdf", bbox_inches='tight')
+fig.savefig(dir_path + "/" + "test-train-font2.pdf", bbox_inches='tight')

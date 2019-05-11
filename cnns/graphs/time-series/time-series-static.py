@@ -1,10 +1,14 @@
 import matplotlib
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 # matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+print(matplotlib.get_backend())
+
 import csv
 import os
 
-print(matplotlib.get_backend())
+
 
 plt.interactive(True)
 # http://ksrowell.com/blog-visualizing-data/2012/02/02/optimal-colors-for-graphs/
@@ -62,21 +66,21 @@ print("col 1: ", cols[1])
 # blue main points
 # Accurayc of model at 99% energy preserved level against accuracy of model at 100% energy preserved level
 plt.plot(cols[0], cols[1],
-         label="Accuracy of the full-spectra model\n"
-               "vs. accuracy of band-limited\n"
-               "model 50% compression", lw=3,
+         label="Test accuracy (%) of the full-spectra\n"
+               "model vs. accuracy of band-limited\n"
+               "model with 50% compression", lw=3,
          color=get_color(MY_BLUE), linestyle="", marker="o", markersize=10)
 
 # red middle line
-plt.plot(cols[0], cols[2], label="+/- 0.00 (accuracy difference)", lw=3,
+plt.plot(cols[0], cols[2], label="+/- 0% (accuracy difference)", lw=3,
          color=get_color(MY_RED), linestyle="-")
 
 # green line
-plt.plot(cols[0], cols[3], label="+/- 0.05", lw=3, color=get_color(MY_GREEN),
+plt.plot(cols[0], cols[3], label="+/- 5%", lw=3, color=get_color(MY_GREEN),
          linestyle="-")
 
 # yellow line
-plt.plot(cols[0], cols[4], label="+/- 0.10", lw=3, color=get_color(MY_ORANGE),
+plt.plot(cols[0], cols[4], label="+/- 10%", lw=3, color=get_color(MY_ORANGE),
          linestyle=":")
 
 # 2nd yellow line
@@ -90,8 +94,8 @@ plt.grid()
 plt.legend(loc="upper left", ncol=1, frameon=False,
            prop={'size': 18}, bbox_to_anchor=(0.0, 1.025))
 plt.xlabel('Epoch')
-plt.xlabel('full-spectra model')
-plt.ylabel('band-limited model')
+plt.xlabel('Test accuracy (%) of full-spectra model')
+plt.ylabel('Test accuracy (%) of band-limited model')
 plt.xlim(60, 100)
 plt.ylim(60, 100)
 
@@ -101,4 +105,4 @@ plt.ylim(60, 100)
 # plt.imshow()
 plt.show(block=True)
 plt.interactive(False)
-fig.savefig(dir_path + "/" + "time-series3.pdf", bbox_inches='tight')
+fig.savefig(dir_path + "/" + "time-series-font.pdf", bbox_inches='tight')

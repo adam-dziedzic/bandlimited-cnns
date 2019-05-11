@@ -1,5 +1,7 @@
 import matplotlib
 # matplotlib.use('TkAgg')
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 import matplotlib.pyplot as plt
 import csv
 import os
@@ -87,4 +89,4 @@ for j, dataset in enumerate(datasets):
 # plt.imshow()
 plt.show(block=True)
 plt.interactive(False)
-fig.savefig(dir_path + "/" + "bandwidth-changes.pdf", bbox_inches='tight')
+fig.savefig(dir_path + "/" + "bandwidth-changes-font2.pdf", bbox_inches='tight')

@@ -1,6 +1,8 @@
 import datetime
 import random
 import matplotlib
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 import matplotlib.pyplot as plt
 
 font = {'size'   : 20}
@@ -29,4 +31,4 @@ plt.legend(loc='lower left')
 #plt.gcf().autofmt_xdate()
 #plt.xticks(rotation=0)
 plt.show()
-fig.savefig("compression-compare-cifar10.pdf", bbox_inches='tight')
+fig.savefig("compression-compare-cifar10-font.pdf", bbox_inches='tight')

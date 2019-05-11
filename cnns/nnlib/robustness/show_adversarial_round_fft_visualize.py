@@ -15,7 +15,8 @@ such transformations.
 # from cnns import matplotlib_backend
 # print("Using:", matplotlib_backend.backend)
 import matplotlib
-
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 import time
 import matplotlib.pyplot as plt
 import foolbox
@@ -469,7 +470,7 @@ def run(args):
         is_log = True
         onesided = False
         is_clipped = True
-        shift_DC_to_center = True
+        shift_DC_to_center = False
 
         original_xfft = to_xfft(original_image, fft_type=fft_type,
                                 args=args, channel=channel, is_log=is_log,

@@ -1,4 +1,6 @@
 import matplotlib
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 # matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import csv
@@ -78,5 +80,5 @@ plt.xlim(0, 2)
 # plt.imshow()
 plt.show(block=True)
 plt.interactive(False)
-fig.savefig(dir_path + "/" + "gaussian_noise_extended.pdf",
+fig.savefig(dir_path + "/" + "gaussian_noise_font.pdf",
             bbox_inches='tight')

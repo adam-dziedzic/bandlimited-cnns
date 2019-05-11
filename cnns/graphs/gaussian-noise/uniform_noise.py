@@ -4,6 +4,8 @@
 #  Written by Adam Dziedzic
 
 import matplotlib
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 # matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import csv
@@ -80,4 +82,4 @@ plt.xlim(0, 1)
 # plt.imshow()
 plt.show(block=True)
 plt.interactive(False)
-fig.savefig(dir_path + "/" + "uniform_noise.pdf", bbox_inches='tight')
+fig.savefig(dir_path + "/" + "uniform_noise-font.pdf", bbox_inches='tight')

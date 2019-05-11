@@ -1,4 +1,6 @@
 import matplotlib
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 import matplotlib.pyplot as plt
 import csv
 import os
@@ -71,5 +73,5 @@ for i, dataset in enumerate(datasets):
 # plt.gcf().autofmt_xdate()
 # plt.xticks(rotation=0)
 plt.show()
-fig.savefig(dir_path + "/" + "gpu_time_mem_alloc_accuracy.pdf",
+fig.savefig(dir_path + "/" + "gpu_time_mem_alloc_accuracy_font.pdf",
             bbox_inches='tight')
