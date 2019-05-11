@@ -6,6 +6,7 @@ from cnns.nnlib.pytorch_layers.conv_picker import Conv
 from cnns.nnlib.pytorch_layers.conv2D_fft import Conv2dfft
 from cnns.nnlib.pytorch_layers.round import Round
 from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBand2D
+from cnns.nnlib.pytorch_layers.fft_band_2D_complex_mask import FFTBand2DcomplexMask
 from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.general_utils import TensorType
 from cnns.nnlib.utils.general_utils import CompressType
@@ -167,7 +168,8 @@ class ResNet(nn.Module):
             self.rounder = lambda x: x
 
         if args.compress_rate > 0:
-            self.band = FFTBand2D(args=args)
+            # self.band = FFTBand2D(args=args)
+            self.band = FFTBand2DcomplexMask(args=args)
         else:
             # identity function
             self.band = lambda x: x
@@ -227,6 +229,8 @@ class ResNet(nn.Module):
             x = self.band(x)  # compression in the FFT domain
         elif self.args.attack_type == "round-only":
             x = self.rounder(x)  # round to nearest integers - feature squeezing
+        elif self.args.attack_type == "band-only":
+            x = self.band(x)
 
         x = self.conv1(x)
         x = self.bn1(x)

@@ -27,7 +27,7 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 # 2D
 # conv_type = ConvType.STANDARD2D
 conv_type = ConvType.FFT2D
-compress_rate = 0.0
+compress_rate = 5.0
 
 if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # dataset = "ucr"
@@ -75,7 +75,6 @@ else:
     next_power2 = True
     schedule_patience = 10
     schedule_factor = 0.1
-    epochs = 350
     optimizer_type = OptimizerType.MOMENTUM
     loss_type = LossType.CROSS_ENTROPY
     loss_reduction = LossReduction.ELEMENTWISE_MEAN

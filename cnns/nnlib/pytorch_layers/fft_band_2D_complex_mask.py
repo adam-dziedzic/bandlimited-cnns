@@ -3,6 +3,7 @@ from torch.nn import Module
 from cnns.nnlib.pytorch_layers.pytorch_utils import next_power2
 from torch.nn.functional import pad as torch_pad
 from cnns.nnlib.utils.complex_mask import get_disk_mask
+from cnns.nnlib.utils.complex_mask import get_hyper_mask
 
 
 class FFTBandFunctionComplexMask2D(torch.autograd.Function):
@@ -16,7 +17,7 @@ class FFTBandFunctionComplexMask2D(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, input, compress_rate, val=0, interpolate=None,
-                get_mask=get_disk_mask, onesided=True, is_next_power2=False):
+                get_mask=get_hyper_mask, onesided=True, is_next_power2=False):
         """
         In the forward pass we receive a Tensor containing the input
         and return a Tensor containing the output. ctx is a context
@@ -110,4 +111,11 @@ class FFTBand2DcomplexMask(Module):
         :param input: the input map (e.g., an image)
         :return: the result of 1D convolution
         """
-        return FFTBandFunctionComplexMask2D.apply(input, self.compress_rate)
+        return FFTBandFunctionComplexMask2D.apply(
+            input,
+            self.compress_rate,
+            0, # val
+            "exp", # interpolate
+            get_hyper_mask, # get_mask
+            True, # onesided
+            False)  # is nextPower2
