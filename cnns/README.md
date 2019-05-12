@@ -1,4 +1,3 @@
-## CNNs and time-series
+## Band limited CNNs for images and time-series
 
-This code is based on Stanford course on deep neural networks: [nnlib](http://nnlib.stanford.edu/)
-
+Author: Adam Dziedzic
