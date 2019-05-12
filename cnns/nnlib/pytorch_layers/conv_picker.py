@@ -127,4 +127,4 @@ class Conv(object):
                 preserve_energy=self.preserve_energy,
                 bias=self.is_bias)
         else:
-            raise CONV_TYPE_ERROR
+            raise Exception(CONV_TYPE_ERROR)

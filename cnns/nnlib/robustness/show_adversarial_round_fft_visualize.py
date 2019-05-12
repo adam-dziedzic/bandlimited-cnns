@@ -569,14 +569,14 @@ if __name__ == "__main__":
     args = get_args()
     # args.diff_type = "source"  # "source" or "fft"
     args.diff_type = "fft"
-    # args.dataset = "cifar10"  # "cifar10" or "imagenet"
-    args.dataset = "imagenet"
+    args.dataset = "cifar10"  # "cifar10" or "imagenet"
+    # args.dataset = "imagenet"
     # args.dataset = "mnist"
     # args.index = 13  # index of the image (out of 20) to be used
-    args.compress_rate = 0
-    args.compress_fft_layer = 50
-    args.is_fft_compression = True
-    args.interpolate = "const"
+    args.compress_rate = 5
+    args.compress_fft_layer = 0
+    args.is_fft_compression = False
+    args.interpolate = "exp"
     args.use_foolbox_data = True
     args.index = 0
 

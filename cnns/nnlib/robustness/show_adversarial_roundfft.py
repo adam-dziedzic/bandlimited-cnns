@@ -13,6 +13,7 @@ such transformations.
 
 # Use the import below to run the code remotely on a server.
 from cnns import matplotlib_backend
+
 print("Using:", matplotlib_backend.backend)
 
 import time
@@ -59,6 +60,7 @@ def softmax(x):
     s = np.exp(x - np.max(x))
     s /= np.sum(s)
     return s
+
 
 # def softmax(x):
 #     s = torch.nn.functional.softmax(torch.tensor(x, dtype=torch.float))
@@ -135,11 +137,14 @@ def get_fmodel(args):
         args.cmap = None
         args.init_y, args.init_x = 32, 32
         args.num_classes = 10
-        args.values_per_channel = 8
+        args.values_per_channel = 0
         # args.model_path = "2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model"
-        args.model_path = "saved_model_2019-04-13-06-54-15-810999-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-91.64-channel-vals-8.model"
-        args.compress_rate = 0
+        # args.model_path = "saved_model_2019-04-13-06-54-15-810999-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-91.64-channel-vals-8.model"
+        args.compress_rate = 5
         args.compress_rates = [args.compress_rate]
+        if args.model_path == "no_model":
+            # args.model_path = "saved-model-2019-05-11-22-20-59-242197-dataset-cifar10-preserve-energy-100-compress-rate-5.0-test-accuracy-93.43-channel-vals-0.model"
+            args.model_path = "saved_model2019-05-11-18-54-18-392325-dataset-cifar10-preserve-energy-100.0-compress-rate-5.0-test-accuracy-91.21-channel-vals-8.model"
         args.in_channels = 3
         min = cifar_min
         max = cifar_max
@@ -390,7 +395,11 @@ def run(args):
             original_image=original_image,
             title="Original")
 
+
         # The rounded image.
+        rounded_label = "N/A"
+        rounded_confidence = "N/A"
+        rounded_L2_distance = "N/A"
         if args.values_per_channel > 0:
             rounder = DenormRoundNorm(
                 mean_array=args.mean_array, std_array=args.std_array,
@@ -409,6 +418,9 @@ def run(args):
             print("show diff between input image and rounded: ",
                   np.sum(np.abs(rounded_image - original_image)))
 
+        fft_label = "N/A"
+        fft_confidence = "N/A"
+        fft_L2_distance = "N/A"
         if args.is_fft_compression:
             compress_image = attack.fft_complex_compression(rounded_image)
             title = "FFT Compressed: " + str(
@@ -570,12 +582,14 @@ def run(args):
                 image_fft = print_fft(image=original_image, channel=channel,
                                       title="Original")
 
-                rounded_fft = print_fft(image=rounded_image, channel=channel,
-                                        title="Rounded")
+                if args.values_per_channel > 0:
+                    rounded_fft = print_fft(image=rounded_image, channel=channel,
+                                            title="Rounded")
 
-                compressed_fft = print_fft(image=compress_image,
-                                           channel=channel,
-                                           title="FFT compressed")
+                if args.is_fft_compression:
+                    compressed_fft = print_fft(image=compress_image,
+                                               channel=channel,
+                                               title="FFT compressed")
 
                 if adversarial is None:
                     args.plot_index += 1  # do not show the image for None
@@ -642,15 +656,15 @@ if __name__ == "__main__":
     args.save_out = False
     # args.diff_type = "source"  # "source" or "fft"
     args.diff_type = "fft"
-    # args.dataset = "cifar10"  # "cifar10" or "imagenet"
-    args.dataset = "imagenet"
+    args.dataset = "cifar10"  # "cifar10" or "imagenet"
+    # args.dataset = "imagenet"
     # args.dataset = "mnist"
     # args.index = 13  # index of the image (out of 20) to be used
-    args.compress_rate = 0
-    args.compress_fft_layer = 60
-    args.is_fft_compression = True
+    args.compress_rate = 5
+    args.compress_fft_layer = 0
+    args.is_fft_compression = False
     args.interpolate = "exp"
-    args.use_foolbox_data = False
+    args.use_foolbox_data = True
 
     if torch.cuda.is_available() and args.use_cuda:
         print("cuda is available")
@@ -694,15 +708,17 @@ if __name__ == "__main__":
     #     for values_per_channel in [2**x for x in range(1,8,1)]:
     #         args.values_per_channel = values_per_channel
     #         run(args)
-    for interpolate in ["exp", "log", "const", "linear"]:
+    # for interpolate in ["exp", "log", "const", "linear"]:
+    for interpolate in ["exp"]:
         args.interpolate = interpolate
         result_file(args)
-        for values_per_channel in [8]:
+        for values_per_channel in [0]:
             args.values_per_channel = values_per_channel
             # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
             # print("indexes: ", indexes)
-            for index in range(args.start_epoch, 50000):
+            for index in range(args.start_epoch, 20):
                 args.index = index
+                print(args.get_str())
                 start = time.time()
                 run(args)
                 print("single run elapsed time: ", time.time() - start)

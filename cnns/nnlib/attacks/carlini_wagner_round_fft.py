@@ -15,6 +15,8 @@ from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBandFunction2D
 from foolbox.criteria import Misclassification
 from foolbox.distances import MSE
 from cnns.nnlib.utils.complex_mask import get_disk_mask
+from cnns.nnlib.datasets.transformations.denorm_round_norm import \
+    DenormRoundNorm
 
 
 class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
@@ -48,6 +50,9 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             self.args = args
             self.std_array = args.std_array
             self.mean_array = args.mean_array
+            self.rounder = DenormRoundNorm(
+                mean_array=args.mean_array, std_array=args.std_array,
+                values_per_channel=args.values_per_channel)
 
     def fft_complex_compression(self, image, get_mask=get_disk_mask,
                                 is_clip=True, ctx=None, onesided=True):

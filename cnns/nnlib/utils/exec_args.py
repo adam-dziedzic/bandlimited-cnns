@@ -3,6 +3,7 @@ from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
 from cnns.nnlib.pytorch_architecture.densenet import densenet_cifar
 from cnns.nnlib.pytorch_architecture.fcnn import FCNNPytorch
 from cnns.nnlib.utils.general_utils import ConvType
+from cnns.nnlib.utils.general_utils import AttackType
 from cnns.nnlib.utils.general_utils import ConvExecType
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import OptimizerType
@@ -278,8 +279,9 @@ def get_args():
                         default=args.ucr_path,
                         help="The path to a UCR dataset.")
     parser.add_argument("--attack_type",
-                        default=args.attack_type,
-                        help="The type of the attack: band or full.")
+                        default=args.attack_type.name,
+                        help="The type of the attack: " + ",".join(
+                            AttackType.get_names()))
     parser.add_argument('--start_epsilon',
                         default=args.start_epsilon, type=int,
                         help="The start epsilon value for the attack.")

@@ -3,6 +3,7 @@ import torch
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.utils.general_utils import ConvType
+from cnns.nnlib.utils.general_utils import AttackType
 from cnns.nnlib.utils.general_utils import ConvExecType
 from cnns.nnlib.utils.general_utils import OptimizerType
 from cnns.nnlib.utils.general_utils import SchedulerType
@@ -287,7 +288,7 @@ class Arguments(object):
                  # ucr_path = "../sathya",
                  ucr_path="../../TimeSeriesDatasets",
                  start_epsilon=0,
-                 attack_type="full",  # band or full
+                 attack_type=AttackType.BAND_ONLY,
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
                  ):
@@ -429,6 +430,7 @@ class Arguments(object):
         self.tensor_type = TensorType[parsed_args.tensor_type]
         self.stride_type = StrideType[parsed_args.stride_type]
         self.precision_type = PrecisionType[parsed_args.precision_type]
+        self.attack_type = AttackType[parsed_args.attack_type]
 
         # Bools:
         self.is_debug = self.get_bool(parsed_args.is_debug)

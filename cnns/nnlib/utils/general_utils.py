@@ -123,6 +123,13 @@ class ConvType(EnumWithNames):
     AUTOGRAD2D = 12
 
 
+class AttackType(EnumWithNames):
+    NO_ATTACK = 1
+    ROUND_ONLY = 3
+    BAND_ONLY = 2
+    ROUND_BAND = 4
+
+
 class ConvExecType(EnumWithNames):
     SERIAL = 1
     BATCH = 2

@@ -8,6 +8,7 @@ from cnns.nnlib.pytorch_layers.round import Round
 from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBand2D
 from cnns.nnlib.pytorch_layers.fft_band_2D_complex_mask import FFTBand2DcomplexMask
 from cnns.nnlib.utils.general_utils import ConvType
+from cnns.nnlib.utils.general_utils import AttackType
 from cnns.nnlib.utils.general_utils import TensorType
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.arguments import Arguments
@@ -224,13 +225,17 @@ class ResNet(nn.Module):
     def forward(self, x):
         # x = self.rounder(x)
         # color depth reduction
-        if self.args.attack_type == "band+round":
+        if self.args.attack_type == AttackType.ROUND_BAND:
             x = self.rounder(x)  # round to nearest integers - feature squeezing
             x = self.band(x)  # compression in the FFT domain
-        elif self.args.attack_type == "round-only":
+        elif self.args.attack_type == AttackType.ROUND_ONLY:
             x = self.rounder(x)  # round to nearest integers - feature squeezing
-        elif self.args.attack_type == "band-only":
+        elif self.args.attack_type == AttackType.BAND_ONLY:
             x = self.band(x)
+        elif self.args.attack_type == AttackType.NO_ATTACK:
+            pass
+        else:
+            raise Exception("Unknown attack type: ", self.args.attack_type)
 
         x = self.conv1(x)
         x = self.bn1(x)
