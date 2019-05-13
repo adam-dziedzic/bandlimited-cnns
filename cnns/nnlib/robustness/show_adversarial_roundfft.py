@@ -32,6 +32,7 @@ from cnns.nnlib.datasets.imagenet.imagenet_from_class_idx_to_label import \
 from cnns.nnlib.datasets.cifar10_from_class_idx_to_label import \
     cifar10_from_class_idx_to_label
 from cnns.nnlib.utils.exec_args import get_args
+from cnns.nnlib.datasets.cifar import get_cifar
 # from scipy.special import softmax
 from cnns.nnlib.robustness.utils import load_model
 from cnns.nnlib.datasets.cifar import cifar_max, cifar_min
@@ -316,9 +317,11 @@ def run(args):
         print("max value in images pixels: ", np.max(images))
         images = images / 255
         print("max value in images after 255 division: ", np.max(images))
-    else:
+    elif args.dataset == "imagenet":
         train_loader, test_loader, train_dataset, test_dataset = load_imagenet(
             args)
+    elif args.dataset == "cifar10":
+        train_loader, test_loader, train_dataset, test_dataset = get_cifar(args, args.dataset)
 
     for attack in attacks:
         # get source image and label, args.idx - is the index of the image
@@ -716,7 +719,7 @@ if __name__ == "__main__":
             args.values_per_channel = values_per_channel
             # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
             # print("indexes: ", indexes)
-            for index in range(args.start_epoch, 50000):
+            for index in range(args.start_epoch, 10000):
                 args.index = index
                 print(args.get_str())
                 start = time.time()
