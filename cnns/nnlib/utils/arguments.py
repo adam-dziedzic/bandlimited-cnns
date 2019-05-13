@@ -73,7 +73,7 @@ else:
     precision_type = PrecisionType.FP32
     conv_exec_type = ConvExecType.CUDA
     visualize = False  # test model for different compress rates
-    next_power2 = True
+    next_power2 = False
     schedule_patience = 10
     schedule_factor = 0.1
     optimizer_type = OptimizerType.MOMENTUM

@@ -137,11 +137,11 @@ def get_fmodel(args):
         args.cmap = None
         args.init_y, args.init_x = 32, 32
         args.num_classes = 10
-        args.values_per_channel = 0
+        # args.values_per_channel = 0
         # args.model_path = "2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model"
         # args.model_path = "saved_model_2019-04-13-06-54-15-810999-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-91.64-channel-vals-8.model"
-        args.compress_rate = 5
-        args.compress_rates = [args.compress_rate]
+        # args.compress_rate = 5
+        # args.compress_rates = [args.compress_rate]
         if args.model_path == "no_model":
             # args.model_path = "saved-model-2019-05-11-22-20-59-242197-dataset-cifar10-preserve-energy-100-compress-rate-5.0-test-accuracy-93.43-channel-vals-0.model"
             args.model_path = "saved_model2019-05-11-18-54-18-392325-dataset-cifar10-preserve-energy-100.0-compress-rate-5.0-test-accuracy-91.21-channel-vals-8.model"
@@ -664,7 +664,7 @@ if __name__ == "__main__":
     args.compress_fft_layer = 0
     args.is_fft_compression = False
     args.interpolate = "exp"
-    args.use_foolbox_data = True
+    args.use_foolbox_data = False
 
     if torch.cuda.is_available() and args.use_cuda:
         print("cuda is available")
@@ -716,7 +716,7 @@ if __name__ == "__main__":
             args.values_per_channel = values_per_channel
             # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
             # print("indexes: ", indexes)
-            for index in range(args.start_epoch, 20):
+            for index in range(args.start_epoch, 50000):
                 args.index = index
                 print(args.get_str())
                 start = time.time()
