@@ -712,18 +712,30 @@ if __name__ == "__main__":
     #         args.values_per_channel = values_per_channel
     #         run(args)
     # for interpolate in ["exp", "log", "const", "linear"]:
+    # for interpolate in ["exp"]:
+    #     args.interpolate = interpolate
+    #     result_file(args)
+    #     for values_per_channel in [0]:
+    #         args.values_per_channel = values_per_channel
+    #         # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
+    #         # print("indexes: ", indexes)
+    #         for index in range(args.start_epoch, 10000):
+    #             args.index = index
+    #             print(args.get_str())
+    #             start = time.time()
+    #             run(args)
+    #             print("single run elapsed time: ", time.time() - start)
+
     for interpolate in ["exp"]:
         args.interpolate = interpolate
         result_file(args)
-        for values_per_channel in [0]:
-            args.values_per_channel = values_per_channel
-            # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
-            # print("indexes: ", indexes)
-            for index in range(args.start_epoch, 10000):
-                args.index = index
-                print(args.get_str())
-                start = time.time()
-                run(args)
-                print("single run elapsed time: ", time.time() - start)
+        # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
+        # print("indexes: ", indexes)
+        for index in range(args.start_epoch, 10000):
+            args.index = index
+            print(args.get_str())
+            start = time.time()
+            run(args)
+            print("single run elapsed time: ", time.time() - start)
 
     print("total elapsed time: ", time.time() - start_time)
