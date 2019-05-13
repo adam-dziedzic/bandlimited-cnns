@@ -607,7 +607,7 @@ def run(args):
     file_name = "images/" + attack.name() + "-round-fft-" + args.dataset + "-channel-" + str(
         channels_nr) + "-" + "val-per-channel-" + str(
         args.values_per_channel) + "-" + "img-idx-" + str(
-        args.index) + "-" + get_log_time()
+        args.index) + "-model-50-band-only-" + get_log_time()
     print("file name: ", file_name)
     plt.savefig(fname=file_name + "." + format, format=format)
     # plt.show(block=True)
