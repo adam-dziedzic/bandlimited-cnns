@@ -292,10 +292,12 @@ def run(args):
     # fft_types = ["magnitude", "phase"]
     # fft_types = []
     channels = [x for x in range(channels_nr)]
+    attack_round_fft = CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
+                                                     get_mask=get_hyper_mask)
     attacks = [
-        CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
-                                      get_mask=get_hyper_mask)
-        # foolbox.attacks.CarliniWagnerL2Attack(fmodel),
+        # CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
+        #                               get_mask=get_hyper_mask),
+        foolbox.attacks.CarliniWagnerL2Attack(fmodel),
         # foolbox.attacks.FGSM(fmodel),
         # foolbox.attacks.AdditiveUniformNoiseAttack(fmodel)
     ]
@@ -439,7 +441,8 @@ def run(args):
         fft_confidence = "N/A"
         fft_L2_distance = "N/A"
         if args.compress_fft_layer > 0:
-            compress_image = attack.fft_complex_compression(image=image)
+            compress_image = attack_round_fft.fft_complex_compression(
+                image=image)
             image = compress_image
             title = "FFT Compressed: " + str(
                 args.compress_fft_layer) + "%" + "\n"
@@ -684,11 +687,12 @@ if __name__ == "__main__":
     # args.dataset = "mnist"
     # args.index = 13  # index of the image (out of 20) to be used
     # args.compress_rate = 0
-    args.compress_fft_layer = 0
     args.interpolate = "exp"
     args.use_foolbox_data = True
-    args.values_per_channel = 0
     args.is_adv_attack = True
+
+    # args.compress_fft_layer = 5
+    # args.values_per_channel = 8
 
     if torch.cuda.is_available() and args.use_cuda:
         print("cuda is available")
