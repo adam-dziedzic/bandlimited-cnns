@@ -15,6 +15,7 @@ from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBandFunction2D
 from foolbox.criteria import Misclassification
 from foolbox.distances import MSE
 from cnns.nnlib.utils.complex_mask import get_disk_mask
+from cnns.nnlib.utils.complex_mask import get_hyper_mask
 from cnns.nnlib.datasets.transformations.denorm_round_norm import \
     DenormRoundNorm
 
@@ -36,7 +37,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
     """
 
     def __init__(self, args, model=None, criterion=Misclassification(),
-                 distance=MSE, threshold=None):
+                 distance=MSE, threshold=None, get_mask=get_hyper_mask):
         super(CarliniWagnerL2AttackRoundFFT, self).__init__(
             model=model, criterion=criterion, distance=distance,
             threshold=threshold)
@@ -53,15 +54,16 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             self.rounder = DenormRoundNorm(
                 mean_array=args.mean_array, std_array=args.std_array,
                 values_per_channel=args.values_per_channel)
+            self.get_mask = get_mask
 
-    def fft_complex_compression(self, image, get_mask=get_disk_mask,
-                                is_clip=True, ctx=None, onesided=True):
+    def fft_complex_compression(self, image, is_clip=True, ctx=None,
+                                onesided=True):
         fft_image = FFTBandFunctionComplexMask2D.forward(
             ctx=ctx,
             input=torch.from_numpy(image).unsqueeze(0),
             compress_rate=self.args.compress_fft_layer, val=0,
             interpolate=self.args.interpolate,
-            get_mask=get_mask,
+            get_mask=self.get_mask,
             onesided=onesided).numpy().squeeze()
         if is_clip:
             return np.clip(fft_image, a_min=self.args.min, a_max=self.args.max)

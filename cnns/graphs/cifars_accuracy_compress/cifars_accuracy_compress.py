@@ -58,10 +58,10 @@ energy_x = (
 energy_y = (
 93.69, 93.69, 93.12, 93.01, 92.39, 91.32, 88.99, 87.97, 83.84, 69.47)
 
-plt.plot(static_x, static_y, label='static compression', lw=2, marker='o',
+plt.plot(static_x, static_y, label='fixed compression', lw=2, marker='o',
          color=get_color(MY_BLUE))
-plt.plot(mix_x, mix_y, label='energy first + static rest', lw=2, marker='v',
-         color=get_color(MY_ORANGE))
+# plt.plot(mix_x, mix_y, label='energy first + static rest', lw=2, marker='v',
+#          color=get_color(MY_ORANGE))
 plt.plot(energy_x, energy_y, label='energy based compression', lw=2, marker='s',
          color=get_color(MY_GREEN))
 
@@ -82,7 +82,7 @@ static_y = (
 energy_x = (0, 15.64265181, 29.18570211, 48.48697539, 77.35448364)
 energy_y = (75.3, 74.9, 73.45, 70.37, 62.4)
 
-plt.plot(static_x, static_y, label='static compression', lw=2, marker='o',
+plt.plot(static_x, static_y, label='fixed compression', lw=2, marker='o',
          color=get_color(MY_BLUE))
 plt.plot(energy_x, energy_y, label='energy based compression', lw=2, marker='s',
          color=get_color(MY_GREEN))
@@ -94,5 +94,5 @@ plt.grid()
 plt.legend(loc=legend_position, frameon=frameon, prop={'size': legend_size}, bbox_to_anchor=bbox_to_anchor)
 
 plt.show()
-fig.savefig(dir_path + "/" + "cifars-accuracy-compress-font2.pdf",
+fig.savefig(dir_path + "/" + "cifars-accuracy-compress-font4.pdf",
             bbox_inches='tight')

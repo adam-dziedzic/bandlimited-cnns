@@ -184,10 +184,10 @@ class Conv2D_fft(Conv2D):
                                              regularizer=self.kernel_regularizer,
                                              constraint=self.kernel_constraint)
         if self.use_bias:
-            self.bias = self.add_weight(value=bias,
-                                        name='bias',
-                                        regularizer=self.bias_regularizer,
-                                        constraint=self.bias_constraint)
+            self.bias = self.add_weight_custom(value=bias,
+                                               name='bias',
+                                               regularizer=self.bias_regularizer,
+                                               constraint=self.bias_constraint)
         else:
             self.bias = None
         # Set input spec.

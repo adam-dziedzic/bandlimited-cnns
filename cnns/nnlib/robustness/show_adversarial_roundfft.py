@@ -55,6 +55,9 @@ from cnns.nnlib.datasets.transformations.denormalize import Denormalize
 from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.datasets.transformations.denorm_distance import DenormDistance
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
+from cnns.nnlib.utils.complex_mask import get_disk_mask
+from cnns.nnlib.utils.complex_mask import get_hyper_mask
+from cnns.nnlib.utils.general_utils import AttackType
 
 
 def softmax(x):
@@ -63,9 +66,9 @@ def softmax(x):
     return s
 
 
-# def softmax(x):
-#     s = torch.nn.functional.softmax(torch.tensor(x, dtype=torch.float))
-#     return s.numpy()
+def softmax_from_torch(x):
+    s = torch.nn.functional.softmax(torch.tensor(x, dtype=torch.float))
+    return s.numpy()
 
 
 def to_fft(x, fft_type, is_log=True):
@@ -139,13 +142,16 @@ def get_fmodel(args):
         args.init_y, args.init_x = 32, 32
         args.num_classes = 10
         # args.values_per_channel = 0
+        args.model_path = "saved_model_2019-04-08-19-41-48-571492-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.5.model"
         # args.model_path = "2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model"
         # args.model_path = "saved_model_2019-04-13-06-54-15-810999-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-91.64-channel-vals-8.model"
         # args.compress_rate = 5
         # args.compress_rates = [args.compress_rate]
         if args.model_path == "no_model":
             # args.model_path = "saved-model-2019-05-11-22-20-59-242197-dataset-cifar10-preserve-energy-100-compress-rate-5.0-test-accuracy-93.43-channel-vals-0.model"
-            args.model_path = "saved_model2019-05-11-18-54-18-392325-dataset-cifar10-preserve-energy-100.0-compress-rate-5.0-test-accuracy-91.21-channel-vals-8.model"
+            args.attack_type = AttackType.BAND_ONLY
+            # args.model_path = "saved_model_2019-04-13-10-25-49-315784-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.08-channel-vals-32.model"
+            # args.model_path = "saved_model2019-05-11-18-54-18-392325-dataset-cifar10-preserve-energy-100.0-compress-rate-5.0-test-accuracy-91.21-channel-vals-8.model"
         args.in_channels = 3
         min = cifar_min
         max = cifar_max
@@ -286,18 +292,23 @@ def run(args):
     # fft_types = []
     channels = [x for x in range(channels_nr)]
     attacks = [
-        CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args)
+        CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
+                                      get_mask=get_hyper_mask)
         # foolbox.attacks.CarliniWagnerL2Attack(fmodel),
         # foolbox.attacks.FGSM(fmodel),
         # foolbox.attacks.AdditiveUniformNoiseAttack(fmodel)
     ]
     # 1 is for the first row of images.
     rows = len(attacks) * (1 + len(fft_types) * len(channels))
-    cols = 3
+    cols = 1  # print at least the original image
     if args.values_per_channel > 0:
         cols += 1
+    if args.is_fft_compression:
+        cols += 1
+    if args.is_adv_attack:
+        cols += 1
 
-    fig = plt.figure(figsize=(30, rows * 10))
+    fig = plt.figure(figsize=(cols * 10, rows * 10))
 
     # index for each subplot
     args.plot_index = 0
@@ -321,7 +332,8 @@ def run(args):
         train_loader, test_loader, train_dataset, test_dataset = load_imagenet(
             args)
     elif args.dataset == "cifar10":
-        train_loader, test_loader, train_dataset, test_dataset = get_cifar(args, args.dataset)
+        train_loader, test_loader, train_dataset, test_dataset = get_cifar(args,
+                                                                           args.dataset)
 
     for attack in attacks:
         # get source image and label, args.idx - is the index of the image
@@ -367,7 +379,7 @@ def run(args):
             confidence_str = str(np.around(confidence, decimals=decimals))
             title_str += "confidence: " + confidence_str + "\n"
             L2_distance = meter.measure(original_image, image)
-            if image != original_label:
+            if id(image) != id(original_image):
                 title_str += "L2 distance: " + str(L2_distance) + "\n"
             ylabel_text = "spatial domain"
             image_show = denormalizer.denormalize(image)
@@ -398,7 +410,7 @@ def run(args):
             original_image=original_image,
             title="Original")
 
-
+        image = original_image
         # The rounded image.
         rounded_label = "N/A"
         rounded_confidence = "N/A"
@@ -408,6 +420,7 @@ def run(args):
                 mean_array=args.mean_array, std_array=args.std_array,
                 values_per_channel=args.values_per_channel)
             rounded_image = rounder.round(original_image)
+            image = rounded_image
             # rounder = RoundingTransformation(
             #     values_per_channel=args.values_per_channel,
             #     rounder=np.around)
@@ -425,7 +438,8 @@ def run(args):
         fft_confidence = "N/A"
         fft_L2_distance = "N/A"
         if args.is_fft_compression:
-            compress_image = attack.fft_complex_compression(rounded_image)
+            compress_image = attack.fft_complex_compression(image=image)
+            image = compress_image
             title = "FFT Compressed: " + str(
                 args.compress_fft_layer) + "%" + "\n"
             if args.interpolate == None:
@@ -438,15 +452,19 @@ def run(args):
 
         # from_file = False
         file_name = args.dataset + "-roundedfft" + "-vals-per-channel-" + str(
-            args.values_per_channel) + "-img-idx-" + str(args.index)
+            args.values_per_channel) + "-img-idx-" + str(
+            args.index) + "-" + get_log_time()
         full_name = file_name + ".npy"
         adversarial_timing = "N/A"
-        if os.path.exists(full_name):
-            adversarial = np.load(file=full_name)
-        else:
-            start_adv = time.time()
-            adversarial = attack(original_image, args.original_class_id)
-            adversarial_timing = time.time() - start_adv
+        adversarial = None
+
+        if args.is_adv_attack:
+            if os.path.exists(full_name):
+                adversarial = np.load(file=full_name)
+            else:
+                start_adv = time.time()
+                adversarial = attack(original_image, args.original_class_id)
+                adversarial_timing = time.time() - start_adv
 
         if adversarial is None:
             # If the attack fails, adversarial will be None and a warning will
@@ -460,7 +478,7 @@ def run(args):
             adversarial_confidence = "N/A"
             adversarial_L2_distance = "N/A"
             adversarial_timing = "N/A"
-            args.plot_index += 1  # do not show the image for None
+            # args.plot_index += 1  # do not show the image for None
         else:
             np.save(file=file_name, arr=adversarial)
             # adversarial = rounder.round(adversarial)
@@ -586,7 +604,8 @@ def run(args):
                                       title="Original")
 
                 if args.values_per_channel > 0:
-                    rounded_fft = print_fft(image=rounded_image, channel=channel,
+                    rounded_fft = print_fft(image=rounded_image,
+                                            channel=channel,
                                             title="Rounded")
 
                 if args.is_fft_compression:
@@ -594,20 +613,19 @@ def run(args):
                                                channel=channel,
                                                title="FFT compressed")
 
-                if adversarial is None:
-                    args.plot_index += 1  # do not show the image for None
-                else:
+                if adversarial is not None:
                     adversarial_fft = print_fft(image=adversarial,
                                                 channel=channel,
                                                 title="Adversarial")
 
         plt.subplots_adjust(hspace=0.6)
 
-    format = 'png'  # "pdf" or "png"
-    file_name = "images/" + attack.name() + "-round-fft-" + args.dataset + "-channel-" + str(
+    format = 'png'  # "pdf" or "png"file_name
+    file_name = "images/" + attack.name() + "-round-fft-" + str(
+        args.compress_fft_layer) + "-" + args.dataset + "-channel-" + str(
         channels_nr) + "-" + "val-per-channel-" + str(
         args.values_per_channel) + "-" + "img-idx-" + str(
-        args.index) + "-model-50-band-only-" + get_log_time()
+        args.index)  + "-" + get_log_time()
     print("file name: ", file_name)
     plt.savefig(fname=file_name + "." + format, format=format)
     # plt.show(block=True)
@@ -633,7 +651,7 @@ def result_file(args):
     args.file_name_labels = args.interpolate + "-" + get_log_time() + "-labels.txt"
     with open(args.file_name_labels, "a") as f:
         f.write(";".join(["index",
-                          "ImageNet original label",
+                          args.dataset + " original label",
                           "full model label",
                           "rounded label",
                           "fft compressed label",
@@ -663,11 +681,13 @@ if __name__ == "__main__":
     # args.dataset = "imagenet"
     # args.dataset = "mnist"
     # args.index = 13  # index of the image (out of 20) to be used
-    args.compress_rate = 5
-    args.compress_fft_layer = 0
-    args.is_fft_compression = False
+    # args.compress_rate = 0
+    args.compress_fft_layer = 5
+    args.is_fft_compression = True
     args.interpolate = "exp"
-    args.use_foolbox_data = False
+    args.use_foolbox_data = True
+    args.values_per_channel = 8
+    args.is_adv_attack = True
 
     if torch.cuda.is_available() and args.use_cuda:
         print("cuda is available")
@@ -726,14 +746,15 @@ if __name__ == "__main__":
     #             run(args)
     #             print("single run elapsed time: ", time.time() - start)
 
+    print(args.get_str())
     for interpolate in ["exp"]:
         args.interpolate = interpolate
         result_file(args)
         # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
         # print("indexes: ", indexes)
-        for index in range(args.start_epoch, 10000):
+        for index in range(args.start_epoch, 20):
             args.index = index
-            print(args.get_str())
+            print("image index: ", index)
             start = time.time()
             run(args)
             print("single run elapsed time: ", time.time() - start)

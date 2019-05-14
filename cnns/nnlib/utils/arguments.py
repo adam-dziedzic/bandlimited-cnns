@@ -28,7 +28,7 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 # 2D
 conv_type = ConvType.STANDARD2D
 # conv_type = ConvType.FFT2D
-compress_rate = 5.0
+compress_rate = 0.0
 
 if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # dataset = "ucr"
@@ -288,7 +288,8 @@ class Arguments(object):
                  # ucr_path = "../sathya",
                  ucr_path="../../TimeSeriesDatasets",
                  start_epsilon=0,
-                 attack_type=AttackType.BAND_ONLY,
+                 # attack_type=AttackType.BAND_ONLY,
+                 attack_type=AttackType.NO_ATTACK,
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
                  ):
@@ -468,7 +469,7 @@ class Arguments(object):
         args_dict = self.__dict__
         args_str = " ".join(
             ["--" + str(key) + "=" + str(value) for key, value in
-             args_dict.items()])
+             sorted(args_dict.items())])
         return args_str
 
     def from_bool_arg(self, arg):

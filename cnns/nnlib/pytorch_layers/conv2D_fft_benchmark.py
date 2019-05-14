@@ -232,6 +232,11 @@ class TestBenchmarkConv2d(unittest.TestCase):
         self.logger = get_logger(name=__name__)
         self.logger.setLevel(logging.DEBUG)
         self.logger.info("Set up test")
+        self.dtype = torch.float
+        if torch.cuda.is_available():
+            self.device = torch.device("cuda")
+        else:
+            self.device = torch.device("cpu")
 
     def test_forward_correctness(self):
         dtype = torch.float
@@ -854,3 +859,38 @@ class TestBenchmarkConv2d(unittest.TestCase):
         expect = expect.cpu().numpy()
         out = out.cpu().numpy()
         np.testing.assert_array_almost_equal(expect, out, decimal=5)
+
+    def test_tensor_size_for_fft(self):
+        print("size, timing (sec)")
+        repetitions = 100
+        last_size = 100
+        start_total = time.time()
+
+        # warm-up
+        size = 10
+        input = torch.randn((32, size, size, 64), dtype=self.dtype,
+                            device=self.device)
+        for rep in range(repetitions*3):
+            xfft = torch.rfft(input,
+                              signal_ndim=Conv2dfftFunction.signal_ndim,
+                              onesided=True)
+            x = torch.irfft(xfft, signal_ndim=Conv2dfftFunction.signal_ndim,
+                            onesided=True)
+
+        for size in range(1, last_size + 1):
+            input = torch.randn((32, size, size, 3), dtype=self.dtype,
+                                device=self.device)
+            start = time.time()
+            for rep in range(repetitions):
+                xfft = torch.rfft(input,
+                                  signal_ndim=Conv2dfftFunction.signal_ndim,
+                                  onesided=True)
+                x = torch.irfft(xfft, signal_ndim=Conv2dfftFunction.signal_ndim,
+                                onesided=True)
+            elapsed_time = time.time() - start
+            print(str(size) + "," + str(elapsed_time))
+        print("total time: ", time.time() - start_total)
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -50,10 +50,12 @@ class TestConv2D_fft(unittest.TestCase):
         self.padding = 'valid'
         self.data_format = K.normalize_data_format(None)
         self.dilation_rate = (1, 1)
+        self.dtype = np.float32
 
     def testSimple(self):
+        tf.disable_eager_execution()
         inp = Input(shape=(1, 32, 32, 3))
-        conv2D_fft = Conv2D_fft(3, (2, 2))
+        conv2D_fft = Conv2D_fft(3, 3)
         out = conv2D_fft(inp)
         model = Model(inp, out)
         output = model.predict(np.random.rand(1, 32, 32, 3))
@@ -93,14 +95,16 @@ class TestConv2D_fft(unittest.TestCase):
 
     def test2(self):
         tf.enable_eager_execution()
-        input = np.array([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]])
-        kernel = np.array([[[[1.0, 2.0], [3.0, 2.0]]]])  # F, C, HH, WW
+        input = np.array([[[[1.0, 2.0, 3.0], [3.0, 4.0, 1.0], [1., 2., 1.]]]],
+                         dtype=self.dtype)
+        kernel = np.array([[[[1.0, 2.0], [3.0, 2.0]]]],
+                          dtype=self.dtype)  # F, C, HH, WW
 
         input = tf.convert_to_tensor(to_tf(input))
         # self.kernel_size + (input_dim, self.filters): HH, WW, C, F
         kernel = tf.convert_to_tensor(kernel.transpose(2, 3, 1, 0))
 
-        layer1 = Conv2D_fft(1, (2, 2))
+        layer1 = Conv2D_fft(1, (2, 2), use_bias=False)
         layer1.build_custom(input_shape=(1, 3, 3, 1), kernel=kernel)
 
         out1 = layer1.exec(x=input,
