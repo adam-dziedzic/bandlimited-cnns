@@ -100,8 +100,10 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                              ' with a model and a criterion or it'
                              ' needs to be called with an Adversarial'
                              ' instance.')
-        image = self.rounder.round(original_image)
-        if self.args.is_fft_compression:
+        image = original_image
+        if self.args.values_per_channel > 0:
+            image = self.rounder.round(image)
+        if self.args.compress_fft_layer > 0:
             image = self.fft_complex_compression(image)
         self.roundfft_adversarial = Adversarial(
             model=model, criterion=criterion, original_image=image,
@@ -116,15 +118,29 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
         """
         return self.roundfft_adversarial.image
 
+    def rounded_fft_predictions(self, adversarial, image_attack):
+        """
+        Check if the perturbed image is still adversarial after rounding and the
+        fft prediction.
+
+        :param image_attack: the perturbed image
+        :return: predictions, is_adv
+        """
+        if self.args.values_per_channel > 0:
+            image_attack = self.rounder.round(image_attack)
+        if self.args.compress_fft_layer > 0:
+            image_attack = self.fft_complex_compression(image_attack)
+        return adversarial.predictions(image_attack)
+
     def rounded_predictions(self, adversarial, image_attack):
         """
         Check if the perturbed image is still adversarial after rounding.
 
         :param image_attack: the perturbed image
-        :param values_per_channel: the values per channel for rounding
         :return: predictions, is_adv
         """
-        image_attack = self.rounder.round(image_attack)
+        if self.args.values_per_channel > 0:
+            image_attack = self.rounder.round(image_attack)
         return adversarial.predictions(image_attack)
 
     def attack(call_fn):
@@ -276,8 +292,10 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                 #     values_per_channel=values_per_channel)
                 # logits, is_adv = a.predictions(x)
 
-                x_prime = self.rounder.round(x)
-                if self.args.is_fft_compression:
+                x_prime = x
+                if self.args.values_per_channel > 0:
+                    x_prime = self.rounder.round(x_prime)
+                if self.args.compress_fft_layer > 0:
                     x_prime = self.fft_complex_compression(x_prime)
 
                 # print("diff between input image and rounded: ",
