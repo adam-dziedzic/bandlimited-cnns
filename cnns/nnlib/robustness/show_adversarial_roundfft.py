@@ -304,7 +304,7 @@ def run(args):
     cols = 1  # print at least the original image
     if args.values_per_channel > 0:
         cols += 1
-    if args.is_fft_compression:
+    if args.compress_fft_layer > 0:
         cols += 1
     if args.is_adv_attack:
         cols += 1
@@ -438,7 +438,7 @@ def run(args):
         fft_label = "N/A"
         fft_confidence = "N/A"
         fft_L2_distance = "N/A"
-        if args.is_fft_compression:
+        if args.compress_fft_layer > 0:
             compress_image = attack.fft_complex_compression(image=image)
             image = compress_image
             title = "FFT Compressed: " + str(
@@ -609,7 +609,7 @@ def run(args):
                                             channel=channel,
                                             title="Rounded")
 
-                if args.is_fft_compression:
+                if args.compress_fft_layer > 0:
                     compressed_fft = print_fft(image=compress_image,
                                                channel=channel,
                                                title="FFT compressed")
@@ -651,6 +651,7 @@ def index_ranges(
 def result_file(args):
     args.file_name_labels = args.interpolate + "-" + get_log_time() + "-labels.txt"
     with open(args.file_name_labels, "a") as f:
+        f.write(args.get_str() + "\n\n")
         f.write(";".join(["index",
                           args.dataset + " original label",
                           "full model label",
@@ -684,7 +685,6 @@ if __name__ == "__main__":
     # args.index = 13  # index of the image (out of 20) to be used
     # args.compress_rate = 0
     args.compress_fft_layer = 0
-    args.is_fft_compression = False
     args.interpolate = "exp"
     args.use_foolbox_data = True
     args.values_per_channel = 0

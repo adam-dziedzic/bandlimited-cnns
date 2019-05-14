@@ -292,6 +292,7 @@ class Arguments(object):
                  attack_type=AttackType.NO_ATTACK,
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
+                 compress_fft_layer=0,
                  ):
         """
         The default parameters for the execution of the program.
@@ -407,6 +408,7 @@ class Arguments(object):
         self.attack_type = attack_type
         self.schedule_factor = schedule_factor
         self.schedule_patience = schedule_patience
+        self.compress_fft_layer = compress_fft_layer
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False

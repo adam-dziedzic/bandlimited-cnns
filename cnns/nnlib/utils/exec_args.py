@@ -291,6 +291,14 @@ def get_args():
     parser.add_argument('--schedule_patience',
                         default=args.schedule_patience, type=int,
                         help="Factor for scheduler.")
+    parser.add_argument("--compress_fft_layer", default=args.compress_fft_layer,
+                        type=float,
+                        help="Only for input images and compression of images"
+                             "solely (without any filter compression). "
+                             "Percentage of indexes (values) from the back of "
+                             "the frequency representation that should be "
+                             "discarded. This is the compression in the FFT "
+                             "domain.")
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)
