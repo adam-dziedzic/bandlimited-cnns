@@ -295,9 +295,9 @@ def run(args):
     attack_round_fft = CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
                                                      get_mask=get_hyper_mask)
     attacks = [
-        # CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
-        #                               get_mask=get_hyper_mask),
-        foolbox.attacks.CarliniWagnerL2Attack(fmodel),
+        CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
+                                      get_mask=get_hyper_mask),
+        # foolbox.attacks.CarliniWagnerL2Attack(fmodel),
         # foolbox.attacks.FGSM(fmodel),
         # foolbox.attacks.AdditiveUniformNoiseAttack(fmodel)
     ]
@@ -652,7 +652,10 @@ def index_ranges(
 
 
 def result_file(args):
-    args.file_name_labels = args.interpolate + "-" + get_log_time() + "-labels.txt"
+    args.file_name_labels = args.interpolate + "-round-fft-" + str(
+        args.compress_fft_layer) + "-" + args.dataset + "-" + "val-per-channel-" + str(
+        args.values_per_channel) + "-" + "img-idx-" + str(
+        args.index) + "-" + get_log_time()
     with open(args.file_name_labels, "a") as f:
         f.write(args.get_str() + "\n\n")
         f.write(";".join(["index",
