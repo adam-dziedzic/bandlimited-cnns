@@ -682,7 +682,7 @@ if __name__ == "__main__":
     args.save_out = False
     # args.diff_type = "source"  # "source" or "fft"
     args.diff_type = "fft"
-    args.dataset = "cifar10"  # "cifar10" or "imagenet"
+    # args.dataset = "cifar10"  # "cifar10" or "imagenet"
     # args.dataset = "imagenet"
     # args.dataset = "mnist"
     # args.index = 13  # index of the image (out of 20) to be used
