@@ -654,8 +654,7 @@ def index_ranges(
 def result_file(args):
     args.file_name_labels = args.interpolate + "-round-fft-" + str(
         args.compress_fft_layer) + "-" + args.dataset + "-" + "val-per-channel-" + str(
-        args.values_per_channel) + "-" + "img-idx-" + str(
-        args.index) + "-" + get_log_time()
+        args.values_per_channel) + "-" + get_log_time()
     with open(args.file_name_labels, "a") as f:
         f.write(args.get_str() + "\n\n")
         f.write(";".join(["index",
