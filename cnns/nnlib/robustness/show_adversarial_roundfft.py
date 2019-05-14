@@ -142,7 +142,8 @@ def get_fmodel(args):
         args.init_y, args.init_x = 32, 32
         args.num_classes = 10
         # args.values_per_channel = 0
-        args.model_path = "saved_model_2019-04-08-19-41-48-571492-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.5.model"
+        # args.model_path = "saved_model_2019-04-08-19-41-48-571492-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.5.model"
+        args.model_path = "saved_model_2019-04-08-16-51-16-845688-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.22-channel-vals-0.model"
         # args.model_path = "2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model"
         # args.model_path = "saved_model_2019-04-13-06-54-15-810999-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-91.64-channel-vals-8.model"
         # args.compress_rate = 5
@@ -682,11 +683,11 @@ if __name__ == "__main__":
     # args.dataset = "mnist"
     # args.index = 13  # index of the image (out of 20) to be used
     # args.compress_rate = 0
-    args.compress_fft_layer = 5
-    args.is_fft_compression = True
+    args.compress_fft_layer = 0
+    args.is_fft_compression = False
     args.interpolate = "exp"
     args.use_foolbox_data = True
-    args.values_per_channel = 8
+    args.values_per_channel = 0
     args.is_adv_attack = True
 
     if torch.cuda.is_available() and args.use_cuda:
