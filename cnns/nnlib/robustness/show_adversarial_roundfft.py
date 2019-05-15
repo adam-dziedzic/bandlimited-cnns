@@ -433,8 +433,8 @@ def run(args):
         # from_file = False
         file_name = args.dataset + "-roundedfft" + "-vals-per-channel-" + str(
             args.values_per_channel) + "-img-idx-" + str(
-            args.index) + "-" + "-compress-fft-layer-" + str(
-            args.compress_fft_layer) + get_log_time()
+            args.index) + "-graph-recover"
+        # "-compress-fft-layer-" + str(args.compress_fft_layer) +
         full_name = file_name + ".npy"
         adversarial_timing = "N/A"
         adversarial = None
@@ -660,6 +660,7 @@ def run(args):
     plt.savefig(fname=file_name + "." + format, format=format)
     # plt.show(block=True)
     plt.close()
+    return original_label, rounded_label, fft_label, adversarial_label
 
 
 def index_ranges(
@@ -780,16 +781,37 @@ if __name__ == "__main__":
     #             print("single run elapsed time: ", time.time() - start)
 
     print(args.get_str())
-    for interpolate in ["exp"]:
-        args.interpolate = interpolate
+    # for interpolate in ["exp"]:
+    #     args.interpolate = interpolate
+    out_fft_recovered_file = "out_fft_recovered" + str(args.dataset) + ".txt"
+    with open(out_fft_recovered_file, "a") as f:
+        f.write("compress_fft_layer,"
+                "% or recovered,"
+                "# of recovered\n")
+    args.interpolate = "exp"
+    # for compress_fft_layer in [1, 2, 3, 5, 10, 15, 25, 35, 50, 60, 75, 80, 90]:
+    for compress_fft_layer in range(1, 100):
+        print("compress_fft_layer: ", compress_fft_layer)
+        args.compress_fft_layer = compress_fft_layer
         result_file(args)
         # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
         # print("indexes: ", indexes)
+        count_recovered_fft = 0
+        total_count = 0
         for index in range(args.start_epoch, args.sample_count_limit):
+            total_count += 1
             args.index = index
             print("image index: ", index)
             start = time.time()
-            run(args)
+            original_label, rounded_label, fft_label, adversarial_label = run(
+                args)
+            if original_label == fft_label:
+                count_recovered_fft += 1
             print("single run elapsed time: ", time.time() - start)
+        with open(out_fft_recovered_file, "a") as f:
+            f.write(",".join([str(x) for x in
+                [compress_fft_layer,
+                 count_recovered_fft / total_count * 100,
+                 count_recovered_fft]]) + "\n")
 
     print("total elapsed time: ", time.time() - start_time)

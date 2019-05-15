@@ -26,8 +26,8 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 # conv_type = ConvType.STANDARD
 
 # 2D
-# conv_type = ConvType.STANDARD2D
-conv_type = ConvType.FFT2D
+conv_type = ConvType.STANDARD2D
+# conv_type = ConvType.FFT2D
 compress_rate = 0.0
 
 if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
@@ -57,9 +57,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     loss_reduction = LossReduction.ELEMENTWISE_MEAN
 else:
     # dataset = "mnist"
-    dataset = "cifar10"
+    # dataset = "cifar10"
     # dataset = "cifar100"
-    # dataset = "imagenet"
+    dataset = "imagenet"
 
     batch_size = 32
     test_batch_size = batch_size
@@ -96,12 +96,14 @@ else:
     elif dataset == "cifar100":
         network_type = NetworkType.DenseNetCifar
         weight_decay = 0.0001
+        model_path = "no_model"
     elif dataset == "imagenet":
         network_type = NetworkType.ResNet50
         batch_size = 32
         test_batch_size = batch_size
         learning_rate = 0.1
         weight_decay = 0.0001
+        model_path = "no_model"
     else:
         raise Exception(f"Unknown dataset name: {dataset}")
 
@@ -297,8 +299,9 @@ class Arguments(object):
                  attack_type=AttackType.NO_ATTACK,
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
-                 compress_fft_layer=50,
-                 attack_name="CarliniWagnerL2AttackRoundFFT",
+                 compress_fft_layer=0,
+                 # attack_name="CarliniWagnerL2AttackRoundFFT",
+                 attack_name="CarliniWagnerL2Attack",
                  ):
         """
         The default parameters for the execution of the program.

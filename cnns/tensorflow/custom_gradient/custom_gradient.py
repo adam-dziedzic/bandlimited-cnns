@@ -29,10 +29,10 @@ def log1pexp2(x):
 def example2():
     x = tf.constant(100.)
     y = log1pexp2(x)
-    dy = tf.gradients(y, x)
+    dy_dx = tf.gradients(y, x)
 
     with tf.Session() as sess:
-        print("output: ", sess.run(dy))
+        print("output: ", sess.run(dy_dx))
 
 
 if __name__ == "__main__":
