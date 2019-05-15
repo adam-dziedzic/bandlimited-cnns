@@ -11,7 +11,7 @@ import torch
 import torch.nn.functional as F
 from torch import tensor
 from heapq import heappush, heappop
-from cnns.nnlib.utils.general_utils import mem_log_file
+from cnns.nnlib.utils.general_utils import mem_log_file, next_power2
 import gc
 from cnns.nnlib.utils.log_utils import get_logger
 import logging
@@ -228,33 +228,6 @@ def flip(x, dim):
     indices[dim] = torch.arange(x.size(dim) - 1, -1, -1,
                                 dtype=torch.long, device=x.device)
     return x[tuple(indices)]
-
-
-def next_power2(x):
-    """
-    :param x: an integer number
-    :return: the power of 2 which is the larger than x but the
-    smallest possible
-
-    >>> result = next_power2(5)
-    >>> np.testing.assert_equal(result, 8)
-    >>> result = next_power2(1)
-    >>> np.testing.assert_equal(result, 1)
-    >>> result = next_power2(2)
-    >>> np.testing.assert_equal(result, 2)
-    >>> result = next_power2(7)
-    >>> np.testing.assert_equal(result, 8)
-    >>> result = next_power2(9)
-    >>> np.testing.assert_equal(result, 16)
-    >>> result = next_power2(16)
-    >>> np.testing.assert_equal(result, 16)
-    >>> result = next_power2(64)
-    >>> np.testing.assert_equal(result, 64)
-    >>> result = next_power2(63)
-    >>> np.testing.assert_equal(result, 64)
-    """
-    # return math.pow(2, math.ceil(math.log2(x)))
-    return int(2 ** np.ceil(np.log2(x)))
 
 
 # from memory_profiler import profile

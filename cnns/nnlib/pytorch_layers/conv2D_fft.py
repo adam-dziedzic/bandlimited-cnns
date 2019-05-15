@@ -20,7 +20,6 @@ from torch.nn import init
 from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_fft_signals2D
 from cnns.nnlib.pytorch_layers.pytorch_utils import from_tensor
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_pair
-from cnns.nnlib.pytorch_layers.pytorch_utils import next_power2
 from cnns.nnlib.pytorch_layers.pytorch_utils import preserve_energy2D_symmetry
 from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate
 from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul
@@ -38,11 +37,12 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import get_elem_size
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_tensors_elem_size
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_step_estimate
 from cnns.nnlib.pytorch_layers.pytorch_utils import restore_size_2D
-from cnns.nnlib.utils.general_utils import CompressType
+from cnns.nnlib.utils.general_utils import CompressType, next_power2
 from cnns.nnlib.utils.general_utils import ConvExecType
 from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.arguments import Arguments
 from cnns.nnlib.utils.general_utils import additional_log_file
+
 
 MAX_BLOCK_THREADS = 1024
 

@@ -25,7 +25,6 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_fft_signals
 from cnns.nnlib.pytorch_layers.pytorch_utils import fast_jmul
 from cnns.nnlib.pytorch_layers.pytorch_utils import from_tensor
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_full_energy_simple
-from cnns.nnlib.pytorch_layers.pytorch_utils import next_power2
 from cnns.nnlib.pytorch_layers.pytorch_utils import preserve_energy_index_back
 from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate
 from cnns.nnlib.pytorch_layers.pytorch_utils import pytorch_conjugate as conj
@@ -39,7 +38,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import cuda_mem_empty
 from cnns.nnlib.pytorch_layers.pytorch_utils import cuda_mem_show
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
 # from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul_cpp
-from cnns.nnlib.utils.general_utils import additional_log_file
+from cnns.nnlib.utils.general_utils import additional_log_file, next_power2
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import ConvExecType
 from cnns.nnlib.utils.general_utils import StrideType

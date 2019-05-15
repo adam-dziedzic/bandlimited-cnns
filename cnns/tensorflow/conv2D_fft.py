@@ -4,8 +4,7 @@ import keras.backend as K
 from keras.engine.base_layer import InputSpec
 from cnns.nnlib.utils.general_utils import ConvType
 from cnns.tensorflow.utils import tensor_shape
-from cnns.tensorflow.utils import to_tf
-from cnns.tensorflow.utils import from_tf
+from cnns.nnlib.utils.general_utils import next_power2
 import tensorflow as tf
 
 
@@ -114,7 +113,7 @@ class Conv2D_fft(Conv2D):
                  activity_regularizer=None,
                  kernel_constraint=None,
                  bias_constraint=None,
-                 version="standard",  # standard or fft
+                 args=None,  # the global arguments for the code
                  **kwargs):
         super(Conv2D_fft, self).__init__(
             filters=filters,
@@ -133,7 +132,7 @@ class Conv2D_fft(Conv2D):
             kernel_constraint=kernel_constraint,
             bias_constraint=bias_constraint,
             **kwargs)
-        self.version = version
+        self.args = args
 
     @interfaces.legacy_add_weight_support
     def add_weight_custom(self,
@@ -206,7 +205,7 @@ class Conv2D_fft(Conv2D):
         return config
 
     def exec(self, x, kernel, strides, padding, data_format, dilation_rate):
-        if self.version == "standard":
+        if self.args is None or self.args.conv_type == ConvType.STANDARD2D:
             outputs = K.conv2d(
                 x=x,
                 kernel=kernel,
@@ -214,39 +213,90 @@ class Conv2D_fft(Conv2D):
                 padding=padding,
                 data_format=data_format,
                 dilation_rate=dilation_rate)
-        elif self.version == ConvType.FFT2D:
+        elif self.args.conv_type == ConvType.FFT2D:
             # raise Exception("Not implemented yet")
-            self.conv_fft(x=x,
+            outputs = self.conv_fft(x=x,
                           kernel=kernel,
                           strides=strides,
                           padding=padding,
                           data_format=data_format,
                           dilation_rate=dilation_rate)
         else:
-            raise Exception(f"Unknown version: {self.version}")
+            raise Exception(f"Unknown convolution version: {self.version.name}")
         return outputs
+
+    def forward_padding(self, x, kernel, padding, H, W, HH, WW):
+        # Prepare for rfft2d.
+        # The 2 most inner dimensions are H, W (channels first).
+        # from N, H, W, C -> N, C, H, W
+        x = tf.transpose(x, perm=[0, 3, 1, 2])
+        # from H, W, C, F -> F, C, H, W
+        kernel = tf.transpose(kernel, perm=[3 ,2, 0, 1])
+
+        if padding == "same":
+            out_H = H
+            out_W = W
+        elif padding == "valid":
+            # The size of the output of the convolution.
+            out_H = H - HH + 1
+            out_W = W - WW + 1
+
+        HHH = max(out_H, HH)
+        WWW = max(out_W, WW)
+
+        # Padding of x to prevent the effects of wrapped-around filter/kernel
+        # data.
+        init_H_fft = H + (HHH - 1)
+        init_W_fft = W + (WWW - 1)
+
+        if self.args is None or self.args.next_power2:
+            init_H_fft = next_power2(init_H_fft)
+            init_W_fft = next_power2(init_W_fft)
+
+        x_pad_H = init_H_fft - H
+        x_pad_W = init_W_fft - W
+
+        y_pad_H = init_H_fft - HH
+        y_pad_W = init_W_fft - WW
+
+        x = tf.pad(x, [[0, 0], [0, 0], [0, x_pad_H], [0, x_pad_W]])
+        kernel = tf.pad(kernel, [[0, 0], [0, 0], [0, y_pad_H], [0, y_pad_W]])
+
+        return x, kernel, out_H, out_W, init_H_fft, init_W_fft
 
     def conv_fft(self, x, kernel, strides, padding, data_format, dilation_rate):
         N, H, W, C = tensor_shape(x)
-        F, HH, WW, CC = tensor_shape(kernel)
+        HH, WW, CC, F = tensor_shape(kernel)
         assert C == CC
         assert H >= HH
         assert W >= WW
-        # padding_H, padding_W = padding
-        pad_H = H - HH
-        pad_W = W - WW
+        assert strides == (1, 1)
+        assert data_format == "channels_last"
+        assert dilation_rate == (1, 1)
 
-        # prepare for rfft2d
-        x = from_tf(x)  # the 2 most inner dimensions are H, W (channels first)
-        kernel = from_tf(kernel)
-        # pad x: prevent the overlapping with the beginning
-        kernel = tf.pad(kernel, [[0, 0], [0, 0], [0, pad_H], [0, pad_W], ])
+        x, kernel, out_H, out_W, init_H_fft, init_W_fft = self.forward_padding(
+            x=x, kernel=kernel, padding=padding, H=H, W=W, HH=HH, WW=WW)
 
         xfft = tf.signal.rfft2d(x)
         yfft = tf.signal.rfft2d(kernel)
 
+        # from N, C, H, W -> H, W, N, C
+        xfft = tf.transpose(xfft, perm=[2, 3, 0, 1])
+        # from F, C, H, W -> H, W, F, C
+        yfft = tf.transpose(yfft, perm=[2, 3, 1, 0], conjugate=True)
 
+        outfft = tf.linalg.matmul(xfft, yfft)
 
+        # from H, W, N, F -> N, F, H, W
+        outfft = tf.transpose(outfft, perm=[2, 3, 0, 1])
+
+        out = tf.signal.irfft2d(outfft)
+        out = out[..., :out_H, :out_W]
+
+        # from N, F, H, W -> N, H, W, F (new channel last).
+        out = tf.transpose(out, perm=[0, 2, 3, 1])
+
+        return out
 
     def call(self, inputs):
         outputs = self.exec(x=inputs,

@@ -13,7 +13,7 @@ from torch.nn.parameter import Parameter
 
 from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_signals
 from cnns.nnlib.pytorch_layers.pytorch_utils import flip
-from cnns.nnlib.pytorch_layers.pytorch_utils import next_power2
+from cnns.nnlib.utils.general_utils import next_power2
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

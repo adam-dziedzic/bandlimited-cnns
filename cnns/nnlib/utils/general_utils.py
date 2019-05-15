@@ -185,14 +185,6 @@ def energy(x):
     return np.sum(np.power(x, 2))
 
 
-def next_power2(x):
-    """
-    :param x: an integer number
-    :return: the power of 2 which is the larger than x but the smallest possible
-    """
-    return 2 ** np.ceil(np.log2(x)).astype(int)
-
-
 def reshape_3d_rest(x):
     """
     Reshape the one dimensional input x into a 3 dimensions, with the 1 for each of the first 2 dimensions and the last
@@ -369,3 +361,30 @@ if __name__ == "__main__":
                      f"dout_channel {dout_channel},"
                      f" conv {conv_index}",
                      xlabel="Time")
+
+
+def next_power2(x):
+    """
+    :param x: an integer number
+    :return: the power of 2 which is the larger than x but the
+    smallest possible
+
+    >>> result = next_power2(5)
+    >>> np.testing.assert_equal(result, 8)
+    >>> result = next_power2(1)
+    >>> np.testing.assert_equal(result, 1)
+    >>> result = next_power2(2)
+    >>> np.testing.assert_equal(result, 2)
+    >>> result = next_power2(7)
+    >>> np.testing.assert_equal(result, 8)
+    >>> result = next_power2(9)
+    >>> np.testing.assert_equal(result, 16)
+    >>> result = next_power2(16)
+    >>> np.testing.assert_equal(result, 16)
+    >>> result = next_power2(64)
+    >>> np.testing.assert_equal(result, 64)
+    >>> result = next_power2(63)
+    >>> np.testing.assert_equal(result, 64)
+    """
+    # return math.pow(2, math.ceil(math.log2(x)))
+    return int(2 ** np.ceil(np.log2(x)))

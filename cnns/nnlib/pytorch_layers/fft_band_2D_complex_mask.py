@@ -1,6 +1,6 @@
 import torch
 from torch.nn import Module
-from cnns.nnlib.pytorch_layers.pytorch_utils import next_power2
+from cnns.nnlib.utils.general_utils import next_power2
 from torch.nn.functional import pad as torch_pad
 from cnns.nnlib.utils.complex_mask import get_disk_mask
 from cnns.nnlib.utils.complex_mask import get_hyper_mask
