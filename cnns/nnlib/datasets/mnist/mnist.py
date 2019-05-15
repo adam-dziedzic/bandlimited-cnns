@@ -13,8 +13,8 @@ mnist_std_array = np.array(mnist_std, dtype=np.float32).reshape((1, 1, 1))
 # -0.42421296 2.8214867 -0.42421296 2.8214867 False False
 # mnist_min = np.float(-0.42421296)
 # mnist_max = np.float(2.8214867)
-mnist_min = np.float(-0.4243)
-mnist_max = np.float(2.8215)
+mnist_min = np.float32(-0.425)
+mnist_max = np.float32(2.8215)
 
 def get_mnist(args):
     """

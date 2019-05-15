@@ -64,7 +64,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             compress_rate=self.args.compress_fft_layer, val=0,
             interpolate=self.args.interpolate,
             get_mask=self.get_mask,
-            onesided=onesided).numpy().squeeze()
+            onesided=onesided).numpy().squeeze(0)
         if is_clip:
             return np.clip(fft_image, a_min=self.args.min, a_max=self.args.max)
         else:
@@ -105,6 +105,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             image = self.rounder.round(image)
         if self.args.compress_fft_layer > 0:
             image = self.fft_complex_compression(image)
+
         self.roundfft_adversarial = Adversarial(
             model=model, criterion=criterion, original_image=image,
             original_class=original_class, distance=distance,

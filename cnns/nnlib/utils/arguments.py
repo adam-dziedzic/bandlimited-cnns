@@ -56,8 +56,8 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     loss_type = LossType.CROSS_ENTROPY
     loss_reduction = LossReduction.ELEMENTWISE_MEAN
 else:
-    # dataset = "mnist"
-    dataset = "cifar10"
+    dataset = "mnist"
+    # dataset = "cifar10"
     # dataset = "cifar100"
     # dataset = "imagenet"
 
@@ -89,8 +89,10 @@ else:
         loss_type = LossType.NLL
         loss_reduction = LossReduction.SUM
         network_type = NetworkType.Net
+        model_path="2019-05-03-10-08-51-149612-dataset-mnist-preserve-energy-100-compress-rate-0.0-test-accuracy-99.07-channel-vals-0.model"
     elif dataset == "cifar10":
         network_type = NetworkType.ResNet18
+        model_path = "saved_model_2019-04-08-16-51-16-845688-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.22-channel-vals-0.model"
     elif dataset == "cifar100":
         network_type = NetworkType.DenseNetCifar
         weight_decay = 0.0001
@@ -180,8 +182,10 @@ class Arguments(object):
                  loss_reduction=LossReduction.ELEMENTWISE_MEAN,
                  memory_type=MemoryType.PINNED,
                  workers=4,
+                 model_path = model_path,
                  # model_path="no_model",
-                 model_path="saved_model_2019-04-08-16-51-16-845688-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.22-channel-vals-0.model",
+                 # model_path="2019-05-03-10-08-51-149612-dataset-mnist-preserve-energy-100-compress-rate-0.0-test-accuracy-99.07-channel-vals-0.model",
+                 # ="saved_model_2019-04-08-16-51-16-845688-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.22-channel-vals-0.model",
                  # model_path = "2019-04-29-08-31-35-212961-dataset-cifar10-preserve-energy-100-compress-rate-0.1-test-accuracy-84.27-channel-vals-8.model",
                  # model_path="2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model",
                  # model_path="2019-01-08-14-41-44-026589-dataset-cifar10-preserve-energy-100.0-test-accuracy-91.39-fp16-amp-no-compression.model",

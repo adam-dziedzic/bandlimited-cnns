@@ -20,8 +20,8 @@ imagenet_mean_array = np.array(imagenet_mean, dtype=np.float32).reshape(
 imagenet_std_array = np.array(imagenet_std, dtype=np.float32).reshape((3, 1, 1))
 
 # the min/max value per pixel after normalization
-imagenet_min = np.float(-2.1179039478302)  # -2.1179039478302
-imagenet_max = np.float(2.640000104904175)  # 2.640000104904175
+imagenet_min = np.float32(-2.1179039478302)  # -2.1179039478302
+imagenet_max = np.float32(2.640000104904175)  # 2.640000104904175
 
 normalize = transforms.Normalize(mean=imagenet_mean, std=imagenet_std)
 
