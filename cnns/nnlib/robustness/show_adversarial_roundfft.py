@@ -399,6 +399,8 @@ def run(args):
                 # image = torch.clamp(image, min = args.min, max=args.max)
                 image = np.clip(image, a_min=args.min, a_max=args.max)
             image_show = denormalizer.denormalize(image)
+            if clip_input_image:
+                image_show = np.clip(image, a_min=0, a_max=1)
             if args.dataset == "mnist":
                 # image_show = image_show.astype('uint8')
                 # plt.imshow(image_show.squeeze(), cmap=args.cmap,

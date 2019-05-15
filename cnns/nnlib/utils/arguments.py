@@ -285,7 +285,7 @@ class Arguments(object):
                  imagenet_path="/home/" + str(USER) + "/imagenet",
                  distributed=False,
                  in_channels=1,
-                 values_per_channel=8,
+                 values_per_channel=0,
                  # ucr_path = "../sathya",
                  ucr_path="../../TimeSeriesDatasets",
                  start_epsilon=0,
@@ -293,7 +293,7 @@ class Arguments(object):
                  attack_type=AttackType.NO_ATTACK,
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
-                 compress_fft_layer=0,
+                 compress_fft_layer=50,
                  attack_name="CarliniWagnerL2AttackRoundFFT",
                  ):
         """
