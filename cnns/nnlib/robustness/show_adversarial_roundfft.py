@@ -168,9 +168,9 @@ def get_fmodel(args):
         args.init_y, args.init_x = 28, 28
         args.num_classes = 10
         # args.values_per_channel = 2
-        args.model_path = "2019-05-03-10-08-51-149612-dataset-mnist-preserve-energy-100-compress-rate-0.0-test-accuracy-99.07-channel-vals-0.model"
-        args.compress_rate = 0
-        args.compress_rates = [args.compress_rate]
+        # args.model_path = "2019-05-03-10-08-51-149612-dataset-mnist-preserve-energy-100-compress-rate-0.0-test-accuracy-99.07-channel-vals-0.model"
+        # args.compress_rate = 0
+        # args.compress_rates = [args.compress_rate]
         args.in_channels = 1
         min = mnist_min
         max = mnist_max
@@ -178,7 +178,7 @@ def get_fmodel(args):
         args.max = max
         args.mean_array = mnist_mean_array
         args.std_array = mnist_std_array
-        args.network_type = NetworkType.Net
+        # args.network_type = NetworkType.Net
         network_model = load_model(args=args)
         from_class_idx_to_label = mnist_from_class_idx_to_label
 
