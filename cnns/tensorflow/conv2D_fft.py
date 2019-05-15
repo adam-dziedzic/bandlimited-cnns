@@ -2,6 +2,11 @@ from keras.layers.convolutional import Conv2D
 from keras.legacy import interfaces
 import keras.backend as K
 from keras.engine.base_layer import InputSpec
+from cnns.nnlib.utils.general_utils import ConvType
+from cnns.tensorflow.utils import tensor_shape
+from cnns.tensorflow.utils import to_tf
+from cnns.tensorflow.utils import from_tf
+import tensorflow as tf
 
 
 class Conv2D_fft(Conv2D):
@@ -200,8 +205,7 @@ class Conv2D_fft(Conv2D):
         config.pop('rank')
         return config
 
-    def exec(self, x, kernel, strides, padding, data_format,
-             dilation_rate):
+    def exec(self, x, kernel, strides, padding, data_format, dilation_rate):
         if self.version == "standard":
             outputs = K.conv2d(
                 x=x,
@@ -210,11 +214,39 @@ class Conv2D_fft(Conv2D):
                 padding=padding,
                 data_format=data_format,
                 dilation_rate=dilation_rate)
-        elif self.version == "fft":
-            raise Exception("Not implemented yet")
+        elif self.version == ConvType.FFT2D:
+            # raise Exception("Not implemented yet")
+            self.conv_fft(x=x,
+                          kernel=kernel,
+                          strides=strides,
+                          padding=padding,
+                          data_format=data_format,
+                          dilation_rate=dilation_rate)
         else:
             raise Exception(f"Unknown version: {self.version}")
         return outputs
+
+    def conv_fft(self, x, kernel, strides, padding, data_format, dilation_rate):
+        N, H, W, C = tensor_shape(x)
+        F, HH, WW, CC = tensor_shape(kernel)
+        assert C == CC
+        assert H >= HH
+        assert W >= WW
+        # padding_H, padding_W = padding
+        pad_H = H - HH
+        pad_W = W - WW
+
+        # prepare for rfft2d
+        x = from_tf(x)  # the 2 most inner dimensions are H, W (channels first)
+        kernel = from_tf(kernel)
+        # pad x: prevent the overlapping with the beginning
+        kernel = tf.pad(kernel, [[0, 0], [0, 0], [0, pad_H], [0, pad_W], ])
+
+        xfft = tf.signal.rfft2d(x)
+        yfft = tf.signal.rfft2d(kernel)
+
+
+
 
     def call(self, inputs):
         outputs = self.exec(x=inputs,

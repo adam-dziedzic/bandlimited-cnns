@@ -11,26 +11,10 @@ from keras.models import Model
 from keras.layers.convolutional import Conv2D
 from cnns.tensorflow.conv2D_fft import Conv2D_fft
 import keras.backend as K
-
+from cnns.tensorflow.utils import to_tf
+from cnns.tensorflow.utils import from_tf
 import tensorflow as tf
 
-
-def to_tf(input):
-    """
-
-    :param input: np array
-    :return: channels last
-    """
-    return input.transpose(0, 2, 3, 1)
-
-
-def from_tf(input):
-    """
-
-    :param input: np array
-    :return: channels first
-    """
-    return input.transpose(0, 3, 1, 2)
 
 
 class TestConv2D_fft(unittest.TestCase):
@@ -51,12 +35,22 @@ class TestConv2D_fft(unittest.TestCase):
         self.data_format = K.normalize_data_format(None)
         self.dilation_rate = (1, 1)
         self.dtype = np.float32
+        self.version = "standard"  # of "fft"
 
     def testSimple(self):
+        """
+        This test only works on its own. The disable eager execution can be
+        called only once and it seems that once we call the eager execution, we
+        cannot disable it.
+
+        Once eager execution is enabled with tf.enable_eager_execution,
+        it cannot be turned off. Start a new Python session to return to graph
+        execution.
+        """
         tf.disable_eager_execution()
-        inp = Input(shape=(1, 32, 32, 3))
+        inp = Input(shape=(32, 32, 3))
         conv2D_fft = Conv2D_fft(3, 3)
-        out = conv2D_fft(inp)
+        out = conv2D_fft(inp, version=self.version)
         model = Model(inp, out)
         output = model.predict(np.random.rand(1, 32, 32, 3))
         print("output shape: ", output.shape)
@@ -72,7 +66,7 @@ class TestConv2D_fft(unittest.TestCase):
         input = tf.random.uniform((1, 32, 32, 3))
         kernel = tf.random.uniform((1, 3, 3, 3))
 
-        layer1 = Conv2D_fft(3, (3, 3))
+        layer1 = Conv2D_fft(3, (3, 3), version=self.version)
         out1 = layer1.exec(x=input,
                            kernel=kernel,
                            strides=self.strides,
@@ -104,7 +98,7 @@ class TestConv2D_fft(unittest.TestCase):
         # self.kernel_size + (input_dim, self.filters): HH, WW, C, F
         kernel = tf.convert_to_tensor(kernel.transpose(2, 3, 1, 0))
 
-        layer1 = Conv2D_fft(1, (2, 2), use_bias=False)
+        layer1 = Conv2D_fft(1, (2, 2), use_bias=False, version=self.version)
         layer1.build_custom(input_shape=(1, 3, 3, 1), kernel=kernel)
 
         out1 = layer1.exec(x=input,
