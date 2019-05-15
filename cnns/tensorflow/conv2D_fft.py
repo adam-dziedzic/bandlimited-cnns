@@ -8,7 +8,93 @@ from cnns.nnlib.utils.general_utils import next_power2
 import tensorflow as tf
 
 
-class Conv2D_fft(Conv2D):
+def forward_padding(x, kernel, padding, H, W, HH, WW, args=None):
+    # Prepare for rfft2d.
+    # The 2 most inner dimensions are H, W (channels first).
+    # from N, H, W, C -> N, C, H, W
+    x = tf.transpose(x, perm=[0, 3, 1, 2])
+    # from H, W, C, F -> F, C, H, W
+    kernel = tf.transpose(kernel, perm=[3, 2, 0, 1])
+
+    if padding == "same":
+        out_H = H
+        out_W = W
+    elif padding == "valid":
+        # The size of the output of the convolution.
+        out_H = H - HH + 1
+        out_W = W - WW + 1
+
+    HHH = max(out_H, HH)
+    WWW = max(out_W, WW)
+
+    # Padding of x to prevent the effects of wrapped-around filter/kernel
+    # data.
+    init_H_fft = H + (HHH - 1)
+    init_W_fft = W + (WWW - 1)
+
+    if args is None or args.next_power2:
+        init_H_fft = next_power2(init_H_fft)
+        init_W_fft = next_power2(init_W_fft)
+
+    x_pad_H = init_H_fft - H
+    x_pad_W = init_W_fft - W
+
+    y_pad_H = init_H_fft - HH
+    y_pad_W = init_W_fft - WW
+
+    x = tf.pad(x, [[0, 0], [0, 0], [0, x_pad_H], [0, x_pad_W]])
+    kernel = tf.pad(kernel, [[0, 0], [0, 0], [0, y_pad_H], [0, y_pad_W]])
+
+    return x, kernel, out_H, out_W, init_H_fft, init_W_fft
+
+
+@tf.custom_gradient
+def conv_fft_forward(x, kernel, strides, padding, data_format, dilation_rate,
+                     args=None):
+    print("conv_fft_forward")
+    N, H, W, C = tensor_shape(x)
+    HH, WW, CC, F = tensor_shape(kernel)
+    assert C == CC
+    assert H >= HH
+    assert W >= WW
+    assert strides == (1, 1)
+    assert data_format == "channels_last"
+    assert dilation_rate == (1, 1)
+
+    x, kernel, out_H, out_W, init_H_fft, init_W_fft = forward_padding(
+        x=x, kernel=kernel, padding=padding, H=H, W=W, HH=HH, WW=WW, args=args)
+
+    xfft = tf.signal.rfft2d(x)
+    yfft = tf.signal.rfft2d(kernel)
+
+    # from N, C, H, W -> H, W, N, C
+    xfft = tf.transpose(xfft, perm=[2, 3, 0, 1])
+    # from F, C, H, W -> H, W, F, C
+    yfft = tf.transpose(yfft, perm=[2, 3, 1, 0], conjugate=True)
+
+    outfft = tf.linalg.matmul(xfft, yfft)
+
+    # from H, W, N, F -> N, F, H, W
+    outfft = tf.transpose(outfft, perm=[2, 3, 0, 1])
+
+    out = tf.signal.irfft2d(outfft)
+    out = out[..., :out_H, :out_W]
+
+    # from N, F, H, W -> N, H, W, F (new channel last).
+    out = tf.transpose(out, perm=[0, 2, 3, 1])
+
+    def grad(dout):
+        return conv_fft_backward(dout)
+
+    return out, grad
+
+
+def conv_fft_backward(dout):
+    print("conv_fft_backward")
+    return dout + 2
+
+
+class Conv2D_fft(tf.keras.layers.Conv2D):
     """2D convolution layer via FFT.
 
     This layer creates a convolution kernel that is convolved
@@ -215,88 +301,17 @@ class Conv2D_fft(Conv2D):
                 dilation_rate=dilation_rate)
         elif self.args.conv_type == ConvType.FFT2D:
             # raise Exception("Not implemented yet")
-            outputs = self.conv_fft(x=x,
-                          kernel=kernel,
-                          strides=strides,
-                          padding=padding,
-                          data_format=data_format,
-                          dilation_rate=dilation_rate)
+            print("Execute convolution via FFT")
+            outputs = conv_fft_forward(x=x,
+                                       kernel=kernel,
+                                       strides=strides,
+                                       padding=padding,
+                                       data_format=data_format,
+                                       dilation_rate=dilation_rate,
+                                       args=self.args)
         else:
             raise Exception(f"Unknown convolution version: {self.version.name}")
         return outputs
-
-    def forward_padding(self, x, kernel, padding, H, W, HH, WW):
-        # Prepare for rfft2d.
-        # The 2 most inner dimensions are H, W (channels first).
-        # from N, H, W, C -> N, C, H, W
-        x = tf.transpose(x, perm=[0, 3, 1, 2])
-        # from H, W, C, F -> F, C, H, W
-        kernel = tf.transpose(kernel, perm=[3 ,2, 0, 1])
-
-        if padding == "same":
-            out_H = H
-            out_W = W
-        elif padding == "valid":
-            # The size of the output of the convolution.
-            out_H = H - HH + 1
-            out_W = W - WW + 1
-
-        HHH = max(out_H, HH)
-        WWW = max(out_W, WW)
-
-        # Padding of x to prevent the effects of wrapped-around filter/kernel
-        # data.
-        init_H_fft = H + (HHH - 1)
-        init_W_fft = W + (WWW - 1)
-
-        if self.args is None or self.args.next_power2:
-            init_H_fft = next_power2(init_H_fft)
-            init_W_fft = next_power2(init_W_fft)
-
-        x_pad_H = init_H_fft - H
-        x_pad_W = init_W_fft - W
-
-        y_pad_H = init_H_fft - HH
-        y_pad_W = init_W_fft - WW
-
-        x = tf.pad(x, [[0, 0], [0, 0], [0, x_pad_H], [0, x_pad_W]])
-        kernel = tf.pad(kernel, [[0, 0], [0, 0], [0, y_pad_H], [0, y_pad_W]])
-
-        return x, kernel, out_H, out_W, init_H_fft, init_W_fft
-
-    def conv_fft(self, x, kernel, strides, padding, data_format, dilation_rate):
-        N, H, W, C = tensor_shape(x)
-        HH, WW, CC, F = tensor_shape(kernel)
-        assert C == CC
-        assert H >= HH
-        assert W >= WW
-        assert strides == (1, 1)
-        assert data_format == "channels_last"
-        assert dilation_rate == (1, 1)
-
-        x, kernel, out_H, out_W, init_H_fft, init_W_fft = self.forward_padding(
-            x=x, kernel=kernel, padding=padding, H=H, W=W, HH=HH, WW=WW)
-
-        xfft = tf.signal.rfft2d(x)
-        yfft = tf.signal.rfft2d(kernel)
-
-        # from N, C, H, W -> H, W, N, C
-        xfft = tf.transpose(xfft, perm=[2, 3, 0, 1])
-        # from F, C, H, W -> H, W, F, C
-        yfft = tf.transpose(yfft, perm=[2, 3, 1, 0], conjugate=True)
-
-        outfft = tf.linalg.matmul(xfft, yfft)
-
-        # from H, W, N, F -> N, F, H, W
-        outfft = tf.transpose(outfft, perm=[2, 3, 0, 1])
-
-        out = tf.signal.irfft2d(outfft)
-        out = out[..., :out_H, :out_W]
-
-        # from N, F, H, W -> N, H, W, F (new channel last).
-        out = tf.transpose(out, perm=[0, 2, 3, 1])
-
-        return out
 
     def call(self, inputs):
         outputs = self.exec(x=inputs,
