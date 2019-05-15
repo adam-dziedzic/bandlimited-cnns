@@ -162,6 +162,7 @@ def get_fmodel(args):
         args.std_array = cifar_std_array
         network_model = load_model(args=args)
         from_class_idx_to_label = cifar10_from_class_idx_to_label
+
     elif args.dataset == "mnist":
         args.cmap = "gray"
         args.init_y, args.init_x = 28, 28
@@ -295,9 +296,9 @@ def run(args):
     attack_round_fft = CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
                                                      get_mask=get_hyper_mask)
     attacks = [
-        CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
-                                      get_mask=get_hyper_mask),
-        # foolbox.attacks.CarliniWagnerL2Attack(fmodel),
+        # CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
+        #                               get_mask=get_hyper_mask),
+        foolbox.attacks.CarliniWagnerL2Attack(fmodel),
         # foolbox.attacks.FGSM(fmodel),
         # foolbox.attacks.AdditiveUniformNoiseAttack(fmodel)
     ]
@@ -414,15 +415,34 @@ def run(args):
             title="Original")
 
         image = original_image
+
+        # from_file = False
+        file_name = args.dataset + "-roundedfft" + "-vals-per-channel-" + str(
+            args.values_per_channel) + "-img-idx-" + str(
+            args.index) + "-" + "-compress-fft-layer-" + str(
+            args.compress_fft_layer) + get_log_time()
+        full_name = file_name + ".npy"
+        adversarial_timing = "N/A"
+        adversarial = None
+
+        if args.is_adv_attack and attack.name() == "CarliniWagnerL2Attack":
+            if os.path.exists(full_name):
+                adversarial = np.load(file=full_name)
+            else:
+                start_adv = time.time()
+                adversarial = attack(original_image, args.original_class_id)
+                adversarial_timing = time.time() - start_adv
+            image = adversarial
+
         # The rounded image.
         rounded_label = "N/A"
         rounded_confidence = "N/A"
         rounded_L2_distance = "N/A"
-        if args.values_per_channel > 0:
+        if args.values_per_channel > 0 and image is not None:
             rounder = DenormRoundNorm(
                 mean_array=args.mean_array, std_array=args.std_array,
                 values_per_channel=args.values_per_channel)
-            rounded_image = rounder.round(original_image)
+            rounded_image = rounder.round(image)
             image = rounded_image
             # rounder = RoundingTransformation(
             #     values_per_channel=args.values_per_channel,
@@ -440,7 +460,7 @@ def run(args):
         fft_label = "N/A"
         fft_confidence = "N/A"
         fft_L2_distance = "N/A"
-        if args.compress_fft_layer > 0:
+        if args.compress_fft_layer > 0 and image is not None:
             compress_image = attack_round_fft.fft_complex_compression(
                 image=image)
             image = compress_image
@@ -454,15 +474,7 @@ def run(args):
                 original_image=original_image,
                 title=title)
 
-        # from_file = False
-        file_name = args.dataset + "-roundedfft" + "-vals-per-channel-" + str(
-            args.values_per_channel) + "-img-idx-" + str(
-            args.index) + "-" + get_log_time()
-        full_name = file_name + ".npy"
-        adversarial_timing = "N/A"
-        adversarial = None
-
-        if args.is_adv_attack:
+        if args.is_adv_attack and attack.name() == "CarliniWagnerL2AttackRoundFFT":
             if os.path.exists(full_name):
                 adversarial = np.load(file=full_name)
             else:
@@ -759,7 +771,7 @@ if __name__ == "__main__":
         result_file(args)
         # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
         # print("indexes: ", indexes)
-        for index in range(args.start_epoch, 20):
+        for index in range(args.start_epoch, args.sample_count_limit):
             args.index = index
             print("image index: ", index)
             start = time.time()
