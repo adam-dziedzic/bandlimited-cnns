@@ -295,13 +295,21 @@ def run(args):
     channels = [x for x in range(channels_nr)]
     attack_round_fft = CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
                                                      get_mask=get_hyper_mask)
-    attacks = [
-        # CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
-        #                               get_mask=get_hyper_mask),
-        foolbox.attacks.CarliniWagnerL2Attack(fmodel),
-        # foolbox.attacks.FGSM(fmodel),
-        # foolbox.attacks.AdditiveUniformNoiseAttack(fmodel)
-    ]
+    # attacks = [
+    #     # CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
+    #     #                               get_mask=get_hyper_mask),
+    #     foolbox.attacks.CarliniWagnerL2Attack(fmodel),
+    #     # foolbox.attacks.FGSM(fmodel),
+    #     # foolbox.attacks.AdditiveUniformNoiseAttack(fmodel)
+    # ]
+    if args.attack_name == "CarliniWagnerL2Attack":
+        attack = foolbox.attacks.CarliniWagnerL2Attack(fmodel)
+    elif args.attack_name == "CarliniWagnerL2AttackRoundFFT":
+        attack = CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
+                                               get_mask=get_hyper_mask)
+    else:
+        raise Exception(f"Unknown attack name: {args.attack_name}")
+    attacks = [attack]
     # 1 is for the first row of images.
     rows = len(attacks) * (1 + len(fft_types) * len(channels))
     cols = 1  # print at least the original image
@@ -336,8 +344,8 @@ def run(args):
         train_loader, test_loader, train_dataset, test_dataset = load_imagenet(
             args)
     elif args.dataset == "cifar10":
-        train_loader, test_loader, train_dataset, test_dataset = get_cifar(args,
-                                                                           args.dataset)
+        train_loader, test_loader, train_dataset, test_dataset = get_cifar(
+            args, args.dataset)
 
     for attack in attacks:
         # get source image and label, args.idx - is the index of the image
@@ -358,7 +366,8 @@ def run(args):
         print("original class id:", args.original_class_id, ", is label: ",
               args.original_label)
 
-        def show_image(image, original_image, title="", args=args):
+        def show_image(image, original_image, title="", args=args,
+                       clip_input_image=True):
             original_class_id = args.original_class_id
             original_label = args.original_label
             predictions, _ = fmodel.predictions_and_gradient(
@@ -386,6 +395,9 @@ def run(args):
             if id(image) != id(original_image):
                 title_str += "L2 distance: " + str(L2_distance) + "\n"
             ylabel_text = "spatial domain"
+            if clip_input_image:
+                # image = torch.clamp(image, min = args.min, max=args.max)
+                image = np.clip(image, a_min=args.min, a_max=args.max)
             image_show = denormalizer.denormalize(image)
             if args.dataset == "mnist":
                 # image_show = image_show.astype('uint8')
@@ -636,7 +648,7 @@ def run(args):
 
         plt.subplots_adjust(hspace=0.6)
 
-    format = 'png'  # "pdf" or "png"file_name
+    format = 'png'  # "pdf" or "png" file_name
     file_name = "images/" + attack.name() + "-round-fft-" + str(
         args.compress_fft_layer) + "-" + args.dataset + "-channel-" + str(
         channels_nr) + "-" + "val-per-channel-" + str(

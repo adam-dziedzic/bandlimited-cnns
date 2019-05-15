@@ -299,6 +299,10 @@ def get_args():
                              "the frequency representation that should be "
                              "discarded. This is the compression in the FFT "
                              "domain.")
+    parser.add_argument("--attack_name", default=args.attack_name,
+                        help="the name of the attack: either "
+                             "CarliniWagnerL2Attack or "
+                             "CarliniWagnerL2AttackRoundFFT")
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)

@@ -294,6 +294,7 @@ class Arguments(object):
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
                  compress_fft_layer=0,
+                 attack_name="CarliniWagnerL2AttackRoundFFT",
                  ):
         """
         The default parameters for the execution of the program.
@@ -410,6 +411,7 @@ class Arguments(object):
         self.schedule_factor = schedule_factor
         self.schedule_patience = schedule_patience
         self.compress_fft_layer = compress_fft_layer
+        self.attack_name = attack_name
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False
