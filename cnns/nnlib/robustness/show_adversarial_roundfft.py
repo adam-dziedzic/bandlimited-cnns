@@ -783,7 +783,8 @@ if __name__ == "__main__":
     print(args.get_str())
     # for interpolate in ["exp"]:
     #     args.interpolate = interpolate
-    out_fft_recovered_file = "out_fft_recovered" + str(args.dataset) + ".txt"
+    out_fft_recovered_file = "out_fft_recovered" + str(
+        args.dataset) + "-" + str(args.values_per_channel) + ".txt"
     with open(out_fft_recovered_file, "a") as f:
         f.write("compress_fft_layer,"
                 "% or recovered,"
@@ -810,8 +811,8 @@ if __name__ == "__main__":
             print("single run elapsed time: ", time.time() - start)
         with open(out_fft_recovered_file, "a") as f:
             f.write(",".join([str(x) for x in
-                [compress_fft_layer,
-                 count_recovered_fft / total_count * 100,
-                 count_recovered_fft]]) + "\n")
+                              [compress_fft_layer,
+                               count_recovered_fft / total_count * 100,
+                               count_recovered_fft]]) + "\n")
 
     print("total elapsed time: ", time.time() - start_time)
