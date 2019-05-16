@@ -76,7 +76,7 @@ def get_mnist(args):
                                               shuffle=False,
                                               **kwargs)
 
-    return train_loader, test_loader
+    return train_loader, test_loader, train_dataset, test_dataset
 
 
 if __name__ == "__main__":

@@ -33,6 +33,7 @@ from cnns.nnlib.datasets.cifar10_from_class_idx_to_label import \
     cifar10_from_class_idx_to_label
 from cnns.nnlib.utils.exec_args import get_args
 from cnns.nnlib.datasets.cifar import get_cifar
+from cnns.nnlib.datasets.mnist.mnist import get_mnist
 # from scipy.special import softmax
 from cnns.nnlib.robustness.utils import load_model
 from cnns.nnlib.datasets.cifar import cifar_max, cifar_min
@@ -356,6 +357,8 @@ def run(args):
     elif args.dataset == "cifar10":
         train_loader, test_loader, train_dataset, test_dataset = get_cifar(
             args, args.dataset)
+    elif args.dataset == "mnist":
+        train_loader, test_loader, train_dataset, test_dataset = get_mnist(args)
 
     for attack in attacks:
         # get source image and label, args.idx - is the index of the image
@@ -799,8 +802,18 @@ if __name__ == "__main__":
     args.use_foolbox_data = False
     if args.use_foolbox_data:
         step = 1
+        limit = 20
     else:
         step = 50
+        if args.dataset == "imagenet":
+            limit = 50000
+        elif args.dataset == "cifar10":
+            limit = 10000
+        elif args.dataset == "mnist":
+            limit = 10000
+        else:
+            raise Exception(f"Unknown dataset: {args.dataset}")
+
     args.is_adv_attack = True
 
     # args.compress_fft_layer = 5
@@ -901,7 +914,7 @@ if __name__ == "__main__":
             # print("indexes: ", indexes)
             count_recovered = 0
             total_count = 0
-            for index in range(args.start_epoch, 100 * step, step):
+            for index in range(args.start_epoch, limit, step):
                 total_count += 1
                 args.index = index
                 print("image index: ", index)
