@@ -807,7 +807,7 @@ if __name__ == "__main__":
         step = 1
         limit = 20
     else:
-        step = 50
+        step = 1
         if args.dataset == "imagenet":
             limit = 50000
         elif args.dataset == "cifar10":
