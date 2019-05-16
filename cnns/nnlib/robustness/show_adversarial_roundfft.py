@@ -798,7 +798,7 @@ def run(args):
         args.values_per_channel) + "-" + "img-idx-" + str(
         args.index) + "-" + get_log_time()
     print("file name: ", file_name)
-    plt.savefig(fname=file_name + "." + format, format=format)
+    # plt.savefig(fname=file_name + "." + format, format=format)
     # plt.show(block=True)
     plt.close()
     return original_label, rounded_label, fft_label, gauss_label, noise_label, adversarial_label
