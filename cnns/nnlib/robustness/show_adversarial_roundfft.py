@@ -810,11 +810,12 @@ if __name__ == "__main__":
         step = 1
         if args.dataset == "imagenet":
             limit = 50000
+            # limit = 400
         elif args.dataset == "cifar10":
             limit = 10000
         elif args.dataset == "mnist":
-            # limit = 10000
-            limit = 1
+            limit = 10000
+            # limit = 1
         else:
             raise Exception(f"Unknown dataset: {args.dataset}")
 
@@ -880,11 +881,11 @@ if __name__ == "__main__":
     #             run(args)
     #             print("single run elapsed time: ", time.time() - start)
 
-    for recover_type in ["fft", "rounding"]:
+    for recover_type in ["rounding", "fft"]:
         args.recover_type = recover_type
         if args.recover_type == "rounding":
-            start = 2
-            stop = 256
+            start = 0
+            stop = 260
             # start = 0
             # stop = 1
         elif args.recover_type == "fft":
@@ -905,7 +906,7 @@ if __name__ == "__main__":
                                                       "% or recovered,"
                                                       "# of recovered\n")
         args.interpolate = "exp"
-        # for compress_fft_layer in [1, 2, 3, 5, 10, 15, 25, 35, 50, 60, 75, 80, 90]:
+        # for compress_fft_layer in [1, 2, 3, 5, 10, 15, 20, 25, 30, 35, 45, 50, 60, 75, 80, 90, 99]:
         for compress_value in range(start, stop):
             print("compress_" + args.recover_type + "_layer: ", compress_value)
             if args.recover_type == "fft":
@@ -918,7 +919,8 @@ if __name__ == "__main__":
             # print("indexes: ", indexes)
             count_recovered = 0
             total_count = 0
-            for index in range(args.start_epoch, limit, step):
+            # for index in range(args.start_epoch, limit, step):
+            for index in range(args.start_epoch, 5000, 50):
             # for index in range(limit - step, args.start_epoch - 1, -step):
                 total_count += 1
                 args.index = index
