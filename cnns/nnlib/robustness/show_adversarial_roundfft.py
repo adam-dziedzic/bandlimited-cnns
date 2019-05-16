@@ -385,6 +385,9 @@ def run(args):
                 args.index)
             original_image = original_image.numpy()
 
+        if args.dataset == "mnist":
+            args.original_class_id = args.original_class_id.item()
+
         args.original_label = from_class_idx_to_label[args.original_class_id]
         print("original class id:", args.original_class_id, ", is label: ",
               args.original_label)
@@ -810,7 +813,8 @@ if __name__ == "__main__":
         elif args.dataset == "cifar10":
             limit = 10000
         elif args.dataset == "mnist":
-            limit = 10000
+            # limit = 10000
+            limit = 1
         else:
             raise Exception(f"Unknown dataset: {args.dataset}")
 
@@ -879,10 +883,10 @@ if __name__ == "__main__":
     for recover_type in ["fft", "rounding"]:
         args.recover_type = recover_type
         if args.recover_type == "rounding":
-            # start = 2
-            # stop = 256
-            start = 0
-            stop = 1
+            start = 2
+            stop = 256
+            # start = 0
+            # stop = 1
         elif args.recover_type == "fft":
             start = 1
             stop = 99
