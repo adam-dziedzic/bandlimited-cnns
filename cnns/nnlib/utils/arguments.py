@@ -56,8 +56,8 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     loss_type = LossType.CROSS_ENTROPY
     loss_reduction = LossReduction.ELEMENTWISE_MEAN
 else:
-    dataset = "mnist"
-    # dataset = "cifar10"
+    # dataset = "mnist"
+    dataset = "cifar10"
     # dataset = "cifar100"
     # dataset = "imagenet"
 
@@ -285,8 +285,9 @@ class Arguments(object):
                  start_epoch=0,
                  only_train=False,
                  test_compress_rates=False,
-                 noise_sigma=0.0,
-                 noise_sigmas=[0.0],
+                 noise_sigma=-1.0,
+                 noise_sigmas=[-1.0],
+                 noise_epsilon=0.0,
                  fft_type="real_fft",  # real_fft or complex_fft
                  imagenet_path="/home/" + str(USER) + "/imagenet",
                  distributed=False,
@@ -419,6 +420,7 @@ class Arguments(object):
         self.schedule_patience = schedule_patience
         self.compress_fft_layer = compress_fft_layer
         self.attack_name = attack_name
+        self.noise_epsilon = noise_epsilon
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False

@@ -253,11 +253,15 @@ def get_args():
                              "" + ",".join(Bool.get_names()))
     parser.add_argument("--noise_sigma", default=args.noise_sigma,
                         type=float,
-                        help="how much Gaussian noise to add: "
+                        help=f"how much Gaussian noise to add: "
                              "{args.noise_sigma}")
     parser.add_argument("--noise_sigmas", default=args.noise_sigmas, nargs="+",
                         type=float,
-                        help="how much Gaussian noise to add: {args.noise_sigmas}")
+                        help=f"how much Gaussian noise to add: {args.noise_sigmas}")
+    parser.add_argument("--noise_epsilon", default=args.noise_epsilon,
+                        type=float,
+                        help=f"how much uniform noise to add: "
+                             f"{args.noise_epsilon}")
     parser.add_argument("--fft_type", default=args.fft_type,
                         help="the type of fft used: real_fft or complex_fft.")
     parser.add_argument("--imagenet_path", default=args.imagenet_path,

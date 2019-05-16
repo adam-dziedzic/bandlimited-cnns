@@ -13,6 +13,31 @@ class MultiplePixelsAttack(Attack):
 
     """
 
+    def perturb_pixel(self, perturbed, pixel, min_, max_, w, channel_axis = 0):
+        """
+        Perturb a
+        :param perturbed: the image to be perturbed
+        :param pixel: the pixel number (if the image was flattened)
+        :param min_: the min value to be set
+        :param max_: the max value to be set
+        :param w: the width of the image
+        :param channel_axis:
+        :return:
+        """
+        x = pixel % w
+        y = pixel // w
+
+        location = [x, y]
+        # set the same value in each channel
+        location.insert(channel_axis, slice(None))
+        location = tuple(location)
+
+        if np.random.randint(0, 2) == 1:
+            value = min_
+        else:
+            value = max_
+        perturbed[location] = value
+
     @call_decorator
     def __call__(self, input_or_adv, label=None, unpack=True,
                  num_pixels=1000, iterations=1):
@@ -58,21 +83,13 @@ class MultiplePixelsAttack(Attack):
             pixels = pixels[:num_pixels]
 
             perturbed = image.copy()
-            for i, pixel in enumerate(pixels):
-                x = pixel % w
-                y = pixel // w
-
-                location = [x, y]
-                # set the same value in each channel
-                location.insert(channel_axis, slice(None))
-                location = tuple(location)
-
-                if np.random.randint(0, 2) == 1:
-                    value = min_
-                else:
-                    value = max_
-                perturbed[location] = value
-
+            for pixel in range(pixels):
+                self.perturb_pixel(perturbed=perturbed,
+                                   pixel=pixel,
+                                   min_=min_,
+                                   max_=max_,
+                                   w = w,
+                                   channel_axis=channel_axis)
                 _, is_adv = a.predictions(perturbed)
                 if is_adv:
                     return

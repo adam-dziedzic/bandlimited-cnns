@@ -59,6 +59,8 @@ from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
 from cnns.nnlib.utils.complex_mask import get_disk_mask
 from cnns.nnlib.utils.complex_mask import get_hyper_mask
 from cnns.nnlib.utils.general_utils import AttackType
+from cnns.nnlib.datasets.transformations.gaussian_noise import gauss
+from foolbox.attacks.additive_noise import AdditiveUniformNoiseAttack
 
 
 def softmax(x):
@@ -290,7 +292,7 @@ def run(args):
                             ha='center', va='center')
 
     # Choose how many channels should be plotted.
-    channels_nr = 3
+    channels_nr = 1
     # Choose what fft types should be plotted.
     # fft_types = ["magnitude"]
     # fft_types = ["magnitude", "phase"]
@@ -319,6 +321,10 @@ def run(args):
     if args.values_per_channel > 0:
         cols += 1
     if args.compress_fft_layer > 0:
+        cols += 1
+    if args.noise_sigma >= 0:
+        cols += 1
+    if args.noise_epsilon >= 0:
         cols += 1
     if args.is_adv_attack:
         cols += 1
@@ -463,13 +469,21 @@ def run(args):
         image = original_image
 
         # from_file = False
-        file_name = args.dataset + "-rounded-fft" + "-img-idx-" + str(
-            args.index) + "-graph-recover"
-        # "-compress-fft-layer-" + str(args.compress_fft_layer) +
-        full_name = file_name + ".npy"
+        full_name = args.dataset
+        if args.use_foolbox_data:
+            # full_name += "-compress-fft-layer-0"
+            full_name += "-foolbox"
+        else:
+            full_name += "-rounded-fft"
+        full_name += "-img-idx-" + str(args.index) + "-graph-recover"
+        full_name += ".npy"
+        print("full name of stored adversarial example: ", full_name)
+
         adversarial_timing = "N/A"
         adversarial = None
-
+        adversarial_label = "N/A"
+        adversarial_confidence = "N/A"
+        adversarial_L2_distance = "N/A"
         if args.is_adv_attack and attack.name() == "CarliniWagnerL2Attack":
             if os.path.exists(full_name):
                 adversarial = np.load(file=full_name)
@@ -478,6 +492,11 @@ def run(args):
                 adversarial = attack(original_image, args.original_class_id)
                 adversarial_timing = time.time() - start_adv
             image = adversarial
+            if adversarial is not None:
+                adversarial_label, adversarial_confidence, adversarial_L2_distance = show_image(
+                    image=adversarial,
+                    original_image=original_image,
+                    title="Adversarial")
 
         # The rounded image.
         rounded_label = "N/A"
@@ -519,6 +538,33 @@ def run(args):
                 original_image=original_image,
                 title=title)
 
+        gauss_label = "N/A"
+        gauss_confidence = "N/A"
+        gauss_L2_distance = "N/A"
+        if args.noise_sigma >= 0 and image is not None:
+            gauss_image = gauss(image_numpy=image, sigma=args.noise_sigma)
+            image = gauss_image
+            title = "Level of Gaussian-noise: " + str(args.noise_sigma)
+            gauss_label, gauss_confidence, gauss_L2_distance = show_image(
+                image=gauss_image,
+                original_image=original_image,
+                title=title)
+
+        noise_label = "N/A"
+        noise_confidence = "N/A"
+        noise_L2_distance = "N/A"
+        if args.noise_epsilon >= 0 and image is not None:
+            noise = AdditiveUniformNoiseAttack()._sample_noise(
+                epsilon=args.noise_epsilon, image=image,
+                bounds=(args.min, args.max))
+            noise_image = image + noise
+            image = noise_image
+            title = "Level of uniform noise: " + str(args.noise_epsilon)
+            noise_label, noise_confidence, noise_L2_distance = show_image(
+                image=noise_image,
+                original_image=original_image,
+                title=title)
+
         if args.is_adv_attack and attack.name() == "CarliniWagnerL2AttackRoundFFT":
             if os.path.exists(full_name):
                 adversarial = np.load(file=full_name)
@@ -526,27 +572,14 @@ def run(args):
                 start_adv = time.time()
                 adversarial = attack(original_image, args.original_class_id)
                 adversarial_timing = time.time() - start_adv
+            if adversarial is not None:
+                adversarial_label, adversarial_confidence, adversarial_L2_distance = show_image(
+                    image=adversarial,
+                    original_image=original_image,
+                    title="Adversarial")
 
-        if adversarial is None:
-            # If the attack fails, adversarial will be None and a warning will
-            # be printed.
-            #     raise Exception(
-            #         f"No adversarial was found for attack: {attack.name()},"
-            #         f"and image index: {args.index}")
-            #     print("adversarial image min and max: ", adversarial.min(), ",",
-            #       adversarial.max())
-            adversarial_label = "N/A"
-            adversarial_confidence = "N/A"
-            adversarial_L2_distance = "N/A"
-            adversarial_timing = "N/A"
-            # args.plot_index += 1  # do not show the image for None
-        else:
-            np.save(file=file_name, arr=adversarial)
-            # adversarial = rounder.round(adversarial)
-            adversarial_label, adversarial_confidence, adversarial_L2_distance = show_image(
-                image=adversarial,
-                original_image=original_image,
-                title="Adversarial")
+        if adversarial is not None:
+            np.save(file=full_name, arr=adversarial)
 
         if show_diff:
             # Omit the diff image in the spatial domain.
@@ -625,14 +658,20 @@ def run(args):
                     original_label,  # for the full model
                     rounded_label,
                     fft_label,
+                    gauss_label,
+                    noise_label,
                     adversarial_label,
                     original_confidence,
                     rounded_confidence,
                     fft_confidence,
+                    gauss_confidence,
+                    noise_confidence,
                     adversarial_confidence,
                     original_L2_distance,
                     rounded_L2_distance,
                     fft_L2_distance,
+                    gauss_L2_distance,
+                    noise_L2_distance,
                     adversarial_L2_distance,
                     adversarial_timing
                 ]]) + "\n")
@@ -675,6 +714,12 @@ def run(args):
                                       title="Original",
                                       is_log=is_log)
 
+                if adversarial is not None and args.attack_name == "CarliniWagnerL2Attack":
+                    adversarial_fft = print_fft(image=adversarial,
+                                                channel=channel,
+                                                title="Adversarial",
+                                                is_log=is_log)
+
                 if args.values_per_channel > 0:
                     rounded_fft = print_fft(image=rounded_image,
                                             channel=channel,
@@ -686,8 +731,19 @@ def run(args):
                                                channel=channel,
                                                title="FFT compressed",
                                                is_log=is_log)
+                if args.noise_sigma >= 0:
+                    gauss_fft = print_fft(image=gauss_image,
+                                          channel=channel,
+                                          title="Gaussian noise",
+                                          is_log=is_log)
 
-                if adversarial is not None:
+                if args.noise_epsilon >= 0:
+                    noise_fft = print_fft(image=noise_image,
+                                          channel=channel,
+                                          title="Uniform noise",
+                                          is_log=is_log)
+
+                if adversarial is not None and args.attack_name == "CarliniWagnerL2AttackRoundFFT":
                     adversarial_fft = print_fft(image=adversarial,
                                                 channel=channel,
                                                 title="Adversarial",
@@ -742,10 +798,10 @@ def run(args):
         args.values_per_channel) + "-" + "img-idx-" + str(
         args.index) + "-" + get_log_time()
     print("file name: ", file_name)
-    # plt.savefig(fname=file_name + "." + format, format=format)
+    plt.savefig(fname=file_name + "." + format, format=format)
     # plt.show(block=True)
     plt.close()
-    return original_label, rounded_label, fft_label, adversarial_label
+    return original_label, rounded_label, fft_label, gauss_label, noise_label, adversarial_label
 
 
 def index_ranges(
@@ -774,14 +830,20 @@ def result_file(args):
                           "full model label",
                           "rounded label",
                           "fft compressed label",
+                          "gauss label",
+                          "noise label",
                           "adversarial label",
                           "original_confidence",
                           "rounded_confidence",
                           "fft_confidence",
+                          "gauss_confidence",
+                          "noise_confidence",
                           "adversarial_confidence",
                           "original_L2_distance",
                           "rounded_L2_distance",
                           "fft_L2_distance",
+                          "gauss_L2_distance",
+                          "noise_L2_distance",
                           "adversarial_L2_distance",
                           "adversarial timing",
                           ]) + "\n")
@@ -881,7 +943,7 @@ if __name__ == "__main__":
     #             run(args)
     #             print("single run elapsed time: ", time.time() - start)
 
-    for recover_type in ["rounding", "fft"]:
+    for recover_type in ["noise"]:  # ["rounding", "fft", "gauss", "noise"]
         args.recover_type = recover_type
         if args.recover_type == "rounding":
             start = 2
@@ -891,6 +953,15 @@ if __name__ == "__main__":
         elif args.recover_type == "fft":
             start = 1
             stop = 99
+        elif args.recover_type == "roundfft":
+            start = 0
+            stop = 1
+        elif args.recover_type == "gauss":
+            start = 0
+            stop = 20
+        elif args.recover_type == "noise":
+            start = 0
+            stop = 10
         else:
             raise Exception(f"Unknown recover type: {args.recover_type}")
 
@@ -913,26 +984,47 @@ if __name__ == "__main__":
                 args.compress_fft_layer = compress_value
             elif args.recover_type == "rounding":
                 args.values_per_channel = compress_value
+            elif args.recover_type == "gauss":
+                args.noise_sigma = compress_value / 10
+            elif args.recover_type == "noise":
+                args.noise_epsilon = compress_value / 100
+            elif args.recover_type == "roundfft":
+                pass
+            else:
+                raise Exception(
+                    f"Unknown recover type: {args.recover_type}")
 
             result_file(args)
             # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
             # print("indexes: ", indexes)
             count_recovered = 0
             total_count = 0
-            # for index in range(args.start_epoch, limit, step):
-            for index in range(args.start_epoch, 5000, 50):
-            # for index in range(limit - step, args.start_epoch - 1, -step):
+            for index in range(0, 5000, 50):
+                # for index in range(19, -1, -1):
+                # for index in range(args.start_epoch, limit, step):
+                # for index in range(args.start_epoch, 5000, 50):
+                # for index in range(limit - step, args.start_epoch - 1, -step):
+                # for index in range(args.start_epoch, 100, step):
                 total_count += 1
                 args.index = index
                 print("image index: ", index)
                 start = time.time()
-                original_label, rounded_label, fft_label, adversarial_label = run(
+                original_label, rounded_label, fft_label, gauss_label, noise_label, adversarial_label = run(
                     args)
                 if args.recover_type == "fft":
                     if fft_label is not None and original_label == fft_label:
                         count_recovered += 1
                 elif args.recover_type == "rounding":
                     if rounded_label is not None and original_label == rounded_label:
+                        count_recovered += 1
+                elif args.recover_type == "roundfft":
+                    if fft_label is not None and original_label == fft_label:
+                        count_recovered += 1
+                elif args.recover_type == "gauss":
+                    if gauss_label is not None and original_label == gauss_label:
+                        count_recovered += 1
+                elif args.recover_type == "noise":
+                    if noise_label is not None and original_label == noise_label:
                         count_recovered += 1
                 else:
                     raise Exception(
