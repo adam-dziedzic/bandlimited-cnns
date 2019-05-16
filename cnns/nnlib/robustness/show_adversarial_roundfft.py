@@ -259,6 +259,8 @@ def run(args):
             plt.ylabel(ylabel)
         plt.title(title)
         plt.imshow(input_map, cmap='hot', interpolation='nearest')
+        heatmap_legend = plt.pcolor(input_map)
+        plt.colorbar(heatmap_legend)
         # plt.axis('off')
 
     def print_color_map(x, fig=None, ax=None):
@@ -287,11 +289,11 @@ def run(args):
                             ha='center', va='center')
 
     # Choose how many channels should be plotted.
-    channels_nr = 1
+    channels_nr = 3
     # Choose what fft types should be plotted.
-    fft_types = ["magnitude"]
+    # fft_types = ["magnitude"]
     # fft_types = ["magnitude", "phase"]
-    # fft_types = []
+    fft_types = []
     channels = [x for x in range(channels_nr)]
     attack_round_fft = CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
                                                      get_mask=get_hyper_mask)
@@ -319,6 +321,14 @@ def run(args):
         cols += 1
     if args.is_adv_attack:
         cols += 1
+    show_diff = False
+    if show_diff:
+        col_diff = 2
+        cols += col_diff
+    show_2nd = False  # show 2nd image
+    if show_2nd:
+        col_diff2nd = 3
+        cols += col_diff2nd
 
     fig = plt.figure(figsize=(cols * 10, rows * 10))
 
@@ -357,6 +367,16 @@ def run(args):
 
             # Normalize the data for the Pytorch models.
             original_image = normalizer.normalize(original_image)
+
+            if show_2nd:
+                original_image2, args.original_class_id2 = images[
+                                                               args.index + 1], \
+                                                           labels[
+                                                               args.index + 1]
+                original_image = original_image.astype(np.float32)
+
+                # Normalize the data for the Pytorch models.
+                original_image2 = normalizer.normalize(original_image2)
         else:
             original_image, args.original_class_id = test_dataset.__getitem__(
                 args.index)
@@ -428,10 +448,16 @@ def run(args):
             original_image=original_image,
             title="Original")
 
+        if show_2nd:
+            original_label2, original_confidence2, original_L2_distance2 = show_image(
+                image=original_image2,
+                original_image=original_image2,
+                title="Original 2nd")
+
         image = original_image
 
         # from_file = False
-        file_name = args.dataset + "-roundedfft" + "-vals-per-channel-0" + "-img-idx-" + str(
+        file_name = args.dataset + "-rounded-fft" + "-img-idx-" + str(
             args.index) + "-graph-recover"
         # "-compress-fft-layer-" + str(args.compress_fft_layer) +
         full_name = file_name + ".npy"
@@ -516,6 +542,14 @@ def run(args):
                 original_image=original_image,
                 title="Adversarial")
 
+        if show_diff:
+            # Omit the diff image in the spatial domain.
+            args.plot_index += col_diff
+
+        if show_2nd:
+            # Omit the diff image in the spatial domain.
+            args.plot_index += 2
+
         # Show differences.
         # plt.title('Difference original vs. adversarial')
         # difference_adv_img = np.abs(adversarial - original_image)
@@ -597,11 +631,11 @@ def run(args):
                     adversarial_timing
                 ]]) + "\n")
 
-        def print_fft(image, channel, title="", args=args):
+        def print_fft(image, channel, title="", args=args, is_log=True):
             print("fft: ", title)
             print("input min: ", image.min())
             print("input max: ", image.max())
-            xfft = to_fft(image, fft_type=fft_type)
+            xfft = to_fft(image, fft_type=fft_type, is_log=is_log)
             xfft = xfft[channel, ...]
             # torch.set_printoptions(profile='full')
             # print("original_fft size: ", original_fft.shape)
@@ -629,23 +663,69 @@ def run(args):
 
         for fft_type in fft_types:
             for channel in channels:
-                image_fft = print_fft(image=original_image, channel=channel,
-                                      title="Original")
+                is_log = False
+                image_fft = print_fft(image=original_image,
+                                      channel=channel,
+                                      title="Original",
+                                      is_log=is_log)
 
                 if args.values_per_channel > 0:
                     rounded_fft = print_fft(image=rounded_image,
                                             channel=channel,
-                                            title="Rounded")
+                                            title="Rounded",
+                                            is_log=is_log)
 
                 if args.compress_fft_layer > 0:
                     compressed_fft = print_fft(image=compress_image,
                                                channel=channel,
-                                               title="FFT compressed")
+                                               title="FFT compressed",
+                                               is_log=is_log)
 
                 if adversarial is not None:
                     adversarial_fft = print_fft(image=adversarial,
                                                 channel=channel,
-                                                title="Adversarial")
+                                                title="Adversarial",
+                                                is_log=is_log)
+
+                if show_2nd:
+                    image2_fft = print_fft(image=original_image2,
+                                           channel=channel,
+                                           title="Original 2nd",
+                                           is_log=is_log)
+
+                if show_diff:
+                    diff_fft = adversarial_fft / image_fft
+                    ylabel = "fft-ed channel " + str(channel) + ":\n" + fft_type
+                    diff_fft_avg = np.average(diff_fft)
+                    print_heat_map(diff_fft, args=args,
+                                   title="FFT(adv) / FFT(original)\n"
+                                   f"(avg: {diff_fft_avg})",
+                                   ylabel=ylabel)
+
+                    diff_fft = adversarial_fft - image_fft
+                    diff_fft_avg = np.average(diff_fft)
+                    ylabel = "fft-ed channel " + str(channel) + ":\n" + fft_type
+                    print_heat_map(diff_fft, args=args,
+                                   title="FFT(adv) - FFT(original)\n"
+                                   f"(avg: {diff_fft_avg})",
+                                   ylabel=ylabel)
+
+                if show_2nd:
+                    diff_fft = image2_fft / image_fft
+                    ylabel = "fft-ed channel " + str(channel) + ":\n" + fft_type
+                    diff_fft_avg = np.average(diff_fft)
+                    print_heat_map(diff_fft, args=args,
+                                   title="FFT(original2) / FFT(original)\n"
+                                   f"(avg: {diff_fft_avg})",
+                                   ylabel=ylabel)
+
+                    diff_fft = image2_fft - image_fft
+                    diff_fft_avg = np.average(diff_fft)
+                    ylabel = "fft-ed channel " + str(channel) + ":\n" + fft_type
+                    print_heat_map(diff_fft, args=args,
+                                   title="FFT(original2) - FFT(original)\n"
+                                   f"(avg: {diff_fft_avg})",
+                                   ylabel=ylabel)
 
         plt.subplots_adjust(hspace=0.6)
 
@@ -656,7 +736,7 @@ def run(args):
         args.values_per_channel) + "-" + "img-idx-" + str(
         args.index) + "-" + get_log_time()
     print("file name: ", file_name)
-    plt.savefig(fname=file_name + "." + format, format=format)
+    # plt.savefig(fname=file_name + "." + format, format=format)
     # plt.show(block=True)
     plt.close()
     return original_label, rounded_label, fft_label, adversarial_label
@@ -716,7 +796,11 @@ if __name__ == "__main__":
     # args.index = 13  # index of the image (out of 20) to be used
     # args.compress_rate = 0
     args.interpolate = "exp"
-    args.use_foolbox_data = True
+    args.use_foolbox_data = False
+    if args.use_foolbox_data:
+        step = 1
+    else:
+        step = 50
     args.is_adv_attack = True
 
     # args.compress_fft_layer = 5
@@ -779,62 +863,65 @@ if __name__ == "__main__":
     #             run(args)
     #             print("single run elapsed time: ", time.time() - start)
 
-    recover_type = "rounding"  # or "fft"
+    for recover_type in ["fft", "rounding"]:
+        args.recover_type = recover_type
+        if args.recover_type == "rounding":
+            # start = 2
+            # stop = 256
+            start = 0
+            stop = 1
+        elif args.recover_type == "fft":
+            start = 1
+            stop = 99
+        else:
+            raise Exception(f"Unknown recover type: {args.recover_type}")
 
-    if recover_type == "rounding":
-        start = 2
-        stop = 256
-    elif recover_type == "fft":
-        start = 1
-        stop = 99
-    else:
-        raise Exception(f"Unknown recover type: {recover_type}")
-
-    print(args.get_str())
-    # for interpolate in ["exp"]:
-    #     args.interpolate = interpolate
-    out_recovered_file = "out_" + recover_type + "_recovered" + str(
-        args.dataset) + "-" + str(
-        args.values_per_channel) + "-" + str(
-        args.compress_fft_layer) + "-" + get_log_time() + ".txt"
-    with open(out_recovered_file, "a") as f:
-        f.write("compress_" + recover_type + "_layer,"
-                                             "% or recovered,"
-                                             "# of recovered\n")
-    args.interpolate = "exp"
-    # for compress_fft_layer in [1, 2, 3, 5, 10, 15, 25, 35, 50, 60, 75, 80, 90]:
-    for compress_value in range(start, stop):
-        print("compress_" + recover_type + "_layer: ", compress_value)
-        if recover_type == "fft":
-            args.compress_fft_layer = compress_value
-        elif recover_type == "rounding":
-            args.values_per_channel = compress_value
-
-        result_file(args)
-        # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
-        # print("indexes: ", indexes)
-        count_recovered = 0
-        total_count = 0
-        for index in range(args.start_epoch, args.sample_count_limit):
-            total_count += 1
-            args.index = index
-            print("image index: ", index)
-            start = time.time()
-            original_label, rounded_label, fft_label, adversarial_label = run(
-                args)
-            if recover_type == "fft":
-                if original_label == fft_label:
-                    count_recovered += 1
-            elif recover_type == "rounding":
-                if original_label == rounded_label:
-                    count_recovered += 1
-            else:
-                raise Exception(f"Unknown recover type: {recover_type}")
-            print("single run elapsed time: ", time.time() - start)
+        print(args.get_str())
+        # for interpolate in ["exp"]:
+        #     args.interpolate = interpolate
+        out_recovered_file = "out_" + args.recover_type + "_recovered" + str(
+            args.dataset) + "-" + str(
+            args.values_per_channel) + "-" + str(
+            args.compress_fft_layer) + "-" + get_log_time() + ".txt"
         with open(out_recovered_file, "a") as f:
-            f.write(",".join([str(x) for x in
-                              [compress_value,
-                               count_recovered / total_count * 100,
-                               count_recovered]]) + "\n")
+            f.write("compress_" + args.recover_type + "_layer,"
+                                                      "% or recovered,"
+                                                      "# of recovered\n")
+        args.interpolate = "exp"
+        # for compress_fft_layer in [1, 2, 3, 5, 10, 15, 25, 35, 50, 60, 75, 80, 90]:
+        for compress_value in range(start, stop):
+            print("compress_" + args.recover_type + "_layer: ", compress_value)
+            if args.recover_type == "fft":
+                args.compress_fft_layer = compress_value
+            elif args.recover_type == "rounding":
+                args.values_per_channel = compress_value
+
+            result_file(args)
+            # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
+            # print("indexes: ", indexes)
+            count_recovered = 0
+            total_count = 0
+            for index in range(args.start_epoch, 100 * step, step=step):
+                total_count += 1
+                args.index = index
+                print("image index: ", index)
+                start = time.time()
+                original_label, rounded_label, fft_label, adversarial_label = run(
+                    args)
+                if args.recover_type == "fft":
+                    if fft_label is not None and original_label == fft_label:
+                        count_recovered += 1
+                elif args.recover_type == "rounding":
+                    if rounded_label is not None and original_label == rounded_label:
+                        count_recovered += 1
+                else:
+                    raise Exception(
+                        f"Unknown recover type: {args.recover_type}")
+                print("single run elapsed time: ", time.time() - start)
+            with open(out_recovered_file, "a") as f:
+                f.write(",".join([str(x) for x in
+                                  [compress_value,
+                                   count_recovered / total_count * 100,
+                                   count_recovered]]) + "\n")
 
     print("total elapsed time: ", time.time() - start_time)
