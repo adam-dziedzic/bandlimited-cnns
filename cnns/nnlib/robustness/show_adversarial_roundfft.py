@@ -918,8 +918,8 @@ if __name__ == "__main__":
             # print("indexes: ", indexes)
             count_recovered = 0
             total_count = 0
-            # for index in range(args.start_epoch, limit, step):
-            for index in range(limit - step, args.start_epoch - 1, -step):
+            for index in range(args.start_epoch, limit, step):
+            # for index in range(limit - step, args.start_epoch - 1, -step):
                 total_count += 1
                 args.index = index
                 print("image index: ", index)
