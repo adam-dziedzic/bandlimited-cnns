@@ -57,9 +57,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     loss_reduction = LossReduction.ELEMENTWISE_MEAN
 else:
     # dataset = "mnist"
-    dataset = "cifar10"
+    # dataset = "cifar10"
     # dataset = "cifar100"
-    # dataset = "imagenet"
+    dataset = "imagenet"
 
     batch_size = 32
     test_batch_size = batch_size

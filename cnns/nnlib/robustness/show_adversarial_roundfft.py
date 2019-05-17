@@ -798,10 +798,11 @@ def run(args):
         args.values_per_channel) + "-" + "img-idx-" + str(
         args.index) + "-" + get_log_time()
     print("file name: ", file_name)
-    # plt.savefig(fname=file_name + "." + format, format=format)
+    plt.savefig(fname=file_name + "." + format, format=format)
     # plt.show(block=True)
     plt.close()
-    return original_label, rounded_label, fft_label, gauss_label, noise_label, adversarial_label
+    true_label = args.original_label
+    return true_label, original_label, rounded_label, fft_label, gauss_label, noise_label, adversarial_label
 
 
 def index_ranges(
@@ -820,7 +821,7 @@ def index_ranges(
 
 
 def result_file(args):
-    args.file_name_labels = args.interpolate + "-round-fft-" + str(
+    args.file_name_labels = args.recover_type + "-" + args.interpolate + "-round-fft-" + str(
         args.compress_fft_layer) + "-" + args.dataset + "-" + "val-per-channel-" + str(
         args.values_per_channel) + "-" + get_log_time()
     with open(args.file_name_labels, "a") as f:
@@ -864,7 +865,7 @@ if __name__ == "__main__":
     # args.index = 13  # index of the image (out of 20) to be used
     # args.compress_rate = 0
     args.interpolate = "exp"
-    args.use_foolbox_data = False
+    args.use_foolbox_data = True
     if args.use_foolbox_data:
         step = 1
         limit = 20
@@ -893,55 +894,6 @@ if __name__ == "__main__":
     else:
         print("cuda id not available")
         args.device = torch.device("cpu")
-    # for values_per_channel in [2**x for x in range(1,8,1)]:
-    #     args.values_per_channel = values_per_channel
-    #     run(args)
-    # for values_per_channel in range(2, 256, 1):
-    #     args.values_per_channel = values_per_channel
-    #     run(args)
-    # for values_per_channel in [2]:
-    #     args.index = 1
-    #     args.values_per_channel = values_per_channel
-    #     run(args)
-    # for values_per_channel in [8]:
-    #     for index in range(0, 17):  # 12, 13, 16
-    #         args.index = index
-    #         args.values_per_channel = values_per_channel
-    #         run(args)
-    # for values_per_channel in [8]:
-    #     args.index = 13
-    #     args.values_per_channel = values_per_channel
-    #     run(args)
-    # for values_per_channel in [8]:
-    #     args.index = 16
-    #     args.values_per_channel = values_per_channel
-    #     run(args)
-    # for values_per_channel in [8]:
-    #     args.values_per_channel = values_per_channel
-    #     for index in range(20):
-    #         args.index = index
-    #         start = time.time()
-    #         run(args)
-    #         print("elapsed time: ", time.time() - start)
-    # for index in range(20):
-    #     args.index = index
-    #     for values_per_channel in [2**x for x in range(1,8,1)]:
-    #         args.values_per_channel = values_per_channel
-    #         run(args)
-    # for interpolate in ["exp", "log", "const", "linear"]:
-    # for interpolate in ["exp"]:
-    #     args.interpolate = interpolate
-    #     result_file(args)
-    #     for values_per_channel in [0]:
-    #         args.values_per_channel = values_per_channel
-    #         # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
-    #         # print("indexes: ", indexes)
-    #         for index in range(args.start_epoch, 10000):
-    #             args.index = index
-    #             print(args.get_str())
-    #             start = time.time()
-    #             run(args)
-    #             print("single run elapsed time: ", time.time() - start)
 
     for recover_type in ["noise"]:  # ["rounding", "fft", "gauss", "noise"]
         args.recover_type = recover_type
@@ -961,7 +913,7 @@ if __name__ == "__main__":
             stop = 20
         elif args.recover_type == "noise":
             start = 0
-            stop = 10
+            stop = 20
         else:
             raise Exception(f"Unknown recover type: {args.recover_type}")
 
@@ -987,7 +939,12 @@ if __name__ == "__main__":
             elif args.recover_type == "gauss":
                 args.noise_sigma = compress_value / 10
             elif args.recover_type == "noise":
-                args.noise_epsilon = compress_value / 100
+                divisor = 100
+                if args.dataset == "cifar10":
+                    divisor = 100
+                elif args.dataset == "imagenet":
+                    divisor = 100
+                args.noise_epsilon = compress_value / divisor
             elif args.recover_type == "roundfft":
                 pass
             else:
@@ -999,32 +956,30 @@ if __name__ == "__main__":
             # print("indexes: ", indexes)
             count_recovered = 0
             total_count = 0
-            for index in range(0, 5000, 50):
-                # for index in range(19, -1, -1):
+            for index in range(20):
                 # for index in range(args.start_epoch, limit, step):
                 # for index in range(args.start_epoch, 5000, 50):
                 # for index in range(limit - step, args.start_epoch - 1, -step):
-                # for index in range(args.start_epoch, 100, step):
                 total_count += 1
                 args.index = index
                 print("image index: ", index)
                 start = time.time()
-                original_label, rounded_label, fft_label, gauss_label, noise_label, adversarial_label = run(
+                true_label, original_label, rounded_label, fft_label, gauss_label, noise_label, adversarial_label = run(
                     args)
                 if args.recover_type == "fft":
-                    if fft_label is not None and original_label == fft_label:
+                    if fft_label is not None and true_label == fft_label:
                         count_recovered += 1
                 elif args.recover_type == "rounding":
-                    if rounded_label is not None and original_label == rounded_label:
+                    if rounded_label is not None and true_label == rounded_label:
                         count_recovered += 1
                 elif args.recover_type == "roundfft":
-                    if fft_label is not None and original_label == fft_label:
+                    if fft_label is not None and true_label == fft_label:
                         count_recovered += 1
                 elif args.recover_type == "gauss":
-                    if gauss_label is not None and original_label == gauss_label:
+                    if gauss_label is not None and true_label == gauss_label:
                         count_recovered += 1
                 elif args.recover_type == "noise":
-                    if noise_label is not None and original_label == noise_label:
+                    if noise_label is not None and true_label == noise_label:
                         count_recovered += 1
                 else:
                     raise Exception(
