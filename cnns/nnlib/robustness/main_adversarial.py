@@ -874,9 +874,6 @@ if __name__ == "__main__":
     if args.is_debug:
         args.use_foolbox_data = True
         index_range = range(20)
-    if args.use_foolbox_data:
-        step = 1
-        limit = 20
     else:
         step = 1
         if args.dataset == "imagenet":
