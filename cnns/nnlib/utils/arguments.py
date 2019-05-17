@@ -137,7 +137,7 @@ class Arguments(object):
         return self.__counter__
 
     def __init__(self,
-                 is_debug=False,
+                 is_debug=True,
                  # network_type=NetworkType.ResNet18,
                  # network_type=NetworkType.DenseNetCifar,
                  network_type=network_type,
