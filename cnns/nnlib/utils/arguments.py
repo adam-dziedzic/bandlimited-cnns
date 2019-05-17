@@ -303,6 +303,7 @@ class Arguments(object):
                  compress_fft_layer=0,
                  # attack_name="CarliniWagnerL2AttackRoundFFT",
                  attack_name="CarliniWagnerL2Attack",
+                 iterpolate="exp",
                  ):
         """
         The default parameters for the execution of the program.
@@ -421,6 +422,7 @@ class Arguments(object):
         self.compress_fft_layer = compress_fft_layer
         self.attack_name = attack_name
         self.noise_epsilon = noise_epsilon
+        self.interpolate = interpolate
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False

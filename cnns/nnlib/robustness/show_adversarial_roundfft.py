@@ -895,7 +895,7 @@ if __name__ == "__main__":
         print("cuda id not available")
         args.device = torch.device("cpu")
 
-    for recover_type in ["noise"]:  # ["rounding", "fft", "gauss", "noise"]
+    for recover_type in ["fft"]:  # ["rounding", "fft", "gauss", "noise"]
         args.recover_type = recover_type
         if args.recover_type == "rounding":
             start = 2
@@ -928,7 +928,6 @@ if __name__ == "__main__":
             f.write("compress_" + args.recover_type + "_layer,"
                                                       "% or recovered,"
                                                       "# of recovered\n")
-        args.interpolate = "exp"
         # for compress_fft_layer in [1, 2, 3, 5, 10, 15, 20, 25, 30, 35, 45, 50, 60, 75, 80, 90, 99]:
         for compress_value in range(start, stop):
             print("compress_" + args.recover_type + "_layer: ", compress_value)

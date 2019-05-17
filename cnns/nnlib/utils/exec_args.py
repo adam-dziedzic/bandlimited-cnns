@@ -254,14 +254,14 @@ def get_args():
     parser.add_argument("--noise_sigma", default=args.noise_sigma,
                         type=float,
                         help=f"how much Gaussian noise to add: "
-                             "{args.noise_sigma}")
+                        "{args.noise_sigma}")
     parser.add_argument("--noise_sigmas", default=args.noise_sigmas, nargs="+",
                         type=float,
                         help=f"how much Gaussian noise to add: {args.noise_sigmas}")
     parser.add_argument("--noise_epsilon", default=args.noise_epsilon,
                         type=float,
                         help=f"how much uniform noise to add: "
-                             f"{args.noise_epsilon}")
+                        f"{args.noise_epsilon}")
     parser.add_argument("--fft_type", default=args.fft_type,
                         help="the type of fft used: real_fft or complex_fft.")
     parser.add_argument("--imagenet_path", default=args.imagenet_path,
@@ -307,6 +307,9 @@ def get_args():
                         help="the name of the attack: either "
                              "CarliniWagnerL2Attack or "
                              "CarliniWagnerL2AttackRoundFFT")
+    parser.add_argument("--interpolate",
+                        default=args.interpolate,
+                        help="The type of interpolation to use: const, exp, lin, log.")
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)
