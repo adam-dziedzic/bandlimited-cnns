@@ -956,7 +956,8 @@ if __name__ == "__main__":
             # print("indexes: ", indexes)
             count_recovered = 0
             total_count = 0
-            for index in range(4950, -1, -50):
+            # for index in range(4950, -1, -50):
+            for index in range(0, 5000, 50):
                 # for index in range(args.start_epoch, limit, step):
                 # for index in range(args.start_epoch, 5000, 50):
                 # for index in range(limit - step, args.start_epoch - 1, -step):
