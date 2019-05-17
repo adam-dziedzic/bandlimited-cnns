@@ -303,7 +303,7 @@ class Arguments(object):
                  compress_fft_layer=0,
                  # attack_name="CarliniWagnerL2AttackRoundFFT",
                  attack_name="CarliniWagnerL2Attack",
-                 iterpolate="exp",
+                 interpolate="exp",
                  ):
         """
         The default parameters for the execution of the program.
