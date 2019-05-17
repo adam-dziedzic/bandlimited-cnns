@@ -895,7 +895,7 @@ if __name__ == "__main__":
         print("cuda id not available")
         args.device = torch.device("cpu")
 
-    for recover_type in ["fft"]:  # ["rounding", "fft", "gauss", "noise"]
+    for recover_type in ["rounding"]:  # ["rounding", "fft", "gauss", "noise"]
         args.recover_type = recover_type
         if args.recover_type == "rounding":
             start = 2
