@@ -59,8 +59,8 @@ else:
     # dataset = "mnist"
     # dataset = "cifar10"
     # dataset = "cifar100"
-    # dataset = "imagenet"
-    dataset = "svhn"
+    dataset = "imagenet"
+    # dataset = "svhn"
 
     batch_size = 32
     test_batch_size = batch_size

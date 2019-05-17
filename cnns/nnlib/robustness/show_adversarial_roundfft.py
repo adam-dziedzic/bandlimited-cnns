@@ -798,7 +798,7 @@ def run(args):
         args.values_per_channel) + "-" + "img-idx-" + str(
         args.index) + "-" + get_log_time()
     print("file name: ", file_name)
-    # plt.savefig(fname=file_name + "." + format, format=format)
+    plt.savefig(fname=file_name + "." + format, format=format)
     # plt.show(block=True)
     plt.close()
     true_label = args.original_label
@@ -865,7 +865,7 @@ if __name__ == "__main__":
     # args.index = 13  # index of the image (out of 20) to be used
     # args.compress_rate = 0
     # args.interpolate = "exp"
-    args.use_foolbox_data = True
+    args.use_foolbox_data = False
     if args.use_foolbox_data:
         step = 1
         limit = 20
@@ -910,8 +910,8 @@ if __name__ == "__main__":
         start = 0
         stop = 20
     elif args.recover_type == "noise":
-        start = 3
-        stop = 4
+        start = 1
+        stop = 10
     else:
         raise Exception(f"Unknown recover type: {args.recover_type}")
 
@@ -935,7 +935,7 @@ if __name__ == "__main__":
         elif args.recover_type == "gauss":
             args.noise_sigma = compress_value / 10
         elif args.recover_type == "noise":
-            args.noise_epsilon = compress_value / 100
+            args.noise_epsilon = compress_value / 1000
         elif args.recover_type == "roundfft":
             pass
         else:
@@ -948,8 +948,8 @@ if __name__ == "__main__":
         count_recovered = 0
         total_count = 0
         # for index in range(4950, -1, -50):
-        # for index in range(0, 5000, 50):
-        for index in range(1, 2):
+        for index in range(0, 5000, 50):
+        # for index in range(1, 2):
             # for index in range(args.start_epoch, limit, step):
             # for index in range(args.start_epoch, 5000, 50):
             # for index in range(limit - step, args.start_epoch - 1, -step):
