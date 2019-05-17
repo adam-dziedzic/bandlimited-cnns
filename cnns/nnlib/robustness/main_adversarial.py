@@ -871,6 +871,7 @@ if __name__ == "__main__":
     # args.compress_rate = 0
     # args.interpolate = "exp"
     index_range = range(0, 5000, 50)
+    args.use_foolbox_data = False
     if args.is_debug:
         args.use_foolbox_data = True
         index_range = range(20)
