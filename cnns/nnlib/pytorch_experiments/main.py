@@ -36,6 +36,7 @@ from cnns.nnlib.utils.general_utils import mem_log_file
 from cnns.nnlib.utils.general_utils import get_log_time
 from cnns.nnlib.datasets.mnist.mnist import get_mnist
 from cnns.nnlib.datasets.cifar import get_cifar
+from cnns.nnlib.datasets.svhn import get_svhn
 from cnns.nnlib.datasets.ucr.ucr import get_ucr
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
 from cnns.nnlib.utils.exec_args import get_args
@@ -339,9 +340,11 @@ def main(args):
     if dataset_name == "cifar10" or dataset_name == "cifar100":
         train_loader, test_loader, _, _ = get_cifar(args, dataset_name)
     elif dataset_name == "mnist":
-        train_loader, test_loader = get_mnist(args)
+        train_loader, test_loader, _, _ = get_mnist(args)
     elif dataset_name == "imagenet":
         train_loader, test_loader, _, _ = load_imagenet(args)
+    elif dataset_name == "svhn":
+        train_loader, test_loader, _, _ = get_svhn(args)
     elif dataset_name.startswith("WIFI"):
         # train_loader, test_loader, dev_loader = get_ucr(args)
         test_loader, train_loader, dev_loader = get_ucr(args)
@@ -631,6 +634,8 @@ if __name__ == '__main__':
         flist = ["cifar100"]
     elif args.dataset == "mnist":
         flist = ["mnist"]
+    elif args.dataset == "svhn":
+        flist = ["svhn"]
     elif args.dataset == "imagenet":
         flist = ["imagenet"]
     elif args.dataset.startswith("WIFI"):

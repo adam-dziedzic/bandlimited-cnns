@@ -310,6 +310,9 @@ def get_args():
     parser.add_argument("--interpolate",
                         default=args.interpolate,
                         help="The type of interpolation to use: const, exp, lin, log.")
+    parser.add_argument("--recover_type",
+                        default=args.recover_type,
+                        help="The type of interpolation to use: noise, fft, rounding.")
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)

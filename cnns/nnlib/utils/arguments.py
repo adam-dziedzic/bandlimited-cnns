@@ -59,7 +59,8 @@ else:
     # dataset = "mnist"
     # dataset = "cifar10"
     # dataset = "cifar100"
-    dataset = "imagenet"
+    # dataset = "imagenet"
+    dataset = "svhn"
 
     batch_size = 32
     test_batch_size = batch_size
@@ -103,6 +104,9 @@ else:
         test_batch_size = batch_size
         learning_rate = 0.1
         weight_decay = 0.0001
+        model_path = "no_model"
+    elif dataset == "svhn":
+        network_type = NetworkType.ResNet18
         model_path = "no_model"
     else:
         raise Exception(f"Unknown dataset name: {dataset}")
@@ -303,7 +307,8 @@ class Arguments(object):
                  compress_fft_layer=0,
                  # attack_name="CarliniWagnerL2AttackRoundFFT",
                  attack_name="CarliniWagnerL2Attack",
-                 interpolate="lin",
+                 interpolate="exp",
+                 recover_type="noise",
                  ):
         """
         The default parameters for the execution of the program.
@@ -423,6 +428,7 @@ class Arguments(object):
         self.attack_name = attack_name
         self.noise_epsilon = noise_epsilon
         self.interpolate = interpolate
+        self.recover_type = recover_type
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False

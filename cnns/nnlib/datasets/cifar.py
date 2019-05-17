@@ -90,8 +90,8 @@ def get_transform_test(args, dtype=torch.float32, signal_dimension=2,
 
 
 def get_cifar(args, dataset_name):
-    """
-    Get the MNIST dataset.
+    """"
+    Get CIFAR data.
 
     :param args: the general arguments for a program, e.g. memory type of debug
     mode.
@@ -134,6 +134,7 @@ def get_cifar(args, dataset_name):
         args.signal_dimension = 2
     else:
         raise Exception(f"Uknown network type: {args.network_type.name}")
+    
     train_dataset = dataset_loader(root='./data', train=True,
                                    download=True,
                                    transform=get_transform_train(

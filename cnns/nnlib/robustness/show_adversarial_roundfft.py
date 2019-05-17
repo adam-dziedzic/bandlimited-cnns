@@ -865,7 +865,7 @@ if __name__ == "__main__":
     # args.index = 13  # index of the image (out of 20) to be used
     # args.compress_rate = 0
     # args.interpolate = "exp"
-    args.use_foolbox_data = False
+    args.use_foolbox_data = True
     if args.use_foolbox_data:
         step = 1
         limit = 20
@@ -895,99 +895,93 @@ if __name__ == "__main__":
         print("cuda id not available")
         args.device = torch.device("cpu")
 
-    for recover_type in ["fft"]:  # ["rounding", "fft", "gauss", "noise"]
-        args.recover_type = recover_type
-        if args.recover_type == "rounding":
-            start = 2
-            stop = 260
-            # start = 0
-            # stop = 1
-        elif args.recover_type == "fft":
-            start = 1
-            stop = 99
-        elif args.recover_type == "roundfft":
-            start = 0
-            stop = 1
-        elif args.recover_type == "gauss":
-            start = 0
-            stop = 20
-        elif args.recover_type == "noise":
-            start = 1
-            stop = 10
-        else:
-            raise Exception(f"Unknown recover type: {args.recover_type}")
+    if args.recover_type == "rounding":
+        start = 2
+        stop = 260
+        # start = 0
+        # stop = 1
+    elif args.recover_type == "fft":
+        start = 1
+        stop = 99
+    elif args.recover_type == "roundfft":
+        start = 0
+        stop = 1
+    elif args.recover_type == "gauss":
+        start = 0
+        stop = 20
+    elif args.recover_type == "noise":
+        start = 3
+        stop = 4
+    else:
+        raise Exception(f"Unknown recover type: {args.recover_type}")
 
-        print(args.get_str())
-        out_recovered_file = "out_" + args.recover_type + "_recovered" + str(
-            args.dataset) + "-" + str(
-            args.values_per_channel) + "-" + str(
-            args.compress_fft_layer) + "-" + str(
-            args.interpolate) + "-" + get_log_time() + ".txt"
-        with open(out_recovered_file, "a") as f:
-            f.write("compress_" + args.recover_type + "_layer,"
-                                                      "% or recovered,"
-                                                      "# of recovered\n")
-        # for compress_fft_layer in [1, 2, 3, 5, 10, 15, 20, 25, 30, 35, 45, 50, 60, 75, 80, 90, 99]:
-        for compress_value in range(start, stop):
-            print("compress_" + args.recover_type + "_layer: ", compress_value)
+    print(args.get_str())
+    out_recovered_file = "out_" + args.recover_type + "_recovered" + str(
+        args.dataset) + "-" + str(
+        args.values_per_channel) + "-" + str(
+        args.compress_fft_layer) + "-" + str(
+        args.interpolate) + "-" + get_log_time() + ".txt"
+    with open(out_recovered_file, "a") as f:
+        f.write("compress_" + args.recover_type + "_layer,"
+                                                  "% or recovered,"
+                                                  "# of recovered\n")
+    # for compress_fft_layer in [1, 2, 3, 5, 10, 15, 20, 25, 30, 35, 45, 50, 60, 75, 80, 90, 99]:
+    for compress_value in range(start, stop):
+        print("compress_" + args.recover_type + "_layer: ", compress_value)
+        if args.recover_type == "fft":
+            args.compress_fft_layer = compress_value
+        elif args.recover_type == "rounding":
+            args.values_per_channel = compress_value
+        elif args.recover_type == "gauss":
+            args.noise_sigma = compress_value / 10
+        elif args.recover_type == "noise":
+            args.noise_epsilon = compress_value / 100
+        elif args.recover_type == "roundfft":
+            pass
+        else:
+            raise Exception(
+                f"Unknown recover type: {args.recover_type}")
+
+        result_file(args)
+        # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
+        # print("indexes: ", indexes)
+        count_recovered = 0
+        total_count = 0
+        # for index in range(4950, -1, -50):
+        # for index in range(0, 5000, 50):
+        for index in range(1, 2):
+            # for index in range(args.start_epoch, limit, step):
+            # for index in range(args.start_epoch, 5000, 50):
+            # for index in range(limit - step, args.start_epoch - 1, -step):
+            total_count += 1
+            args.index = index
+            print("image index: ", index)
+            start = time.time()
+            true_label, original_label, rounded_label, fft_label, gauss_label, noise_label, adversarial_label = run(
+                args)
             if args.recover_type == "fft":
-                args.compress_fft_layer = compress_value
+                if fft_label is not None and true_label == fft_label:
+                    count_recovered += 1
             elif args.recover_type == "rounding":
-                args.values_per_channel = compress_value
-            elif args.recover_type == "gauss":
-                args.noise_sigma = compress_value / 10
-            elif args.recover_type == "noise":
-                divisor = 1000
-                if args.dataset == "cifar10":
-                    divisor = 100
-                elif args.dataset == "imagenet":
-                    divisor = 100
-                args.noise_epsilon = compress_value / divisor
+                if rounded_label is not None and true_label == rounded_label:
+                    count_recovered += 1
             elif args.recover_type == "roundfft":
-                pass
+                if fft_label is not None and true_label == fft_label:
+                    count_recovered += 1
+            elif args.recover_type == "gauss":
+                if gauss_label is not None and true_label == gauss_label:
+                    count_recovered += 1
+            elif args.recover_type == "noise":
+                if noise_label is not None and true_label == noise_label:
+                    count_recovered += 1
             else:
                 raise Exception(
                     f"Unknown recover type: {args.recover_type}")
-
-            result_file(args)
-            # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
-            # print("indexes: ", indexes)
-            count_recovered = 0
-            total_count = 0
-            # for index in range(4950, -1, -50):
-            for index in range(0, 5000, 50):
-                # for index in range(args.start_epoch, limit, step):
-                # for index in range(args.start_epoch, 5000, 50):
-                # for index in range(limit - step, args.start_epoch - 1, -step):
-                total_count += 1
-                args.index = index
-                print("image index: ", index)
-                start = time.time()
-                true_label, original_label, rounded_label, fft_label, gauss_label, noise_label, adversarial_label = run(
-                    args)
-                if args.recover_type == "fft":
-                    if fft_label is not None and true_label == fft_label:
-                        count_recovered += 1
-                elif args.recover_type == "rounding":
-                    if rounded_label is not None and true_label == rounded_label:
-                        count_recovered += 1
-                elif args.recover_type == "roundfft":
-                    if fft_label is not None and true_label == fft_label:
-                        count_recovered += 1
-                elif args.recover_type == "gauss":
-                    if gauss_label is not None and true_label == gauss_label:
-                        count_recovered += 1
-                elif args.recover_type == "noise":
-                    if noise_label is not None and true_label == noise_label:
-                        count_recovered += 1
-                else:
-                    raise Exception(
-                        f"Unknown recover type: {args.recover_type}")
-                print("single run elapsed time: ", time.time() - start)
-            with open(out_recovered_file, "a") as f:
-                f.write(",".join([str(x) for x in
-                                  [compress_value,
-                                   count_recovered / total_count * 100,
-                                   count_recovered]]) + "\n")
+            print("single run elapsed time: ", time.time() - start)
+        with open(out_recovered_file, "a") as f:
+            f.write(",".join([str(x) for x in
+                              [compress_value,
+                               count_recovered / total_count * 100,
+                               count_recovered]]) + "\n")
 
     print("total elapsed time: ", time.time() - start_time)
