@@ -298,7 +298,8 @@ def run(args):
     # fft_types = ["magnitude", "phase"]
     fft_types = []
     if args.is_debug:
-        fft_types = ["magnitude"]
+        # fft_types = ["magnitude"]
+        fft_types = []
     channels = [x for x in range(channels_nr)]
     attack_round_fft = CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
                                                      get_mask=get_hyper_mask)
@@ -875,6 +876,7 @@ if __name__ == "__main__":
     if args.is_debug:
         args.use_foolbox_data = True
         index_range = range(20)
+        args.recover_type = "debug"
     else:
         step = 1
         if args.dataset == "imagenet":
@@ -902,7 +904,7 @@ if __name__ == "__main__":
         args.device = torch.device("cpu")
 
     if args.recover_type == "rounding":
-        val_range = range(2, 261)
+        val_range = range(204, 261)
     elif args.recover_type == "fft":
         val_range = range(1, 100)
     elif args.recover_type == "roundfft":
@@ -912,6 +914,8 @@ if __name__ == "__main__":
         val_range += [x/100 for x in range(50)]
         if args.is_debug:
             val_range = [0.03]
+    elif args.recover_type == "debug":
+        val_range = [-1]
     else:
         raise Exception(f"Unknown recover type: {args.recover_type}")
 
@@ -928,7 +932,12 @@ if __name__ == "__main__":
     # for compress_fft_layer in [1, 2, 3, 5, 10, 15, 20, 25, 30, 35, 45, 50, 60, 75, 80, 90, 99]:
     for compress_value in val_range:
         print("compress_" + args.recover_type + "_layer: ", compress_value)
-        if args.recover_type == "fft":
+        if args.recover_type == "debug":
+            args.noise_epsilon = 0.03
+            args.noise_sigma = 0.03
+            args.compress_fft_layer = 16
+            args.values_per_channel = 48
+        elif args.recover_type == "fft":
             args.compress_fft_layer = compress_value
         elif args.recover_type == "rounding":
             args.values_per_channel = compress_value
@@ -975,6 +984,8 @@ if __name__ == "__main__":
             elif args.recover_type == "noise":
                 if noise_label is not None and true_label == noise_label:
                     count_recovered += 1
+            elif args.recover_type == "debug":
+                pass
             else:
                 raise Exception(
                     f"Unknown recover type: {args.recover_type}")

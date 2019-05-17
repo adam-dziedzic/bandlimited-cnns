@@ -23,10 +23,10 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 
 # 1D
 # conv_type = ConvType.FFT1D
-conv_type = ConvType.STANDARD
+# conv_type = ConvType.STANDARD
 
 # 2D
-# conv_type = ConvType.STANDARD2D
+conv_type = ConvType.STANDARD2D
 # conv_type = ConvType.FFT2D
 compress_rate = 0.0
 
@@ -59,9 +59,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     model_path = "no_model"
 else:
     # dataset = "mnist"
-    dataset = "cifar10"
+    # dataset = "cifar10"
     # dataset = "cifar100"
-    # dataset = "imagenet"
+    dataset = "imagenet"
     # dataset = "svhn"
 
     batch_size = 32
