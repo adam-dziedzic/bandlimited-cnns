@@ -895,7 +895,7 @@ if __name__ == "__main__":
         print("cuda id not available")
         args.device = torch.device("cpu")
 
-    for recover_type in ["fft"]:  # ["rounding", "fft", "gauss", "noise"]
+    for recover_type in ["noise"]:  # ["rounding", "fft", "gauss", "noise"]
         args.recover_type = recover_type
         if args.recover_type == "rounding":
             start = 2
@@ -912,8 +912,8 @@ if __name__ == "__main__":
             start = 0
             stop = 20
         elif args.recover_type == "noise":
-            start = 20
-            stop = 100
+            start = 1
+            stop = 10
         else:
             raise Exception(f"Unknown recover type: {args.recover_type}")
 
@@ -939,7 +939,7 @@ if __name__ == "__main__":
             elif args.recover_type == "gauss":
                 args.noise_sigma = compress_value / 10
             elif args.recover_type == "noise":
-                divisor = 100
+                divisor = 1000
                 if args.dataset == "cifar10":
                     divisor = 100
                 elif args.dataset == "imagenet":
