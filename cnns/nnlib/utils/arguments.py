@@ -23,17 +23,18 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 
 # 1D
 # conv_type = ConvType.FFT1D
-# conv_type = ConvType.STANDARD
+conv_type = ConvType.STANDARD
 
 # 2D
-conv_type = ConvType.STANDARD2D
+# conv_type = ConvType.STANDARD2D
 # conv_type = ConvType.FFT2D
 compress_rate = 0.0
 
 if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # dataset = "ucr"
     # dataset = "WIFI64"
-    dataset = "debug22"  # only Adiac
+    # dataset = "debug22"  # only Adiac
+    dataset = "WIFI5-192"
     network_type = NetworkType.FCNN_STANDARD
     preserved_energy = 100  # for unit tests
     # learning_rate = 0.0001
@@ -55,11 +56,12 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     momentum = 0.9
     loss_type = LossType.CROSS_ENTROPY
     loss_reduction = LossReduction.ELEMENTWISE_MEAN
+    model_path = "no_model"
 else:
     # dataset = "mnist"
-    # dataset = "cifar10"
+    dataset = "cifar10"
     # dataset = "cifar100"
-    dataset = "imagenet"
+    # dataset = "imagenet"
     # dataset = "svhn"
 
     batch_size = 32
@@ -107,6 +109,9 @@ else:
         model_path = "no_model"
     elif dataset == "svhn":
         network_type = NetworkType.ResNet18
+        model_path = "no_model"
+    elif dataset.startswith("WIFI"):
+        network_type = NetworkType.FCNN_STANDARD
         model_path = "no_model"
     else:
         raise Exception(f"Unknown dataset name: {dataset}")
@@ -308,7 +313,7 @@ class Arguments(object):
                  # attack_name="CarliniWagnerL2AttackRoundFFT",
                  attack_name="CarliniWagnerL2Attack",
                  interpolate="exp",
-                 recover_type="noise",
+                 recover_type="gauss",
                  ):
         """
         The default parameters for the execution of the program.

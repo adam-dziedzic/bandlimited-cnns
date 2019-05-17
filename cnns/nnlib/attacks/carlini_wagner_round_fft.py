@@ -18,6 +18,7 @@ from cnns.nnlib.utils.complex_mask import get_disk_mask
 from cnns.nnlib.utils.complex_mask import get_hyper_mask
 from cnns.nnlib.datasets.transformations.denorm_round_norm import \
     DenormRoundNorm
+from foolbox.attacks.additive_noise import AdditiveUniformNoiseAttack
 
 
 class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
@@ -55,6 +56,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                 mean_array=args.mean_array, std_array=args.std_array,
                 values_per_channel=args.values_per_channel)
             self.get_mask = get_mask
+            self.noise = AdditiveUniformNoiseAttack()
 
     def fft_complex_compression(self, image, is_clip=True, ctx=None,
                                 onesided=True):
@@ -298,6 +300,11 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                     x_prime = self.rounder.round(x_prime)
                 if self.args.compress_fft_layer > 0:
                     x_prime = self.fft_complex_compression(x_prime)
+                if self.args.noise_epsilon > 0:
+                    noise = self.noise._sample_noise(
+                        epsilon=self.args.noise_epsilon, image=x_prime,
+                        bounds=(self.args.min, self.args.max))
+                    x_prime += noise
 
                 # print("diff between input image and rounded: ",
                 #       np.sum(np.abs(x_rounded - x)))

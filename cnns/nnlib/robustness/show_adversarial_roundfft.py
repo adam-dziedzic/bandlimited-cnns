@@ -868,7 +868,7 @@ if __name__ == "__main__":
     # args.index = 13  # index of the image (out of 20) to be used
     # args.compress_rate = 0
     # args.interpolate = "exp"
-    args.use_foolbox_data = False
+    args.use_foolbox_data = True
     if args.use_foolbox_data:
         step = 1
         limit = 20
@@ -910,8 +910,8 @@ if __name__ == "__main__":
         start = 0
         stop = 1
     elif args.recover_type == "gauss":
-        start = 0
-        stop = 30
+        start = 40
+        stop = 61
     elif args.recover_type == "noise":
         start = 0
         stop = 61
@@ -937,7 +937,7 @@ if __name__ == "__main__":
             args.values_per_channel = compress_value
         elif args.recover_type == "gauss" or args.recover_type == "noise":
             # first from 0.001 to 0.01
-            if args.noise_epsilon < 11:
+            if compress_value < 11:
                 args.noise_epsilon = compress_value / 1000
             else:
                 # then from 0.01 to 0.05
@@ -958,7 +958,8 @@ if __name__ == "__main__":
         count_recovered = 0
         total_count = 0
         # for index in range(4950, -1, -50):
-        for index in range(0, 5000, 50):
+        # for index in range(0, 5000, 50):
+        for index in range(0, 20):
         # for index in range(1, 2):
             # for index in range(args.start_epoch, limit, step):
             # for index in range(args.start_epoch, 5000, 50):

@@ -12,7 +12,7 @@ type = ""
 sample_size = 192  # 500 for small data # how many values in a single sample collected
 train_rate = 0.5  # rate of training data, test data rate is 1 - train_rate
 outlier_std_count = 5
-class_counter = 3
+class_counter = 5
 
 datasets = []
 min_len = sys.maxsize  # get the minimum length of dataset for each class
@@ -119,7 +119,7 @@ del test_datasets
 # print("data train dims: ", data_train.shape)
 # np.savetxt("WIFI_TRAIN", data_train, delimiter=",")
 sample_size = str(sample_size)
-dataset_name = "WIFI3"
+dataset_name = "WIFI" + str(class_counter)
 dir_name = dataset_name + "-" + sample_size
 full_dir = dir_name + "/" + dir_name
 
