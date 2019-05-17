@@ -912,8 +912,8 @@ if __name__ == "__main__":
             start = 0
             stop = 20
         elif args.recover_type == "noise":
-            start = 0
-            stop = 20
+            start = 20
+            stop = 100
         else:
             raise Exception(f"Unknown recover type: {args.recover_type}")
 
