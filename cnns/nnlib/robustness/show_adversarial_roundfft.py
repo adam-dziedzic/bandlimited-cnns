@@ -864,7 +864,7 @@ if __name__ == "__main__":
     # args.dataset = "mnist"
     # args.index = 13  # index of the image (out of 20) to be used
     # args.compress_rate = 0
-    args.interpolate = "exp"
+    # args.interpolate = "exp"
     args.use_foolbox_data = False
     if args.use_foolbox_data:
         step = 1
@@ -918,8 +918,6 @@ if __name__ == "__main__":
             raise Exception(f"Unknown recover type: {args.recover_type}")
 
         print(args.get_str())
-        # for interpolate in ["exp"]:
-        #     args.interpolate = interpolate
         out_recovered_file = "out_" + args.recover_type + "_recovered" + str(
             args.dataset) + "-" + str(
             args.values_per_channel) + "-" + str(
