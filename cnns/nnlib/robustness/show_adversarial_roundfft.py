@@ -61,7 +61,7 @@ from cnns.nnlib.utils.complex_mask import get_hyper_mask
 from cnns.nnlib.utils.general_utils import AttackType
 from cnns.nnlib.datasets.transformations.gaussian_noise import gauss
 from foolbox.attacks.additive_noise import AdditiveUniformNoiseAttack
-
+from foolbox.attacks.additive_noise import AdditiveGaussianNoiseAttack
 
 def softmax(x):
     s = np.exp(x - np.max(x))
@@ -530,8 +530,6 @@ def run(args):
             image = compress_image
             title = "FFT Compressed: " + str(
                 args.compress_fft_layer) + "%" + "\n"
-            if args.interpolate == None:
-                args.interpolate = "const"
             title += "interpolation: " + args.interpolate
             fft_label, fft_confidence, fft_L2_distance = show_image(
                 image=compress_image,
@@ -542,7 +540,11 @@ def run(args):
         gauss_confidence = "N/A"
         gauss_L2_distance = "N/A"
         if args.noise_sigma >= 0 and image is not None:
-            gauss_image = gauss(image_numpy=image, sigma=args.noise_sigma)
+            # gauss_image = gauss(image_numpy=image, sigma=args.noise_sigma)
+            noise = AdditiveGaussianNoiseAttack()._sample_noise(
+                epsilon=args.noise_epsilon, image=image,
+                bounds=(args.min, args.max))
+            gauss_image = image + noise
             image = gauss_image
             title = "Level of Gaussian-noise: " + str(args.noise_sigma)
             gauss_label, gauss_confidence, gauss_L2_distance = show_image(
@@ -798,7 +800,8 @@ def run(args):
         args.values_per_channel) + "-" + "img-idx-" + str(
         args.index) + "-" + get_log_time()
     print("file name: ", file_name)
-    plt.savefig(fname=file_name + "." + format, format=format)
+    if args.is_debug:
+        plt.savefig(fname=file_name + "." + format, format=format)
     # plt.show(block=True)
     plt.close()
     true_label = args.original_label
@@ -908,10 +911,10 @@ if __name__ == "__main__":
         stop = 1
     elif args.recover_type == "gauss":
         start = 0
-        stop = 20
+        stop = 30
     elif args.recover_type == "noise":
-        start = 1
-        stop = 10
+        start = 0
+        stop = 61
     else:
         raise Exception(f"Unknown recover type: {args.recover_type}")
 
@@ -932,10 +935,17 @@ if __name__ == "__main__":
             args.compress_fft_layer = compress_value
         elif args.recover_type == "rounding":
             args.values_per_channel = compress_value
-        elif args.recover_type == "gauss":
-            args.noise_sigma = compress_value / 10
-        elif args.recover_type == "noise":
-            args.noise_epsilon = compress_value / 1000
+        elif args.recover_type == "gauss" or args.recover_type == "noise":
+            # first from 0.001 to 0.01
+            if args.noise_epsilon < 11:
+                args.noise_epsilon = compress_value / 1000
+            else:
+                # then from 0.01 to 0.05
+                compress_value -= 10
+                args.noise_epsilon = compress_value / 100
+            args.noise_sigma = args.noise_epsilon
+            compress_value = args.noise_epsilon
+
         elif args.recover_type == "roundfft":
             pass
         else:
