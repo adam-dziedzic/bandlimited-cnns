@@ -929,7 +929,7 @@ if __name__ == "__main__":
                                                   "% or recovered,"
                                                   "# of recovered\n")
     # for compress_fft_layer in [1, 2, 3, 5, 10, 15, 20, 25, 30, 35, 45, 50, 60, 75, 80, 90, 99]:
-    for compress_value in range(start, stop):
+    for compress_value in range(args.start_epsilon, stop):
         print("compress_" + args.recover_type + "_layer: ", compress_value)
         if args.recover_type == "fft":
             args.compress_fft_layer = compress_value
