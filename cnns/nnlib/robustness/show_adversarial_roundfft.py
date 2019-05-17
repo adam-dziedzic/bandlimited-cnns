@@ -923,7 +923,8 @@ if __name__ == "__main__":
         out_recovered_file = "out_" + args.recover_type + "_recovered" + str(
             args.dataset) + "-" + str(
             args.values_per_channel) + "-" + str(
-            args.compress_fft_layer) + "-" + get_log_time() + ".txt"
+            args.compress_fft_layer) + "-" + str(
+            args.interpolate) + "-" + get_log_time() + ".txt"
         with open(out_recovered_file, "a") as f:
             f.write("compress_" + args.recover_type + "_layer,"
                                                       "% or recovered,"
@@ -955,7 +956,7 @@ if __name__ == "__main__":
             # print("indexes: ", indexes)
             count_recovered = 0
             total_count = 0
-            for index in range(0, 5000, 50):
+            for index in range(4950, -1, -50):
                 # for index in range(args.start_epoch, limit, step):
                 # for index in range(args.start_epoch, 5000, 50):
                 # for index in range(limit - step, args.start_epoch - 1, -step):
