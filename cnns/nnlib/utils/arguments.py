@@ -314,6 +314,7 @@ class Arguments(object):
                  attack_name="CarliniWagnerL2Attack",
                  interpolate="exp",
                  recover_type="gauss",
+                 step_size=50,
                  ):
         """
         The default parameters for the execution of the program.
@@ -434,6 +435,7 @@ class Arguments(object):
         self.noise_epsilon = noise_epsilon
         self.interpolate = interpolate
         self.recover_type = recover_type
+        self.step_size = step_size
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False
