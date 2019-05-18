@@ -314,8 +314,18 @@ def run(args):
     if args.attack_name == "CarliniWagnerL2Attack":
         attack = foolbox.attacks.CarliniWagnerL2Attack(fmodel)
     elif args.attack_name == "CarliniWagnerL2AttackRoundFFT":
+        # L2 norm
         attack = CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
                                                get_mask=get_hyper_mask)
+    elif args.attack_name == "ProjectedGradientDescentAttack":
+        # L infinity norm
+        attack = foolbox.attacks.ProjectedGradientDescentAttack(fmodel)
+    elif args.attack_name == "FGSM":
+        # L infinity norm
+        attack = foolbox.attacks.FGSM(fmodel)
+    elif args.attack_name == "RandomStartProjectedGradientDescentAttack":
+        attack = foolbox.attacks.RandomStartProjectedGradientDescentAttack(
+            fmodel)
     else:
         raise Exception(f"Unknown attack name: {args.attack_name}")
     attacks = [attack]
@@ -488,7 +498,10 @@ def run(args):
         adversarial_confidence = "N/A"
         adversarial_L2_distance = "N/A"
         if args.adv_attack == "before":
-            print("attack name: ", attack.name())
+            attack_name = attack.name()
+            print("attack name: ", attack_name)
+            if attack_name != "CarliniWagnerL2Attack":
+                full_name += "-" + str(attack_name)
             if os.path.exists(full_name + ".npy"):
                 adversarial = np.load(file=full_name + ".npy")
             else:
@@ -905,7 +918,7 @@ if __name__ == "__main__":
         args.device = torch.device("cpu")
 
     if args.recover_type == "rounding":
-        val_range = range(84, 261)
+        val_range = range(2, 261)
     elif args.recover_type == "fft":
         val_range = range(1, 100)
     elif args.recover_type == "roundfft":
