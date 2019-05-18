@@ -942,7 +942,8 @@ if __name__ == "__main__":
         args.dataset) + "-" + str(
         args.values_per_channel) + "-" + str(
         args.compress_fft_layer) + "-" + str(
-        args.interpolate) + "-" + get_log_time() + ".txt"
+        args.interpolate) + "-" + str(
+        args.attack_name) + "-" + get_log_time() + ".txt"
     with open(out_recovered_file, "a") as f:
         f.write("compress_" + args.recover_type + "_layer,"
                                                   "% or recovered,"
