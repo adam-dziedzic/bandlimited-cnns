@@ -876,7 +876,7 @@ if __name__ == "__main__":
     args.use_foolbox_data = False
     if args.is_debug:
         args.use_foolbox_data = False
-        index_range = range(1000)
+        index_range = range(100, 1000)
         args.recover_type = "debug"
     else:
         step = 1
@@ -905,7 +905,7 @@ if __name__ == "__main__":
         args.device = torch.device("cpu")
 
     if args.recover_type == "rounding":
-        val_range = range(204, 261)
+        val_range = range(84, 261)
     elif args.recover_type == "fft":
         val_range = range(1, 100)
     elif args.recover_type == "roundfft":
