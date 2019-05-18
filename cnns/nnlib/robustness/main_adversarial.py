@@ -326,6 +326,10 @@ def run(args):
     elif args.attack_name == "RandomStartProjectedGradientDescentAttack":
         attack = foolbox.attacks.RandomStartProjectedGradientDescentAttack(
             fmodel)
+    elif args.attack_name == "DeepFoolAttack":
+        attack = foolbox.attacks.DeepFoolAttack(fmodel)
+    elif args.attack_name == "LBFGSAttack":
+        attack = foolbox.attacks.LBFGSAttack(fmodel)
     else:
         raise Exception(f"Unknown attack name: {args.attack_name}")
     attacks = [attack]
