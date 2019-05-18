@@ -936,7 +936,7 @@ if __name__ == "__main__":
             args.noise_epsilon = 0.03
             args.noise_sigma = 0.03
             args.compress_fft_layer = 16
-            args.values_per_channel = 48
+            args.values_per_channel = 32
         elif args.recover_type == "fft":
             args.compress_fft_layer = compress_value
         elif args.recover_type == "rounding":
