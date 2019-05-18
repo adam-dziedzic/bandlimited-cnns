@@ -952,10 +952,10 @@ if __name__ == "__main__":
     for compress_value in val_range:
         print("compress_" + args.recover_type + "_layer: ", compress_value)
         if args.recover_type == "debug":
-            args.values_per_channel = 32
-            args.compress_fft_layer = 16
-            args.noise_sigma = 0.03
-            args.noise_epsilon = 0.03
+            args.values_per_channel = 64
+            args.compress_fft_layer = 1
+            args.noise_sigma = 0.005
+            args.noise_epsilon = 0.005
         elif args.recover_type == "fft":
             args.compress_fft_layer = compress_value
         elif args.recover_type == "rounding":
