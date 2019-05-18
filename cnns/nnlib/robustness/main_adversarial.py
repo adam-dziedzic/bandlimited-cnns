@@ -732,7 +732,7 @@ def run(args):
                                       title="Original",
                                       is_log=is_log)
 
-                if adversarial is not None and args.attack_name == "CarliniWagnerL2Attack":
+                if adversarial is not None and args.attack_type == "before":
                     adversarial_fft = print_fft(image=adversarial,
                                                 channel=channel,
                                                 title="Adversarial",
@@ -761,7 +761,7 @@ def run(args):
                                           title="Uniform noise",
                                           is_log=is_log)
 
-                if adversarial is not None and args.attack_name == "CarliniWagnerL2AttackRoundFFT":
+                if adversarial is not None and args.attack_type == "after":
                     adversarial_fft = print_fft(image=adversarial,
                                                 channel=channel,
                                                 title="Adversarial",

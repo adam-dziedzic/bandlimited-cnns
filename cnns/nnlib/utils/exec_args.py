@@ -315,8 +315,8 @@ def get_args():
                         help="The type of interpolation to use: noise, fft, rounding.")
     parser.add_argument('--step_size', type=int, default=args.step_size,
                         metavar='Step size',
-                        help=f"number of images to skip for attack in sequential order ("
-                        f"default: {args.step_size})")
+                        help=f"number of images to skip for an attack in "
+                        f"sequential order (default: {args.step_size})")
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)
