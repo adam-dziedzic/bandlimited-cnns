@@ -924,15 +924,20 @@ if __name__ == "__main__":
         args.device = torch.device("cpu")
 
     if args.recover_type == "rounding":
-        val_range = range(2, 261)
+        val_range = range(2, 261, 5)
+        # val_range = range(200, 261, 5)
+        # val_range = range(260, 200, -5)
     elif args.recover_type == "fft":
-        val_range = range(1, 100)
+        val_range = range(1, 100, 2)
     elif args.recover_type == "roundfft":
         val_range = range(5)
     elif args.recover_type == "gauss" or args.recover_type == "noise":
+        val_range = []
         # val_range = [x / 1000 for x in range(10)]
-        # val_range += [x / 100 for x in range(1, 51)]
-        val_range = [x / 100 for x in range(51, 0, -1)]
+        # val_range += [x / 100 for x in range(1, 11)]
+        val_range += [x / 100 for x in range(11, 31)]
+        # val_range += [x / 100 for x in range(31, 51)]
+        # val_range += [x / 100 for x in range(51, 0, -1)]
         if args.is_debug:
             val_range = [0.03]
     elif args.recover_type == "debug":
