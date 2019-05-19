@@ -563,7 +563,7 @@ def run(args):
         if args.noise_sigma > 0 and image is not None:
             # gauss_image = gauss(image_numpy=image, sigma=args.noise_sigma)
             noise = AdditiveGaussianNoiseAttack()._sample_noise(
-                epsilon=args.noise_epsilon, image=image,
+                epsilon=args.noise_sigma, image=image,
                 bounds=(args.min, args.max))
             gauss_image = image + noise
             title = "Level of Gaussian-noise: " + str(args.noise_sigma)
@@ -895,7 +895,7 @@ if __name__ == "__main__":
     args.use_foolbox_data = False
     if args.is_debug:
         args.use_foolbox_data = False
-        index_range = range(100, 1000)
+        index_range = range(0, 1000, 50)
         args.recover_type = "debug"
     else:
         step = 1
@@ -930,9 +930,9 @@ if __name__ == "__main__":
     elif args.recover_type == "roundfft":
         val_range = range(5)
     elif args.recover_type == "gauss" or args.recover_type == "noise":
-        # val_range = [x / 1000 for x in range(10)]
-        # val_range += [x / 100 for x in range(1, 51)]
-        val_range = [x / 100 for x in range(5, 100)]
+        val_range = [x / 1000 for x in range(10)]
+        val_range += [x / 100 for x in range(1, 51)]
+        # val_range = [x / 100 for x in range(5, 100)]
         if args.is_debug:
             val_range = [0.03]
     elif args.recover_type == "debug":
