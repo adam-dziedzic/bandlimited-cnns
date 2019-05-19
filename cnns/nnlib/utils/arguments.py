@@ -69,7 +69,7 @@ else:
     learning_rate = 0.01
     weight_decay = 0.0005
     momentum = 0.9
-    epochs=350
+    epochs=100
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
@@ -138,7 +138,7 @@ class Arguments(object):
         return self.__counter__
 
     def __init__(self,
-                 is_debug=True,
+                 is_debug=False,
                  # network_type=NetworkType.ResNet18,
                  # network_type=NetworkType.DenseNetCifar,
                  network_type=network_type,
@@ -314,8 +314,8 @@ class Arguments(object):
                  # attack_name="CarliniWagnerL2AttackRoundFFT",
                  # attack_name="CarliniWagnerL2Attack",
                  attack_name="FGSM",
-                 interpolate="exp",
-                 recover_type="gauss",
+                 interpolate="const",
+                 recover_type="fft",
                  step_size=50,
                  ):
         """

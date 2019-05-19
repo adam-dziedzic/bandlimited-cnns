@@ -62,6 +62,7 @@ from cnns.nnlib.utils.general_utils import AttackType
 from cnns.nnlib.datasets.transformations.gaussian_noise import gauss
 from foolbox.attacks.additive_noise import AdditiveUniformNoiseAttack
 from foolbox.attacks.additive_noise import AdditiveGaussianNoiseAttack
+from cnns.nnlib.utils.object import Object
 
 results_folder = "results/"
 
@@ -198,6 +199,7 @@ def get_fmodel(args):
 
 
 def run(args):
+    result = Object()
     fmodel, from_class_idx_to_label = get_fmodel(args=args)
 
     lim_y, lim_x = args.init_y, args.init_x
@@ -479,6 +481,7 @@ def run(args):
             image=original_image,
             original_image=original_image,
             title="Original")
+        result.original_L2_distance = original_L2_distance
 
         if show_2nd:
             original_label2, original_confidence2, original_L2_distance2 = show_image(
@@ -502,7 +505,7 @@ def run(args):
         adversarial = None
         adversarial_label = "N/A"
         adversarial_confidence = "N/A"
-        adversarial_L2_distance = "N/A"
+        adversarial_L2_distance = -1
         if args.adv_attack == "before":
             attack_name = attack.name()
             print("attack name: ", attack_name)
@@ -521,10 +524,11 @@ def run(args):
                     original_image=original_image,
                     title="Adversarial")
 
+
         # The rounded image.
         rounded_label = "N/A"
         rounded_confidence = "N/A"
-        rounded_L2_distance = "N/A"
+        rounded_L2_distance = -1
         if args.values_per_channel > 0 and image is not None:
             rounder = DenormRoundNorm(
                 mean_array=args.mean_array, std_array=args.std_array,
@@ -542,10 +546,11 @@ def run(args):
                 title="Rounded")
             print("show diff between input image and rounded: ",
                   np.sum(np.abs(rounded_image - original_image)))
+        result.rounded_L2_distance = rounded_L2_distance
 
         fft_label = "N/A"
         fft_confidence = "N/A"
-        fft_L2_distance = "N/A"
+        fft_L2_distance = -1
         if args.compress_fft_layer > 0 and image is not None:
             compress_image = attack_round_fft.fft_complex_compression(
                 image=image)
@@ -556,10 +561,11 @@ def run(args):
                 image=compress_image,
                 original_image=original_image,
                 title=title)
+        result.fft_L2_distance = fft_L2_distance
 
         gauss_label = "N/A"
         gauss_confidence = "N/A"
-        gauss_L2_distance = "N/A"
+        gauss_L2_distance = -1
         if args.noise_sigma > 0 and image is not None:
             # gauss_image = gauss(image_numpy=image, sigma=args.noise_sigma)
             noise = AdditiveGaussianNoiseAttack()._sample_noise(
@@ -571,10 +577,11 @@ def run(args):
                 image=gauss_image,
                 original_image=original_image,
                 title=title)
+        result.gauss_L2_distance = gauss_L2_distance
 
         noise_label = "N/A"
         noise_confidence = "N/A"
-        noise_L2_distance = "N/A"
+        noise_L2_distance = -1
         if args.noise_epsilon > 0 and image is not None:
             noise = AdditiveUniformNoiseAttack()._sample_noise(
                 epsilon=args.noise_epsilon, image=image,
@@ -585,6 +592,7 @@ def run(args):
                 image=noise_image,
                 original_image=original_image,
                 title=title)
+        result.noise_L2_distance = noise_L2_distance
 
         if args.adv_attack == "after":
             full_name += "-after"
@@ -601,6 +609,7 @@ def run(args):
                     image=adversarial,
                     original_image=original_image,
                     title="Adversarial")
+        result.adversarial_L2_distance = result
 
         if adversarial is not None:
             np.save(file=full_name + ".npy", arr=adversarial)
@@ -828,7 +837,7 @@ def run(args):
     # plt.show(block=True)
     plt.close()
     true_label = args.original_label
-    return true_label, original_label, rounded_label, fft_label, gauss_label, noise_label, adversarial_label
+    return true_label, original_label, rounded_label, fft_label, gauss_label, noise_label, adversarial_label, result
 
 
 def index_ranges(
@@ -929,13 +938,15 @@ if __name__ == "__main__":
         # val_range = range(260, 200, -5)
     elif args.recover_type == "fft":
         val_range = range(1, 100, 2)
+        # val_range = range(3)
     elif args.recover_type == "roundfft":
         val_range = range(5)
     elif args.recover_type == "gauss" or args.recover_type == "noise":
         val_range = []
-        # val_range = [x / 1000 for x in range(10)]
+        val_range = [x / 1000 for x in range(10)]
+        val_range += [x / 100 for x in range(1, 51)]
         # val_range += [x / 100 for x in range(1, 11)]
-        val_range += [x / 100 for x in range(11, 31)]
+        # val_range += [x / 100 for x in range(11, 31)]
         # val_range += [x / 100 for x in range(31, 51)]
         # val_range += [x / 100 for x in range(51, 0, -1)]
         if args.is_debug:
@@ -956,7 +967,9 @@ if __name__ == "__main__":
         f.write(args.get_str() + "\n")
         f.write("compress_" + args.recover_type + "_layer,"
                                                   "% or recovered,"
-                                                  "# of recovered\n")
+                                                  "avg. L2 distance,"
+                                                  "# of recovered, "
+                                                  "run time (sec)\n")
     # for compress_fft_layer in [1, 2, 3, 5, 10, 15, 20, 25, 30, 35, 45, 50, 60, 75, 80, 90, 99]:
     for compress_value in val_range:
         print("compress_" + args.recover_type + "_layer: ", compress_value)
@@ -983,10 +996,12 @@ if __name__ == "__main__":
         # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
         # print("indexes: ", indexes)
         count_recovered = 0
+        sum_distance = 0
         total_count = 0
         # for index in range(4950, -1, -50):
         # for index in range(0, 5000, 50):
         # for index in range(0, 20):
+        run_time = 0
         for index in index_range:
             # for index in range(args.start_epoch, limit, step):
             # for index in range(args.start_epoch, 5000, 50):
@@ -995,33 +1010,41 @@ if __name__ == "__main__":
             args.index = index
             print("image index: ", index)
             start = time.time()
-            true_label, original_label, rounded_label, fft_label, gauss_label, noise_label, adversarial_label = run(
+            true_label, original_label, rounded_label, fft_label, gauss_label, noise_label, adversarial_label, result = run(
                 args)
             if args.recover_type == "rounding":
                 if rounded_label is not None and true_label == rounded_label:
                     count_recovered += 1
+                sum_distance += result.rounded_L2_distance
             elif args.recover_type == "fft":
                 if fft_label is not None and true_label == fft_label:
                     count_recovered += 1
+                sum_distance += result.fft_L2_distance
             elif args.recover_type == "roundfft":
                 if fft_label is not None and true_label == fft_label:
                     count_recovered += 1
             elif args.recover_type == "gauss":
                 if gauss_label is not None and true_label == gauss_label:
                     count_recovered += 1
+                sum_distance += result.gauss_L2_distance
             elif args.recover_type == "noise":
                 if noise_label is not None and true_label == noise_label:
                     count_recovered += 1
+                sum_distance += result.noise_L2_distance
             elif args.recover_type == "debug":
                 pass
             else:
                 raise Exception(
                     f"Unknown recover type: {args.recover_type}")
-            print("single run elapsed time: ", time.time() - start)
+            single_run_time = time.time() - start
+            print("single run elapsed time: ", single_run_time)
+            run_time += single_run_time
         with open(out_recovered_file, "a") as f:
             f.write(",".join([str(x) for x in
                               [compress_value,
                                count_recovered / total_count * 100,
-                               count_recovered]]) + "\n")
+                               sum_distance / total_count,
+                               count_recovered,
+                               run_time]]) + "\n")
 
     print("total elapsed time: ", time.time() - start_time)

@@ -21,6 +21,10 @@ class Object(object):
         state = [f'{attr}: {val}' for (attr, val) in self.__dict__.items()]
         return '\n'.join(state)
 
+    def get_str(self):
+        state = [f'{attr},{val}' for (attr, val) in self.__dict__.items()]
+        return ','.join(state)
+
     def items(self):
         '''
         Enables enumeration via foo.items()
