@@ -63,6 +63,8 @@ from cnns.nnlib.datasets.transformations.gaussian_noise import gauss
 from foolbox.attacks.additive_noise import AdditiveUniformNoiseAttack
 from foolbox.attacks.additive_noise import AdditiveGaussianNoiseAttack
 
+results_folder = "results/"
+
 
 def softmax(x):
     s = np.exp(x - np.max(x))
@@ -845,7 +847,7 @@ def index_ranges(
 
 
 def result_file(args):
-    args.file_name_labels = args.recover_type + "-" + args.interpolate + "-round-fft-" + str(
+    args.file_name_labels = results_folder + args.recover_type + "-" + args.interpolate + "-round-fft-" + str(
         args.compress_fft_layer) + "-" + args.dataset + "-" + "val-per-channel-" + str(
         args.values_per_channel) + "-" + get_log_time()
     with open(args.file_name_labels, "a") as f:
@@ -928,8 +930,9 @@ if __name__ == "__main__":
     elif args.recover_type == "roundfft":
         val_range = range(5)
     elif args.recover_type == "gauss" or args.recover_type == "noise":
-        val_range = [x / 1000 for x in range(10)]
-        val_range += [x / 100 for x in range(50)]
+        # val_range = [x / 1000 for x in range(10)]
+        # val_range += [x / 100 for x in range(1, 51)]
+        val_range = [x / 100 for x in range(16, 51)]
         if args.is_debug:
             val_range = [0.03]
     elif args.recover_type == "debug":
@@ -938,13 +941,14 @@ if __name__ == "__main__":
         raise Exception(f"Unknown recover type: {args.recover_type}")
 
     print(args.get_str())
-    out_recovered_file = "out_" + args.recover_type + "_recovered" + str(
+    out_recovered_file = results_folder + "out_" + args.recover_type + "_recovered" + str(
         args.dataset) + "-" + str(
         args.values_per_channel) + "-" + str(
         args.compress_fft_layer) + "-" + str(
         args.interpolate) + "-" + str(
         args.attack_name) + "-" + get_log_time() + ".txt"
     with open(out_recovered_file, "a") as f:
+        f.write(args.get_str() + "\n")
         f.write("compress_" + args.recover_type + "_layer,"
                                                   "% or recovered,"
                                                   "# of recovered\n")
