@@ -59,9 +59,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     model_path = "no_model"
 else:
     # dataset = "mnist"
-    # dataset = "cifar10"
+    dataset = "cifar10"
     # dataset = "cifar100"
-    dataset = "imagenet"
+    # dataset = "imagenet"
     # dataset = "svhn"
 
     batch_size = 32
@@ -95,7 +95,8 @@ else:
         model_path="2019-05-03-10-08-51-149612-dataset-mnist-preserve-energy-100-compress-rate-0.0-test-accuracy-99.07-channel-vals-0.model"
     elif dataset == "cifar10":
         network_type = NetworkType.ResNet18
-        model_path = "saved_model_2019-04-08-16-51-16-845688-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.22-channel-vals-0.model"
+        # model_path = "saved_model_2019-04-08-16-51-16-845688-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.22-channel-vals-0.model"
+        model_path = "saved_model_2019-05-16-11-37-45-415722-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.56-channel-vals-0.model"
     elif dataset == "cifar100":
         network_type = NetworkType.DenseNetCifar
         weight_decay = 0.0001
@@ -311,7 +312,8 @@ class Arguments(object):
                  schedule_factor=schedule_factor,
                  compress_fft_layer=0,
                  # attack_name="CarliniWagnerL2AttackRoundFFT",
-                 attack_name="CarliniWagnerL2Attack",
+                 # attack_name="CarliniWagnerL2Attack",
+                 attack_name="FGSM",
                  interpolate="exp",
                  recover_type="gauss",
                  step_size=50,

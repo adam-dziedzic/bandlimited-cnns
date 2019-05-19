@@ -824,7 +824,7 @@ def run(args):
     print("file name: ", file_name)
     if args.is_debug:
         pass
-        # plt.savefig(fname=file_name + "." + format, format=format)
+        plt.savefig(fname=file_name + "." + format, format=format)
     # plt.show(block=True)
     plt.close()
     true_label = args.original_label
@@ -932,7 +932,7 @@ if __name__ == "__main__":
     elif args.recover_type == "gauss" or args.recover_type == "noise":
         # val_range = [x / 1000 for x in range(10)]
         # val_range += [x / 100 for x in range(1, 51)]
-        val_range = [x / 100 for x in range(16, 51)]
+        val_range = [x / 100 for x in range(48, 101)]
         if args.is_debug:
             val_range = [0.03]
     elif args.recover_type == "debug":
@@ -958,7 +958,7 @@ if __name__ == "__main__":
         if args.recover_type == "debug":
             args.values_per_channel = 64
             args.compress_fft_layer = 1
-            args.noise_sigma = 0.005
+            args.noise_sigma = 0.05
             args.noise_epsilon = 0.005
         elif args.recover_type == "fft":
             args.compress_fft_layer = compress_value
