@@ -932,7 +932,7 @@ if __name__ == "__main__":
     elif args.recover_type == "gauss" or args.recover_type == "noise":
         # val_range = [x / 1000 for x in range(10)]
         # val_range += [x / 100 for x in range(1, 51)]
-        val_range = [x / 100 for x in range(48, 101)]
+        val_range = [x / 100 for x in range(5, 100)]
         if args.is_debug:
             val_range = [0.03]
     elif args.recover_type == "debug":
