@@ -331,9 +331,12 @@ def run(args):
         attack = foolbox.attacks.RandomStartProjectedGradientDescentAttack(
             fmodel)
     elif args.attack_name == "DeepFoolAttack":
+        # L2 attack by default, can also be L infinity
         attack = foolbox.attacks.DeepFoolAttack(fmodel)
     elif args.attack_name == "LBFGSAttack":
         attack = foolbox.attacks.LBFGSAttack(fmodel)
+    elif args.attack_name == "L1BasicIterativeAttack":
+        attack = foolbox.attacks.L1BasicIterativeAttack(fmodel)
     else:
         raise Exception(f"Unknown attack name: {args.attack_name}")
     attacks = [attack]
@@ -482,6 +485,7 @@ def run(args):
             original_image=original_image,
             title="Original")
         result.original_L2_distance = original_L2_distance
+        result.original_confidence = original_confidence
 
         if show_2nd:
             original_label2, original_confidence2, original_L2_distance2 = show_image(
@@ -504,7 +508,7 @@ def run(args):
         adversarial_timing = "N/A"
         adversarial = None
         adversarial_label = "N/A"
-        adversarial_confidence = "N/A"
+        adversarial_confidence = -1
         adversarial_L2_distance = -1
         created_new_adversarial = False
         if args.adv_attack == "before":
@@ -528,7 +532,7 @@ def run(args):
 
         # The rounded image.
         rounded_label = "N/A"
-        rounded_confidence = "N/A"
+        rounded_confidence = -1
         rounded_L2_distance = -1
         if args.values_per_channel > 0 and image is not None:
             rounder = DenormRoundNorm(
@@ -548,9 +552,10 @@ def run(args):
             print("show diff between input image and rounded: ",
                   np.sum(np.abs(rounded_image - original_image)))
         result.rounded_L2_distance = rounded_L2_distance
+        result.rounded_confidence = rounded_confidence
 
         fft_label = "N/A"
-        fft_confidence = "N/A"
+        fft_confidence = -1
         fft_L2_distance = -1
         if args.compress_fft_layer > 0 and image is not None:
             compress_image = attack_round_fft.fft_complex_compression(
@@ -563,9 +568,10 @@ def run(args):
                 original_image=original_image,
                 title=title)
         result.fft_L2_distance = fft_L2_distance
+        result.fft_confidence = fft_confidence
 
         gauss_label = "N/A"
-        gauss_confidence = "N/A"
+        gauss_confidence = -1
         gauss_L2_distance = -1
         if args.noise_sigma > 0 and image is not None:
             # gauss_image = gauss(image_numpy=image, sigma=args.noise_sigma)
@@ -579,9 +585,10 @@ def run(args):
                 original_image=original_image,
                 title=title)
         result.gauss_L2_distance = gauss_L2_distance
+        result.gauss_confidence = gauss_confidence
 
         noise_label = "N/A"
-        noise_confidence = "N/A"
+        noise_confidence = -1
         noise_L2_distance = -1
         if args.noise_epsilon > 0 and image is not None:
             noise = AdditiveUniformNoiseAttack()._sample_noise(
@@ -594,6 +601,7 @@ def run(args):
                 original_image=original_image,
                 title=title)
         result.noise_L2_distance = noise_L2_distance
+        result.noise_confidence = noise_confidence
 
         if args.adv_attack == "after":
             full_name += "-after"
@@ -612,6 +620,7 @@ def run(args):
                     original_image=original_image,
                     title="Adversarial")
         result.adversarial_L2_distance = result
+        result.adversarial_confidence = adversarial_confidence
 
         if adversarial is not None and created_new_adversarial:
             np.save(file=full_name + ".npy", arr=adversarial)
@@ -979,8 +988,10 @@ if __name__ == "__main__":
         f.write("compress_" + args.recover_type + "_layer,"
                                                   "% or recovered,"
                                                   "avg. L2 distance,"
-                                                  "# of recovered, "
+                                                  "avg. confidence,",
+                                                  "# of recovered,"
                                                   "run time (sec)\n")
+
     # for compress_fft_layer in [1, 2, 3, 5, 10, 15, 20, 25, 30, 35, 45, 50, 60, 75, 80, 90, 99]:
     for compress_value in val_range:
         print("compress_" + args.recover_type + "_layer: ", compress_value)
@@ -1008,6 +1019,7 @@ if __name__ == "__main__":
         # print("indexes: ", indexes)
         count_recovered = 0
         sum_distance = 0
+        sum_confidence = 0
         total_count = 0
         # for index in range(4950, -1, -50):
         # for index in range(0, 5000, 50):
@@ -1027,10 +1039,12 @@ if __name__ == "__main__":
                 if rounded_label is not None and true_label == rounded_label:
                     count_recovered += 1
                 sum_distance += result.rounded_L2_distance
+                sum_confidence += result.rounded_confidence
             elif args.recover_type == "fft":
                 if fft_label is not None and true_label == fft_label:
                     count_recovered += 1
                 sum_distance += result.fft_L2_distance
+                sum_confidence += result.fft_confidence
             elif args.recover_type == "roundfft":
                 if fft_label is not None and true_label == fft_label:
                     count_recovered += 1
@@ -1038,10 +1052,12 @@ if __name__ == "__main__":
                 if gauss_label is not None and true_label == gauss_label:
                     count_recovered += 1
                 sum_distance += result.gauss_L2_distance
+                sum_confidence += result.gauss_confidence
             elif args.recover_type == "noise":
                 if noise_label is not None and true_label == noise_label:
                     count_recovered += 1
                 sum_distance += result.noise_L2_distance
+                sum_confidence += result.noise_confidence
             elif args.recover_type == "debug":
                 pass
             else:
@@ -1055,6 +1071,7 @@ if __name__ == "__main__":
                               [compress_value,
                                count_recovered / total_count * 100,
                                sum_distance / total_count,
+                               sum_confidence / total_count,
                                count_recovered,
                                run_time]]) + "\n")
 
