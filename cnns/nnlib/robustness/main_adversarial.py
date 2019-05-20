@@ -933,7 +933,7 @@ if __name__ == "__main__":
         args.device = torch.device("cpu")
 
     if args.recover_type == "rounding":
-        val_range = range(2, 261, 5)
+        val_range = range(261, 1, -5)
         # val_range = range(200, 261, 5)
         # val_range = range(260, 200, -5)
     elif args.recover_type == "fft":
