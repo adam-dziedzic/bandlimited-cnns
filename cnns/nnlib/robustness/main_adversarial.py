@@ -936,18 +936,21 @@ if __name__ == "__main__":
         args.device = torch.device("cpu")
 
     if args.recover_type == "rounding":
-        val_range = range(261, 1, -5)
+        val_range = [2, 4, 8, 16, 32, 64, 128, 256]
+        # val_range = range(261, 1, -5)
         # val_range = range(200, 261, 5)
         # val_range = range(260, 200, -5)
     elif args.recover_type == "fft":
-        val_range = range(1, 100, 2)
+        val_range = [1, 10, 20, 30, 40, 50, 60, 80]
+        # val_range = range(1, 100, 2)
         # val_range = range(3)
     elif args.recover_type == "roundfft":
         val_range = range(5)
     elif args.recover_type == "gauss" or args.recover_type == "noise":
-        val_range = []
-        val_range = [x / 1000 for x in range(10)]
-        val_range += [x / 100 for x in range(1, 51)]
+        val_range = [0.001, 0.002, 0.03, 0.07, 0.1, 0.2, 0.3, 0.4]
+        # val_range = []
+        # val_range = [x / 1000 for x in range(10)]
+        # val_range += [x / 100 for x in range(1, 51)]
         # val_range += [x / 100 for x in range(1, 11)]
         # val_range += [x / 100 for x in range(11, 31)]
         # val_range += [x / 100 for x in range(31, 51)]
@@ -977,10 +980,10 @@ if __name__ == "__main__":
     for compress_value in val_range:
         print("compress_" + args.recover_type + "_layer: ", compress_value)
         if args.recover_type == "debug":
-            args.values_per_channel = 64
-            args.compress_fft_layer = 1
-            args.noise_sigma = 0.05
-            args.noise_epsilon = 0.05
+            args.values_per_channel = 16
+            args.compress_fft_layer = 32
+            args.noise_sigma = 0.001
+            args.noise_epsilon = 0.004
         elif args.recover_type == "fft":
             args.compress_fft_layer = compress_value
         elif args.recover_type == "rounding":
