@@ -833,7 +833,7 @@ def run(args):
     print("file name: ", file_name)
     if args.is_debug:
         pass
-        plt.savefig(fname=file_name + "." + format, format=format)
+        # plt.savefig(fname=file_name + "." + format, format=format)
     # plt.show(block=True)
     plt.close()
     true_label = args.original_label
@@ -904,7 +904,7 @@ if __name__ == "__main__":
     args.use_foolbox_data = False
     if args.is_debug:
         args.use_foolbox_data = False
-        index_range = range(0, 1000, 50)
+        index_range = range(0, 1000, 1)
         args.recover_type = "debug"
     else:
         step = 1
@@ -977,7 +977,7 @@ if __name__ == "__main__":
             args.values_per_channel = 64
             args.compress_fft_layer = 1
             args.noise_sigma = 0.05
-            args.noise_epsilon = 0.005
+            args.noise_epsilon = 0.05
         elif args.recover_type == "fft":
             args.compress_fft_layer = compress_value
         elif args.recover_type == "rounding":
