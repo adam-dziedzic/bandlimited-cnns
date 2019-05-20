@@ -988,7 +988,7 @@ if __name__ == "__main__":
         f.write("compress_" + args.recover_type + "_layer,"
                                                   "% or recovered,"
                                                   "avg. L2 distance,"
-                                                  "avg. confidence,",
+                                                  "avg. confidence,"
                                                   "# of recovered,"
                                                   "run time (sec)\n")
 
