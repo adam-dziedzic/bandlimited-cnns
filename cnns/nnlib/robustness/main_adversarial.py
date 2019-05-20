@@ -947,12 +947,12 @@ if __name__ == "__main__":
 
             if args.recover_type == "rounding":
                 if result_run.round_label is not None and (
-                        result_run.true_label == result_run.label_round_label):
+                        result_run.true_label == result_run.round_label):
                     count_recovered += 1
-                sum_L2_distance_defense += result_run.rounded_L2_distance
-                sum_L1_distance_defense += result_run.rounded_L1_distance
-                sum_Linf_distance_defense += result_run.rounded_Linf_distance
-                sum_confidence_defense += result_run.rounded_confidence
+                sum_L2_distance_defense += result_run.round_L2_distance
+                sum_L1_distance_defense += result_run.round_L1_distance
+                sum_Linf_distance_defense += result_run.round_Linf_distance
+                sum_confidence_defense += result_run.round_confidence
             elif args.recover_type == "fft":
                 if result_run.fft_label is not None and (
                         result_run.true_label == result_run.fft_label):

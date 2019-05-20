@@ -315,7 +315,7 @@ class Arguments(object):
                  # attack_name="CarliniWagnerL2Attack",
                  attack_name="FGSM",
                  interpolate="const",
-                 recover_type="fft",
+                 recover_type="rounding",
                  step_size=50,
                  ):
         """
