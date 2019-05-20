@@ -957,7 +957,7 @@ if __name__ == "__main__":
         raise Exception(f"Unknown recover type: {args.recover_type}")
 
     print(args.get_str())
-    out_recovered_file = results_folder + "out_" + args.recover_type + "_recovered" + str(
+    out_recovered_file = results_folder + "out_" + args.recover_type + "_recovered-" + str(
         args.dataset) + "-" + str(
         args.values_per_channel) + "-" + str(
         args.compress_fft_layer) + "-" + str(
