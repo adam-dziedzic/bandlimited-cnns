@@ -526,7 +526,6 @@ def run(args):
                     original_image=original_image,
                     title="Adversarial")
 
-
         # The rounded image.
         rounded_label = "N/A"
         rounded_confidence = "N/A"
@@ -831,7 +830,9 @@ def run(args):
     file_name = "images/" + attack.name() + "-round-fft-" + str(
         args.compress_fft_layer) + "-" + args.dataset + "-channel-" + str(
         channels_nr) + "-" + "val-per-channel-" + str(
-        args.values_per_channel) + "-" + "img-idx-" + str(
+        args.values_per_channel) + "-noise-epsilon-" + str(
+        args.noise_epsilon) + "-noise-sigma-" + str(
+        args.noise_sigma) + "-img-idx-" + str(
         args.index) + "-" + get_log_time()
     print("file name: ", file_name)
     if args.is_debug:
@@ -861,7 +862,9 @@ def index_ranges(
 def result_file(args):
     args.file_name_labels = results_folder + args.recover_type + "-" + args.interpolate + "-round-fft-" + str(
         args.compress_fft_layer) + "-" + args.dataset + "-" + "val-per-channel-" + str(
-        args.values_per_channel) + "-" + get_log_time()
+        args.values_per_channel) + "-noise-epsilon-" + str(
+        args.noise_epsilon) + "-noise-sigma-" + str(
+        args.noise_sigma) + "-" + get_log_time()
     with open(args.file_name_labels, "a") as f:
         f.write(args.get_str() + "\n\n")
         f.write(";".join(["index",
@@ -966,7 +969,9 @@ if __name__ == "__main__":
     out_recovered_file = results_folder + "out_" + args.recover_type + "_recovered-" + str(
         args.dataset) + "-" + str(
         args.values_per_channel) + "-" + str(
-        args.compress_fft_layer) + "-" + str(
+        args.compress_fft_layer) + "-" + "-noise-epsilon-" + str(
+        args.noise_epsilon) + "-noise-sigma-" + str(
+        args.noise_sigma) + "-interpolate-" + str(
         args.interpolate) + "-" + str(
         args.attack_name) + "-" + get_log_time() + ".txt"
     with open(out_recovered_file, "a") as f:
