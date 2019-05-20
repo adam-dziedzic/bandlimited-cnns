@@ -65,6 +65,7 @@ from foolbox.attacks.additive_noise import AdditiveGaussianNoiseAttack
 from cnns.nnlib.utils.object import Object
 
 results_folder = "results/"
+delimiter = ";"
 
 
 def softmax(x):
@@ -395,62 +396,69 @@ def run(args):
         # get source image and label, args.idx - is the index of the image
         # image, label = foolbox.utils.imagenet_example()
         if args.use_foolbox_data:
-            original_image, args.original_class_id = images[args.index], labels[
-                args.index]
+            original_image, args.true_class_id = images[args.image_index], \
+                                                 labels[
+                                                     args.image_index]
             original_image = original_image.astype(np.float32)
 
             # Normalize the data for the Pytorch models.
             original_image = normalizer.normalize(original_image)
 
             if show_2nd:
-                original_image2, args.original_class_id2 = images[
-                                                               args.index + 1], \
-                                                           labels[
-                                                               args.index + 1]
+                original_image2, args.true_class_id2 = images[
+                                                           args.image_index + 1], \
+                                                       labels[
+                                                           args.image_index + 1]
                 original_image = original_image.astype(np.float32)
 
                 # Normalize the data for the Pytorch models.
                 original_image2 = normalizer.normalize(original_image2)
         else:
-            original_image, args.original_class_id = test_dataset.__getitem__(
-                args.index)
+            original_image, args.true_class_id = test_dataset.__getitem__(
+                args.image_index)
             original_image = original_image.numpy()
 
         if args.dataset == "mnist":
-            args.original_class_id = args.original_class_id.item()
+            args.true_class_id = args.true_class_id.item()
 
-        args.original_label = from_class_idx_to_label[args.original_class_id]
-        print("original class id:", args.original_class_id, ", is label: ",
-              args.original_label)
+        args.true_label = from_class_idx_to_label[args.true_class_id]
+        result.true_label = args.true_label
+        print("true class id:", args.true_class_id, ", is label: ",
+              args.true_label)
 
         def show_image(image, original_image, title="", args=args,
                        clip_input_image=True):
-            original_class_id = args.original_class_id
-            original_label = args.original_label
+            result = Object()
+            true_class_id = args.true_class_id
+            true_label = args.true_label
             predictions, _ = fmodel.predictions_and_gradient(
-                image=image, label=original_class_id)
-            # predictions_original = znormalize(predictions_original)
+                image=image, label=true_class_id)
             predictions = softmax(predictions)
             predicted_class_id = np.argmax(predictions)
             predicted_label = from_class_idx_to_label[predicted_class_id]
+            result.label = predicted_label
             print(title)
             print("Number of unique values: ", len(np.unique(image)))
             print("model predicted label: ", predicted_label)
-            if predicted_label != original_label:
-                print(f"The original label: {original_label} is different than "
+            if predicted_label != true_label:
+                print(f"The true label: {true_label} is different than "
                       f"the predicted label: {predicted_label}")
             confidence = np.max(predictions)
-            # sum_predictions = np.sum(predictions_original)
-            # print("sum predictions: ", sum_predictions)
-            # print("predictions_original: ", predictions_original)
+            result.confidence = confidence
             title_str = title + '\n'
             title_str += 'label: ' + str(
                 predicted_label.replace(",", "\n")) + "\n"
             confidence_str = str(np.around(confidence, decimals=decimals))
             title_str += "confidence: " + confidence_str + "\n"
-            L2_distance = meter.measure(original_image, image)
+            result.L2_distance = meter.measure(original_image, image)
+            result.L1_distance = meter.measure(original_image, image, norm=1)
+            result.Linf_distance = meter.measure(original_image, image,
+                                                 norm=float('inf'))
             if id(image) != id(original_image):
-                title_str += "L2 distance: " + str(L2_distance) + "\n"
+                title_str += "L1 distance: " + str(result.L1_distance) + "\n"
+                title_str += "L2 distance: " + str(result.L2_distance) + "\n"
+                title_str += "Linf distance: " + str(
+                    result.Linf_distance) + "\n"
             ylabel_text = "spatial domain"
             if clip_input_image:
                 # image = torch.clamp(image, min = args.min, max=args.max)
@@ -477,21 +485,22 @@ def run(args):
                 if args.plot_index % cols == 1:
                     plt.ylabel(ylabel_text)
 
-            return predicted_label, confidence, L2_distance
+            return result
 
         # Original image.
-        original_label, original_confidence, original_L2_distance = show_image(
+        original_title = "original"
+        original_result = show_image(
             image=original_image,
             original_image=original_image,
-            title="Original")
-        result.original_L2_distance = original_L2_distance
-        result.original_confidence = original_confidence
+            title=original_title)
+        result.add(original_result, prefix="original_")
 
         if show_2nd:
-            original_label2, original_confidence2, original_L2_distance2 = show_image(
+            result_original2 = show_image(
                 image=original_image2,
                 original_image=original_image2,
                 title="Original 2nd")
+            result.add(result_original2, prefix="original2_")
 
         image = original_image
 
@@ -502,14 +511,9 @@ def run(args):
             full_name += "-foolbox"
         else:
             full_name += "-rounded-fft"
-        full_name += "-img-idx-" + str(args.index) + "-graph-recover"
+        full_name += "-img-idx-" + str(args.image_index) + "-graph-recover"
         print("full name of stored adversarial example: ", full_name)
 
-        adversarial_timing = "N/A"
-        adversarial = None
-        adversarial_label = "N/A"
-        adversarial_confidence = -1
-        adversarial_L2_distance = -1
         created_new_adversarial = False
         if args.adv_attack == "before":
             attack_name = attack.name()
@@ -517,23 +521,22 @@ def run(args):
             if attack_name != "CarliniWagnerL2Attack":
                 full_name += "-" + str(attack_name)
             if os.path.exists(full_name + ".npy"):
-                adversarial = np.load(file=full_name + ".npy")
+                adv_image = np.load(file=full_name + ".npy")
             else:
                 start_adv = time.time()
-                adversarial = attack(original_image, args.original_class_id)
-                adversarial_timing = time.time() - start_adv
+                adv_image = attack(original_image, args.true_class_id)
+                adv_timing = time.time() - start_adv
+                result.adv_timing = adv_timing
                 created_new_adversarial = True
-            image = adversarial
-            if adversarial is not None:
-                adversarial_label, adversarial_confidence, adversarial_L2_distance = show_image(
-                    image=adversarial,
+            image = adv_image
+            if adv_image is not None:
+                result_adv = show_image(
+                    image=adv_image,
                     original_image=original_image,
                     title="Adversarial")
+                result.add(result_adv, prefix="adv_")
 
         # The rounded image.
-        rounded_label = "N/A"
-        rounded_confidence = -1
-        rounded_L2_distance = -1
         if args.values_per_channel > 0 and image is not None:
             rounder = DenormRoundNorm(
                 mean_array=args.mean_array, std_array=args.std_array,
@@ -545,34 +548,26 @@ def run(args):
             # rounded_image = rounder(image)
             print("rounded_image min and max: ", rounded_image.min(), ",",
                   rounded_image.max())
-            rounded_label, rounded_confidence, rounded_L2_distance = show_image(
+            result_round = show_image(
                 image=rounded_image,
                 original_image=original_image,
                 title="Rounded")
             print("show diff between input image and rounded: ",
                   np.sum(np.abs(rounded_image - original_image)))
-        result.rounded_L2_distance = rounded_L2_distance
-        result.rounded_confidence = rounded_confidence
+            result.add(result_round, prefix="round_")
 
-        fft_label = "N/A"
-        fft_confidence = -1
-        fft_L2_distance = -1
         if args.compress_fft_layer > 0 and image is not None:
             compress_image = attack_round_fft.fft_complex_compression(
                 image=image)
             title = "FFT Compressed: " + str(
                 args.compress_fft_layer) + "%" + "\n"
             title += "interpolation: " + args.interpolate
-            fft_label, fft_confidence, fft_L2_distance = show_image(
+            result_fft = show_image(
                 image=compress_image,
                 original_image=original_image,
                 title=title)
-        result.fft_L2_distance = fft_L2_distance
-        result.fft_confidence = fft_confidence
+            result.add(result_fft, prefix="fft_")
 
-        gauss_label = "N/A"
-        gauss_confidence = -1
-        gauss_L2_distance = -1
         if args.noise_sigma > 0 and image is not None:
             # gauss_image = gauss(image_numpy=image, sigma=args.noise_sigma)
             noise = AdditiveGaussianNoiseAttack()._sample_noise(
@@ -580,50 +575,45 @@ def run(args):
                 bounds=(args.min, args.max))
             gauss_image = image + noise
             title = "Level of Gaussian-noise: " + str(args.noise_sigma)
-            gauss_label, gauss_confidence, gauss_L2_distance = show_image(
+            result_gauss = show_image(
                 image=gauss_image,
                 original_image=original_image,
                 title=title)
-        result.gauss_L2_distance = gauss_L2_distance
-        result.gauss_confidence = gauss_confidence
+            result.add(result_gauss, prefix="gauss_")
 
-        noise_label = "N/A"
-        noise_confidence = -1
-        noise_L2_distance = -1
         if args.noise_epsilon > 0 and image is not None:
             noise = AdditiveUniformNoiseAttack()._sample_noise(
                 epsilon=args.noise_epsilon, image=image,
                 bounds=(args.min, args.max))
             noise_image = image + noise
             title = "Level of uniform noise: " + str(args.noise_epsilon)
-            noise_label, noise_confidence, noise_L2_distance = show_image(
+            result_noise = show_image(
                 image=noise_image,
                 original_image=original_image,
                 title=title)
-        result.noise_L2_distance = noise_L2_distance
-        result.noise_confidence = noise_confidence
+            result.add(result_noise, prefix="noise_")
 
         if args.adv_attack == "after":
             full_name += "-after"
             print("adv_attack: ", args.adv_attack, " attack name: ",
                   attack.name())
             if os.path.exists(full_name + ".npy"):
-                adversarial = np.load(file=full_name + ".npy")
+                adv_image = np.load(file=full_name + ".npy")
             else:
                 start_adv = time.time()
-                adversarial = attack(original_image, args.original_class_id)
-                adversarial_timing = time.time() - start_adv
+                adv_image = attack(original_image, args.true_class_id)
+                adv_timing = time.time() - start_adv
+                result.adv_timing = adv_timing
                 created_new_adversarial = True
-            if adversarial is not None:
-                adversarial_label, adversarial_confidence, adversarial_L2_distance = show_image(
-                    image=adversarial,
+            if adv_image is not None:
+                result_adv = show_image(
+                    image=adv_image,
                     original_image=original_image,
                     title="Adversarial")
-        result.adversarial_L2_distance = result
-        result.adversarial_confidence = adversarial_confidence
+                result.add(result_adv, prefix="adv_")
 
-        if adversarial is not None and created_new_adversarial:
-            np.save(file=full_name + ".npy", arr=adversarial)
+        if adv_image is not None and created_new_adversarial:
+            np.save(file=full_name + ".npy", arr=adv_image)
 
         if show_diff:
             # Omit the diff image in the spatial domain.
@@ -633,92 +623,12 @@ def run(args):
             # Omit the diff image in the spatial domain.
             args.plot_index += 2
 
-        # Show differences.
-        # plt.title('Difference original vs. adversarial')
-        # difference_adv_img = np.abs(adversarial - original_image)
-        # print("max difference before round: ", np.max(difference_adv_img))
-        # adversarial_normalized = denormalizer.denormalize(adversarial)
-        # image_normalized = denormalizer.denormalize(image)
-        # difference_adv_org = np.abs(
-        #     adversarial_normalized - image_normalized)
-        # print("pixel difference before round: ")
-        # print("max: ", np.max(difference_adv_org))
-        # print("sum: ", np.sum(difference_adv_org))
-
-        # print("adversarial: ", adversarial)
-        # adversarial = np.round(adversarial * 255) / 255
-        # difference = np.abs(adversarial * 255 - image * 255)
-        # print("max pixel difference after round: ", np.max(difference))
-        # print("difference:\n", difference)
-        # rounded_image_normalized = denormalizer.denormalize(rounded_image)
-        # difference_adv_round = np.abs(
-        #     adversarial_normalized - rounded_image_normalized)
-        # print("pixel difference between rounded and adversarial images ")
-        # print("max: ", np.max(difference_adv_round))
-        # print("sum: ", np.sum(difference_adv_round))
-        # print("difference:\n", difference)
-        # https://www.statisticshowto.datasciencecentral.com/normalized/
-        # difference = (difference - difference.min()) / (
-        #         difference.max() - difference.min())
-        # plt.imshow(difference / abs(difference).max() * 0.2 + 0.5)
-
-        # plt.imshow(np.moveaxis(difference, 0, -1))
-
-        # print 0th channel only
-        # print_color_map(difference[0], fig=fig, ax=ax)
-
-        # print_color_map(difference_adv_org.sum(axis=0), fig=fig, ax=ax)
-
-        # create an axes on the right side of ax. The width of cax will be 5%
-        # of ax and the padding between cax and ax will be fixed at 0.05 inch.
-        # ax = plt.subplot(rows, cols, args.plot_index)
-        # plt.title('Difference rounded vs. adversarial')
-        # args.plot_index += 1
-        # im = ax.imshow(difference_adv_round.sum(axis=0))
-        # divider = make_axes_locatable(ax)
-        # cax = divider.append_axes("right", size="5%", pad=0.05)
-        # plt.colorbar(im, cax = cax)
-
-        # plt.imshow(difference_adv_round.sum(axis=0), cmap='hot',
-        #            interpolation='nearest')
-        # plt.axis('off')
-
-        # heat_map = difference_adv_round.sum(axis=0)
-        # print_heat_map(input_map=heat_map,
-        #                title="Difference rounded vs. adversarial")
-
-        # interpolate = "log"
-        # compress_image = FFTBandFunction2D.forward(
-        #     ctx=None,
-        #     input=torch.from_numpy(adversarial).unsqueeze(0),
-        #     compress_rate=compress_rate).numpy().squeeze()
-
-        # Write labels to the file.
+        result.image_index = args.image_index
+        # Write labels to the log file.
         with open(args.file_name_labels, "a") as f:
-            f.write(
-                ";".join([str(x) for x in [
-                    args.index,
-                    args.original_label,  # ImageNet label (ground truth)
-                    original_label,  # for the full model
-                    rounded_label,
-                    fft_label,
-                    gauss_label,
-                    noise_label,
-                    adversarial_label,
-                    original_confidence,
-                    rounded_confidence,
-                    fft_confidence,
-                    gauss_confidence,
-                    noise_confidence,
-                    adversarial_confidence,
-                    original_L2_distance,
-                    rounded_L2_distance,
-                    fft_L2_distance,
-                    gauss_L2_distance,
-                    noise_L2_distance,
-                    adversarial_L2_distance,
-                    adversarial_timing
-                ]]) + "\n")
+            if args.total_count == 0:
+                f.write(result.get_attrs_sorted(delimiter=delimiter) + "\n")
+            f.write(result.get_vals_sorted(delimiter=delimiter) + "\n")
 
         def print_fft(image, channel, title="", args=args, is_log=True):
             print("fft: ", title)
@@ -758,8 +668,8 @@ def run(args):
                                       title="Original",
                                       is_log=is_log)
 
-                if adversarial is not None and args.attack_type == "before":
-                    adversarial_fft = print_fft(image=adversarial,
+                if adv_image is not None and args.attack_type == "before":
+                    adversarial_fft = print_fft(image=adv_image,
                                                 channel=channel,
                                                 title="Adversarial",
                                                 is_log=is_log)
@@ -787,8 +697,8 @@ def run(args):
                                           title="Uniform noise",
                                           is_log=is_log)
 
-                if adversarial is not None and args.attack_type == "after":
-                    adversarial_fft = print_fft(image=adversarial,
+                if adv_image is not None and args.attack_type == "after":
+                    adversarial_fft = print_fft(image=adv_image,
                                                 channel=channel,
                                                 title="Adversarial",
                                                 is_log=is_log)
@@ -842,15 +752,14 @@ def run(args):
         args.values_per_channel) + "-noise-epsilon-" + str(
         args.noise_epsilon) + "-noise-sigma-" + str(
         args.noise_sigma) + "-img-idx-" + str(
-        args.index) + "-" + get_log_time()
+        args.image_index) + "-" + get_log_time()
     print("file name: ", file_name)
     if args.is_debug:
         pass
         # plt.savefig(fname=file_name + "." + format, format=format)
     # plt.show(block=True)
     plt.close()
-    true_label = args.original_label
-    return true_label, original_label, rounded_label, fft_label, gauss_label, noise_label, adversarial_label, result
+    return result
 
 
 def index_ranges(
@@ -876,28 +785,6 @@ def result_file(args):
         args.noise_sigma) + "-" + get_log_time()
     with open(args.file_name_labels, "a") as f:
         f.write(args.get_str() + "\n\n")
-        f.write(";".join(["index",
-                          args.dataset + " original label",
-                          "full model label",
-                          "rounded label",
-                          "fft compressed label",
-                          "gauss label",
-                          "noise label",
-                          "adversarial label",
-                          "original_confidence",
-                          "rounded_confidence",
-                          "fft_confidence",
-                          "gauss_confidence",
-                          "noise_confidence",
-                          "adversarial_confidence",
-                          "original_L2_distance",
-                          "rounded_L2_distance",
-                          "fft_L2_distance",
-                          "gauss_L2_distance",
-                          "noise_L2_distance",
-                          "adversarial_L2_distance",
-                          "adversarial timing",
-                          ]) + "\n")
 
 
 if __name__ == "__main__":
@@ -985,12 +872,20 @@ if __name__ == "__main__":
         args.attack_name) + "-" + get_log_time() + ".txt"
     with open(out_recovered_file, "a") as f:
         f.write(args.get_str() + "\n")
-        f.write("compress_" + args.recover_type + "_layer,"
-                                                  "% or recovered,"
-                                                  "avg. L2 distance,"
-                                                  "avg. confidence,"
-                                                  "# of recovered,"
-                                                  "run time (sec)\n")
+        header = ["compress_" + args.recover_type,
+                  "_layer",
+                  "% or recovered",
+                  "avg. L2 distance defense",
+                  "avg. L1 distance defense",
+                  "avg. Linf distance defense",
+                  "avg. confidence defense",
+                  "avg. L2 distance attack",
+                  "avg. L1 distance attack",
+                  "avg. Linf distance attack",
+                  "avg. confidence attack",
+                  "# of recovered",
+                  "run time (sec)\n"]
+        f.write(delimiter.join(header))
 
     # for compress_fft_layer in [1, 2, 3, 5, 10, 15, 20, 25, 30, 35, 45, 50, 60, 75, 80, 90, 99]:
     for compress_value in val_range:
@@ -1018,61 +913,100 @@ if __name__ == "__main__":
         # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
         # print("indexes: ", indexes)
         count_recovered = 0
-        sum_distance = 0
-        sum_confidence = 0
-        total_count = 0
+        sum_L1_distance_defense = 0
+        sum_L2_distance_defense = 0
+        sum_Linf_distance_defense = 0
+        sum_confidence_defense = 0
+        sum_L2_distance_adv = 0
+        sum_L1_distance_adv = 0
+        sum_Linf_distance_adv = 0
+        sum_confidence_adv = 0
+        args.total_count = 0
+
         # for index in range(4950, -1, -50):
         # for index in range(0, 5000, 50):
         # for index in range(0, 20):
         run_time = 0
-        for index in index_range:
+        for image_index in index_range:
             # for index in range(args.start_epoch, limit, step):
             # for index in range(args.start_epoch, 5000, 50):
             # for index in range(limit - step, args.start_epoch - 1, -step):
-            total_count += 1
-            args.index = index
-            print("image index: ", index)
+            args.image_index = image_index
+            print("image index: ", image_index)
+
             start = time.time()
-            true_label, original_label, rounded_label, fft_label, gauss_label, noise_label, adversarial_label, result = run(
-                args)
+
+            result_run = run(args)
+            args.total_count += 1
+
+            single_run_time = time.time() - start
+            print("single run elapsed time: ", single_run_time)
+            run_time += single_run_time
+
+            assert result_run.true_label != result_run.adv_label
+
             if args.recover_type == "rounding":
-                if rounded_label is not None and true_label == rounded_label:
+                if result_run.round_label is not None and (
+                        result_run.true_label == result_run.label_round_label):
                     count_recovered += 1
-                sum_distance += result.rounded_L2_distance
-                sum_confidence += result.rounded_confidence
+                sum_L2_distance_defense += result_run.rounded_L2_distance
+                sum_L1_distance_defense += result_run.rounded_L1_distance
+                sum_Linf_distance_defense += result_run.rounded_Linf_distance
+                sum_confidence_defense += result_run.rounded_confidence
             elif args.recover_type == "fft":
-                if fft_label is not None and true_label == fft_label:
+                if result_run.fft_label is not None and (
+                        result_run.true_label == result_run.fft_label):
                     count_recovered += 1
-                sum_distance += result.fft_L2_distance
-                sum_confidence += result.fft_confidence
+                sum_L2_distance_defense += result_run.fft_L2_distance
+                sum_L1_distance_defense += result_run.fft_L1_distance
+                sum_Linf_distance_defense += result_run.fft_Linf_distance
+                sum_confidence_defense += result_run.fft_confidence
             elif args.recover_type == "roundfft":
-                if fft_label is not None and true_label == fft_label:
+                if result_run.fft_label is not None and (
+                        result_run.true_label == result_run.fft_label):
                     count_recovered += 1
             elif args.recover_type == "gauss":
-                if gauss_label is not None and true_label == gauss_label:
+                if result_run.gauss_label is not None and (
+                        result_run.true_label == result_run.gauss_label):
                     count_recovered += 1
-                sum_distance += result.gauss_L2_distance
-                sum_confidence += result.gauss_confidence
+                sum_L2_distance_defense += result_run.gauss_L2_distance
+                sum_L1_distance_defense += result_run.gauss_L1_distance
+                sum_Linf_distance_defense += result_run.gauss_Linf_distance
+                sum_confidence_defense += result_run.gauss_confidence
             elif args.recover_type == "noise":
-                if noise_label is not None and true_label == noise_label:
+                if result_run.noise_label is not None and (
+                        result_run.true_label == result_run.noise_label):
                     count_recovered += 1
-                sum_distance += result.noise_L2_distance
-                sum_confidence += result.noise_confidence
+                sum_L2_distance_defense += result_run.noise_L2_distance
+                sum_L1_distance_defense += result_run.noise_L1_distance
+                sum_Linf_distance_defense += result_run.noise_Linf_distance
+                sum_confidence_defense += result_run.noise_confidence
             elif args.recover_type == "debug":
                 pass
             else:
                 raise Exception(
                     f"Unknown recover type: {args.recover_type}")
-            single_run_time = time.time() - start
-            print("single run elapsed time: ", single_run_time)
-            run_time += single_run_time
+
+            # Aggregate the statistics about the attack.
+            sum_L2_distance_adv += result_run.adv_L2_distance
+            sum_L1_distance_adv += result_run.adv_L1_distance
+            sum_Linf_distance_adv += result_run.adv_Linf_distance
+            sum_confidence_adv += result_run.adv_confidence
+
+        total_count = args.total_count
         with open(out_recovered_file, "a") as f:
-            f.write(",".join([str(x) for x in
-                              [compress_value,
-                               count_recovered / total_count * 100,
-                               sum_distance / total_count,
-                               sum_confidence / total_count,
-                               count_recovered,
-                               run_time]]) + "\n")
+            f.write(delimiter.join([str(x) for x in
+                                    [compress_value,
+                                     count_recovered / total_count * 100,
+                                     sum_L2_distance_defense / total_count,
+                                     sum_L1_distance_defense / total_count,
+                                     sum_Linf_distance_defense / total_count,
+                                     sum_confidence_defense / total_count,
+                                     sum_L2_distance_adv / total_count,
+                                     sum_L1_distance_adv / total_count,
+                                     sum_Linf_distance_adv / total_count,
+                                     sum_confidence_adv / total_count,
+                                     count_recovered,
+                                     run_time]]) + "\n")
 
     print("total elapsed time: ", time.time() - start_time)

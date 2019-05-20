@@ -107,6 +107,13 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             image = self.rounder.round(image)
         if self.args.compress_fft_layer > 0:
             image = self.fft_complex_compression(image)
+        if self.args.noise_epsilon > 0:
+            image = self.noise._sample_noise(
+                epsilon=self.args.noise_epsilon, image=image,
+                bounds=(self.args.min, self.args.max))
+
+        # TODO: should we check if the transformed image remains correctly
+        #  classified?
 
         self.roundfft_adversarial = Adversarial(
             model=model, criterion=criterion, original_image=image,
