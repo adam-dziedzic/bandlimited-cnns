@@ -506,6 +506,7 @@ def run(args):
         adversarial_label = "N/A"
         adversarial_confidence = "N/A"
         adversarial_L2_distance = -1
+        created_new_adversarial = False
         if args.adv_attack == "before":
             attack_name = attack.name()
             print("attack name: ", attack_name)
@@ -517,6 +518,7 @@ def run(args):
                 start_adv = time.time()
                 adversarial = attack(original_image, args.original_class_id)
                 adversarial_timing = time.time() - start_adv
+                created_new_adversarial = True
             image = adversarial
             if adversarial is not None:
                 adversarial_label, adversarial_confidence, adversarial_L2_distance = show_image(
@@ -604,6 +606,7 @@ def run(args):
                 start_adv = time.time()
                 adversarial = attack(original_image, args.original_class_id)
                 adversarial_timing = time.time() - start_adv
+                created_new_adversarial = True
             if adversarial is not None:
                 adversarial_label, adversarial_confidence, adversarial_L2_distance = show_image(
                     image=adversarial,
@@ -611,7 +614,7 @@ def run(args):
                     title="Adversarial")
         result.adversarial_L2_distance = result
 
-        if adversarial is not None:
+        if adversarial is not None and created_new_adversarial:
             np.save(file=full_name + ".npy", arr=adversarial)
 
         if show_diff:
