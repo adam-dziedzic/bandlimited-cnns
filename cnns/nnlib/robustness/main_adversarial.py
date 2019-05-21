@@ -748,7 +748,7 @@ if __name__ == "__main__":
     args.save_out = False
     # args.diff_type = "source"  # "source" or "fft"
     args.diff_type = "fft"
-    args.noise_iterations = 10
+    args.noise_iterations = 1
     # args.dataset = "cifar10"  # "cifar10" or "imagenet"
     # args.dataset = "imagenet"
     # args.dataset = "mnist"
@@ -788,13 +788,13 @@ if __name__ == "__main__":
         args.device = torch.device("cpu")
 
     if args.recover_type == "rounding":
-        # val_range = [2, 4, 8, 16, 32, 64, 128, 256]
-        val_range = range(261, 1, -5)
+        val_range = [2, 4, 8, 16, 32, 64, 128, 256]
+        # val_range = range(261, 1, -5)
         # val_range = range(200, 261, 5)
         # val_range = range(260, 200, -5)
     elif args.recover_type == "fft":
-        # val_range = [1, 10, 20, 30, 40, 50, 60, 80]
-        val_range = range(1, 100, 2)
+        val_range = [1, 10, 20, 30, 40, 50, 60, 80]
+        # val_range = range(1, 100, 2)
         # val_range = range(3)
     elif args.recover_type == "roundfft":
         val_range = range(5)
