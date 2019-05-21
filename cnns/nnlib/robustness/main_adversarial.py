@@ -373,7 +373,7 @@ def run(args):
             result = Object()
             true_class_id = args.true_class_id
             true_label = args.true_label
-            predictions, _ = fmodel.predictions_and_gradient(
+            predictions = fmodel.predictions(
                 image=image, label=true_class_id)
             predictions = softmax(predictions)
             predicted_class_id = np.argmax(predictions)
