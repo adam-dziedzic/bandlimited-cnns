@@ -710,7 +710,7 @@ def run(args):
     print("file name: ", file_name)
     if args.is_debug:
         pass
-        # plt.savefig(fname=file_name + "." + format, format=format)
+        plt.savefig(fname=file_name + "." + format, format=format)
     # plt.show(block=True)
     plt.close()
     return result

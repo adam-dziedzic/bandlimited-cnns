@@ -69,7 +69,7 @@ else:
     learning_rate = 0.01
     weight_decay = 0.0005
     momentum = 0.9
-    epochs=100
+    epochs=2000
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
@@ -292,7 +292,7 @@ class Arguments(object):
                  # resume="cifar100-0.0-84-checkpoint.tar",
                  resume="",
                  gpu=0,
-                 start_epoch=0,
+                 start_epoch=500,
                  only_train=False,
                  test_compress_rates=False,
                  noise_sigma=-1.0,
