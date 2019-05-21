@@ -317,6 +317,9 @@ def get_args():
                         metavar='Step size',
                         help=f"number of images to skip for an attack in "
                         f"sequential order (default: {args.step_size})")
+    parser.add_argument('--noise_iterations', type=int,
+                        default=args.noise_iterations,
+                        help=f"number of iterations for the random defense (default: {args.step_size})")
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)

@@ -748,7 +748,7 @@ if __name__ == "__main__":
     args.save_out = False
     # args.diff_type = "source"  # "source" or "fft"
     args.diff_type = "fft"
-    args.noise_iterations = 1
+    # args.noise_iterations = 1
     # args.dataset = "cifar10"  # "cifar10" or "imagenet"
     # args.dataset = "imagenet"
     # args.dataset = "mnist"

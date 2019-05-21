@@ -317,6 +317,7 @@ class Arguments(object):
                  interpolate="const",
                  recover_type="noise",
                  step_size=50,
+                 noise_iterations=1,
                  ):
         """
         The default parameters for the execution of the program.
@@ -438,6 +439,7 @@ class Arguments(object):
         self.interpolate = interpolate
         self.recover_type = recover_type
         self.step_size = step_size
+        self.noise_iterations = noise_iterations
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False
