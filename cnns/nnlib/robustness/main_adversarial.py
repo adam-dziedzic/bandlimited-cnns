@@ -464,11 +464,11 @@ def run(args):
                 full_name += "-" + str(attack_name)
             if os.path.exists(full_name + ".npy"):
                 adv_image = np.load(file=full_name + ".npy")
+                result.adv_timing = -1
             else:
                 start_adv = time.time()
                 adv_image = attack(original_image, args.true_class_id)
-                adv_timing = time.time() - start_adv
-                result.adv_timing = adv_timing
+                result.adv_timing = time.time() - start_adv
                 created_new_adversarial = True
             image = adv_image
             if adv_image is not None:
@@ -549,11 +549,11 @@ def run(args):
                   attack.name())
             if os.path.exists(full_name + ".npy"):
                 adv_image = np.load(file=full_name + ".npy")
+                result.adv_timing = -1
             else:
                 start_adv = time.time()
                 adv_image = attack(original_image, args.true_class_id)
-                adv_timing = time.time() - start_adv
-                result.adv_timing = adv_timing
+                result.adv_timing = time.time() - start_adv
                 created_new_adversarial = True
             if adv_image is not None:
                 result_adv = show_image(
@@ -563,6 +563,8 @@ def run(args):
                 result.add(result_adv, prefix="adv_")
 
         if adv_image is not None and created_new_adversarial:
+            if args.is_debug:
+                full_name = str(args.noise_iterations) + "-" + full_name
             np.save(file=full_name + ".npy", arr=adv_image)
 
         if show_diff:
@@ -759,7 +761,7 @@ if __name__ == "__main__":
     args.use_foolbox_data = False
     if args.is_debug:
         args.use_foolbox_data = False
-        index_range = range(1, 1000, 1)
+        # index_range = range(1, 1000, 1)
         args.recover_type = "debug"
     else:
         step = 1
@@ -808,8 +810,6 @@ if __name__ == "__main__":
         # val_range += [x / 100 for x in range(11, 31)]
         # val_range += [x / 100 for x in range(31, 51)]
         # val_range += [x / 100 for x in range(51, 0, -1)]
-        if args.is_debug:
-            val_range = [0.03]
     elif args.recover_type == "debug":
         val_range = [-1]
     else:

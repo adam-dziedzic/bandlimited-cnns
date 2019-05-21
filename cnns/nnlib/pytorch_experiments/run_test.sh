@@ -2069,3 +2069,119 @@ gpu3 0
 timestamp=$(date +%Y-%m-%d-%H-%M-%S)
 CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main_adversarial.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type="STANDARD2D" --conv_exec_type=CUDA --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=1000 --is_data_augmentation='TRUE' --is_debug='TRUE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.01 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path="no_model" --momentum=0.9 --next_power2='FALSE' --optimizer_type='MOMENTUM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0005 --workers=4 --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --start_epsilon=0 --attack_type="NO_ATTACK" --attack_name="CarliniWagnerL2AttackRoundFFT" --start_epoch=0 --network_type='ResNet50' --dataset="imagenet" --compress_fft_layer=0 --values_per_channel=0 --recover_type="noise" --step_size=1 --noise_iterations=1 >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}
+[1] 10335
+ady@gpu3:~/code/bandlimited-cnns/cnns/nnlib/robustness$ echo ${timestamp}
+2019-05-20-23-30-54
+
+skr
+gpu3 0
+timestamp=$(date +%Y-%m-%d-%H-%M-%S)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main_adversarial.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type="STANDARD2D" --conv_exec_type=CUDA --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=1000 --is_data_augmentation='TRUE' --is_debug='TRUE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.01 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path="no_model" --momentum=0.9 --next_power2='FALSE' --optimizer_type='MOMENTUM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0005 --workers=4 --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --start_epsilon=0 --attack_type="NO_ATTACK" --attack_name="CarliniWagnerL2AttackRoundFFT" --start_epoch=0 --network_type='ResNet50' --dataset="imagenet" --compress_fft_layer=0 --values_per_channel=0 --recover_type="noise" --step_size=1 --noise_iterations=5 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}
+[1] 5490
+ady@skr-compute1:~/code/bandlimited-cnns-pycharm-win/cnns/nnlib/robustness$ echo ${timestamp}
+2019-05-20-23-31-44
+
+gpu1
+timestamp=$(date +%Y-%m-%d-%H-%M-%S)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main_adversarial.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type="STANDARD2D" --conv_exec_type=CUDA --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=1000 --is_data_augmentation='TRUE' --is_debug='TRUE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.01 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path="no_model" --momentum=0.9 --next_power2='FALSE' --optimizer_type='MOMENTUM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0005 --workers=4 --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --start_epsilon=0 --attack_type="NO_ATTACK" --attack_name="CarliniWagnerL2AttackRoundFFT" --start_epoch=0 --network_type='ResNet50' --dataset="imagenet" --compress_fft_layer=0 --values_per_channel=0 --recover_type="noise" --step_size=1 --noise_iterations=10 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}
+[4] 20317
+ady@gpu1:~/code/bandlimited-cnns/cnns/nnlib/robustness$ echo ${timestamp}
+2019-05-20-23-32-54
+
+gpu3 3
+timestamp=$(date +%Y-%m-%d-%H-%M-%S)
+CUDA_VISIBLE_DEVICES=3 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main_adversarial.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type="STANDARD2D" --conv_exec_type=CUDA --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000 --is_data_augmentation='TRUE' --is_debug='TRUE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.01 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path="no_model" --momentum=0.9 --next_power2='FALSE' --optimizer_type='MOMENTUM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0005 --workers=4 --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --start_epsilon=0 --attack_type="NO_ATTACK" --attack_name="CarliniWagnerL2AttackRoundFFT" --start_epoch=1000 --network_type='ResNet50' --dataset="imagenet" --compress_fft_layer=0 --values_per_channel=0 --recover_type="noise" --step_size=1 --noise_iterations=20 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}
+[2] 10473
+ady@gpu3:~/code/bandlimited-cnns/cnns/nnlib/robustness$ echo ${timestamp}
+2019-05-20-23-38-37
+
+gpu3 2
+timestamp=$(date +%Y-%m-%d-%H-%M-%S)
+CUDA_VISIBLE_DEVICES=3 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main_adversarial.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type="STANDARD2D" --conv_exec_type=CUDA --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=4000 --is_data_augmentation='TRUE' --is_debug='TRUE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.01 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path="no_model" --momentum=0.9 --next_power2='FALSE' --optimizer_type='MOMENTUM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0005 --workers=4 --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --start_epsilon=0 --attack_type="NO_ATTACK" --attack_name="CarliniWagnerL2AttackRoundFFT" --start_epoch=3000 --network_type='ResNet50' --dataset="imagenet" --compress_fft_layer=0 --values_per_channel=0 --recover_type="noise" --step_size=1 --noise_iterations=20 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}
+
+[5] 10529
+ady@gpu3:~/code/bandlimited-cnns/cnns/nnlib/robustness$ echo ${timestamp}
+2019-05-20-23-39-13
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S)
+CUDA_VISIBLE_DEVICES=3 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main_adversarial.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type="STANDARD2D" --conv_exec_type=CUDA --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=5000 --is_data_augmentation='TRUE' --is_debug='TRUE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.01 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path="no_model" --momentum=0.9 --next_power2='FALSE' --optimizer_type='MOMENTUM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0005 --workers=4 --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --start_epsilon=0 --attack_type="NO_ATTACK" --attack_name="CarliniWagnerL2AttackRoundFFT" --start_epoch=4000 --network_type='ResNet50' --dataset="imagenet" --compress_fft_layer=0 --values_per_channel=0 --recover_type="noise" --step_size=1 --noise_iterations=100 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}
+[2] 10558
+ady@gpu3:~/code/bandlimited-cnns/cnns/nnlib/robustness$ echo ${timestamp}
+2019-05-20-23-40-13
+
+gpu1 0
+ady@gpu1:~/code/bandlimited-cnns/cnns/nnlib/robustness$
+[1]   Done                    CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main_adversarial.py --ad
+am_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type="STANDARD2D" --conv_exec_type=CUDA --dev_percent=0 --dynamic_loss_sca
+le='TRUE' --epochs=5000 --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.
+01 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PI
+NNED' --min_batch_size=32 --model_path="saved_model_2019-05-16-11-37-45-415722-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-ac
+curacy-93.56-channel-vals-0.model" --momentum=0.9 --next_power2='FALSE' --optimizer_type='MOMENTUM' --preserve_energies=100 --sample_count_lim
+it=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=3
+2 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0005 --workers=4 --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE
+' --noise_sigmas=0 --start_epsilon=0 --attack_type="NO_ATTACK" --attack_name="L1BasicIterativeAttack" --start_epoch=0 --network_type='ResNet18
+' --dataset="cifar10" --compress_fft_layer=0 --values_per_channel=0 --recover_type="rounding" --interpolate="const" --step_size=5 >> ${timesta
+mp}.txt 2>&1
+[2]   Killed                  CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main_adversarial.py --ad
+am_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type="STANDARD2D" --conv_exec_type=CUDA --dev_percent=0 --dynamic_loss_sca
+le='TRUE' --epochs=5000 --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.
+01 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PI
+NNED' --min_batch_size=32 --model_path="saved_model_2019-05-16-11-37-45-415722-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-ac
+curacy-93.56-channel-vals-0.model" --momentum=0.9 --next_power2='FALSE' --optimizer_type='MOMENTUM' --preserve_energies=100 --sample_count_lim
+it=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=3
+2 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0005 --workers=4 --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE
+' --noise_sigmas=0 --start_epsilon=0 --attack_type="NO_ATTACK" --attack_name="L1BasicIterativeAttack" --start_epoch=0 --network_type='ResNet18
+' --dataset="cifar10" --compress_fft_layer=0 --values_per_channel=0 --recover_type="fft" --interpolate="const" --step_size=5 >> ${timestamp}.t
+xt 2>&1
+[3]-  Done                    CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main_adversarial.py --ad
+am_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type="STANDARD2D" --conv_exec_type=CUDA --dev_percent=0 --dynamic_loss_sca
+le='TRUE' --epochs=5000 --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.
+01 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PI
+NNED' --min_batch_size=32 --model_path="saved_model_2019-05-16-11-37-45-415722-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-ac
+curacy-93.56-channel-vals-0.model" --momentum=0.9 --next_power2='FALSE' --optimizer_type='MOMENTUM' --preserve_energies=100 --sample_count_lim
+it=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=3
+2 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0005 --workers=4 --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE
+' --noise_sigmas=0 --start_epsilon=0 --attack_type="NO_ATTACK" --attack_name="L1BasicIterativeAttack" --start_epoch=0 --network_type='ResNet18
+' --dataset="cifar10" --compress_fft_layer=0 --values_per_channel=0 --recover_type="noise" --interpolate="const" --step_size=5 >> ${timestamp}
+.txt 2>&1
+
+
+
+[4]   Done                    CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main_adversarial.py --ad
+am_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type="STANDARD2D" --conv_exec_type=CUDA --dev_percent=0 --dynamic_loss_sca
+le='TRUE' --epochs=5000 --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.
+01 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PI
+NNED' --min_batch_size=32 --model_path="saved_model_2019-05-16-11-37-45-415722-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-ac
+curacy-93.56-channel-vals-0.model" --momentum=0.9 --next_power2='FALSE' --optimizer_type='MOMENTUM' --preserve_energies=100 --sample_count_lim
+it=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=3
+2 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0005 --workers=4 --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE
+' --noise_sigmas=0 --start_epsilon=0 --attack_type="NO_ATTACK" --attack_name="L1BasicIterativeAttack" --start_epoch=0 --network_type='ResNet18
+' --dataset="cifar10" --compress_fft_layer=0 --values_per_channel=0 --recover_type="gauss" --interpolate="const" --step_size=5 >> ${timestamp}
+.txt 2>&1
+[5]-  Done                    CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main_adversarial.py --ad
+am_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type="STANDARD2D" --conv_exec_type=CUDA --dev_percent=0 --dynamic_loss_sca
+le='TRUE' --epochs=5000 --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.
+01 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PI
+NNED' --min_batch_size=32 --model_path="saved_model_2019-05-16-11-37-45-415722-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-ac
+curacy-93.56-channel-vals-0.model" --momentum=0.9 --next_power2='FALSE' --optimizer_type='MOMENTUM' --preserve_energies=100 --sample_count_lim
+it=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=3
+2 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0005 --workers=4 --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE
+' --noise_sigmas=0 --start_epsilon=0 --attack_type="NO_ATTACK" --attack_name="LBFGSAttack" --start_epoch=0 --network_type='ResNet18' --dataset
+="cifar10" --compress_fft_layer=0 --values_per_channel=0 --recover_type="fft" --interpolate="const" --step_size=50 >> ${timestamp}.txt 2>&1
+[6]+  Done                    CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main_adversarial.py --ad
+am_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type="STANDARD2D" --conv_exec_type=CUDA --dev_percent=0 --dynamic_loss_sca
+le='TRUE' --epochs=5000 --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.
+01 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PI
+NNED' --min_batch_size=32 --model_path="saved_model_2019-05-16-11-37-45-415722-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-ac
+curacy-93.56-channel-vals-0.model" --momentum=0.9 --next_power2='FALSE' --optimizer_type='MOMENTUM' --preserve_energies=100 --sample_count_lim
+it=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=3
+2 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0005 --workers=4 --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE
+' --noise_sigmas=0 --start_epsilon=0 --attack_type="NO_ATTACK" --attack_name="LBFGSAttack" --start_epoch=0 --network_type='ResNet18' --dataset
+="cifar10" --compress_fft_layer=0 --values_per_channel=0 --recover_type="rounding" --interpolate="const" --step_size=50 >> ${timestamp}.txt 2>
+&1
+
