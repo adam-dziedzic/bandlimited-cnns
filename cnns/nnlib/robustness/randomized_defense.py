@@ -24,7 +24,7 @@ def defend(image, fmodel, args):
     result.L1_distance = 0
     result.L2_distance = 0
     result.Linf_distance = 0
-    result.avg_predictions = np.array([0.0] * args.num_classes)
+    avg_predictions = np.array([0.0] * args.num_classes)
     class_id_counters = [0] * args.num_classes
 
     noiser = AdditiveUniformNoiseAttack()
@@ -34,7 +34,7 @@ def defend(image, fmodel, args):
             bounds=(args.min, args.max))
         noise_image = image + noise
         predictions = fmodel.predictions(image)
-        result.avg_predictions += predictions
+        avg_predictions += predictions
         soft_predictions = softmax(predictions)
         predicted_class_id = np.argmax(soft_predictions)
         class_id_counters[predicted_class_id] += 1
@@ -53,11 +53,11 @@ def defend(image, fmodel, args):
     result.class_id = max_class_id
     result.label = from_class_idx_to_label[max_class_id]
 
-    result.avg_predictions /= iters
+    avg_predictions /= iters
 
     result.confidence /= iters
     result.L1_distance /= iters
     result.L2_distance /= iters
     result.Linf_distance /= iters
 
-    return result
+    return result, avg_predictions

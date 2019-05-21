@@ -536,7 +536,7 @@ def run(args):
 
             # This is the randomized defense.
             if args.noise_iterations > 0:
-                result_noise = defend(
+                result_noise, _ = defend(
                     image=image,
                     fmodel=fmodel,
                     args=args)
@@ -846,10 +846,10 @@ if __name__ == "__main__":
     for compress_value in val_range:
         print("compress_" + args.recover_type + "_layer: ", compress_value)
         if args.recover_type == "debug":
-            args.values_per_channel = 16
-            args.compress_fft_layer = 32
-            args.noise_sigma = 0.001
-            args.noise_epsilon = 0.004
+            args.values_per_channel = 0
+            args.compress_fft_layer = 0
+            args.noise_sigma = 0
+            args.noise_epsilon = 0.03
         elif args.recover_type == "fft":
             args.compress_fft_layer = compress_value
         elif args.recover_type == "rounding":

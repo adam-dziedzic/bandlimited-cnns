@@ -306,11 +306,10 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                 x_prime = x
                 if self.args.noise_iterations > 0:
                     # This is the randomized defense.
-                    result_noise = defend(
+                    result_noise, predictions = defend(
                         image=x_prime,
                         fmodel=self._default_model,
                         args=self.args)
-                    predictions = result_noise.avg_predictions
                     in_bounds = self.roundfft_adversarial.in_bounds(x_prime)
                     # print("dir self.roundfft_adversarial: ", dir(self.roundfft_adversarial))
                     is_adv, _, _ = self.roundfft_adversarial._Adversarial__is_adversarial(
