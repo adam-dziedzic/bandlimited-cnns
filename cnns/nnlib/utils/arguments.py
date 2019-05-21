@@ -59,9 +59,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     model_path = "no_model"
 else:
     # dataset = "mnist"
-    dataset = "cifar10"
+    # dataset = "cifar10"
     # dataset = "cifar100"
-    # dataset = "imagenet"
+    dataset = "imagenet"
     # dataset = "svhn"
 
     batch_size = 32
@@ -138,7 +138,7 @@ class Arguments(object):
         return self.__counter__
 
     def __init__(self,
-                 is_debug=False,
+                 is_debug=True,
                  # network_type=NetworkType.ResNet18,
                  # network_type=NetworkType.DenseNetCifar,
                  network_type=network_type,
@@ -311,11 +311,11 @@ class Arguments(object):
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
                  compress_fft_layer=0,
-                 # attack_name="CarliniWagnerL2AttackRoundFFT",
+                 attack_name="CarliniWagnerL2AttackRoundFFT",
                  # attack_name="CarliniWagnerL2Attack",
-                 attack_name="FGSM",
+                 # attack_name="FGSM",
                  interpolate="const",
-                 recover_type="rounding",
+                 recover_type="noise",
                  step_size=50,
                  ):
         """

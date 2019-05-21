@@ -24,9 +24,6 @@ import foolbox
 import numpy as np
 import torch
 import torchvision.models as models
-# from cnns.nnlib.pytorch_layers.pytorch_utils import get_full_energy
-from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
-from cnns.nnlib.pytorch_layers.pytorch_utils import get_phase
 from cnns.nnlib.datasets.imagenet.imagenet_from_class_idx_to_label import \
     imagenet_from_class_idx_to_label
 from cnns.nnlib.datasets.cifar10_from_class_idx_to_label import \
@@ -63,71 +60,15 @@ from cnns.nnlib.datasets.transformations.gaussian_noise import gauss
 from foolbox.attacks.additive_noise import AdditiveUniformNoiseAttack
 from foolbox.attacks.additive_noise import AdditiveGaussianNoiseAttack
 from cnns.nnlib.utils.object import Object
+from cnns.nnlib.robustness.utils import softmax
+from cnns.nnlib.robustness.utils import to_fft
+from cnns.nnlib.robustness.utils import to_fft_magnitude
+from cnns.nnlib.robustness.utils import to_fft_phase
+from cnns.nnlib.robustness.utils import softmax_from_torch
+from cnns.nnlib.robustness.randomized_defense import defend
 
 results_folder = "results/"
 delimiter = ";"
-
-
-def softmax(x):
-    s = np.exp(x - np.max(x))
-    s /= np.sum(s)
-    return s
-
-
-def softmax_from_torch(x):
-    s = torch.nn.functional.softmax(torch.tensor(x, dtype=torch.float))
-    return s.numpy()
-
-
-def to_fft(x, fft_type, is_log=True):
-    x = torch.from_numpy(x)
-    # x = torch.tensor(x)
-    # x = x.permute(2, 0, 1)  # move channel as the first dimension
-    xfft = torch.rfft(x, onesided=False, signal_ndim=2)
-    if fft_type == "magnitude":
-        return to_fft_magnitude(xfft, is_log)
-    elif fft_type == "phase":
-        return to_fft_phase(xfft)
-    else:
-        raise Exception(f"Unknown type of fft processing: {fft_type}")
-
-
-def to_fft_magnitude(xfft, is_log=True):
-    """
-    Get the magnitude component of the fft-ed signal.
-
-    :param xfft: the fft-ed signal
-    :param is_log: for the logarithmic scale follow the dB (decibel) notation
-    where ydb = 20 * log_10(y), according to:
-    https://www.mathworks.com/help/signal/ref/mag2db.html
-    :return: the magnitude component of the fft-ed signal
-    """
-    # _, xfft_squared = get_full_energy(xfft)
-    # xfft_abs = torch.sqrt(xfft_squared)
-    # xfft_abs = xfft_abs.sum(dim=0)
-    xfft = get_spectrum(xfft)
-    xfft = xfft.numpy()
-    if is_log:
-        # Ensure xfft does not have zeros.
-        # xfft = xfft + 0.00001
-        xfft = np.clip(xfft, 1e-12, None)
-        xfft = 20 * np.log10(xfft)
-        # print("xfft: ", xfft)
-        # print("xfft min: ", xfft.min())
-        # print("xfft max: ", xfft.max())
-        return xfft
-    else:
-        return xfft
-
-
-def to_fft_phase(xfft):
-    # The phase is unwrapped using the unwrap function so that we can see a
-    # continuous function of frequency.
-    return np.unwrap(get_phase(xfft).numpy())
-
-
-def znormalize(x):
-    return (x - x.min()) / (x.max() - x.min())
 
 
 def get_fmodel(args):
@@ -202,6 +143,7 @@ def get_fmodel(args):
 def run(args):
     result = Object()
     fmodel, from_class_idx_to_label = get_fmodel(args=args)
+    args.from_class_idx_to_label = from_class_idx_to_label
 
     lim_y, lim_x = args.init_y, args.init_x
     # lim_y, lim_x = init_y // 2, init_x // 2
@@ -591,6 +533,14 @@ def run(args):
                 image=noise_image,
                 original_image=original_image,
                 title=title)
+
+            # This is the randomized defense.
+            if args.noise_iterations > 0:
+                result_noise = defend(
+                    image=image,
+                    fmodel=fmodel,
+                    args=args)
+
             result.add(result_noise, prefix="noise_")
 
         if args.adv_attack == "after":
@@ -627,8 +577,10 @@ def run(args):
         # Write labels to the log file.
         with open(args.file_name_labels, "a") as f:
             if args.total_count == 0:
-                f.write(result.get_attrs_sorted(delimiter=delimiter) + "\n")
-            f.write(result.get_vals_sorted(delimiter=delimiter) + "\n")
+                header = result.get_attrs_sorted(delimiter=delimiter)
+                f.write(header + "\n")
+            values = result.get_vals_sorted(delimiter=delimiter)
+            f.write(values + "\n")
 
         def print_fft(image, channel, title="", args=args, is_log=True):
             print("fft: ", title)
@@ -796,6 +748,7 @@ if __name__ == "__main__":
     args.save_out = False
     # args.diff_type = "source"  # "source" or "fft"
     args.diff_type = "fft"
+    args.noise_iterations = 10
     # args.dataset = "cifar10"  # "cifar10" or "imagenet"
     # args.dataset = "imagenet"
     # args.dataset = "mnist"
@@ -806,7 +759,7 @@ if __name__ == "__main__":
     args.use_foolbox_data = False
     if args.is_debug:
         args.use_foolbox_data = False
-        index_range = range(0, 1000, 1)
+        index_range = range(1, 1000, 1)
         args.recover_type = "debug"
     else:
         step = 1
@@ -847,7 +800,8 @@ if __name__ == "__main__":
         val_range = range(5)
     elif args.recover_type == "gauss" or args.recover_type == "noise":
         val_range = [0.001, 0.002, 0.03, 0.07, 0.1, 0.2, 0.3, 0.4]
-        # val_range = []
+        if args.is_debug:
+            val_range = [0.03]
         # val_range = [x / 1000 for x in range(10)]
         # val_range += [x / 100 for x in range(1, 51)]
         # val_range += [x / 100 for x in range(1, 11)]
@@ -875,6 +829,7 @@ if __name__ == "__main__":
         header = ["compress_" + args.recover_type,
                   "_layer",
                   "% or recovered",
+                  "% of adversarials",
                   "avg. L2 distance defense",
                   "avg. L1 distance defense",
                   "avg. Linf distance defense",
@@ -913,6 +868,7 @@ if __name__ == "__main__":
         # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
         # print("indexes: ", indexes)
         count_recovered = 0
+        count_adv = 0  # count the number of adversarial examples
         sum_L1_distance_defense = 0
         sum_L2_distance_defense = 0
         sum_Linf_distance_defense = 0
@@ -942,8 +898,6 @@ if __name__ == "__main__":
             single_run_time = time.time() - start
             print("single run elapsed time: ", single_run_time)
             run_time += single_run_time
-
-            assert result_run.true_label != result_run.adv_label
 
             if args.recover_type == "rounding":
                 if result_run.round_label is not None and (
@@ -987,6 +941,10 @@ if __name__ == "__main__":
                 raise Exception(
                     f"Unknown recover type: {args.recover_type}")
 
+            if result_run.adv_label is not None and (
+                    result_run.true_label != result_run.adv_label):
+                count_adv += 1
+
             # Aggregate the statistics about the attack.
             sum_L2_distance_adv += result_run.adv_L2_distance
             sum_L1_distance_adv += result_run.adv_L1_distance
@@ -998,6 +956,7 @@ if __name__ == "__main__":
             f.write(delimiter.join([str(x) for x in
                                     [compress_value,
                                      count_recovered / total_count * 100,
+                                     count_adv / total_count * 100,
                                      sum_L2_distance_defense / total_count,
                                      sum_L1_distance_defense / total_count,
                                      sum_Linf_distance_defense / total_count,

@@ -19,6 +19,7 @@ from cnns.nnlib.utils.complex_mask import get_hyper_mask
 from cnns.nnlib.datasets.transformations.denorm_round_norm import \
     DenormRoundNorm
 from foolbox.attacks.additive_noise import AdditiveUniformNoiseAttack
+from cnns.nnlib.robustness.randomized_defense import defend
 
 
 class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
@@ -303,22 +304,33 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                 # logits, is_adv = a.predictions(x)
 
                 x_prime = x
-                if self.args.values_per_channel > 0:
-                    x_prime = self.rounder.round(x_prime)
-                if self.args.compress_fft_layer > 0:
-                    x_prime = self.fft_complex_compression(x_prime)
-                if self.args.noise_epsilon > 0:
-                    noise = self.noise._sample_noise(
-                        epsilon=self.args.noise_epsilon, image=x_prime,
-                        bounds=(self.args.min, self.args.max))
-                    x_prime += noise
+                if self.args.noise_iterations > 0:
+                    # This is the randomized defense.
+                    result_noise = defend(
+                        image=x_prime,
+                        fmodel=self._default_model,
+                        args=self.args)
+                    predictions = result_noise.avg_predictions
+                    in_bounds = self.roundfft_adversarial.in_bounds(x_prime)
+                    # print("dir self.roundfft_adversarial: ", dir(self.roundfft_adversarial))
+                    is_adv, _, _ = self.roundfft_adversarial._Adversarial__is_adversarial(
+                        x_prime, predictions, in_bounds)
+                else:
+                    if self.args.values_per_channel > 0:
+                        x_prime = self.rounder.round(x_prime)
+                    if self.args.compress_fft_layer > 0:
+                        x_prime = self.fft_complex_compression(x_prime)
+                    if self.args.noise_epsilon > 0:
+                        noise = self.noise._sample_noise(
+                            epsilon=self.args.noise_epsilon, image=x_prime,
+                            bounds=(self.args.min, self.args.max))
+                        x_prime += noise
+                    # print("diff between input image and rounded: ",
+                    #       np.sum(np.abs(x_rounded - x)))
 
-                # print("diff between input image and rounded: ",
-                #       np.sum(np.abs(x_rounded - x)))
-
-                # x_prime = np.clip(x_prime, self.args.min, self.args.max)
-                # update the adversarial for the rounded version of the image
-                _, is_adv = self.roundfft_adversarial.predictions(x_prime)
+                    # x_prime = np.clip(x_prime, self.args.min, self.args.max)
+                    # update the adversarial for the rounded version of the image
+                    _, is_adv = self.roundfft_adversarial.predictions(x_prime)
 
                 # the perturbations are with respect to the original image
                 # logits, is_adv = a.predictions(x_rounded)

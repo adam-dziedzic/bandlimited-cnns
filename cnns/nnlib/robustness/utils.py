@@ -3,7 +3,6 @@ from cnns.nnlib.datasets.cifar10_example import cifar10_example
 import foolbox
 import torch
 import os
-from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
 from cnns.nnlib.utils.exec_args import get_args
 from cnns.nnlib.datasets.cifar import get_cifar
 from cnns.nnlib.datasets.cifar import cifar_mean_array
@@ -12,7 +11,73 @@ from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
 from cnns.nnlib.datasets.cifar import cifar_min
 from cnns.nnlib.datasets.cifar import cifar_max
 from cnns.nnlib.datasets.transformations.rounding import RoundingTransformation
-from cnns.nnlib.pytorch_architecture.get_model_architecture import getModelPyTorch
+from cnns.nnlib.pytorch_architecture.get_model_architecture import \
+    getModelPyTorch
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_phase
+
+
+def softmax(logits):
+    s = np.exp(logits - np.max(logits))
+    s /= np.sum(s)
+    return s
+
+
+def softmax_from_torch(x):
+    s = torch.nn.functional.softmax(torch.tensor(x, dtype=torch.float))
+    return s.numpy()
+
+
+def to_fft(x, fft_type, is_log=True):
+    x = torch.from_numpy(x)
+    # x = torch.tensor(x)
+    # x = x.permute(2, 0, 1)  # move channel as the first dimension
+    xfft = torch.rfft(x, onesided=False, signal_ndim=2)
+    if fft_type == "magnitude":
+        return to_fft_magnitude(xfft, is_log)
+    elif fft_type == "phase":
+        return to_fft_phase(xfft)
+    else:
+        raise Exception(f"Unknown type of fft processing: {fft_type}")
+
+
+def to_fft_magnitude(xfft, is_log=True):
+    """
+    Get the magnitude component of the fft-ed signal.
+
+    :param xfft: the fft-ed signal
+    :param is_log: for the logarithmic scale follow the dB (decibel) notation
+    where ydb = 20 * log_10(y), according to:
+    https://www.mathworks.com/help/signal/ref/mag2db.html
+    :return: the magnitude component of the fft-ed signal
+    """
+    # _, xfft_squared = get_full_energy(xfft)
+    # xfft_abs = torch.sqrt(xfft_squared)
+    # xfft_abs = xfft_abs.sum(dim=0)
+    xfft = get_spectrum(xfft)
+    xfft = xfft.numpy()
+    if is_log:
+        # Ensure xfft does not have zeros.
+        # xfft = xfft + 0.00001
+        xfft = np.clip(xfft, 1e-12, None)
+        xfft = 20 * np.log10(xfft)
+        # print("xfft: ", xfft)
+        # print("xfft min: ", xfft.min())
+        # print("xfft max: ", xfft.max())
+        return xfft
+    else:
+        return xfft
+
+
+def to_fft_phase(xfft):
+    # The phase is unwrapped using the unwrap function so that we can see a
+    # continuous function of frequency.
+    return np.unwrap(get_phase(xfft).numpy())
+
+
+def znormalize(x):
+    return (x - x.min()) / (x.max() - x.min())
+
 
 def normalize(x, mean, std):
     _mean = mean.astype(x.dtype)
