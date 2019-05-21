@@ -455,21 +455,23 @@ def run(args):
             full_name += "-rounded-fft"
         full_name += "-img-idx-" + str(args.image_index) + "-graph-recover"
         if args.is_debug:
-            full_name = str(args.noise_iterations) + "-" + full_name
-        print("full name of stored adversarial example: ", full_name)
+            full_name = str(args.noise_iterations) + "-" + full_name + "-" + get_log_time()
 
         created_new_adversarial = False
         if args.adv_attack == "before":
             attack_name = attack.name()
             print("attack name: ", attack_name)
-            if attack_name != "CarliniWagnerL2Attack":
-                full_name += "-" + str(attack_name)
+            # if attack_name != "CarliniWagnerL2Attack":
+            #   full_name += "-" + str(attack_name)
+            full_name += "-" + str(attack_name)
+            print("full name of stored adversarial example: ", full_name)
             if os.path.exists(full_name + ".npy"):
                 adv_image = np.load(file=full_name + ".npy")
                 result.adv_timing = -1
             else:
                 start_adv = time.time()
-                adv_image = attack(original_image, args.true_class_id)
+                adv_image = attack(original_image, args.true_class_id,
+                                   max_iterations=args.max_iterations)
                 result.adv_timing = time.time() - start_adv
                 created_new_adversarial = True
             image = adv_image
@@ -479,6 +481,9 @@ def run(args):
                     original_image=original_image,
                     title="Adversarial")
                 result.add(result_adv, prefix="adv_")
+            else:
+                result.adv_label = None  # The adversarial image has not been found.
+
 
         # The rounded image.
         if args.values_per_channel > 0 and image is not None:
@@ -537,11 +542,29 @@ def run(args):
                 title=title)
 
             # This is the randomized defense.
-            if args.noise_iterations > 0:
+            if args.noise_iterations > 0 or args.recover_iterations > 0:
+                # Number of random trials and classifications to select the
+                # final recovered class based on the plurality: the input image
+                # is perturbed many times with random noise, we record class
+                # for each trial and return as the result the class that was
+                # selected most times.
+                # noise_iterations is also used in the attack.
+                # recover_iterations is used only for the defense.
+                if args.noise_iterations > 0 and args.recover_iterations > 0:
+                    raise Exception(f"Only one iterations for recovery can be "
+                                    "set but "
+                                    "noise_iterations={args.noise_iterations} "
+                                    "and "
+                                    "recover_iterations={args.recover_iterations}.")
+                if args.recover_iterations > 0:
+                    iters = args.recover_iterations
+                elif args.noise_iterations > 0:
+                    iters = args.noise_iterations
                 result_noise, _ = defend(
                     image=image,
                     fmodel=fmodel,
-                    args=args)
+                    args=args,
+                    iters=iters)
 
             result.add(result_noise, prefix="noise_")
 
@@ -751,6 +774,8 @@ if __name__ == "__main__":
     args.save_out = False
     # args.diff_type = "source"  # "source" or "fft"
     args.diff_type = "fft"
+    args.use_logits_random_defense = False
+    args.max_iterations = 1000
     # args.noise_iterations = 1
     # args.dataset = "cifar10"  # "cifar10" or "imagenet"
     # args.dataset = "imagenet"
@@ -761,9 +786,11 @@ if __name__ == "__main__":
     index_range = range(args.start_epoch, args.epochs, args.step_size)
     args.use_foolbox_data = False
     if args.is_debug:
+        args.noise_iterations = 1
         args.use_foolbox_data = False
         # index_range = range(1, 1000, 1)
         args.recover_type = "debug"
+        args.max_iterations = 1
     else:
         step = 1
         if args.dataset == "imagenet":
@@ -804,7 +831,7 @@ if __name__ == "__main__":
     elif args.recover_type == "gauss" or args.recover_type == "noise":
         val_range = [0.001, 0.002, 0.03, 0.07, 0.1, 0.2, 0.3, 0.4]
         if args.is_debug:
-            val_range = [0.03]
+            val_range = [0.003]
         # val_range = [x / 1000 for x in range(10)]
         # val_range += [x / 100 for x in range(1, 51)]
         # val_range += [x / 100 for x in range(1, 11)]
@@ -849,8 +876,8 @@ if __name__ == "__main__":
         if args.recover_type == "debug":
             args.values_per_channel = 0
             args.compress_fft_layer = 0
-            args.noise_sigma = 0
-            args.noise_epsilon = 0.03
+            args.noise_sigma = 0.0
+            args.noise_epsilon = 0.003
         elif args.recover_type == "fft":
             args.compress_fft_layer = compress_value
         elif args.recover_type == "rounding":

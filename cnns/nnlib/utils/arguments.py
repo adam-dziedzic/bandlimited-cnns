@@ -59,9 +59,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     model_path = "no_model"
 else:
     # dataset = "mnist"
-    # dataset = "cifar10"
+    dataset = "cifar10"
     # dataset = "cifar100"
-    dataset = "imagenet"
+    # dataset = "imagenet"
     # dataset = "svhn"
 
     batch_size = 32
@@ -69,7 +69,7 @@ else:
     learning_rate = 0.01
     weight_decay = 0.0005
     momentum = 0.9
-    epochs=2000
+    epochs=5000
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
@@ -138,7 +138,7 @@ class Arguments(object):
         return self.__counter__
 
     def __init__(self,
-                 is_debug=True,
+                 is_debug=False,
                  # network_type=NetworkType.ResNet18,
                  # network_type=NetworkType.DenseNetCifar,
                  network_type=network_type,
@@ -292,7 +292,7 @@ class Arguments(object):
                  # resume="cifar100-0.0-84-checkpoint.tar",
                  resume="",
                  gpu=0,
-                 start_epoch=500,
+                 start_epoch=0,
                  only_train=False,
                  test_compress_rates=False,
                  noise_sigma=-1.0,
@@ -311,13 +311,14 @@ class Arguments(object):
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
                  compress_fft_layer=0,
-                 attack_name="CarliniWagnerL2AttackRoundFFT",
-                 # attack_name="CarliniWagnerL2Attack",
+                 # attack_name="CarliniWagnerL2AttackRoundFFT",
+                 attack_name="CarliniWagnerL2Attack",
                  # attack_name="FGSM",
                  interpolate="const",
                  recover_type="noise",
                  step_size=50,
-                 noise_iterations=1,
+                 noise_iterations=0,
+                 recover_iterations=10,
                  ):
         """
         The default parameters for the execution of the program.
@@ -440,6 +441,7 @@ class Arguments(object):
         self.recover_type = recover_type
         self.step_size = step_size
         self.noise_iterations = noise_iterations
+        self.recover_iterations = recover_iterations
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False

@@ -5,7 +5,7 @@ from foolbox.attacks.additive_noise import AdditiveUniformNoiseAttack
 
 import numpy as np
 
-def defend(image, fmodel, args):
+def defend(image, fmodel, args, iters=None):
     """
     Recover the correct label.
 
@@ -14,7 +14,8 @@ def defend(image, fmodel, args):
     :param args: the global arguments
     :return: the result object with selected label, distances and confidence
     """
-    iters = args.noise_iterations
+    if iters is None:
+        iters = args.noise_iterations
     meter = DenormDistance(mean_array=args.mean_array,
                            std_array=args.std_array)
     from_class_idx_to_label = args.from_class_idx_to_label

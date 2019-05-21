@@ -312,8 +312,13 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                         args=self.args)
                     in_bounds = self.roundfft_adversarial.in_bounds(x_prime)
                     # print("dir self.roundfft_adversarial: ", dir(self.roundfft_adversarial))
-                    is_adv, _, _ = self.roundfft_adversarial._Adversarial__is_adversarial(
-                        x_prime, predictions, in_bounds)
+                    if self.args.use_logits_random_defense:
+                        is_adv, _, _ = self.roundfft_adversarial._Adversarial__is_adversarial(
+                            x_prime, predictions, in_bounds)
+                    else:
+                        is_adv = result_noise.class_id != a.original_class
+                        # Update the adversarial for the randomized version of the image.
+                        self.roundfft_adversarial.predictions(x_prime)
                 else:
                     if self.args.values_per_channel > 0:
                         x_prime = self.rounder.round(x_prime)

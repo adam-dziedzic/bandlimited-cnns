@@ -319,7 +319,13 @@ def get_args():
                         f"sequential order (default: {args.step_size})")
     parser.add_argument('--noise_iterations', type=int,
                         default=args.noise_iterations,
-                        help=f"number of iterations for the random defense (default: {args.step_size})")
+                        help=f"number of iterations for the random defense "
+                        f"that we that attack is aware of and we use to recover "
+                        f"the correct label (default: {args.noise_iterations})")
+    parser.add_argument('--recover_iterations', type=int,
+                        default=args.recover_iterations,
+                        help=f"number of iterations for the defense that the "
+                        f"attacker is not aware of (default: {args.recover_iterations})")
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)
