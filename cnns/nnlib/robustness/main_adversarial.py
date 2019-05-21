@@ -812,7 +812,7 @@ if __name__ == "__main__":
         # val_range += [x / 100 for x in range(31, 51)]
         # val_range += [x / 100 for x in range(51, 0, -1)]
     elif args.recover_type == "debug":
-        val_range = [-1]
+        val_range = [0.03]
     else:
         raise Exception(f"Unknown recover type: {args.recover_type}")
 
