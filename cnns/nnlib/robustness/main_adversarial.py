@@ -736,7 +736,8 @@ def result_file(args):
         args.compress_fft_layer) + "-" + args.dataset + "-" + "val-per-channel-" + str(
         args.values_per_channel) + "-noise-epsilon-" + str(
         args.noise_epsilon) + "-noise-sigma-" + str(
-        args.noise_sigma) + "-" + get_log_time()
+        args.noise_sigma) + "-noise-iterations-" + str(
+        args.noise_iterations) + "-" + get_log_time()
     with open(args.file_name_labels, "a") as f:
         f.write(args.get_str() + "\n\n")
 
