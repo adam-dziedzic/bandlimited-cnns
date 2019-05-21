@@ -454,6 +454,8 @@ def run(args):
         else:
             full_name += "-rounded-fft"
         full_name += "-img-idx-" + str(args.image_index) + "-graph-recover"
+        if args.is_debug:
+            full_name = str(args.noise_iterations) + "-" + full_name
         print("full name of stored adversarial example: ", full_name)
 
         created_new_adversarial = False
@@ -563,8 +565,6 @@ def run(args):
                 result.add(result_adv, prefix="adv_")
 
         if adv_image is not None and created_new_adversarial:
-            if args.is_debug:
-                full_name = str(args.noise_iterations) + "-" + full_name
             np.save(file=full_name + ".npy", arr=adv_image)
 
         if show_diff:
