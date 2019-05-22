@@ -274,7 +274,9 @@ def get_args():
                         default=args.in_channels,
                         help=f"number of input channels (default): {args.in_channels})")
     parser.add_argument('--values_per_channel',
-                        default=args.values_per_channel, type=int,
+                        default=args.values_per_channel,
+                        nargs="+",
+                        type=int,
                         help="we apply the rounding if "
                              "values_per_channel is > 0 "
                              "and input has to be in range [0,1]"
