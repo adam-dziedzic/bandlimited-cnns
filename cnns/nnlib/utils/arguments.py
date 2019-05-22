@@ -41,6 +41,7 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     learning_rate = 0.001
     batch_size = 16
     test_batch_size = batch_size
+    # test_batch_size = 256
     weight_decay = 0.0001
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
@@ -65,7 +66,9 @@ else:
     # dataset = "svhn"
 
     batch_size = 32
-    test_batch_size = batch_size
+    # test_batch_size = batch_size
+    # test_batch_size = 256
+    test_batch_size = 1
     learning_rate = 0.01
     weight_decay = 0.0005
     momentum = 0.9
@@ -318,7 +321,7 @@ class Arguments(object):
                  recover_type="noise",
                  step_size=50,
                  noise_iterations=0,
-                 recover_iterations=0,
+                 recover_iterations=16,
                  ):
         """
         The default parameters for the execution of the program.

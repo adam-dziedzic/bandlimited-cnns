@@ -369,63 +369,65 @@ def run(args):
               args.true_label)
 
         def show_image(image, original_image, title="", args=args,
-                       clip_input_image=True):
+                       clip_input_image=False):
             result = Object()
-            true_class_id = args.true_class_id
-            true_label = args.true_label
-            predictions, _ = fmodel.predictions_and_gradient(
-                image=image, label=true_class_id)
-            predictions = softmax(predictions)
-            predicted_class_id = np.argmax(predictions)
+            predictions = fmodel.predictions(image=image)
+            soft_predictions = softmax(predictions)
+            predicted_class_id = np.argmax(soft_predictions)
             predicted_label = from_class_idx_to_label[predicted_class_id]
-            result.label = predicted_label
-            print(title)
-            print("Number of unique values: ", len(np.unique(image)))
-            print("model predicted label: ", predicted_label)
-            if predicted_label != true_label:
-                print(f"The true label: {true_label} is different than "
-                      f"the predicted label: {predicted_label}")
-            confidence = np.max(predictions)
+            confidence = np.max(soft_predictions)
+
             result.confidence = confidence
-            title_str = title + '\n'
-            title_str += 'label: ' + str(
-                predicted_label.replace(",", "\n")) + "\n"
-            confidence_str = str(np.around(confidence, decimals=decimals))
-            title_str += "confidence: " + confidence_str + "\n"
+            result.label = predicted_label
+            result.class_id = predicted_class_id
             result.L2_distance = meter.measure(original_image, image)
             result.L1_distance = meter.measure(original_image, image, norm=1)
             result.Linf_distance = meter.measure(original_image, image,
                                                  norm=float('inf'))
-            if id(image) != id(original_image):
-                title_str += "L1 distance: " + str(result.L1_distance) + "\n"
-                title_str += "L2 distance: " + str(result.L2_distance) + "\n"
-                title_str += "Linf distance: " + str(
-                    result.Linf_distance) + "\n"
-            ylabel_text = "spatial domain"
-            if clip_input_image:
-                # image = torch.clamp(image, min = args.min, max=args.max)
-                image = np.clip(image, a_min=args.min, a_max=args.max)
-            image_show = denormalizer.denormalize(image)
-            if clip_input_image:
-                image_show = np.clip(image, a_min=0, a_max=1)
-            if args.dataset == "mnist":
-                # image_show = image_show.astype('uint8')
-                # plt.imshow(image_show.squeeze(), cmap=args.cmap,
-                #            interpolation='nearest')
-                print_heat_map(input_map=image_show[0], args=args,
-                               ylabel=ylabel_text, title=title_str)
-            else:
-                args.plot_index += 1
-                plt.subplot(rows, cols, args.plot_index)
-                plt.title(title_str)
-                plt.imshow(
-                    np.moveaxis(image, 0, -1),
-                    # move channels to last dimension
-                    cmap=args.cmap)
-                # plt.imshow(image / 255)  # division by 255 to convert [0, 255] to [0, 1]
-                # plt.axis('off')
-                if args.plot_index % cols == 1:
-                    plt.ylabel(ylabel_text)
+            if args.is_debug:
+                true_label = args.true_label
+                print("Number of unique values: ", len(np.unique(image)))
+                print("model predicted label: ", predicted_label)
+                if predicted_label != true_label:
+                    print(f"The true label: {true_label} is different than "
+                          f"the predicted label: {predicted_label}")
+                print(title)
+                title_str = title + '\n'
+                title_str += 'label: ' + str(
+                    predicted_label.replace(",", "\n")) + "\n"
+                confidence_str = str(np.around(confidence, decimals=decimals))
+                title_str += "confidence: " + confidence_str + "\n"
+                if id(image) != id(original_image):
+                    title_str += "L1 distance: " + str(result.L1_distance) + "\n"
+                    title_str += "L2 distance: " + str(result.L2_distance) + "\n"
+                    title_str += "Linf distance: " + str(
+                        result.Linf_distance) + "\n"
+                ylabel_text = "spatial domain"
+                image_show = image
+                if clip_input_image:
+                    # image = torch.clamp(image, min = args.min, max=args.max)
+                    image_show = np.clip(image_show, a_min=args.min, a_max=args.max)
+                image_show = denormalizer.denormalize(image_show)
+                if clip_input_image:
+                    image_show = np.clip(image, a_min=0, a_max=1)
+                if args.dataset == "mnist":
+                    # image_show = image_show.astype('uint8')
+                    # plt.imshow(image_show.squeeze(), cmap=args.cmap,
+                    #            interpolation='nearest')
+                    print_heat_map(input_map=image_show[0], args=args,
+                                   ylabel=ylabel_text, title=title_str)
+                else:
+                    args.plot_index += 1
+                    plt.subplot(rows, cols, args.plot_index)
+                    plt.title(title_str)
+                    plt.imshow(
+                        np.moveaxis(image_show, 0, -1),
+                        # move channels to last dimension
+                        cmap=args.cmap)
+                    # plt.imshow(image / 255)  # division by 255 to convert [0, 255] to [0, 1]
+                    # plt.axis('off')
+                    if args.plot_index % cols == 1:
+                        plt.ylabel(ylabel_text)
 
             return result
 
@@ -436,6 +438,7 @@ def run(args):
             original_image=original_image,
             title=original_title)
         result.add(original_result, prefix="original_")
+        print("Label for the original image: ", original_result.label)
 
         if show_2nd:
             result_original2 = show_image(
@@ -455,14 +458,15 @@ def run(args):
             full_name += "-rounded-fft"
         full_name += "-img-idx-" + str(args.image_index) + "-graph-recover"
         if args.is_debug:
-            full_name = str(args.noise_iterations) + "-" + full_name + "-" + get_log_time()
+            full_name = str(
+                args.noise_iterations) + "-" + full_name + "-" + get_log_time()
 
         created_new_adversarial = False
         if args.adv_attack == "before":
             attack_name = attack.name()
             print("attack name: ", attack_name)
-            # if attack_name != "CarliniWagnerL2Attack":
-            #   full_name += "-" + str(attack_name)
+            if attack_name != "CarliniWagnerL2Attack":
+              full_name += "-" + str(attack_name)
             full_name += "-" + str(attack_name)
             print("full name of stored adversarial example: ", full_name)
             if os.path.exists(full_name + ".npy"):
@@ -480,10 +484,11 @@ def run(args):
                     image=adv_image,
                     original_image=original_image,
                     title="Adversarial")
+                print("Adversarial label, id: ", result_adv.label,
+                      result_adv.class_id)
                 result.add(result_adv, prefix="adv_")
             else:
                 result.adv_label = None  # The adversarial image has not been found.
-
 
         # The rounded image.
         if args.values_per_channel > 0 and image is not None:
@@ -531,18 +536,23 @@ def run(args):
             result.add(result_gauss, prefix="gauss_")
 
         if args.noise_epsilon > 0 and image is not None:
+            print("Uniform noise defense")
             L2_dist_adv_original = meter.measure(original_image, image)
             print("L2 distance between adversarial and original images: ",
                   L2_dist_adv_original)
+            title = "Level of uniform noise: " + str(args.noise_epsilon)
+
             noise = AdditiveUniformNoiseAttack()._sample_noise(
                 epsilon=args.noise_epsilon, image=image,
                 bounds=(args.min, args.max))
             noise_image = image + noise
-            title = "Level of uniform noise: " + str(args.noise_epsilon)
             result_noise = show_image(
                 image=noise_image,
                 original_image=original_image,
                 title=title)
+            print("Label, id found after applying random noise once: ",
+                  result_noise.label, result_noise.class_id)
+            result.add(result_noise, prefix="noise_one_")
 
             # This is the randomized defense.
             if args.noise_iterations > 0 or args.recover_iterations > 0:
@@ -568,6 +578,9 @@ def run(args):
                     fmodel=fmodel,
                     args=args,
                     iters=iters)
+                print("Recovered label, id by iterations: ",
+                      result_noise.label, result_noise.class_id)
+                result.add(result_noise, prefix="noise_many_")
 
             result.add(result_noise, prefix="noise_")
 
@@ -832,8 +845,8 @@ if __name__ == "__main__":
     elif args.recover_type == "roundfft":
         val_range = range(5)
     elif args.recover_type == "gauss" or args.recover_type == "noise":
-        # val_range = [0.001, 0.002, 0.03, 0.07, 0.1, 0.2, 0.3, 0.4]
-        val_range = [0.003]
+        val_range = [0.001, 0.002, 0.03, 0.07, 0.1, 0.2, 0.3, 0.4]
+        # val_range = [0.03]
         if args.is_debug:
             val_range = [0.003]
         # val_range = [x / 1000 for x in range(10)]
@@ -843,7 +856,7 @@ if __name__ == "__main__":
         # val_range += [x / 100 for x in range(31, 51)]
         # val_range += [x / 100 for x in range(51, 0, -1)]
     elif args.recover_type == "debug":
-        val_range = [0.03]
+        val_range = [0.009]
     else:
         raise Exception(f"Unknown recover type: {args.recover_type}")
 
