@@ -848,7 +848,7 @@ if __name__ == "__main__":
         val_range = range(5)
     elif args.recover_type == "gauss" or args.recover_type == "noise":
         # val_range = [0.009, 0.001, 0.03, 0.07, 0.1, 0.2, 0.3, 0.4, 0.5]
-        val_range = [args.noise_sigma]
+        val_range = args.noise_sigmas
         # val_range = [0.03]
         if args.is_debug:
             val_range = [0.003]
@@ -913,7 +913,7 @@ if __name__ == "__main__":
             raise Exception(
                 f"Unknown recover type: {args.recover_type}")
 
-        recover_iterations = [0] + [2 ** x for x in range(5, 11)]
+        recover_iterations = [0] + [2 ** x for x in range(1, 8)]
         for recover_iter in recover_iterations:
             args.recover_iterations = recover_iter
 
