@@ -531,6 +531,9 @@ def run(args):
             result.add(result_gauss, prefix="gauss_")
 
         if args.noise_epsilon > 0 and image is not None:
+            L2_dist_adv_original = meter.measure(original_image, image)
+            print("L2 distance between adversarial and original images: ",
+                  L2_dist_adv_original)
             noise = AdditiveUniformNoiseAttack()._sample_noise(
                 epsilon=args.noise_epsilon, image=image,
                 bounds=(args.min, args.max))
@@ -829,7 +832,8 @@ if __name__ == "__main__":
     elif args.recover_type == "roundfft":
         val_range = range(5)
     elif args.recover_type == "gauss" or args.recover_type == "noise":
-        val_range = [0.001, 0.002, 0.03, 0.07, 0.1, 0.2, 0.3, 0.4]
+        # val_range = [0.001, 0.002, 0.03, 0.07, 0.1, 0.2, 0.3, 0.4]
+        val_range = [0.003]
         if args.is_debug:
             val_range = [0.003]
         # val_range = [x / 1000 for x in range(10)]
@@ -854,8 +858,7 @@ if __name__ == "__main__":
         args.attack_name) + "-" + get_log_time() + ".txt"
     with open(out_recovered_file, "a") as f:
         f.write(args.get_str() + "\n")
-        header = ["compress_" + args.recover_type,
-                  "_layer",
+        header = ["compress_" + args.recover_type + "_layer",
                   "% or recovered",
                   "% of adversarials",
                   "avg. L2 distance defense",

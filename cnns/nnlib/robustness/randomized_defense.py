@@ -51,7 +51,7 @@ def defend(image, fmodel, args, iters=None):
         if class_counter > max_counter:
             max_class_id = class_id
 
-    result.class_id = max_class_id
+    result.class_id = np.argmax(np.array(class_id_counters))
     result.label = from_class_idx_to_label[max_class_id]
 
     avg_predictions /= iters

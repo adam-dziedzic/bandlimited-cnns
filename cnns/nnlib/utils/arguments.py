@@ -318,7 +318,7 @@ class Arguments(object):
                  recover_type="noise",
                  step_size=50,
                  noise_iterations=0,
-                 recover_iterations=10,
+                 recover_iterations=0,
                  ):
         """
         The default parameters for the execution of the program.
