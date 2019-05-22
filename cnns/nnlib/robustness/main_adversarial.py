@@ -474,8 +474,9 @@ def run(args):
                 result.adv_timing = -1
             else:
                 start_adv = time.time()
-                adv_image = attack(original_image, args.true_class_id,
-                                   max_iterations=args.max_iterations)
+                adv_image = attack(original_image,
+                                   args.true_class_id)
+                # max_iterations=args.max_iterations
                 result.adv_timing = time.time() - start_adv
                 created_new_adversarial = True
             image = adv_image
