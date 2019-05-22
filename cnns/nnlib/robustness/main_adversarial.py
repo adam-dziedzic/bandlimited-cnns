@@ -911,26 +911,27 @@ if __name__ == "__main__":
             raise Exception(
                 f"Unknown recover type: {args.recover_type}")
 
-        # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
-        # print("indexes: ", indexes)
-        count_recovered = 0
-        count_adv = 0  # count the number of adversarial examples
-        sum_L1_distance_defense = 0
-        sum_L2_distance_defense = 0
-        sum_Linf_distance_defense = 0
-        sum_confidence_defense = 0
-        sum_L2_distance_adv = 0
-        sum_L1_distance_adv = 0
-        sum_Linf_distance_adv = 0
-        sum_confidence_adv = 0
-        args.total_count = 0
-
-        # for index in range(4950, -1, -50):
-        # for index in range(0, 5000, 50):
-        # for index in range(0, 20):
-        recover_iterations = [0] + [2 ** x for x in range(1, 11)]
+        recover_iterations = [2 ** x for x in range(1, 11)]
         for recover_iter in recover_iterations:
             args.recover_iterations = recover_iter
+
+            # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
+            # print("indexes: ", indexes)
+            count_recovered = 0
+            count_adv = 0  # count the number of adversarial examples
+            sum_L1_distance_defense = 0
+            sum_L2_distance_defense = 0
+            sum_Linf_distance_defense = 0
+            sum_confidence_defense = 0
+            sum_L2_distance_adv = 0
+            sum_L1_distance_adv = 0
+            sum_Linf_distance_adv = 0
+            sum_confidence_adv = 0
+            args.total_count = 0
+
+            # for index in range(4950, -1, -50):
+            # for index in range(0, 5000, 50):
+            # for index in range(0, 20):
 
             run_time = 0
 

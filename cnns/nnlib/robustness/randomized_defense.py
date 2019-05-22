@@ -78,7 +78,7 @@ def defend(image, fmodel, args, iters=None, is_batch=True):
     avg_predictions /= iters
 
     result.confidence /= iters
-    # result.L2_distance /= iters
+    result.L2_distance /= iters
     result.L1_distance /= iters
     result.Linf_distance /= iters
 
