@@ -315,14 +315,14 @@ class Arguments(object):
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
                  compress_fft_layer=0,
-                 # attack_name="CarliniWagnerL2AttackRoundFFT",
-                 attack_name="CarliniWagnerL2Attack",
+                 attack_name="CarliniWagnerL2AttackRoundFFT",
+                 # attack_name="CarliniWagnerL2Attack",
                  # attack_name="FGSM",
                  interpolate="const",
                  recover_type="noise",
                  step_size=50,
                  noise_iterations=0,
-                 recover_iterations=16,
+                 recover_iterations=0,
                  ):
         """
         The default parameters for the execution of the program.
