@@ -840,7 +840,7 @@ if __name__ == "__main__":
         # val_range = range(200, 261, 5)
         # val_range = range(260, 200, -5)
     elif args.recover_type == "fft":
-        val_range = reversed([1, 10, 20, 30, 40, 50, 60, 80, 90])
+        val_range = reversed([1, 10, 20, 30, 40, 50, 60, 80])
         # val_range = range(1, 100, 2)
         # val_range = range(3)
     elif args.recover_type == "roundfft":
