@@ -913,7 +913,7 @@ if __name__ == "__main__":
             raise Exception(
                 f"Unknown recover type: {args.recover_type}")
 
-        recover_iterations = [0] + [2 ** x for x in range(1, 8)]
+        recover_iterations = [0] + [2 ** x for x in range(1, 9)]
         for recover_iter in recover_iterations:
             args.recover_iterations = recover_iter
 
