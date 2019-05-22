@@ -57,7 +57,6 @@ def defend(image, fmodel, args, iters=None, is_batch=True):
             dtype=image.dtype,
             bounds=(args.min, args.max))
         noise_images = image + noise
-        noise_image = np.average(noise_images, axis=0)
         predictions = fmodel.batch_predictions(images=noise_images)
         predictions = np.average(predictions, axis=0)
         soft_predictions = softmax(predictions)
@@ -67,6 +66,7 @@ def defend(image, fmodel, args, iters=None, is_batch=True):
         class_id_counters[predicted_class_id] += 1
         result.confidence += np.max(soft_predictions)
 
+        noise_image = np.average(noise_images, axis=0)
         result.L2_distance += meter.measure(image, noise_image, norm=2)
         result.L1_distance += meter.measure(image, noise_image, norm=1)
         result.Linf_distance += meter.measure(image, noise_image,

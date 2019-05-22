@@ -803,7 +803,7 @@ if __name__ == "__main__":
     index_range = range(args.start_epoch, args.epochs, args.step_size)
     args.use_foolbox_data = False
     if args.is_debug:
-        args.noise_iterations = 1
+        args.noise_iterations = 16
         args.use_foolbox_data = False
         # index_range = range(1, 1000, 1)
         args.recover_type = "debug"
@@ -846,7 +846,7 @@ if __name__ == "__main__":
         # val_range = range(3)
     elif args.recover_type == "roundfft":
         val_range = range(5)
-    elif args.recover_type == "gauss" or args.recover_type == "noise":
+    elif args.recover_type == "gauss":
         # val_range = [0.001, 0.009, 0.03, 0.07, 0.1, 0.2, 0.3, 0.4, 0.5]
         val_range = args.noise_sigmas
         # val_range = [0.03]
@@ -858,6 +858,10 @@ if __name__ == "__main__":
         # val_range += [x / 100 for x in range(11, 31)]
         # val_range += [x / 100 for x in range(31, 51)]
         # val_range += [x / 100 for x in range(51, 0, -1)]
+    elif args.recover_type == "noise":
+        val_range = args.noise_epsilons
+        if args.is_debug:
+            val_range = [0.009]
     elif args.recover_type == "debug":
         val_range = [0.009]
     else:

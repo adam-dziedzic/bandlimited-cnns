@@ -299,9 +299,10 @@ class Arguments(object):
                  start_epoch=0,
                  only_train=False,
                  test_compress_rates=False,
-                 noise_sigma=-1.0,
-                 noise_sigmas=[-1.0],
-                 noise_epsilon=0.0,
+                 noise_sigma=0,
+                 noise_sigmas=[0],
+                 noise_epsilon=0.009,
+                 noise_epsilons=[0.009],
                  fft_type="real_fft",  # real_fft or complex_fft
                  imagenet_path="/home/" + str(USER) + "/imagenet",
                  distributed=False,
@@ -322,7 +323,7 @@ class Arguments(object):
                  interpolate="const",
                  recover_type="noise",
                  step_size=50,
-                 noise_iterations=0,
+                 noise_iterations=16,
                  recover_iterations=0,
                  ):
         """
@@ -443,6 +444,7 @@ class Arguments(object):
         self.compress_fft_layer = compress_fft_layer
         self.attack_name = attack_name
         self.noise_epsilon = noise_epsilon
+        self.noise_epsilons = noise_epsilons
         self.interpolate = interpolate
         self.recover_type = recover_type
         self.step_size = step_size

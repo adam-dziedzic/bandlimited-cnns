@@ -262,6 +262,11 @@ def get_args():
                         type=float,
                         help=f"how much uniform noise to add: "
                         f"{args.noise_epsilon}")
+    parser.add_argument("--noise_epsilons", default=args.noise_epsilons,
+                        type=float,
+                        nargs="+",
+                        help=f"how much uniform noise to add: "
+                        f"{args.noise_epsilons}")
     parser.add_argument("--fft_type", default=args.fft_type,
                         help="the type of fft used: real_fft or complex_fft.")
     parser.add_argument("--imagenet_path", default=args.imagenet_path,
