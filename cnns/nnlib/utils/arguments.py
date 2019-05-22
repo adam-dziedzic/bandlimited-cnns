@@ -307,6 +307,7 @@ class Arguments(object):
                  distributed=False,
                  in_channels=1,
                  values_per_channel=0,
+                 many_values_per_channel=[0],
                  # ucr_path = "../sathya",
                  ucr_path="../../TimeSeriesDatasets",
                  start_epsilon=0,
@@ -433,6 +434,7 @@ class Arguments(object):
         self.distributed = distributed
         self.in_channels = in_channels
         self.values_per_channel = values_per_channel
+        self.many_values_per_channel = many_values_per_channel
         self.ucr_path = ucr_path
         self.start_epsilon = start_epsilon
         self.attack_type = attack_type

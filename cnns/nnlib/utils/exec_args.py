@@ -275,12 +275,16 @@ def get_args():
                         help=f"number of input channels (default): {args.in_channels})")
     parser.add_argument('--values_per_channel',
                         default=args.values_per_channel,
-                        nargs="+",
                         type=int,
                         help="we apply the rounding if "
                              "values_per_channel is > 0 "
                              "and input has to be in range [0,1]"
                              "img = 1.0/(values_per_channel - 1) * round((values_per_channel - 1) * img)")
+    parser.add_argument('--many_values_per_channel',
+                        default=args.many_values_per_channel,
+                        nargs="+",
+                        type=int,
+                        help="We apply many different values of rounding.")
     parser.add_argument("--ucr_path",
                         default=args.ucr_path,
                         help="The path to a UCR dataset.")

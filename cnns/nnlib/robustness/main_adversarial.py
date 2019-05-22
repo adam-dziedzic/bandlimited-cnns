@@ -836,7 +836,7 @@ if __name__ == "__main__":
 
     if args.recover_type == "rounding":
         # val_range = [2, 4, 8, 16, 32, 64, 128, 256]
-        val_range = args.values_per_channel
+        val_range = args.many_values_per_channel
         # val_range = range(261, 1, -5)
         # val_range = range(200, 261, 5)
         # val_range = range(260, 200, -5)
