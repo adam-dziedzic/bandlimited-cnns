@@ -985,15 +985,15 @@ if __name__ == "__main__":
                 raise Exception(
                     f"Unknown recover type: {args.recover_type}")
 
-            if result_run.adv_label is not None and (
-                    result_run.true_label != result_run.adv_label):
-                count_adv += 1
+            if result_run.adv_label is not None:
+                if result_run.true_label != result_run.adv_label:
+                    count_adv += 1
 
-            # Aggregate the statistics about the attack.
-            sum_L2_distance_adv += result_run.adv_L2_distance
-            sum_L1_distance_adv += result_run.adv_L1_distance
-            sum_Linf_distance_adv += result_run.adv_Linf_distance
-            sum_confidence_adv += result_run.adv_confidence
+                # Aggregate the statistics about the attack.
+                sum_L2_distance_adv += result_run.adv_L2_distance
+                sum_L1_distance_adv += result_run.adv_L1_distance
+                sum_Linf_distance_adv += result_run.adv_Linf_distance
+                sum_confidence_adv += result_run.adv_confidence
 
         total_count = args.total_count
         with open(out_recovered_file, "a") as f:
