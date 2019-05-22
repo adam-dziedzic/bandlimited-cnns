@@ -72,7 +72,8 @@ else:
     learning_rate = 0.01
     weight_decay = 0.0005
     momentum = 0.9
-    epochs=5000
+    # epochs=5000
+    epochs = 200
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32

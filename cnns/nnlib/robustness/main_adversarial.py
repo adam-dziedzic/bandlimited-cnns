@@ -846,7 +846,7 @@ if __name__ == "__main__":
     elif args.recover_type == "roundfft":
         val_range = range(5)
     elif args.recover_type == "gauss" or args.recover_type == "noise":
-        val_range = [0.001, 0.002, 0.03, 0.07, 0.1, 0.2, 0.3, 0.4]
+        val_range = [0.009, 0.001, 0.03, 0.07, 0.1, 0.2, 0.3, 0.4, 0.5]
         # val_range = [0.03]
         if args.is_debug:
             val_range = [0.003]
@@ -873,6 +873,7 @@ if __name__ == "__main__":
     with open(out_recovered_file, "a") as f:
         f.write(args.get_str() + "\n")
         header = ["compress_" + args.recover_type + "_layer",
+                  "recover iterations",
                   "% or recovered",
                   "% of adversarials",
                   "avg. L2 distance defense",
@@ -887,6 +888,7 @@ if __name__ == "__main__":
                   "run time (sec)\n"]
         f.write(delimiter.join(header))
 
+    result_file(args)
     # for compress_fft_layer in [1, 2, 3, 5, 10, 15, 20, 25, 30, 35, 45, 50, 60, 75, 80, 90, 99]:
     for compress_value in val_range:
         print("compress_" + args.recover_type + "_layer: ", compress_value)
@@ -909,7 +911,6 @@ if __name__ == "__main__":
             raise Exception(
                 f"Unknown recover type: {args.recover_type}")
 
-        result_file(args)
         # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
         # print("indexes: ", indexes)
         count_recovered = 0
@@ -927,90 +928,96 @@ if __name__ == "__main__":
         # for index in range(4950, -1, -50):
         # for index in range(0, 5000, 50):
         # for index in range(0, 20):
-        run_time = 0
-        for image_index in index_range:
-            # for index in range(args.start_epoch, limit, step):
-            # for index in range(args.start_epoch, 5000, 50):
-            # for index in range(limit - step, args.start_epoch - 1, -step):
-            args.image_index = image_index
-            print("image index: ", image_index)
+        recover_iterations = [0] + [2 ** x for x in range(1, 11)]
+        for recover_iter in recover_iterations:
+            args.recover_iterations = recover_iter
 
-            start = time.time()
+            run_time = 0
 
-            result_run = run(args)
-            args.total_count += 1
+            for image_index in index_range:
+                # for index in range(args.start_epoch, limit, step):
+                # for index in range(args.start_epoch, 5000, 50):
+                # for index in range(limit - step, args.start_epoch - 1, -step):
+                args.image_index = image_index
+                print("image index: ", image_index)
 
-            single_run_time = time.time() - start
-            print("single run elapsed time: ", single_run_time)
-            run_time += single_run_time
+                start = time.time()
 
-            if args.recover_type == "rounding":
-                if result_run.round_label is not None and (
-                        result_run.true_label == result_run.round_label):
-                    count_recovered += 1
-                sum_L2_distance_defense += result_run.round_L2_distance
-                sum_L1_distance_defense += result_run.round_L1_distance
-                sum_Linf_distance_defense += result_run.round_Linf_distance
-                sum_confidence_defense += result_run.round_confidence
-            elif args.recover_type == "fft":
-                if result_run.fft_label is not None and (
-                        result_run.true_label == result_run.fft_label):
-                    count_recovered += 1
-                sum_L2_distance_defense += result_run.fft_L2_distance
-                sum_L1_distance_defense += result_run.fft_L1_distance
-                sum_Linf_distance_defense += result_run.fft_Linf_distance
-                sum_confidence_defense += result_run.fft_confidence
-            elif args.recover_type == "roundfft":
-                if result_run.fft_label is not None and (
-                        result_run.true_label == result_run.fft_label):
-                    count_recovered += 1
-            elif args.recover_type == "gauss":
-                if result_run.gauss_label is not None and (
-                        result_run.true_label == result_run.gauss_label):
-                    count_recovered += 1
-                sum_L2_distance_defense += result_run.gauss_L2_distance
-                sum_L1_distance_defense += result_run.gauss_L1_distance
-                sum_Linf_distance_defense += result_run.gauss_Linf_distance
-                sum_confidence_defense += result_run.gauss_confidence
-            elif args.recover_type == "noise":
-                if result_run.noise_label is not None and (
-                        result_run.true_label == result_run.noise_label):
-                    count_recovered += 1
-                sum_L2_distance_defense += result_run.noise_L2_distance
-                sum_L1_distance_defense += result_run.noise_L1_distance
-                sum_Linf_distance_defense += result_run.noise_Linf_distance
-                sum_confidence_defense += result_run.noise_confidence
-            elif args.recover_type == "debug":
-                pass
-            else:
-                raise Exception(
-                    f"Unknown recover type: {args.recover_type}")
+                result_run = run(args)
+                args.total_count += 1
 
-            if result_run.adv_label is not None:
-                if result_run.true_label != result_run.adv_label:
-                    count_adv += 1
+                single_run_time = time.time() - start
+                print("single run elapsed time: ", single_run_time)
+                run_time += single_run_time
 
-                # Aggregate the statistics about the attack.
-                sum_L2_distance_adv += result_run.adv_L2_distance
-                sum_L1_distance_adv += result_run.adv_L1_distance
-                sum_Linf_distance_adv += result_run.adv_Linf_distance
-                sum_confidence_adv += result_run.adv_confidence
+                if args.recover_type == "rounding":
+                    if result_run.round_label is not None and (
+                            result_run.true_label == result_run.round_label):
+                        count_recovered += 1
+                    sum_L2_distance_defense += result_run.round_L2_distance
+                    sum_L1_distance_defense += result_run.round_L1_distance
+                    sum_Linf_distance_defense += result_run.round_Linf_distance
+                    sum_confidence_defense += result_run.round_confidence
+                elif args.recover_type == "fft":
+                    if result_run.fft_label is not None and (
+                            result_run.true_label == result_run.fft_label):
+                        count_recovered += 1
+                    sum_L2_distance_defense += result_run.fft_L2_distance
+                    sum_L1_distance_defense += result_run.fft_L1_distance
+                    sum_Linf_distance_defense += result_run.fft_Linf_distance
+                    sum_confidence_defense += result_run.fft_confidence
+                elif args.recover_type == "roundfft":
+                    if result_run.fft_label is not None and (
+                            result_run.true_label == result_run.fft_label):
+                        count_recovered += 1
+                elif args.recover_type == "gauss":
+                    if result_run.gauss_label is not None and (
+                            result_run.true_label == result_run.gauss_label):
+                        count_recovered += 1
+                    sum_L2_distance_defense += result_run.gauss_L2_distance
+                    sum_L1_distance_defense += result_run.gauss_L1_distance
+                    sum_Linf_distance_defense += result_run.gauss_Linf_distance
+                    sum_confidence_defense += result_run.gauss_confidence
+                elif args.recover_type == "noise":
+                    if result_run.noise_label is not None and (
+                            result_run.true_label == result_run.noise_label):
+                        count_recovered += 1
+                    sum_L2_distance_defense += result_run.noise_L2_distance
+                    sum_L1_distance_defense += result_run.noise_L1_distance
+                    sum_Linf_distance_defense += result_run.noise_Linf_distance
+                    sum_confidence_defense += result_run.noise_confidence
+                elif args.recover_type == "debug":
+                    pass
+                else:
+                    raise Exception(
+                        f"Unknown recover type: {args.recover_type}")
 
-        total_count = args.total_count
-        with open(out_recovered_file, "a") as f:
-            f.write(delimiter.join([str(x) for x in
-                                    [compress_value,
-                                     count_recovered / total_count * 100,
-                                     count_adv / total_count * 100,
-                                     sum_L2_distance_defense / total_count,
-                                     sum_L1_distance_defense / total_count,
-                                     sum_Linf_distance_defense / total_count,
-                                     sum_confidence_defense / total_count,
-                                     sum_L2_distance_adv / total_count,
-                                     sum_L1_distance_adv / total_count,
-                                     sum_Linf_distance_adv / total_count,
-                                     sum_confidence_adv / total_count,
-                                     count_recovered,
-                                     run_time]]) + "\n")
+                if result_run.adv_label is not None:
+                    if result_run.true_label != result_run.adv_label:
+                        count_adv += 1
+
+                    # Aggregate the statistics about the attack.
+                    sum_L2_distance_adv += result_run.adv_L2_distance
+                    sum_L1_distance_adv += result_run.adv_L1_distance
+                    sum_Linf_distance_adv += result_run.adv_Linf_distance
+                    sum_confidence_adv += result_run.adv_confidence
+
+            total_count = args.total_count
+            with open(out_recovered_file, "a") as f:
+                f.write(delimiter.join([str(x) for x in
+                                        [compress_value,
+                                         args.recover_iterations,
+                                         count_recovered / total_count * 100,
+                                         count_adv / total_count * 100,
+                                         sum_L2_distance_defense / total_count,
+                                         sum_L1_distance_defense / total_count,
+                                         sum_Linf_distance_defense / total_count,
+                                         sum_confidence_defense / total_count,
+                                         sum_L2_distance_adv / total_count,
+                                         sum_L1_distance_adv / total_count,
+                                         sum_Linf_distance_adv / total_count,
+                                         sum_confidence_adv / total_count,
+                                         count_recovered,
+                                         run_time]]) + "\n")
 
     print("total elapsed time: ", time.time() - start_time)
