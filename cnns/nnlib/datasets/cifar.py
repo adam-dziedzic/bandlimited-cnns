@@ -23,8 +23,10 @@ cifar_std_array = np.array(cifar_std, dtype=np.float32).reshape((3, 1, 1))
 # the min/max value per pixel after normalization
 # exact values:
 # counter:  10000  min:  -2.429065704345703  max:  2.7537312507629395 / 2.7969327
-cifar_min = np.float32(-2.4290658)
-cifar_max = np.float32(2.7969328)
+# cifar_min = np.float32(-2.4290658)
+cifar_min = np.float32(-2.6)
+# cifar_max = np.float32(2.7969328)
+cifar_max = np.float32(2.9)
 
 
 def show_images():
@@ -121,6 +123,8 @@ def get_cifar(args, dataset_name):
     args.signal_dimension = 2
     args.mean_array = cifar_mean_array
     args.std_array = cifar_std_array
+    args.min = cifar_min
+    args.max = cifar_max
     if args.network_type is NetworkType.LE_NET:
         args.out_channels = [10, 20]
         args.signal_dimension = 2

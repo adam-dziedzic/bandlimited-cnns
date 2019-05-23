@@ -5,6 +5,7 @@ import torch.utils.model_zoo as model_zoo
 from cnns.nnlib.pytorch_layers.conv_picker import Conv
 from cnns.nnlib.pytorch_layers.conv2D_fft import Conv2dfft
 from cnns.nnlib.pytorch_layers.round import Round
+from cnns.nnlib.pytorch_layers.noise import Noise
 from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBand2D
 from cnns.nnlib.pytorch_layers.fft_band_2D_complex_mask import \
     FFTBand2DcomplexMask
@@ -157,6 +158,7 @@ class ResNet(nn.Module):
         else:
             raise Exception(
                 f"Unknown dataset: {args.dataset} in ResNet architecture.")
+
         if args.values_per_channel > 0:
             self.rounder = Round(args=args)
             # pass
@@ -169,12 +171,25 @@ class ResNet(nn.Module):
             # identity function
             self.rounder = lambda x: x
 
-        if args.compress_rate > 0:
+        if args.compress_fft_layer > 0:
             # self.band = FFTBand2D(args=args)
             self.band = FFTBand2DcomplexMask(args=args)
         else:
             # identity function
             self.band = lambda x: x
+
+        if args.noise_sigma > 0:
+            self.noise = Noise(args=args)
+        else:
+            # identity function
+            self.band = lambda x: x
+
+        if args.noise_epsilon > 0:
+            self.noise = Noise(args=args)
+        else:
+            # identity function
+            self.band = lambda x: x
+
 
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
@@ -233,6 +248,8 @@ class ResNet(nn.Module):
             x = self.rounder(x)  # round to nearest integers - feature squeezing
         elif self.args.attack_type == AttackType.BAND_ONLY:
             x = self.band(x)
+        elif self.args.attack_type == AttackType.NOISE_ONLY:
+            x = self.noise(x)
         elif self.args.attack_type == AttackType.RECOVERY:
             pass
         else:

@@ -102,7 +102,7 @@ class FFTBand2DcomplexMask(Module):
 
     def __init__(self, args):
         super(FFTBand2DcomplexMask, self).__init__()
-        self.compress_rate = args.compress_rate
+        self.args = args
 
     def forward(self, input):
         """
@@ -113,10 +113,10 @@ class FFTBand2DcomplexMask(Module):
         :return: the result of 1D convolution
         """
         return FFTBandFunctionComplexMask2D.apply(
-            input,
-            self.compress_rate,
-            0, # val
-            "exp", # interpolate
-            get_hyper_mask, # get_mask
+            input,  # input image
+            self.args.compress_fft_layer,  # compress rate
+            0, # value set after compression (we usually zero out the coefficients)
+            self.args.interpolate, # interpolate (how to set the values if not zeros)
+            get_hyper_mask, # get_mask (the hyper mask is the most precise one)
             True, # onesided
-            False)  # is nextPower2
+            self.args.next_power2)  # is nextPower2

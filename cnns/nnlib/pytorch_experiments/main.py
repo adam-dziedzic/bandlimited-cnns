@@ -463,7 +463,7 @@ def main(args):
     if args.visulize is True:
         start_visualize_time = time.time()
         test_loss, test_accuracy = test(
-            model=model, device=args.device, test_loader=test_loader,
+            model=model, test_loader=test_loader,
             loss_function=loss_function, args=args)
         elapsed_time = time.time() - start_visualize_time
         print("test time: ", elapsed_time)

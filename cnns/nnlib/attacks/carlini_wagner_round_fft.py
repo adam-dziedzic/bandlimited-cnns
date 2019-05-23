@@ -61,7 +61,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             self.noise = AdditiveUniformNoiseAttack()
             self.gauss = AdditiveGaussianNoiseAttack()
 
-    def fft_complex_compression(self, image, is_clip=True, ctx=None,
+    def fft_complex_compression(self, image, is_clip=False, ctx=None,
                                 onesided=True):
         fft_image = FFTBandFunctionComplexMask2D.forward(
             ctx=ctx,
@@ -75,7 +75,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
         else:
             return fft_image
 
-    def fft_lshape_compression(self, image, is_clip=True, ctx=None,
+    def fft_lshape_compression(self, image, is_clip=False, ctx=None,
                                onesided=True):
         fft_image = FFTBandFunction2D.forward(
             ctx=ctx,
@@ -116,7 +116,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             original_class=original_class, distance=distance,
             threshold=threshold)
 
-    def add_distortion(self, image, is_clip=True):
+    def add_distortion(self, image, is_clip=False):
         """
         Adds rounding, fft, uniform and gaussian noise distortions.
 
@@ -329,8 +329,10 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                 #     values_per_channel=values_per_channel)
                 # logits, is_adv = a.predictions(x)
 
-                x = np.clip(x, a_min=self.args.min, a_max=self.args.max)
+                # x = np.clip(x, a_min=self.args.min, a_max=self.args.max)
                 x_prime = x
+                x_prime = self.add_distortion(x_prime)
+
                 if self.args.noise_iterations > 0:
                     # This is the randomized defense.
                     result_noise, predictions = defend(
@@ -354,18 +356,19 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                     # update the adversarial for the rounded version of the image
                     _, is_adv = self.roundfft_adversarial.predictions(x_prime)
 
-                x_prime = self.add_distortion(x_prime)
                 # print("diff between input image and rounded: ",
                 #       np.sum(np.abs(x_rounded - x)))
 
                 # the perturbations are with respect to the original image
                 # logits, is_adv = a.predictions(x_rounded)
                 # logits, is_adv = a.predictions(x)
-                logits, _ = a.predictions(x_prime)
+                strict = True
+                logits, _ = a.predictions(x_prime, strict=strict)
 
+                # dldx - gradient of the loss with respect to input x
                 loss, dldx = self.loss_function(
                     const, a, x, logits, reconstructed_original,
-                    confidence, min_, max_)
+                    confidence, min_, max_, strict=strict)
 
                 logging.info('loss: {}; best overall distance: {}'.format(
                     loss, a.distance))

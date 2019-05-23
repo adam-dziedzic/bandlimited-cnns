@@ -470,6 +470,7 @@ def run(args):
             full_name += "-" + str(args.attack_type) + "-" + str(
                 args.recover_type)
 
+        adv_image = None
         created_new_adversarial = False
         if args.adv_attack == "before":
             attack_name = attack.name()
@@ -501,6 +502,7 @@ def run(args):
             else:
                 result.adv_label = None  # The adversarial image has not been found.
 
+
         # The rounded image.
         if args.values_per_channel > 0 and image is not None:
             rounder = DenormRoundNorm(
@@ -520,6 +522,9 @@ def run(args):
             print("show diff between input image and rounded: ",
                   np.sum(np.abs(rounded_image - original_image)))
             result.add(result_round, prefix="round_")
+        else:
+            result.round_label = None
+
 
         if args.compress_fft_layer > 0 and image is not None:
             compress_image = attack_round_fft.fft_complex_compression(
@@ -534,6 +539,9 @@ def run(args):
             result.add(result_fft, prefix="fft_")
             print("Label, id found after applying FFT: ",
                   result_fft.label, result_fft.class_id)
+        else:
+            result.fft_label = None
+
 
         if args.noise_sigma > 0 and image is not None:
             # gauss_image = gauss(image_numpy=image, sigma=args.noise_sigma)
@@ -547,6 +555,9 @@ def run(args):
                 original_image=original_image,
                 title=title)
             result.add(result_gauss, prefix="gauss_")
+        else:
+            result.gauss_label = None
+
 
         if args.noise_epsilon > 0 and image is not None:
             print("Uniform noise defense")
@@ -596,6 +607,8 @@ def run(args):
                 result.add(result_noise, prefix="noise_many_")
 
             result.add(result_noise, prefix="noise_")
+        else:
+            result.noise_label = None
 
         if args.adv_attack == "after":
             full_name += "-after"
@@ -615,6 +628,13 @@ def run(args):
                     original_image=original_image,
                     title="Adversarial")
                 result.add(result_adv, prefix="adv_")
+            else:
+                adv_image = None
+                result.adv_label = None
+
+        if args.adv_attack is None:
+            result.adv_label = None
+            adv_image = None
 
         if adv_image is not None and created_new_adversarial:
             np.save(file=full_name + ".npy", arr=adv_image)
@@ -824,7 +844,8 @@ if __name__ == "__main__":
 
         args.noise_iterations = 0
         if args.recover_type == "noise":
-            args.noise_iterations = 16
+            pass
+            # args.noise_iterations = 16
         # index_range = range(1, 1000, 1)
 
     else:
@@ -840,7 +861,7 @@ if __name__ == "__main__":
         else:
             raise Exception(f"Unknown dataset: {args.dataset}")
 
-    args.adv_attack = "before"  # "before" or "after"
+    args.adv_attack = None # "before" or "after"
 
     # args.compress_fft_layer = 5
     # args.values_per_channel = 8
@@ -976,48 +997,49 @@ if __name__ == "__main__":
                 start = time.time()
 
                 result_run = run(args)
-                args.total_count += 1
 
                 single_run_time = time.time() - start
+
+                args.total_count += 1
                 print("single run elapsed time: ", single_run_time)
                 run_time += single_run_time
 
                 if args.recover_type == "rounding":
-                    if result_run.round_label is not None and (
-                            result_run.true_label == result_run.round_label):
-                        count_recovered += 1
-                    sum_L2_distance_defense += result_run.round_L2_distance
-                    sum_L1_distance_defense += result_run.round_L1_distance
-                    sum_Linf_distance_defense += result_run.round_Linf_distance
-                    sum_confidence_defense += result_run.round_confidence
+                    if result_run.round_label is not None:
+                        if result_run.true_label == result_run.round_label:
+                            count_recovered += 1
+                        sum_L2_distance_defense += result_run.round_L2_distance
+                        sum_L1_distance_defense += result_run.round_L1_distance
+                        sum_Linf_distance_defense += result_run.round_Linf_distance
+                        sum_confidence_defense += result_run.round_confidence
                 elif args.recover_type == "fft":
-                    if result_run.fft_label is not None and (
-                            result_run.true_label == result_run.fft_label):
-                        count_recovered += 1
-                    sum_L2_distance_defense += result_run.fft_L2_distance
-                    sum_L1_distance_defense += result_run.fft_L1_distance
-                    sum_Linf_distance_defense += result_run.fft_Linf_distance
-                    sum_confidence_defense += result_run.fft_confidence
+                    if result_run.fft_label is not None:
+                        if result_run.true_label == result_run.fft_label:
+                            count_recovered += 1
+                        sum_L2_distance_defense += result_run.fft_L2_distance
+                        sum_L1_distance_defense += result_run.fft_L1_distance
+                        sum_Linf_distance_defense += result_run.fft_Linf_distance
+                        sum_confidence_defense += result_run.fft_confidence
                 elif args.recover_type == "roundfft":
-                    if result_run.fft_label is not None and (
-                            result_run.true_label == result_run.fft_label):
-                        count_recovered += 1
+                    if result_run.fft_label is not None:
+                        if result_run.true_label == result_run.fft_label:
+                            count_recovered += 1
                 elif args.recover_type == "gauss":
-                    if result_run.gauss_label is not None and (
-                            result_run.true_label == result_run.gauss_label):
-                        count_recovered += 1
+                    if result_run.gauss_label is not None:
+                        if result_run.true_label == result_run.gauss_label:
+                            count_recovered += 1
                     sum_L2_distance_defense += result_run.gauss_L2_distance
                     sum_L1_distance_defense += result_run.gauss_L1_distance
                     sum_Linf_distance_defense += result_run.gauss_Linf_distance
                     sum_confidence_defense += result_run.gauss_confidence
                 elif args.recover_type == "noise":
-                    if result_run.noise_label is not None and (
-                            result_run.true_label == result_run.noise_label):
-                        count_recovered += 1
-                    sum_L2_distance_defense += result_run.noise_L2_distance
-                    sum_L1_distance_defense += result_run.noise_L1_distance
-                    sum_Linf_distance_defense += result_run.noise_Linf_distance
-                    sum_confidence_defense += result_run.noise_confidence
+                    if result_run.noise_label is not None:
+                        if result_run.true_label == result_run.noise_label:
+                            count_recovered += 1
+                        sum_L2_distance_defense += result_run.noise_L2_distance
+                        sum_L1_distance_defense += result_run.noise_L1_distance
+                        sum_Linf_distance_defense += result_run.noise_Linf_distance
+                        sum_confidence_defense += result_run.noise_confidence
                 elif args.recover_type == "debug":
                     pass
                 else:

@@ -128,6 +128,7 @@ class AttackType(EnumWithNames):
     ROUND_ONLY = 3
     BAND_ONLY = 2
     ROUND_BAND = 4
+    NOISE_ONLY = 5
 
 
 class ConvExecType(EnumWithNames):
