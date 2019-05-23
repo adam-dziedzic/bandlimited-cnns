@@ -116,7 +116,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             original_class=original_class, distance=distance,
             threshold=threshold)
 
-    def add_distortion(self, image):
+    def add_distortion(self, image, is_clip=True):
         """
         Adds rounding, fft, uniform and gaussian noise distortions.
 
@@ -125,18 +125,26 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
         """
         if self.args.values_per_channel > 0:
             image = self.rounder.round(image)
+            if is_clip:
+                image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
         if self.args.compress_fft_layer > 0:
-            image = self.fft_complex_compression(image)
+            # clip is done inside fft compression.
+            image = self.fft_complex_compression(image, is_clip=is_clip)
         if self.args.noise_epsilon > 0:
             noise = self.noise._sample_noise(
                 epsilon=self.args.noise_epsilon, image=image,
                 bounds=(self.args.min, self.args.max))
             image += noise
+            if is_clip:
+                image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
         if self.args.noise_sigma > 0:
             noise = self.gauss._sample_noise(
                 epsilon=self.args.noise_sigma, image=image,
                 bounds=(self.args.min, self.args.max))
             image += noise
+            if is_clip:
+                image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
+
         return image
 
     def get_roundfft_adversarial(self):
