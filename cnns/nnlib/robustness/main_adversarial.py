@@ -387,7 +387,7 @@ def run(args):
             if args.is_debug:
                 true_label = args.true_label
                 print("Number of unique values: ", len(np.unique(image)))
-                print("model predicted label: ", predicted_label)
+                print(title + ": model predicted label: ", predicted_label)
                 if predicted_label != true_label:
                     print(f"The true label: {true_label} is different than "
                           f"the predicted label: {predicted_label}")
@@ -457,17 +457,19 @@ def run(args):
         else:
             full_name += "-rounded-fft"
         full_name += "-img-idx-" + str(args.image_index) + "-graph-recover"
+
         if args.is_debug:
-            full_name = str(
-                args.noise_iterations) + "-" + full_name + "-" + get_log_time()
+            pass            # full_name = str(
+            #     args.noise_iterations) + "-" + full_name + "-" + get_log_time()
 
         created_new_adversarial = False
         if args.adv_attack == "before":
             attack_name = attack.name()
             print("attack name: ", attack_name)
-            if attack_name != "CarliniWagnerL2Attack":
-              full_name += "-" + str(attack_name)
+            # if attack_name != "CarliniWagnerL2Attack":
             full_name += "-" + str(attack_name)
+            if attack_name == "CarliniWagnerL2AttackRoundFFT" and args.recover_type != "noise":
+                full_name += "-" + str(args.recover_type)
             print("full name of stored adversarial example: ", full_name)
             if os.path.exists(full_name + ".npy"):
                 adv_image = np.load(file=full_name + ".npy")
@@ -522,6 +524,8 @@ def run(args):
                 original_image=original_image,
                 title=title)
             result.add(result_fft, prefix="fft_")
+            print("Label, id found after applying FFT: ",
+                  result_fft.label, result_fft.class_id)
 
         if args.noise_sigma > 0 and image is not None:
             # gauss_image = gauss(image_numpy=image, sigma=args.noise_sigma)
@@ -803,11 +807,16 @@ if __name__ == "__main__":
     index_range = range(args.start_epoch, args.epochs, args.step_size)
     args.use_foolbox_data = False
     if args.is_debug:
-        args.noise_iterations = 16
         args.use_foolbox_data = False
+
+        # args.recover_type = "noise"
+        args.recover_type = "fft"
+
+        args.noise_iterations = 0
+        if args.recover_type == "noise":
+            args.noise_iterations = 16
         # index_range = range(1, 1000, 1)
-        args.recover_type = "debug"
-        args.max_iterations = 1
+
     else:
         step = 1
         if args.dataset == "imagenet":
@@ -842,6 +851,8 @@ if __name__ == "__main__":
         # val_range = range(260, 200, -5)
     elif args.recover_type == "fft":
         val_range = [1, 10, 20, 30, 40, 50, 60, 80, 90]
+        if args.is_debug:
+            val_range = [30]
         # val_range = range(1, 100, 2)
         # val_range = range(3)
     elif args.recover_type == "roundfft":
