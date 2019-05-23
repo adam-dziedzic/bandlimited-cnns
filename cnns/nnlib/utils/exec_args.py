@@ -337,6 +337,12 @@ def get_args():
                         default=args.recover_iterations,
                         help=f"number of iterations for the defense that the "
                         f"attacker is not aware of (default: {args.recover_iterations})")
+    parser.add_argument('--many_recover_iterations', type=int, nargs="+",
+                        default=args.many_recover_iterations,
+                        help=f"many numbers of iterations for "
+                        f"the defense that the "
+                        f"attacker is not aware of "
+                        f"(default: {args.many_recover_iterations})")
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)

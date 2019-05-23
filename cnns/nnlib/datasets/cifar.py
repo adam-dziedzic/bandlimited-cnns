@@ -14,7 +14,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from six.moves import cPickle
 
-
 cifar_mean = (0.4914, 0.4822, 0.4465)
 cifar_std = (0.2023, 0.1994, 0.2010)
 
@@ -23,9 +22,9 @@ cifar_std_array = np.array(cifar_std, dtype=np.float32).reshape((3, 1, 1))
 
 # the min/max value per pixel after normalization
 # exact values:
-# counter:  10000  min:  -2.429065704345703  max:  2.7537312507629395
+# counter:  10000  min:  -2.429065704345703  max:  2.7537312507629395 / 2.7969327
 cifar_min = np.float32(-2.4290658)
-cifar_max = np.float32(2.75373126)
+cifar_max = np.float32(2.7969328)
 
 
 def show_images():
@@ -131,7 +130,7 @@ def get_cifar(args, dataset_name):
         args.signal_dimension = 2
     else:
         raise Exception(f"Uknown network type: {args.network_type.name}")
-    
+
     train_dataset = dataset_loader(root='./data', train=True,
                                    download=True,
                                    transform=get_transform_train(
@@ -177,6 +176,7 @@ def get_cifar(args, dataset_name):
 
 if __name__ == "__main__":
     from cnns.nnlib.utils.exec_args import get_args
+
     args = get_args()
     args.sample_count_limit = 3
     train_loader, test_loader, train_dataset, test_dataset = get_cifar(args,

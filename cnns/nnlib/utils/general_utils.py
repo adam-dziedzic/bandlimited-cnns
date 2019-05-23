@@ -124,7 +124,7 @@ class ConvType(EnumWithNames):
 
 
 class AttackType(EnumWithNames):
-    NO_ATTACK = 1
+    RECOVERY = 1
     ROUND_ONLY = 3
     BAND_ONLY = 2
     ROUND_BAND = 4

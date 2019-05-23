@@ -233,7 +233,7 @@ class ResNet(nn.Module):
             x = self.rounder(x)  # round to nearest integers - feature squeezing
         elif self.args.attack_type == AttackType.BAND_ONLY:
             x = self.band(x)
-        elif self.args.attack_type == AttackType.NO_ATTACK:
+        elif self.args.attack_type == AttackType.RECOVERY:
             pass
         else:
             raise Exception("Unknown attack type: ", self.args.attack_type)

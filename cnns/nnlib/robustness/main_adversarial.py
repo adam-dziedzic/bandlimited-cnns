@@ -398,15 +398,18 @@ def run(args):
                 confidence_str = str(np.around(confidence, decimals=decimals))
                 title_str += "confidence: " + confidence_str + "\n"
                 if id(image) != id(original_image):
-                    title_str += "L1 distance: " + str(result.L1_distance) + "\n"
-                    title_str += "L2 distance: " + str(result.L2_distance) + "\n"
+                    title_str += "L1 distance: " + str(
+                        result.L1_distance) + "\n"
+                    title_str += "L2 distance: " + str(
+                        result.L2_distance) + "\n"
                     title_str += "Linf distance: " + str(
                         result.Linf_distance) + "\n"
                 ylabel_text = "spatial domain"
                 image_show = image
                 if clip_input_image:
                     # image = torch.clamp(image, min = args.min, max=args.max)
-                    image_show = np.clip(image_show, a_min=args.min, a_max=args.max)
+                    image_show = np.clip(image_show, a_min=args.min,
+                                         a_max=args.max)
                 image_show = denormalizer.denormalize(image_show)
                 if clip_input_image:
                     image_show = np.clip(image, a_min=0, a_max=1)
@@ -459,8 +462,13 @@ def run(args):
         full_name += "-img-idx-" + str(args.image_index) + "-graph-recover"
 
         if args.is_debug:
-            pass            # full_name = str(
+            pass
+            # full_name = str(
             #     args.noise_iterations) + "-" + full_name + "-" + get_log_time()
+            # full_name += "-fft-network-layer"
+            # full_name += "-fft-only-recovery"
+            full_name += "-" + str(args.attack_type) + "-" + str(
+                args.recover_type)
 
         created_new_adversarial = False
         if args.adv_attack == "before":
@@ -744,7 +752,8 @@ def run(args):
         plt.subplots_adjust(hspace=0.6)
 
     format = 'png'  # "pdf" or "png" file_name
-    file_name = "images/" + attack.name() + "-round-fft-" + str(
+    file_name = "images/" + attack.name() + "-" + str(
+        args.attack_type) + "-round-fft-" + str(
         args.compress_fft_layer) + "-" + args.dataset + "-channel-" + str(
         channels_nr) + "-" + "val-per-channel-" + str(
         args.values_per_channel) + "-noise-epsilon-" + str(
@@ -810,7 +819,7 @@ if __name__ == "__main__":
         args.use_foolbox_data = False
 
         # args.recover_type = "gauss"
-        args.recover_type = "noise"
+        # args.recover_type = "noise"
         # args.recover_type = "fft"
 
         args.noise_iterations = 0
@@ -847,6 +856,8 @@ if __name__ == "__main__":
     if args.recover_type == "rounding":
         # val_range = [2, 4, 8, 16, 32, 64, 128, 256]
         val_range = args.many_values_per_channel
+        if args.is_debug:
+            val_range = [8]
         # val_range = range(261, 1, -5)
         # val_range = range(200, 261, 5)
         # val_range = range(260, 200, -5)
@@ -888,7 +899,8 @@ if __name__ == "__main__":
         args.noise_epsilon) + "-noise-sigma-" + str(
         args.noise_sigma) + "-interpolate-" + str(
         args.interpolate) + "-" + str(
-        args.attack_name) + "-" + get_log_time() + ".txt"
+        args.attack_name) + "-" + str(
+        args.attack_type) + "-" + get_log_time() + ".txt"
     with open(out_recovered_file, "a") as f:
         f.write(args.get_str() + "\n")
         header = ["compress_" + args.recover_type + "_layer",
@@ -930,8 +942,8 @@ if __name__ == "__main__":
             raise Exception(
                 f"Unknown recover type: {args.recover_type}")
 
-        recover_iterations = [0] # + [2 ** x for x in range(1, 9)]
-        for recover_iter in recover_iterations:
+        # recover_iterations = [0]  # + [2 ** x for x in range(1, 9)]
+        for recover_iter in args.many_recover_iterations:
             args.recover_iterations = recover_iter
 
             # indexes = index_ranges([(0, 49999)])  # all validation ImageNet

@@ -60,9 +60,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     model_path = "no_model"
 else:
     # dataset = "mnist"
-    # dataset = "cifar10"
+    dataset = "cifar10"
     # dataset = "cifar100"
-    dataset = "imagenet"
+    # dataset = "imagenet"
     # dataset = "svhn"
 
     batch_size = 32
@@ -313,18 +313,20 @@ class Arguments(object):
                  ucr_path="../../TimeSeriesDatasets",
                  start_epsilon=0,
                  # attack_type=AttackType.BAND_ONLY,
-                 attack_type=AttackType.NO_ATTACK,
+                 # attack_type=AttackType.ROUND_ONLY,
+                 attack_type=AttackType.RECOVERY,
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
                  compress_fft_layer=0,
-                 attack_name="CarliniWagnerL2AttackRoundFFT",
-                 # attack_name="CarliniWagnerL2Attack",
+                 # attack_name="CarliniWagnerL2AttackRoundFFT",
+                 attack_name="CarliniWagnerL2Attack",
                  # attack_name="FGSM",
                  interpolate="const",
-                 recover_type="fft",
+                 recover_type="rounding",
                  step_size=50,
                  noise_iterations=0,
                  recover_iterations=0,
+                 many_recover_iterations=[0],
                  ):
         """
         The default parameters for the execution of the program.
@@ -450,6 +452,7 @@ class Arguments(object):
         self.step_size = step_size
         self.noise_iterations = noise_iterations
         self.recover_iterations = recover_iterations
+        self.many_recover_iterations = many_recover_iterations
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False

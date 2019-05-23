@@ -329,6 +329,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                 #     values_per_channel=values_per_channel)
                 # logits, is_adv = a.predictions(x)
 
+                x = np.clip(x, a_min=self.args.min, a_max=self.args.max)
                 x_prime = x
                 if self.args.noise_iterations > 0:
                     # This is the randomized defense.
