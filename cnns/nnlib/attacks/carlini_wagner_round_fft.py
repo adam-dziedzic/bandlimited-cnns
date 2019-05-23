@@ -336,7 +336,10 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                         image=x_prime,
                         fmodel=self._default_model,
                         args=self.args)
+
                     in_bounds = self.roundfft_adversarial.in_bounds(x_prime)
+                    if in_bounds is False:
+                        raise Exception("Not in bounds")
                     # print("dir self.roundfft_adversarial: ", dir(self.roundfft_adversarial))
                     if self.args.use_logits_random_defense:
                         is_adv, _, _ = self.roundfft_adversarial._Adversarial__is_adversarial(
@@ -346,13 +349,13 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                         # Update the adversarial for the randomized version of the image.
                         self.roundfft_adversarial.predictions(x_prime)
                 else:
-                    x_prime = self.add_distortion(x_prime)
-                    # print("diff between input image and rounded: ",
-                    #       np.sum(np.abs(x_rounded - x)))
-
                     # x_prime = np.clip(x_prime, self.args.min, self.args.max)
                     # update the adversarial for the rounded version of the image
                     _, is_adv = self.roundfft_adversarial.predictions(x_prime)
+
+                x_prime = self.add_distortion(x_prime)
+                # print("diff between input image and rounded: ",
+                #       np.sum(np.abs(x_rounded - x)))
 
                 # the perturbations are with respect to the original image
                 # logits, is_adv = a.predictions(x_rounded)

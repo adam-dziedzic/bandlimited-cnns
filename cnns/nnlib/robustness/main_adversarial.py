@@ -809,6 +809,7 @@ if __name__ == "__main__":
     if args.is_debug:
         args.use_foolbox_data = False
 
+        # args.recover_type = "gauss"
         args.recover_type = "noise"
         # args.recover_type = "fft"
 
