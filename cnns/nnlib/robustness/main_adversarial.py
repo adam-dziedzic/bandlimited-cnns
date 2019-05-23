@@ -468,7 +468,7 @@ def run(args):
             print("attack name: ", attack_name)
             # if attack_name != "CarliniWagnerL2Attack":
             full_name += "-" + str(attack_name)
-            if attack_name == "CarliniWagnerL2AttackRoundFFT" and args.recover_type != "noise":
+            if attack_name == "CarliniWagnerL2AttackRoundFFT":
                 full_name += "-" + str(args.recover_type)
             print("full name of stored adversarial example: ", full_name)
             if os.path.exists(full_name + ".npy"):
@@ -809,8 +809,8 @@ if __name__ == "__main__":
     if args.is_debug:
         args.use_foolbox_data = False
 
-        # args.recover_type = "noise"
-        args.recover_type = "fft"
+        args.recover_type = "noise"
+        # args.recover_type = "fft"
 
         args.noise_iterations = 0
         if args.recover_type == "noise":
@@ -863,7 +863,7 @@ if __name__ == "__main__":
         val_range = args.noise_sigmas
         # val_range = [0.03]
         if args.is_debug:
-            val_range = [0.003]
+            val_range = [0.009]
         # val_range = [x / 1000 for x in range(10)]
         # val_range += [x / 100 for x in range(1, 51)]
         # val_range += [x / 100 for x in range(1, 11)]

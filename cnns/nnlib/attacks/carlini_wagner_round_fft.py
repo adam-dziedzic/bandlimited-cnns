@@ -20,6 +20,7 @@ from cnns.nnlib.datasets.transformations.denorm_round_norm import \
     DenormRoundNorm
 from foolbox.attacks.additive_noise import AdditiveUniformNoiseAttack
 from cnns.nnlib.robustness.randomized_defense import defend
+from foolbox.attacks.additive_noise import AdditiveGaussianNoiseAttack
 
 
 class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
@@ -58,6 +59,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                 values_per_channel=args.values_per_channel)
             self.get_mask = get_mask
             self.noise = AdditiveUniformNoiseAttack()
+            self.gauss = AdditiveGaussianNoiseAttack()
 
     def fft_complex_compression(self, image, is_clip=True, ctx=None,
                                 onesided=True):
@@ -104,14 +106,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                              ' needs to be called with an Adversarial'
                              ' instance.')
         image = original_image
-        if self.args.values_per_channel > 0:
-            image = self.rounder.round(image)
-        if self.args.compress_fft_layer > 0:
-            image = self.fft_complex_compression(image)
-        if self.args.noise_epsilon > 0:
-            image = self.noise._sample_noise(
-                epsilon=self.args.noise_epsilon, image=image,
-                bounds=(self.args.min, self.args.max))
+        image = self.add_distortion(image)
 
         # TODO: should we check if the transformed image remains correctly
         #  classified?
@@ -120,6 +115,29 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             model=model, criterion=criterion, original_image=image,
             original_class=original_class, distance=distance,
             threshold=threshold)
+
+    def add_distortion(self, image):
+        """
+        Adds rounding, fft, uniform and gaussian noise distortions.
+
+        :param image: the input image
+        :return: the distorted image
+        """
+        if self.args.values_per_channel > 0:
+            image = self.rounder.round(image)
+        if self.args.compress_fft_layer > 0:
+            image = self.fft_complex_compression(image)
+        if self.args.noise_epsilon > 0:
+            noise = self.noise._sample_noise(
+                epsilon=self.args.noise_epsilon, image=image,
+                bounds=(self.args.min, self.args.max))
+            image += noise
+        if self.args.noise_sigma > 0:
+            noise = self.gauss._sample_noise(
+                epsilon=self.args.noise_sigma, image=image,
+                bounds=(self.args.min, self.args.max))
+            image += noise
+        return image
 
     def get_roundfft_adversarial(self):
         """
@@ -172,7 +190,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             if unpack:
                 return self.get_roundfft_adversarial()
             else:
-                return original_adversarial, self.rounded_adversarial
+                return original_adversarial, self.roundfft_adversarial
 
         return wrapper
 
@@ -320,15 +338,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                         # Update the adversarial for the randomized version of the image.
                         self.roundfft_adversarial.predictions(x_prime)
                 else:
-                    if self.args.values_per_channel > 0:
-                        x_prime = self.rounder.round(x_prime)
-                    if self.args.compress_fft_layer > 0:
-                        x_prime = self.fft_complex_compression(x_prime)
-                    if self.args.noise_epsilon > 0:
-                        noise = self.noise._sample_noise(
-                            epsilon=self.args.noise_epsilon, image=x_prime,
-                            bounds=(self.args.min, self.args.max))
-                        x_prime += noise
+                    x_prime = self.add_distortion(x_prime)
                     # print("diff between input image and rounded: ",
                     #       np.sum(np.abs(x_rounded - x)))
 
