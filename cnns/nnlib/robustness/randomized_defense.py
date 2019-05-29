@@ -35,7 +35,7 @@ def defend(image, fmodel, args, iters=None, is_batch=True):
 
     # Do the summation / norm measurement for the "inner" images, omit the
     # batch dimension: 0
-    dims = (1, 2, 3)
+    axis = (1, 2, 3)
 
     if is_batch:
         iters = iters // batch_size
@@ -49,10 +49,10 @@ def defend(image, fmodel, args, iters=None, is_batch=True):
         noiser = uniform_noise
     elif args.laplace_epsilon > 0:
         noiser = laplace_noise
-        epsilon=args.laplace_epsilon
+        epsilon = args.laplace_epsilon
     elif args.sigma_epsilon > 0:
         noiser = gauss_noise
-        epsilon=args.noise_sigma
+        epsilon = args.noise_sigma
     else:
         raise Exception("No noise was used.")
 
@@ -74,11 +74,11 @@ def defend(image, fmodel, args, iters=None, is_batch=True):
         class_id_counters[predicted_class_id] += 1
 
         result.L2_distance += elem_wise_dist(image, noise_images,
-                                             p=2, dim=dims)
+                                             p=2, axis=axis)
         result.L1_distance += elem_wise_dist(image, noise_images,
-                                             p=1, dim=dims)
+                                             p=1, axis=axis)
         result.Linf_distance += elem_wise_dist(image, noise_images,
-                                               p=float('inf'), dim=dims)
+                                               p=float('inf'), axis=axis)
 
     result.class_id = np.argmax(np.array(class_id_counters))
     result.label = from_class_idx_to_label[result.class_id]
