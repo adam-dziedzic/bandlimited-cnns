@@ -5,6 +5,7 @@ from cnns.nnlib.utils.general_utils import MemoryType
 import numpy as np
 
 mnist_mean = (0.1307,)
+mnist_mean_mean = 0.1307
 mnist_std = (0.3081,)
 
 mnist_mean_array = np.array(mnist_mean, dtype=np.float32).reshape((1, 1, 1))

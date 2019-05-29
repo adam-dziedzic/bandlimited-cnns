@@ -31,18 +31,47 @@ def softmax_from_torch(x):
     return s.numpy()
 
 
-def sample_noise(epsilon, bounds, shape, dtype):
+def uniform_noise(epsilon, shape, dtype, args):
     """
-    Simiarl to foolbox but batched version.
+    Similar to foolbox but batched version.
     :param epsilon: strength of the noise
     :param bounds: min max for images
     :param shape: the output shape
     :param dtype: the output type
     :return: the noise for images
     """
-    min_, max_ = bounds
-    w = epsilon * (max_ - min_)
+    w = epsilon * (args.max - args.min)
     noise = nprng.uniform(-w, w, size=shape)
+    noise = noise.astype(dtype)
+    return noise
+
+
+def gauss_noise(epsilon, shape, dtype, args):
+    """
+    Similar to foolbox but batched version.
+    :param epsilon: strength of the noise
+    :param bounds: min max for images
+    :param shape: the output shape
+    :param dtype: the output type
+    :return: the noise for images
+    """
+    std = epsilon / np.sqrt(3) * (args.max - args.min)
+    noise = nprng.normal(scale=std, size=shape)
+    noise = noise.astype(dtype)
+    return noise
+
+
+def laplace_noise(epsilon, shape, dtype, args):
+    """
+    Similar to foolbox but batched version.
+    :param epsilon: strength of the noise
+    :param bounds: min max for images
+    :param shape: the output shape
+    :param dtype: the output type
+    :return: the noise for images
+    """
+    scale = epsilon * (args.max - args.min)
+    noise = nprng.laplace(loc=args.mean_mean, scale=scale, size=shape)
     noise = noise.astype(dtype)
     return noise
 

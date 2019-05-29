@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from six.moves import cPickle
 
 cifar_mean = (0.4914, 0.4822, 0.4465)
+cifar_mean_mean = 0.47337
 cifar_std = (0.2023, 0.1994, 0.2010)
 
 cifar_mean_array = np.array(cifar_mean, dtype=np.float32).reshape((3, 1, 1))

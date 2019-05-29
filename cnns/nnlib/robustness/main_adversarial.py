@@ -30,7 +30,9 @@ from cnns.nnlib.datasets.mnist.mnist import get_mnist
 from cnns.nnlib.robustness.utils import load_model
 from cnns.nnlib.datasets.cifar import cifar_max, cifar_min
 from cnns.nnlib.datasets.cifar import cifar_std_array, cifar_mean_array
+from cnns.nnlib.datasets.cifar import cifar_mean_mean
 from cnns.nnlib.datasets.mnist.mnist import mnist_max, mnist_min
+from cnns.nnlib.datasets.mnist.mnist import mnist_mean_mean
 from cnns.nnlib.datasets.mnist.mnist import mnist_std_array, mnist_mean_array
 from cnns.nnlib.datasets.mnist.mnist_from_class_idx_to_label import \
     mnist_from_class_idx_to_label
@@ -38,6 +40,7 @@ from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_max
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_min
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_mean_array
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_std_array
+from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_mean_mean
 from cnns.nnlib.attacks.carlini_wagner_round_fft import \
     CarliniWagnerL2AttackRoundFFT
 from cnns.nnlib.utils.general_utils import get_log_time
@@ -57,6 +60,7 @@ from foolbox.attacks.additive_noise import AdditiveGaussianNoiseAttack
 from cnns.nnlib.utils.object import Object
 from cnns.nnlib.robustness.utils import softmax
 from cnns.nnlib.robustness.utils import to_fft
+from cnns.nnlib.robustness.utils import laplace_noise
 from cnns.nnlib.robustness.utils import to_fft_magnitude
 from cnns.nnlib.robustness.utils import to_fft_phase
 from cnns.nnlib.robustness.utils import softmax_from_torch
@@ -83,6 +87,7 @@ def get_fmodel(args):
         args.min = min
         args.max = max
         args.mean_array = imagenet_mean_array
+        args.mean_mean = imagenet_mean_mean
         args.std_array = imagenet_std_array
         args.num_classes = 1000
         from_class_idx_to_label = imagenet_from_class_idx_to_label
@@ -109,6 +114,7 @@ def get_fmodel(args):
         args.min = min
         args.max = max
         args.mean_array = cifar_mean_array
+        args.mean_mean = cifar_mean_mean
         args.std_array = cifar_std_array
         network_model = load_model(args=args)
         from_class_idx_to_label = cifar10_from_class_idx_to_label
@@ -127,6 +133,7 @@ def get_fmodel(args):
         args.min = min
         args.max = max
         args.mean_array = mnist_mean_array
+        args.mean_mean = mnist_mean_mean
         args.std_array = mnist_std_array
         # args.network_type = NetworkType.Net
         network_model = load_model(args=args)
@@ -416,6 +423,8 @@ def run(args):
         cols += 1
     if args.noise_epsilon > 0:
         cols += 1
+    if args.laplace_epsilon > 0:
+        cols += 1
     if args.adv_attack is not None:
         cols += 1
     show_diff = False
@@ -625,6 +634,10 @@ def run(args):
                 args=args,
                 title=title)
             result.add(result_gauss, prefix="gauss_")
+
+            result_noise = randomized_defense(image=image, fmodel=fmodel)
+
+            result.add(result_noise, prefix="gauss_many_")
         else:
             result.gauss_label = None
 
@@ -647,38 +660,34 @@ def run(args):
                 title=title)
             print("Label, id found after applying random noise once: ",
                   result_noise.label, result_noise.class_id)
-            result.add(result_noise, prefix="noise_one_")
-
-            # This is the randomized defense.
-            if args.noise_iterations > 0 or args.recover_iterations > 0:
-                # Number of random trials and classifications to select the
-                # final recovered class based on the plurality: the input image
-                # is perturbed many times with random noise, we record class
-                # for each trial and return as the result the class that was
-                # selected most times.
-                # noise_iterations is also used in the attack.
-                # recover_iterations is used only for the defense.
-                if args.noise_iterations > 0 and args.recover_iterations > 0:
-                    raise Exception(f"Only one iterations for recovery can be "
-                                    "set but "
-                                    "noise_iterations={args.noise_iterations} "
-                                    "and "
-                                    "recover_iterations={args.recover_iterations}.")
-                if args.recover_iterations > 0:
-                    iters = args.recover_iterations
-                elif args.noise_iterations > 0:
-                    iters = args.noise_iterations
-                result_noise, _ = defend(
-                    image=image,
-                    fmodel=fmodel,
-                    args=args,
-                    iters=iters)
-                print(
-                    f"Recovered label, id by {args.noise_iterations} iterations: ",
-                    result_noise.label, result_noise.class_id)
-                result.add(result_noise, prefix="noise_many_")
-
             result.add(result_noise, prefix="noise_")
+
+            result_noise = randomized_defense(image=image, fmodel=fmodel)
+
+            result.add(result_noise, prefix="noise_many_")
+        else:
+            result.noise_label = None
+
+        if args.laplace_epsilon > 0 and image is not None:
+            print("Laplace noise defense")
+            title = "Laplace (" + str(args.laplace_epsilon) + ")"
+            noise = laplace_noise(shape=image.shape,
+                                  epsilon=args.laplace_epsilon,
+                                  dtype=image.dtype,
+                                  args=args)
+            noise_image = image + noise
+            result_laplace = show_image(
+                image=noise_image,
+                original_image=original_image,
+                args=args,
+                title=title)
+            print("Label, id found after applying random noise once: ",
+                  result_laplace.label, result_laplace.class_id)
+            result.add(result_laplace, prefix="laplace_")
+
+            result_laplace = randomized_defense(image=image, fmodel=fmodel)
+
+            result.add(result_laplace, prefix="laplace_many_")
         else:
             result.noise_label = None
 
@@ -774,6 +783,13 @@ def run(args):
                                           title="Uniform noise",
                                           is_log=is_log)
 
+                if args.laplace_epsilon > 0:
+                    laplace_fft = print_fft(image=noise_image,
+                                          channel=channel,
+                                          args=args,
+                                          title="Laplace noise",
+                                          is_log=is_log)
+
                 if adv_image is not None and args.attack_type == "after":
                     adversarial_fft = print_fft(image=adv_image,
                                                 channel=channel,
@@ -831,7 +847,8 @@ def run(args):
         channels_nr) + "-" + "val-per-channel-" + str(
         args.values_per_channel) + "-noise-epsilon-" + str(
         args.noise_epsilon) + "-noise-sigma-" + str(
-        args.noise_sigma) + "-img-idx-" + str(
+        args.noise_sigma) + "-laplace-epsilon-" + str(
+        args.laplace_epsilon) + "-img-idx-" + str(
         args.image_index) + "-" + get_log_time()
     print("file name: ", file_name)
     if args.is_debug:
@@ -839,6 +856,47 @@ def run(args):
         plt.savefig(fname=file_name + "." + format, format=format)
     # plt.show(block=True)
     plt.close()
+    return result
+
+
+def randomized_defense(image, fmodel):
+    """
+    The randomized defense.
+
+    :param image: the adversarial image
+    :param fmodel: the foolbox "wrapped" model
+    :return: the result of the defense: recovered label, L2 distance, etc. in
+    the result object.
+    """
+    result = Object()
+    # This is the randomized defense.
+    if args.noise_iterations > 0 or args.recover_iterations > 0:
+        # Number of random trials and classifications to select the
+        # final recovered class based on the plurality: the input image
+        # is perturbed many times with random noise, we record class
+        # for each trial and return as the result the class that was
+        # selected most times.
+        # noise_iterations is also used in the attack.
+        # recover_iterations is used only for the defense.
+        if args.noise_iterations > 0 and args.recover_iterations > 0:
+            raise Exception(f"Only one iterations for recovery can be "
+                            "set but "
+                            "noise_iterations={args.noise_iterations} "
+                            "and "
+                            "recover_iterations={args.recover_iterations}.")
+        if args.recover_iterations > 0:
+            iters = args.recover_iterations
+        elif args.noise_iterations > 0:
+            iters = args.noise_iterations
+        result_noise, _ = defend(
+            image=image,
+            fmodel=fmodel,
+            args=args,
+            iters=iters)
+        print(
+            f"Recovered label, id by {args.noise_iterations} iterations: ",
+            result_noise.label, result_noise.class_id)
+        result.add(result_noise, prefix="noise_many_")
     return result
 
 
@@ -862,7 +920,8 @@ def result_file(args):
         args.compress_fft_layer) + "-" + args.dataset + "-" + "val-per-channel-" + str(
         args.values_per_channel) + "-noise-epsilon-" + str(
         args.noise_epsilon) + "-noise-sigma-" + str(
-        args.noise_sigma) + "-noise-iterations-" + str(
+        args.noise_sigma) + "-laplace-epsilon-" + str(
+        args.laplace_epsilon) + "-noise-iterations-" + str(
         args.noise_iterations) + "-" + get_log_time()
     with open(args.file_name_labels, "a") as f:
         f.write(args.get_str() + "\n\n")
@@ -913,7 +972,7 @@ if __name__ == "__main__":
         else:
             raise Exception(f"Unknown dataset: {args.dataset}")
 
-    args.adv_attack = None  # "before" or "after"
+    args.adv_attack = "before" # "before" or "after"
 
     # args.compress_fft_layer = 5
     # args.values_per_channel = 8
@@ -957,6 +1016,10 @@ if __name__ == "__main__":
         # val_range += [x / 100 for x in range(51, 0, -1)]
     elif args.recover_type == "noise":
         val_range = args.noise_epsilons
+        if args.is_debug:
+            val_range = [0.03]
+    elif args.recover_type == "laplace":
+        val_range = args.laplace_epsilons
         if args.is_debug:
             val_range = [0.03]
     elif args.recover_type == "debug":
@@ -1016,6 +1079,8 @@ if __name__ == "__main__":
             args.noise_sigma = compress_value
         elif args.recover_type == "noise":
             args.noise_epsilon = compress_value
+        elif args.recover_type == "laplace":
+            args.laplace_epsilon = compress_value
         elif args.recover_type == "roundfft":
             pass
         else:
@@ -1109,6 +1174,14 @@ if __name__ == "__main__":
                         sum_L1_distance_defense += result_run.noise_L1_distance
                         sum_Linf_distance_defense += result_run.noise_Linf_distance
                         sum_confidence_defense += result_run.noise_confidence
+                elif args.recover_type == "laplace":
+                    if result_run.laplace_label is not None:
+                        if result_run.true_label == result_run.laplace_label:
+                            count_recovered += 1
+                        sum_L2_distance_defense += result_run.laplace_L2_distance
+                        sum_L1_distance_defense += result_run.laplace_L1_distance
+                        sum_Linf_distance_defense += result_run.laplace_Linf_distance
+                        sum_confidence_defense += result_run.laplace_confidence
                 elif args.recover_type == "debug":
                     pass
                 else:

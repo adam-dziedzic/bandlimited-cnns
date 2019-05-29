@@ -358,6 +358,15 @@ def get_args():
                         help=f"many numbers of iterations for "
                         f"the attacker "
                         f"(default: {args.many_attack_iterations})")
+    parser.add_argument("--laplace_epsilon", default=args.laplace_epsilon,
+                        type=float,
+                        help=f"how much uniform noise to add: "
+                        f"{args.laplace_epsilon}")
+    parser.add_argument("--laplace_epsilons", default=args.laplace_epsilons,
+                        type=float,
+                        nargs="+",
+                        help=f"how much laplace noise to add: "
+                        f"{args.laplace_epsilons}")
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)

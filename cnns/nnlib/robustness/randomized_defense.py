@@ -1,10 +1,9 @@
-from cnns.nnlib.datasets.transformations.denorm_distance import DenormDistance
 from cnns.nnlib.utils.object import Object
 from cnns.nnlib.robustness.utils import softmax
-from cnns.nnlib.robustness.utils import sample_noise
+from cnns.nnlib.robustness.utils import uniform_noise
+from cnns.nnlib.robustness.utils import laplace_noise
+from cnns.nnlib.robustness.utils import gauss_noise
 from cnns.nnlib.robustness.utils import elem_wise_dist
-# from foolbox.attacks.additive_noise import AdditiveUniformNoiseAttack
-
 import numpy as np
 
 nprng = np.random.RandomState()
@@ -21,7 +20,6 @@ def defend(image, fmodel, args, iters=None, is_batch=True):
     """
     if iters is None:
         iters = args.noise_iterations
-    meter = DenormDistance(mean_array=args.mean_array, std_array=args.std_array)
     from_class_idx_to_label = args.from_class_idx_to_label
 
     result = Object()
@@ -46,12 +44,24 @@ def defend(image, fmodel, args, iters=None, is_batch=True):
     else:
         batch_size = 1
 
+    if args.noise_epsilon > 0:
+        epsilon = args.noise_epsilon
+        noiser = uniform_noise
+    elif args.laplace_epsilon > 0:
+        noiser = laplace_noise
+        epsilon=args.laplace_epsilon
+    elif args.sigma_epsilon > 0:
+        noiser = gauss_noise
+        epsilon=args.noise_sigma
+    else:
+        raise Exception("No noise was used.")
+
     for iter in range(iters):
-        noise = sample_noise(
-            epsilon=args.noise_epsilon,
+        noise = noiser(
+            epsilon=epsilon,
             shape=(batch_size, C, H, W),
             dtype=image.dtype,
-            bounds=(args.min, args.max))
+            args=args)
         noise_images = image + noise
         predictions = fmodel.batch_predictions(images=noise_images)
         predictions = np.average(predictions, axis=0)

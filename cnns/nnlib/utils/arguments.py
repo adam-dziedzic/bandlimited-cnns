@@ -319,16 +319,17 @@ class Arguments(object):
                  attack_type=AttackType.RECOVERY,
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
-                 compress_fft_layer=30,
-                 attack_name="CarliniWagnerL2AttackRoundFFT",
-                 # attack_name="CarliniWagnerL2Attack",
+                 compress_fft_layer=0,
+                 # attack_name="CarliniWagnerL2AttackRoundFFT",
+                 attack_name="CarliniWagnerL2Attack",
                  # attack_name = None,
                  # attack_name="FGSM",
                  interpolate="const",
                  # recover_type="rounding",
                  # recover_type="fft",
-                 recover_type="fft",
+                 # recover_type="fft",
                  # recover_type="noise",
+                 recover_type="laplace",
                  noise_epsilon=0,
                  noise_epsilons=[0],
                  # recover_type="gauss",
@@ -339,6 +340,8 @@ class Arguments(object):
                  many_recover_iterations=[0],
                  attack_max_iterations=100,
                  many_attack_iterations=[100],
+                 laplace_epsilon=0.03,
+                 laplace_epsilons=[0.03]
                  ):
         """
         The default parameters for the execution of the program.
@@ -468,6 +471,8 @@ class Arguments(object):
         self.many_recover_iterations = many_recover_iterations
         self.attack_max_iterations = attack_max_iterations
         self.many_attack_iterations = many_attack_iterations
+        self.laplace_epsilon = laplace_epsilon
+        self.laplace_epsilons = laplace_epsilons
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False

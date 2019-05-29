@@ -13,6 +13,7 @@ from cnns.nnlib.datasets.transformations.gaussian_noise import \
 from cnns.nnlib.datasets.transformations.rounding import RoundingTransformation
 
 imagenet_mean = [0.485, 0.456, 0.406]
+imagenet_mean_mean = 0.449
 imagenet_std = [0.229, 0.224, 0.225]
 
 imagenet_mean_array = np.array(imagenet_mean, dtype=np.float32).reshape(
