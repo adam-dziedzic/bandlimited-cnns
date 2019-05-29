@@ -888,7 +888,7 @@ def randomized_defense(image, fmodel):
             iters = args.recover_iterations
         elif args.noise_iterations > 0:
             iters = args.noise_iterations
-        result_noise, _ = defend(
+        result_noise, _, _ = defend(
             image=image,
             fmodel=fmodel,
             args=args,
