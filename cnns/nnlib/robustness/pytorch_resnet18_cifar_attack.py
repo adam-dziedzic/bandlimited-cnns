@@ -1,8 +1,3 @@
-#  Band-limited CNNs
-#  Copyright (c) 2019. Adam Dziedzic
-#  Licensed under The Apache License [see LICENSE for details]
-#  Written by Adam Dziedzic
-
 import foolbox
 import numpy as np
 from cnns.nnlib.pytorch_architecture.resnet2d import resnet18

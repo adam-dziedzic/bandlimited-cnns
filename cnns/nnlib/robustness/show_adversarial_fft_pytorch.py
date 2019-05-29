@@ -1,8 +1,3 @@
-#  Band-limiting
-#  Copyright (c) 2019. Adam Dziedzic
-#  Licensed under The Apache License [see LICENSE for details]
-#  Written by Adam Dziedzic
-
 # If you use Jupyter notebooks uncomment the line below
 # %matplotlib inline
 

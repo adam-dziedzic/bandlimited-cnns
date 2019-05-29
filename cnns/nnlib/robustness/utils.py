@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.testing.utils import assert_equal
 from cnns.nnlib.datasets.cifar10_example import cifar10_example
 import foolbox
 import torch
@@ -16,6 +17,8 @@ from cnns.nnlib.pytorch_architecture.get_model_architecture import \
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_phase
 
+nprng = np.random.RandomState()
+
 
 def softmax(logits):
     s = np.exp(logits - np.max(logits))
@@ -26,6 +29,68 @@ def softmax(logits):
 def softmax_from_torch(x):
     s = torch.nn.functional.softmax(torch.tensor(x, dtype=torch.float))
     return s.numpy()
+
+
+def sample_noise(epsilon, bounds, shape, dtype):
+    """
+    Simiarl to foolbox but batched version.
+    :param epsilon: strength of the noise
+    :param bounds: min max for images
+    :param shape: the output shape
+    :param dtype: the output type
+    :return: the noise for images
+    """
+    min_, max_ = bounds
+    w = epsilon * (max_ - min_)
+    noise = nprng.uniform(-w, w, size=shape)
+    noise = noise.astype(dtype)
+    return noise
+
+
+def norm(x, p=2, axis=(1, 2, 3)):
+    """
+    This is a batch computation of the norms. We calculate the norm along
+    for all axis in axis. Numpy and PyTorch support only a single dimension for
+    such computation. The 2 dimensional tuple is for singular values.
+
+    :param x: the input tensor
+    :param p: p-norm
+    :param axis: axis for norm calculation for each tensor in the batch, this
+    are essentially the dimensions of each tensor, excluding the batch dimension.
+    :return: the p-norms for each tensor in the batch
+    """
+    if p == 0:
+        return np.sum(x != 0, axis=axis)
+    elif p == 1:
+        return np.sum(np.abs(x), axis=axis)
+    elif p == float("inf") or p == "inf":
+        return np.max(np.abs(x), axis=axis)
+    elif p is None or p == 2:
+        # special case for speedup
+        return np.sqrt(np.sum(np.square(x), axis=axis))
+    else:
+        return np.power(np.sum(np.power(x, p), axis=axis), 1.0 / p)
+
+
+def elem_wise_dist(image, images, p=2, axis=(1, 2, 3)):
+    """
+    Element wise p-norm dist along many axis.
+
+    :param image: a single image (np.array)
+    :param images: many images (np.array)
+    :param p: the p-norm (1,2, or inf)
+    :return: average distance between every image from images and the first image
+
+    >>> t1 = np.array([[[1.0,2,3]]])
+    >>> t2_1 = [[[2.0,2,3]]]
+    >>> t2_2 = [[[1.0, 4,3]]]
+    >>> t2 = np.array([t2_1, t2_2])
+    >>> dist_all = elem_wise_dist(t1, t2)
+    >>> # print("dist all: ", dist_all)
+    >>> assert_equal(actual=dist_all, desired=np.array([1, 2]))
+    """
+    x = image - images  # broadcast image to as many instances as in images
+    return norm(x, p=p, axis=axis)
 
 
 def to_fft(x, fft_type, is_log=True):

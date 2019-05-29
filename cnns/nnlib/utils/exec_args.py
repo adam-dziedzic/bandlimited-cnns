@@ -24,7 +24,7 @@ import argparse
 def get_args():
     # Execution parameters.
     args = Arguments()
-    parser = argparse.ArgumentParser(description='Band-limited CNNs')
+    parser = argparse.ArgumentParser(description='PyTorch TimeSeries')
     parser.add_argument('--min_batch_size', type=int,
                         default=args.min_batch_size,
                         help=f"input mini batch size for training "
@@ -333,6 +333,12 @@ def get_args():
                         help=f"number of iterations for the random defense "
                         f"that we that attack is aware of and we use to recover "
                         f"the correct label (default: {args.noise_iterations})")
+    parser.add_argument('--many_noise_iterations', type=int, nargs="+",
+                        default=args.many_noise_iterations,
+                        help=f"many numbers of iterations for "
+                        f"the defense that the "
+                        f"attacker is aware of "
+                        f"(default: {args.many_noise_iterations})")
     parser.add_argument('--recover_iterations', type=int,
                         default=args.recover_iterations,
                         help=f"number of iterations for the defense that the "
@@ -343,6 +349,15 @@ def get_args():
                         f"the defense that the "
                         f"attacker is not aware of "
                         f"(default: {args.many_recover_iterations})")
+    parser.add_argument('--attack_max_iterations', type=int,
+                        default=args.attack_max_iterations,
+                        help=f"number of iterations for the attack that the "
+                        f" (default: {args.attack_max_iterations})")
+    parser.add_argument('--many_attack_iterations', type=int, nargs="+",
+                        default=args.many_attack_iterations,
+                        help=f"many numbers of iterations for "
+                        f"the attacker "
+                        f"(default: {args.many_attack_iterations})")
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)

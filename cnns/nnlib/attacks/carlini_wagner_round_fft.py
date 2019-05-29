@@ -21,6 +21,7 @@ from cnns.nnlib.datasets.transformations.denorm_round_norm import \
 from foolbox.attacks.additive_noise import AdditiveUniformNoiseAttack
 from cnns.nnlib.robustness.randomized_defense import defend
 from foolbox.attacks.additive_noise import AdditiveGaussianNoiseAttack
+from cnns.nnlib.attacks.adversarial_round_fft import AdversarialRoundFFT
 
 
 class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
@@ -105,14 +106,14 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                              ' with a model and a criterion or it'
                              ' needs to be called with an Adversarial'
                              ' instance.')
-        image = original_image
-        image = self.add_distortion(image)
 
-        # TODO: should we check if the transformed image remains correctly
-        #  classified?
+        # Should we check if the transformed image remains correctly
+        # classified? It is not necessary. If the image is incorrectly
+        # classified after transformation then the adversary doesn't have to
+        # do anything.
 
-        self.roundfft_adversarial = Adversarial(
-            model=model, criterion=criterion, original_image=image,
+        self.roundfft_adversarial = AdversarialRoundFFT(
+            model=model, criterion=criterion, original_image=original_image,
             original_class=original_class, distance=distance,
             threshold=threshold)
 
@@ -155,20 +156,6 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
         """
         return self.roundfft_adversarial.image
 
-    def rounded_fft_predictions(self, adversarial, image_attack):
-        """
-        Check if the perturbed image is still adversarial after rounding and the
-        fft prediction.
-
-        :param image_attack: the perturbed image
-        :return: predictions, is_adv
-        """
-        if self.args.values_per_channel > 0:
-            image_attack = self.rounder.round(image_attack)
-        if self.args.compress_fft_layer > 0:
-            image_attack = self.fft_complex_compression(image_attack)
-        return adversarial.predictions(image_attack)
-
     def rounded_predictions(self, adversarial, image_attack):
         """
         Check if the perturbed image is still adversarial after rounding.
@@ -196,7 +183,9 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                 self, input_or_adv, label=label, **kwargs)
 
             if unpack:
-                return self.get_roundfft_adversarial()
+                # This will become adversarial after the FFT, color-depth,
+                # or random transformation/compression.
+                return self.roundfft_adversarial.image
             else:
                 return original_adversarial, self.roundfft_adversarial
 
@@ -329,32 +318,36 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                 #     values_per_channel=values_per_channel)
                 # logits, is_adv = a.predictions(x)
 
+                # Instead of clipping, we could scale the values to the proper
+                # range.
                 # x = np.clip(x, a_min=self.args.min, a_max=self.args.max)
-                x_prime = x
-                x_prime = self.add_distortion(x_prime)
+                x_prime = self.add_distortion(x)
 
                 if self.args.noise_iterations > 0:
                     # This is the randomized defense.
-                    result_noise, predictions = defend(
-                        image=x_prime,
+                    # predictions are the logits.
+                    result_noise, predictions, class_id_counters = defend(
+                        image=x,
                         fmodel=self._default_model,
                         args=self.args)
 
-                    in_bounds = self.roundfft_adversarial.in_bounds(x_prime)
+                    # Our defense does not rely on the logits/predictions but
+                    # on pluralism method: class with the highest count is
+                    # selected.
+                    logits = class_id_counters
+
+                    in_bounds = self.roundfft_adversarial.in_bounds(x)
                     if in_bounds is False:
                         raise Exception("Not in bounds")
-                    # print("dir self.roundfft_adversarial: ", dir(self.roundfft_adversarial))
-                    if self.args.use_logits_random_defense:
-                        is_adv, _, _ = self.roundfft_adversarial._Adversarial__is_adversarial(
-                            x_prime, predictions, in_bounds)
-                    else:
-                        is_adv = result_noise.class_id != a.original_class
-                        # Update the adversarial for the randomized version of the image.
-                        self.roundfft_adversarial.predictions(x_prime)
+                    # To asses if this is an adversarial example we rely on the
+                    # predictions/logits returned by the defense.
+                    is_adv, _, _ = self.roundfft_adversarial._Adversarial__is_adversarial(
+                        x, logits, in_bounds)
                 else:
                     # x_prime = np.clip(x_prime, self.args.min, self.args.max)
                     # update the adversarial for the rounded version of the image
-                    _, is_adv = self.roundfft_adversarial.predictions(x_prime)
+                    _, is_adv = self.roundfft_adversarial.predictionsRoundFFT(
+                        adv_transformed=x_prime, adv=x)
 
                 # print("diff between input image and rounded: ",
                 #       np.sum(np.abs(x_rounded - x)))
@@ -362,7 +355,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                 # the perturbations are with respect to the original image
                 # logits, is_adv = a.predictions(x_rounded)
                 # logits, is_adv = a.predictions(x)
-                strict = True
+                strict = False
                 logits, _ = a.predictions(x_prime, strict=strict)
 
                 # dldx - gradient of the loss with respect to input x

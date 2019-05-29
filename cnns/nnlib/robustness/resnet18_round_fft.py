@@ -1,7 +1,3 @@
-#  Band-limited CNNs
-#  Copyright (c) 2019. Adam Dziedzic
-#  Licensed under The Apache License [see LICENSE for details]
-#  Written by Adam Dziedzic
 from cnns import matplotlib_backend
 
 print("Using:", matplotlib_backend.backend)

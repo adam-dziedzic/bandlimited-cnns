@@ -7,10 +7,8 @@ from foolbox.rngs import nprng
 
 
 class MultiplePixelsAttack(Attack):
-    """Perturbs multiple pixels and sets them to the min or max.
-
-    Proposed by Adam Dziedzic (adam.cajf@gmail.com).
-
+    """
+    Perturbs multiple pixels and sets them to the min or max.
     """
 
     def perturb_pixel(self, perturbed, pixel, min_, max_, w, channel_axis = 0):
@@ -90,6 +88,6 @@ class MultiplePixelsAttack(Attack):
                                    max_=max_,
                                    w = w,
                                    channel_axis=channel_axis)
-                _, is_adv = a.predictions(perturbed)
+                _, is_adv = a.forward_one(perturbed)
                 if is_adv:
                     return

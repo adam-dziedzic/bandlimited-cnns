@@ -1,7 +1,7 @@
-#  Band-limiting
-#  Copyright (c) 2019. Adam Dziedzic
+#  Stochastic Channels
+#  Copyright (c) 2019. Anonymous Author
 #  Licensed under The Apache License [see LICENSE for details]
-#  Written by Adam Dziedzic
+#  Written by Anonymous Author
 
 """
 Use the rounding and fft pre-processing and find adversarial examples after
