@@ -1033,7 +1033,7 @@ if __name__ == "__main__":
         args.values_per_channel) + "-" + str(
         args.compress_fft_layer) + "-" + "-noise-epsilon-" + str(
         args.noise_epsilon) + "-noise-sigma-" + str(
-        args.noise_sigma) + + "-laplace_epsilon-" + str(
+        args.noise_sigma) + "-laplace_epsilon-" + str(
         args.laplace_epsilon) + "-interpolate-" + str(
         args.interpolate) + "-" + str(
         args.attack_name) + "-" + str(
