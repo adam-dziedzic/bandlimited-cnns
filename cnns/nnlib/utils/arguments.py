@@ -23,10 +23,10 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 
 # 1D
 # conv_type = ConvType.FFT1D
-# conv_type = ConvType.STANDARD
+conv_type = ConvType.STANDARD
 
 # 2D
-conv_type = ConvType.STANDARD2D
+# conv_type = ConvType.STANDARD2D
 # conv_type = ConvType.FFT2D
 compress_rate = 0.0
 
@@ -48,7 +48,7 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     precision_type = PrecisionType.FP32
     # conv_exec_type = ConvExecType.BATCH
     conv_exec_type = ConvExecType.CUDA
-    visualize = False  # test model for different compress rates
+    visualize = True  # test model for different compress rates
     next_power2 = True
     schedule_patience = 50
     schedule_factor = 0.5
@@ -57,7 +57,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     momentum = 0.9
     loss_type = LossType.CROSS_ENTROPY
     loss_reduction = LossReduction.ELEMENTWISE_MEAN
-    model_path = "no_model"
+    # model_path = "no_model"
+    # model_path = "2019-05-19-dataset-WIFI5-192-test-accuracy-99.52.model"
+    model_path = "2019-05-19-17-07-36-214776-dataset-WIFI5-192-preserve-energy-100.0-compress-rate-0.0-test-accuracy-99.4735652959783-channel-vals-0.model"
 else:
     # dataset = "mnist"
     dataset = "cifar10"
@@ -161,7 +163,8 @@ class Arguments(object):
                  use_cuda=True,
                  compress_type=CompressType.STANDARD,
                  compress_rate=compress_rate,
-                 compress_rates=[compress_rate],
+                 # compress_rates=[compress_rate],
+                 compress_rates=[0],
                  # ndexes_back=[5,15,25,35,45],
                  # compress_rates=range(0, 101),
                  # compress_rates=[x/2 for x in range(28,111,1)],
@@ -261,7 +264,7 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=100,  # run on full data
+                 sample_count_limit=0,  # run on full data
                  # sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
@@ -301,32 +304,36 @@ class Arguments(object):
                  test_compress_rates=False,
                  noise_sigma=0,
                  noise_sigmas=[0],
-                 noise_epsilon=0.5,
-                 noise_epsilons=[0.009],
+                 noise_epsilon=0,
+                 noise_epsilons=[0],
+                 # noise_epsilons=[0.1, 0.07, 0.03, 0.009, 0.007, 0.04, 0.02, 0.3],
                  fft_type="real_fft",  # real_fft or complex_fft
                  imagenet_path="/home/" + str(USER) + "/imagenet",
                  distributed=False,
                  in_channels=1,
                  values_per_channel=0,
                  many_values_per_channel=[0],
-                 # ucr_path = "../sathya",
-                 ucr_path="../../TimeSeriesDatasets",
+                 ucr_path = "../sathya",
+                 # ucr_path="../../TimeSeriesDatasets",
                  start_epsilon=0,
                  # attack_type=AttackType.BAND_ONLY,
                  # attack_type=AttackType.NOISE_ONLY,
                  # attack_type=AttackType.ROUND_ONLY,
-                 attack_type=AttackType.RECOVERY,
+                 # attack_type=AttackType.RECOVERY,
+                 attack_type=AttackType.NO_ATTACK,
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
                  compress_fft_layer=0,
-                 attack_name="CarliniWagnerL2AttackRoundFFT",
+                 # attack_name="CarliniWagnerL2AttackRoundFFT",
+                 attack_name="",
                  # attack_name="CarliniWagnerL2Attack",
                  # attack_name="FGSM",
                  interpolate="const",
-                 recover_type="noise",
+                 # recover_type="noise",
+                 recover_type="None",
                  # recover_type="fft",
                  # recover_type="noise",
-                 step_size=50,
+                 step_size=1,
                  noise_iterations=0,
                  recover_iterations=0,
                  many_recover_iterations=[0],
@@ -465,7 +472,6 @@ class Arguments(object):
         # Make sure you do not miss any properties.
         # https://stackoverflow.com/questions/243836/how-to-copy-all-properties-of-an-object-to-another-object-in-python
         self.__dict__ = parsed_args.__dict__.copy()
-        self.parsed_args = parsed_args
 
         # Enums:
         self.network_type = NetworkType[parsed_args.network_type]

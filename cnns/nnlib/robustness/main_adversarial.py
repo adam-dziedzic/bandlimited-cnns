@@ -1,8 +1,3 @@
-#  Band-limiting
-#  Copyright (c) 2019. Adam Dziedzic
-#  Licensed under The Apache License [see LICENSE for details]
-#  Written by Adam Dziedzic
-
 """
 Use the rounding and fft pre-processing and find adversarial examples after
 such transformations.

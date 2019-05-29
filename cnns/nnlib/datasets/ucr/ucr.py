@@ -96,6 +96,7 @@ def get_ucr(args):
         test_dataset.set_length(sample_count)
 
     args.num_classes = test_dataset.num_classes
+    print("number of classes: ", args.num_classes)
     args.input_size = test_dataset.width
     # args.min_batch_size = int(min(args.input_size / 10, args.min_batch_size))
     # args.test_batch_size = int(min(args.input_size / 10, args.test_batch_size))

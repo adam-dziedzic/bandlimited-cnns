@@ -24,7 +24,7 @@ import argparse
 def get_args():
     # Execution parameters.
     args = Arguments()
-    parser = argparse.ArgumentParser(description='PyTorch TimeSeries')
+    parser = argparse.ArgumentParser(description='Band-limited CNNs')
     parser.add_argument('--min_batch_size', type=int,
                         default=args.min_batch_size,
                         help=f"input mini batch size for training "

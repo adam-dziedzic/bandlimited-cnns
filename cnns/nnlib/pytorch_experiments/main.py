@@ -1203,9 +1203,13 @@ if __name__ == '__main__':
     # flist = flist[3:]  # start from Beef
     # reversed(flist)
     print("flist: ", flist)
+    compress_rate = 0
     for compress_rate in args.compress_rates:
+    # for noise_epsilon in args.noise_epsilons:
+        # args.noise_epsilon = noise_epsilon
         print("compress rate: ", compress_rate)
-        args.compress_rate = compress_rate
+        # args.compress_rate = compress_rate
+        args.compress_fft_layer = compress_rate
         for dataset_name in flist:
             args.dataset_name = dataset_name
             print("Dataset: ", dataset_name)

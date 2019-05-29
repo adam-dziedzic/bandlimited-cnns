@@ -119,7 +119,7 @@ del test_datasets
 # print("data train dims: ", data_train.shape)
 # np.savetxt("WIFI_TRAIN", data_train, delimiter=",")
 sample_size = str(sample_size)
-dataset_name = "WIFI" + str(class_counter)
+dataset_name = "2WIFI" + str(class_counter)
 dir_name = dataset_name + "-" + sample_size
 full_dir = dir_name + "/" + dir_name
 

@@ -182,13 +182,13 @@ class ResNet(nn.Module):
             self.noise = Noise(args=args)
         else:
             # identity function
-            self.band = lambda x: x
+            self.noise = lambda x: x
 
         if args.noise_epsilon > 0:
             self.noise = Noise(args=args)
         else:
             # identity function
-            self.band = lambda x: x
+            self.noise = lambda x: x
 
 
         self.bn1 = nn.BatchNorm2d(64)
