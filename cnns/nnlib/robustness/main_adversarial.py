@@ -1033,7 +1033,8 @@ if __name__ == "__main__":
         args.values_per_channel) + "-" + str(
         args.compress_fft_layer) + "-" + "-noise-epsilon-" + str(
         args.noise_epsilon) + "-noise-sigma-" + str(
-        args.noise_sigma) + "-interpolate-" + str(
+        args.noise_sigma) + + "-laplace_epsilon-" + str(
+        args.laplace_epsilon) + "-interpolate-" + str(
         args.interpolate) + "-" + str(
         args.attack_name) + "-" + str(
         args.attack_type) + "-" + get_log_time() + ".txt"
@@ -1044,6 +1045,7 @@ if __name__ == "__main__":
                   "recover iterations",
                   "noise iterations",
                   "noise epsilon",
+                  "laplace epsilon",
                   "attack max iterations",
                   "% base accuracy",
                   "% of adversarials",
@@ -1070,7 +1072,8 @@ if __name__ == "__main__":
             args.values_per_channel = 0
             args.compress_fft_layer = 0
             args.noise_sigma = 0.0
-            args.noise_epsilon = 0.003
+            args.noise_epsilon = 0.0
+            args.laplace_epsilon = 0.03
         elif args.recover_type == "fft":
             args.compress_fft_layer = compress_value
         elif args.recover_type == "rounding":
@@ -1213,6 +1216,7 @@ if __name__ == "__main__":
                                          args.recover_iterations,
                                          args.noise_iterations,
                                          args.noise_epsilon,
+                                         args.laplace_epsilon,
                                          args.attack_max_iterations,
                                          count_original / total_count * 100,
                                          count_adv / total_count * 100,
