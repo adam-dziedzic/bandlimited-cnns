@@ -70,7 +70,7 @@ def laplace_noise(epsilon, shape, dtype, args):
     :param dtype: the output type
     :return: the noise for images
     """
-    scale = epsilon * (args.max - args.min)
+    scale = epsilon / np.sqrt(3) * (args.max - args.min)
     noise = nprng.laplace(loc=args.mean_mean, scale=scale, size=shape)
     noise = noise.astype(dtype)
     return noise
@@ -153,8 +153,12 @@ def to_fft_magnitude(xfft, is_log=True):
     if is_log:
         # Ensure xfft does not have zeros.
         # xfft = xfft + 0.00001
-        xfft = np.clip(xfft, 1e-12, None)
+        # xfft = np.clip(xfft, 1e-12, None)
+        xfft += 1  # shift tensor +1: zeros become ones, but after log, they are zeros again
+        # min_xfft = xfft.min()
+        # print("min xfft: ", min_xfft)
         xfft = 20 * np.log10(xfft)
+        # xfft = np.log10(xfft) / np.log10(1000000)
         # print("xfft: ", xfft)
         # print("xfft min: ", xfft.min())
         # print("xfft max: ", xfft.max())

@@ -220,7 +220,9 @@ def get_hyper_mask(H, W, compress_rate, val=0, interpolate=None,
 def get_tensor_mask(array_mask):
     tensor_mask = torch.from_numpy(array_mask)
     tensor_mask = tensor_mask.unsqueeze(-1)
-    tensor_mask = torch.cat((tensor_mask, tensor_mask), dim=-1)
+    # tensor_other = torch.zeros_like(tensor_mask)
+    tensor_other = tensor_mask
+    tensor_mask = torch.cat((tensor_mask, tensor_other), dim=-1)
     return tensor_mask
 
 

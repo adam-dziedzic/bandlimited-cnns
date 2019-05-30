@@ -73,7 +73,7 @@ else:
     weight_decay = 0.0005
     momentum = 0.9
     # epochs=50
-    epochs = 12
+    epochs = 1
     # epochs = 100
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
@@ -298,7 +298,7 @@ class Arguments(object):
                  # resume="cifar100-0.0-84-checkpoint.tar",
                  resume="",
                  gpu=0,
-                 start_epoch=11,
+                 start_epoch=0,
                  only_train=False,
                  test_compress_rates=False,
                  noise_sigma=0,
@@ -319,17 +319,17 @@ class Arguments(object):
                  attack_type=AttackType.RECOVERY,
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
-                 compress_fft_layer=0,
+                 compress_fft_layer=50,
                  # attack_name="CarliniWagnerL2AttackRoundFFT",
                  attack_name="CarliniWagnerL2Attack",
                  # attack_name = None,
                  # attack_name="FGSM",
                  interpolate="const",
                  # recover_type="rounding",
-                 # recover_type="fft",
-                 # recover_type="fft",
+                 recover_type="fft",
                  # recover_type="noise",
-                 recover_type="laplace",
+                 # recover_type="laplace",
+                 # recover_type="debug",
                  noise_epsilon=0,
                  noise_epsilons=[0],
                  # recover_type="gauss",
@@ -340,8 +340,8 @@ class Arguments(object):
                  many_recover_iterations=[0],
                  attack_max_iterations=100,
                  many_attack_iterations=[100],
-                 laplace_epsilon=0.03,
-                 laplace_epsilons=[0.03]
+                 laplace_epsilon=0.0,
+                 laplace_epsilons=[0.0]
                  ):
         """
         The default parameters for the execution of the program.

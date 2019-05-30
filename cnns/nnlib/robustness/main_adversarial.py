@@ -65,6 +65,7 @@ from cnns.nnlib.robustness.utils import to_fft_magnitude
 from cnns.nnlib.robustness.utils import to_fft_phase
 from cnns.nnlib.robustness.utils import softmax_from_torch
 from cnns.nnlib.robustness.randomized_defense import defend
+from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBandFunction2D
 import matplotlib
 
 results_folder = "results/"
@@ -154,10 +155,20 @@ def print_heat_map(input_map, args, title="", ylabel=""):
     if args.plot_index % args.cols == 1:
         plt.ylabel(ylabel, fontsize=20)
     plt.title(title)
-    input_map = np.clip(input_map, a_min=0, a_max=80)
-    plt.imshow(input_map, cmap='hot', interpolation='nearest')
-    heatmap_legend = plt.pcolor(input_map)
-    plt.colorbar(heatmap_legend)
+    # input_map = np.clip(input_map, a_min=0, a_max=80)
+    is_legend = True
+    if is_legend:
+        cmap = "hot"  # matplotlib.cm.gray  # "hot"
+        plt.imshow(input_map, cmap=cmap, interpolation='nearest')
+        plt.colorbar()
+        #heatmap_legend = plt.pcolor(input_map)
+        #plt.colorbar(heatmap_legend)
+    else:
+        # cmap = matplotlib.cm.gray
+        cmap = "hot"
+        # cmap = "Spectral"
+        # cmap = "seismic"
+        plt.imshow(input_map, cmap=cmap, interpolation='nearest')
     # plt.axis('off')
 
 
@@ -252,7 +263,7 @@ def print_color_map(x, args, fig=None, ax=None):
 
 
 def show_image(image, original_image, args, title="",
-               clip_input_image=False):
+               clip_input_image=False, ylabel_text="Original image"):
     result = Object()
     predictions = args.fmodel.predictions(image=image)
     soft_predictions = softmax(predictions)
@@ -294,7 +305,7 @@ def show_image(image, original_image, args, title="",
             #     result.Linf_distance) + "\n"
         L2 = str(np.around(result.L2_distance, decimals=args.decimals))
         title_str += "L2 distance: " + str(L2) + "\n"
-        ylabel_text = "spatial domain"
+        # ylabel_text = "spatial domain"
         image_show = image
         if clip_input_image:
             # image = torch.clamp(image, min = args.min, max=args.max)
@@ -312,6 +323,7 @@ def show_image(image, original_image, args, title="",
         else:
             args.plot_index += 1
             plt.subplot(args.rows, args.cols, args.plot_index)
+            title_str = "Spatial domain"
             plt.title(title_str)
             plt.imshow(
                 np.moveaxis(image_show, 0, -1),
@@ -329,7 +341,7 @@ def print_fft(image, channel, args, title="", is_log=True):
     print("fft: ", title)
     print("input min: ", image.min())
     print("input max: ", image.max())
-    image = np.clip(image, a_min=-2.08, a_max=2.64)
+    image = np.clip(image, a_min=-2.12, a_max=2.64)
     xfft = to_fft(image, fft_type=args.fft_type, is_log=is_log)
     xfft = xfft[channel, ...]
     # torch.set_printoptions(profile='full')
@@ -436,11 +448,13 @@ def run(args):
         col_diff2nd = 3
         cols += col_diff2nd
 
-    args.rows = rows
-    args.cols = cols
-    plt.figure(figsize=(cols * 10, rows * 10))
+    # args.rows = rows
+    # args.cols = cols
+    args.rows = 1
+    args.cols = 2
+    # plt.figure(figsize=(cols * 10, rows * 10))
     # This returns the fig object.
-    # plt.figure()
+    plt.figure()
 
     if False:
         args.rows = 3
@@ -509,14 +523,15 @@ def run(args):
               args.true_label)
 
         # Original image.
-        original_title = "Original"
-        original_result = show_image(
-            image=original_image,
-            original_image=original_image,
-            args=args,
-            title=original_title)
-        result.add(original_result, prefix="original_")
-        print("Label for the original image: ", original_result.label)
+        if args.show_original:
+            original_title = "Original"
+            original_result = show_image(
+                image=original_image,
+                original_image=original_image,
+                args=args,
+                title=original_title)
+            result.add(original_result, prefix="original_")
+            print("Label for the original image: ", original_result.label)
 
         if show_2nd:
             result_original2 = show_image(
@@ -605,14 +620,25 @@ def run(args):
             result.round_label = None
 
         if args.compress_fft_layer > 0 and image is not None:
-            compress_image = attack_round_fft.fft_complex_compression(
-                image=image)
-            title = "FC (" + str(args.compress_fft_layer) + ")"
+            is_approximate = True
+            if is_approximate:
+                compress_image = FFTBandFunction2D.forward(
+                    ctx=None,
+                    input=torch.from_numpy(image).unsqueeze(0),
+                    compress_rate=args.compress_fft_layer).numpy().squeeze(0)
+            else:
+                # Exact compression.
+                compress_image = attack_round_fft.fft_complex_compression(
+                    image=image)
+            # title = "FC (" + str(args.compress_fft_layer) + ")"
+            title = "Spatial domain"
             # title += "interpolation: " + args.interpolate
             result_fft = show_image(
                 image=compress_image,
                 original_image=original_image,
                 args=args,
+                ylabel_text="Compressed (" + str(
+                    args.compress_fft_layer) + "%)",
                 title=title)
             result.add(result_fft, prefix="fft_")
             print("Label, id found after applying FFT: ",
@@ -743,11 +769,13 @@ def run(args):
             args.fft_type = fft_type
             for channel in channels:
                 is_log = True
-                image_fft = print_fft(image=original_image,
-                                      channel=channel,
-                                      args=args,
-                                      title="Original",
-                                      is_log=is_log)
+                if args.show_original:
+                    image_fft = print_fft(image=original_image,
+                                          channel=channel,
+                                          args=args,
+                                          title="Frequency domain",
+                                          # title="Original",
+                                          is_log=is_log)
 
                 if adv_image is not None and args.adv_attack == "before":
                     adversarial_fft = print_fft(image=adv_image,
@@ -785,10 +813,10 @@ def run(args):
 
                 if args.laplace_epsilon > 0:
                     laplace_fft = print_fft(image=noise_image,
-                                          channel=channel,
-                                          args=args,
-                                          title="Laplace noise",
-                                          is_log=is_log)
+                                            channel=channel,
+                                            args=args,
+                                            title="Laplace noise",
+                                            is_log=is_log)
 
                 if adv_image is not None and args.attack_type == "after":
                     adversarial_fft = print_fft(image=adv_image,
@@ -838,9 +866,9 @@ def run(args):
                                    f"(avg: {diff_fft_avg})",
                                    ylabel=ylabel)
 
-        plt.subplots_adjust(hspace=0.6)
+        plt.subplots_adjust(hspace=0.6, left=0.075, right=0.9)
 
-    format = 'pdf'  # "pdf" or "png" file_name
+    format = 'png'  # "pdf" or "png" file_name
     file_name = "images/" + attack.name() + "-" + str(
         args.attack_type) + "-round-fft-" + str(
         args.compress_fft_layer) + "-" + args.dataset + "-channel-" + str(
@@ -854,7 +882,7 @@ def run(args):
     if args.is_debug:
         pass
         plt.savefig(fname=file_name + "." + format, format=format)
-    # plt.show(block=True)
+    plt.show(block=True)
     plt.close()
     return result
 
@@ -936,6 +964,7 @@ if __name__ == "__main__":
     args.save_out = False
     # args.diff_type = "source"  # "source" or "fft"
     args.diff_type = "fft"
+    args.show_original = False
     # args.max_iterations = 1000
     # args.max_iterations = 20
     # args.noise_iterations = 1
@@ -972,7 +1001,7 @@ if __name__ == "__main__":
         else:
             raise Exception(f"Unknown dataset: {args.dataset}")
 
-    args.adv_attack = "before" # "before" or "after"
+    args.adv_attack = None  # "before" or "after"
 
     # args.compress_fft_layer = 5
     # args.values_per_channel = 8
@@ -997,7 +1026,7 @@ if __name__ == "__main__":
         # val_range = [1, 10, 20, 30, 40, 50, 60, 80, 90]
         val_range = args.compress_rates
         if args.is_debug:
-            val_range = [30]
+            val_range = [args.compress_fft_layer]
         # val_range = range(1, 100, 2)
         # val_range = range(3)
     elif args.recover_type == "roundfft":
@@ -1070,10 +1099,10 @@ if __name__ == "__main__":
         print("compress_" + args.recover_type + "_layer: ", compress_value)
         if args.recover_type == "debug":
             args.values_per_channel = 0
-            args.compress_fft_layer = 0
+            args.compress_fft_layer = 50
             args.noise_sigma = 0.0
             args.noise_epsilon = 0.0
-            args.laplace_epsilon = 0.03
+            args.laplace_epsilon = 0.0
         elif args.recover_type == "fft":
             args.compress_fft_layer = compress_value
         elif args.recover_type == "rounding":
@@ -1137,7 +1166,7 @@ if __name__ == "__main__":
                 print("single run elapsed time: ", single_run_time)
                 run_time += single_run_time
 
-                if result_run.original_label is not None:
+                if args.show_original and result_run.original_label is not None:
                     if result_run.true_label == result_run.original_label:
                         count_original += 1
 
@@ -1186,7 +1215,7 @@ if __name__ == "__main__":
                         sum_Linf_distance_defense += result_run.laplace_Linf_distance
                         sum_confidence_defense += result_run.laplace_confidence
                 elif args.recover_type == "debug":
-                    pass
+                    exit(0)
                 else:
                     raise Exception(
                         f"Unknown recover type: {args.recover_type}")
