@@ -12,20 +12,23 @@ type = ""
 sample_size = 192  # 500 for small data # how many values in a single sample collected
 train_rate = 0.5  # rate of training data, test data rate is 1 - train_rate
 outlier_std_count = 5
-class_counter = 5
-
+# class_counter = 5
+class_counter = 6
+# prefix="test_one_wifi_"
+prefix="wifi6_data/"
+suffix="_wifi_165"
 datasets = []
 min_len = sys.maxsize  # get the minimum length of dataset for each class
 
-for counter in range(1, class_counter + 1, 1):
-    csv_path = "test_one_wifi_" + str(counter) + type + ".txt"
+for counter in range(0, class_counter, 1):
+    csv_path = prefix + str(counter) + suffix + type + ".txt"
 
     # data1 = pd.read_csv(csv_path1, header=None)
     # # print("data1 values: ", data1.values)
     # data1 = np.array(data1.values).squeeze()
 
     dataset = np.genfromtxt(csv_path, delimiter="\n")
-
+    dataset = np.delete(dataset, np.where(dataset == float("-inf")))
     print("dataset class " + str(counter))
     print("max: ", dataset.max())
     print("min: ", dataset.min())
@@ -119,7 +122,7 @@ del test_datasets
 # print("data train dims: ", data_train.shape)
 # np.savetxt("WIFI_TRAIN", data_train, delimiter=",")
 sample_size = str(sample_size)
-dataset_name = "2WIFI" + str(class_counter)
+dataset_name = "WIFI" + str(class_counter)
 dir_name = dataset_name + "-" + sample_size
 full_dir = dir_name + "/" + dir_name
 

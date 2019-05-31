@@ -25,7 +25,7 @@ def getModelPyTorch(args):
     elif network_type is NetworkType.FCNN_SMALL or (
             network_type is NetworkType.FCNN_STANDARD):
         if network_type is NetworkType.FCNN_SMALL:
-            args.out_channels = [1, 1, 1]
+            args.out_channels = [16, 32, 16]
         elif network_type is NetworkType.FCNN_STANDARD:
             args.out_channels = [128, 256, 128]
         return FCNNPytorch(args=args)

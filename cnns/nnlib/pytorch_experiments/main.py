@@ -24,7 +24,6 @@ from torch.optim.lr_scheduler import \
 from torch.optim.lr_scheduler import MultiStepLR
 
 from cnns.nnlib.pytorch_layers.AdamFloat16 import AdamFloat16
-# from cnns.nnlib.pytorch_architecture.model_utils import getModelPyTorch
 from cnns.nnlib.utils.general_utils import OptimizerType
 from cnns.nnlib.utils.general_utils import SchedulerType
 from cnns.nnlib.utils.general_utils import LossType
