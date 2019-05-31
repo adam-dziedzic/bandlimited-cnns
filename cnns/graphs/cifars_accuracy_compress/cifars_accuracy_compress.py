@@ -11,7 +11,6 @@ MY_ORANGE = (218, 124, 48)
 MY_GREEN = (62, 150, 81)
 MY_BLACK = (83, 81, 84)
 
-legend_size = 16
 legend_position = 'lower left'
 frameon = False
 bbox_to_anchor=(0, -0.1)
@@ -21,13 +20,15 @@ def get_color(COLOR_TUPLE_255):
     return [x / 255 for x in COLOR_TUPLE_255]
 
 
-font = {'size': 20}
-title_size=16
+ylabel_size=25
+legend_size = 25
+font = {'size': 25}
+title_size=25
 matplotlib.rc('font', **font)
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-fig = plt.figure(figsize=(8, 6))
+fig = plt.figure(figsize=(12, 7))
 
 plt.subplot(2, 1, 1)
 
@@ -65,10 +66,11 @@ plt.plot(static_x, static_y, label='fixed compression', lw=2, marker='o',
 plt.plot(energy_x, energy_y, label='energy based compression', lw=2, marker='s',
          color=get_color(MY_GREEN))
 
-plt.xlabel('Compression ratio (%)')
-plt.ylabel('Test accuracy (%)')
+plt.xlabel('Compression rate (%)')
+plt.ylabel('Test accuracy (%)', fontsize=ylabel_size)
 plt.grid()
-plt.legend(loc=legend_position, frameon=frameon, prop={'size': legend_size}, bbox_to_anchor=bbox_to_anchor)
+plt.legend(loc=legend_position, frameon=frameon,
+           prop={'size': legend_size}, bbox_to_anchor=bbox_to_anchor)
 
 plt.subplot(2, 1, 2)
 
@@ -87,12 +89,15 @@ plt.plot(static_x, static_y, label='fixed compression', lw=2, marker='o',
 plt.plot(energy_x, energy_y, label='energy based compression', lw=2, marker='s',
          color=get_color(MY_GREEN))
 
-plt.xlabel('Compression ratio (%)')
-plt.ylabel('Test accuracy (%)')
+plt.xlabel('Compression rate (%)')
+plt.ylabel('Test accuracy (%)', fontsize=ylabel_size)
 plt.xlim(0, 80)
 plt.grid()
 plt.legend(loc=legend_position, frameon=frameon, prop={'size': legend_size}, bbox_to_anchor=bbox_to_anchor)
 
-plt.show()
-fig.savefig(dir_path + "/" + "cifars-accuracy-compress-font4.pdf",
-            bbox_inches='tight')
+fig.tight_layout()
+# plt.show()
+format="png" # "png" or "pdf"
+fig.savefig(dir_path + "/" + "cifars-accuracy-compress-font7." + format,
+            bbox_inches='tight', transparent=True)
+plt.close()

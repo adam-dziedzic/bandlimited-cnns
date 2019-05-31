@@ -101,4 +101,6 @@ plt.ylim(50, 100)
 # plt.imshow()
 plt.show(block=True)
 plt.interactive(False)
-fig.savefig(dir_path + "/" + "time-series.pdf", bbox_inches='tight')
+format="png" # "pdf" or "png"
+fig.savefig(dir_path + "/" + "time-series." + format,
+            bbox_inches='tight', transparent=True)

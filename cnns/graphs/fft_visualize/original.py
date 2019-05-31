@@ -50,6 +50,7 @@ def get_fft(image):
     xfft = to_fft(image, fft_type="magnitude", is_log=is_log)
     return process_fft(xfft)
 
+
 type = "original"
 # type = "exact"
 # type = "proxy"
@@ -61,27 +62,26 @@ if dataset == "mnist":
 
 xfft = get_fft(image)
 
-if type == "exact":
-    image = FFTBandFunctionComplexMask2D.forward(
-        ctx=result,
-        input=torch.from_numpy(image).unsqueeze(0),
-        compress_rate=compress_fft_layer,
-        val=0,
-        interpolate="const",
-        get_mask=get_hyper_mask,
-        onesided=False).numpy().squeeze(0)
-    xfft = result.xfft.squeeze(0)
-    xfft = to_fft_magnitude(xfft, is_log)
-    xfft = process_fft(xfft)
-elif type == "proxy":
-    image = FFTBandFunction2D.forward(
-        ctx=result,
-        input=torch.from_numpy(image).unsqueeze(0),
-        compress_rate=compress_fft_layer,
-        onesided=False).numpy().squeeze(0)
-    xfft = result.xfft.squeeze(0)
-    xfft = to_fft_magnitude(xfft, is_log)
-    xfft = process_fft(xfft)
+image_exact = FFTBandFunctionComplexMask2D.forward(
+    ctx=result,
+    input=torch.from_numpy(image).unsqueeze(0),
+    compress_rate=compress_fft_layer,
+    val=0,
+    interpolate="const",
+    get_mask=get_hyper_mask,
+    onesided=False).numpy().squeeze(0)
+xfft_exact = result.xfft.squeeze(0)
+xfft_exact = to_fft_magnitude(xfft_exact, is_log)
+xfft_exact = process_fft(xfft_exact)
+
+image_proxy = FFTBandFunction2D.forward(
+    ctx=result,
+    input=torch.from_numpy(image).unsqueeze(0),
+    compress_rate=compress_fft_layer,
+    onesided=False).numpy().squeeze(0)
+xfft_proxy = result.xfft.squeeze(0)
+xfft_proxy = to_fft_magnitude(xfft_proxy, is_log)
+xfft_proxy = process_fft(xfft_proxy)
 
 image = np.clip(image, a_min=0.0, a_max=1.0)
 
@@ -93,8 +93,9 @@ image = np.moveaxis(image, 0, -1)
 
 fig = plt.figure(figsize=(figuresizex, figuresizey))
 
+cols = 4
 # create your grid objects
-top_row = ImageGrid(fig, 211, nrows_ncols=(1, 2), axes_pad=.25,
+top_row = ImageGrid(fig, 411, nrows_ncols=(1, cols), axes_pad=.25,
                     cbar_location="right", cbar_mode="single")
 
 # plot the image
@@ -102,7 +103,8 @@ vmin, vmax = image.min(), image.max()
 print("image min, max: ", vmin, vmax)
 ax = top_row[0]
 image = np.squeeze(image)
-im1 = ax.imshow(image, vmin=vmin, vmax=vmax, interpolation='nearest', cmap="gray")
+im1 = ax.imshow(image, vmin=vmin, vmax=vmax, interpolation='nearest',
+                cmap="gray")
 
 # plot the FFT map
 image = xfft
@@ -111,6 +113,26 @@ vmin = image.min()
 vmax = image.max()
 print("fft min, max: ", vmin, vmax)
 ax = top_row[1]
+im1 = ax.imshow(image, vmin=vmin, vmax=vmax, cmap="hot",
+                interpolation='nearest')
+
+# plot the FFT exact
+image = xfft_exact
+vmin = image.min()
+# vmax = 110.0  # image.max()
+vmax = image.max()
+print("fft min, max: ", vmin, vmax)
+ax = top_row[2]
+im1 = ax.imshow(image, vmin=vmin, vmax=vmax, cmap="hot",
+                interpolation='nearest')
+
+# plot the FFT proxy
+image = xfft_proxy
+vmin = image.min()
+# vmax = 110.0  # image.max()
+vmax = image.max()
+print("fft min, max: ", vmin, vmax)
+ax = top_row[3]
 im1 = ax.imshow(image, vmin=vmin, vmax=vmax, cmap="hot",
                 interpolation='nearest')
 
@@ -125,7 +147,8 @@ cbar1 = top_row.cbar_axes[0].colorbar(im1)
 # colorbar labels don't appear to factor in to the adjustment
 plt.subplots_adjust(left=0.075, right=0.9)
 
-format = "pdf" # "png" "pdf"
-plt.savefig(fname=type + "-" + dataset + "." + format, format=format)
+format = "png"  # "png" "pdf"
+plt.savefig(fname="images/" + type + "-" + dataset + "-4cols." + format,
+            format=format, transparent=True)
 plt.show(block=True)
 plt.close()

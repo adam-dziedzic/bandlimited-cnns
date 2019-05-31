@@ -23,7 +23,11 @@ def get_color(COLOR_TUPLE_255):
     return [x / 255 for x in COLOR_TUPLE_255]
 
 
-font = {'size': 20}
+# fontsize=20
+# label_font=16
+fontsize=25
+label_font=20
+font = {'size': fontsize}
 matplotlib.rc('font', **font)
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -46,8 +50,13 @@ def read_columns(dataset, columns=7):
                     cols[column].append(float(row[column + 1]))
     return cols
 
+# widht=10
+# height=8
 
-fig = plt.figure(figsize=(10, 8))
+width=10
+height=8
+
+fig = plt.figure(figsize=(width, height))
 
 dataset = "data3"
 labels = ["", "80", "90", "95"]
@@ -56,7 +65,7 @@ columns = 7
 colors = [get_color(color) for color in
           ["", MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK]]
 markers = ["+", "o", "v", "s", "D", "^"]
-linestyles = ["", "-", "--", ":"]
+linestyles = ["", "-", "-", "-"]
 
 cols = read_columns(dataset, columns=columns)
 
@@ -66,9 +75,10 @@ print("col 1: ", cols[1])
 # blue main points
 # Accurayc of model at 99% energy preserved level against accuracy of model at 100% energy preserved level
 plt.plot(cols[0], cols[1],
-         label="Test accuracy (%) of the full-spectra\n"
-               "model vs. accuracy of band-limited\n"
-               "model with 50% compression", lw=3,
+         # label=("Test accuracy (%) of the full-spectra\n"
+         #       "model vs. accuracy of band-limited\n"
+         #       "model with 50% compression"),
+         lw=3,
          color=get_color(MY_BLUE), linestyle="", marker="o", markersize=10)
 
 # red middle line
@@ -81,10 +91,10 @@ plt.plot(cols[0], cols[3], label="+/- 5%", lw=3, color=get_color(MY_GREEN),
 
 # yellow line
 plt.plot(cols[0], cols[4], label="+/- 10%", lw=3, color=get_color(MY_ORANGE),
-         linestyle=":")
+         linestyle="-")
 
 # 2nd yellow line
-plt.plot(cols[0], cols[5], lw=3, color=get_color(MY_ORANGE), linestyle=":")
+plt.plot(cols[0], cols[5], lw=3, color=get_color(MY_ORANGE), linestyle="-")
 
 # 2nd green line
 plt.plot(cols[0], cols[6], lw=3, color=get_color(MY_GREEN),
@@ -92,10 +102,10 @@ plt.plot(cols[0], cols[6], lw=3, color=get_color(MY_GREEN),
 
 plt.grid()
 plt.legend(loc="upper left", ncol=1, frameon=False,
-           prop={'size': 18}, bbox_to_anchor=(0.0, 1.025))
+           prop={'size': label_font}, bbox_to_anchor=(0.0, 1.025))
 plt.xlabel('Epoch')
 plt.xlabel('Test accuracy (%) of full-spectra model')
-plt.ylabel('Test accuracy (%) of band-limited model')
+plt.ylabel('Test accuracy (%) of\nband-limited model')
 plt.xlim(60, 100)
 plt.ylim(60, 100)
 
@@ -105,4 +115,6 @@ plt.ylim(60, 100)
 # plt.imshow()
 plt.show(block=True)
 plt.interactive(False)
-fig.savefig(dir_path + "/" + "time-series-font.pdf", bbox_inches='tight')
+format="png"
+fig.savefig(dir_path + "/" + "time-series-font2." + format,
+            bbox_inches='tight', transparent=True)

@@ -22,7 +22,10 @@ def get_color(COLOR_TUPLE_255):
     return [x / 255 for x in COLOR_TUPLE_255]
 
 
-font = {'size': 20}
+# fontsize=20
+legend_font=16
+fontsize=25
+font = {'size': fontsize}
 matplotlib.rc('font', **font)
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -45,8 +48,13 @@ def read_columns(dataset):
                     cols[column].append(float(row[column]))
     return cols
 
+# width=8
+# height=6
 
-fig = plt.figure(figsize=(8, 6))
+width=8
+height=6
+
+fig = plt.figure(figsize=(width, height))
 
 dataset = "cifar10-on-ResNet18-add-gaussian-noise"
 labels = ["sigma", "FP32-C=0% full spectra",
@@ -66,7 +74,7 @@ for i in range(columns):
                  color=colors[i])
 
 plt.grid()
-plt.legend(loc='upper right', frameon=False, prop={'size': 16},
+plt.legend(loc='upper right', frameon=False, prop={'size': legend_font},
            bbox_to_anchor=(1, 1))
 plt.xlabel('Level of Gaussian noise (sigma)')
 # plt.title(dataset, fontsize=16)
@@ -80,5 +88,7 @@ plt.xlim(0, 2)
 # plt.imshow()
 plt.show(block=True)
 plt.interactive(False)
-fig.savefig(dir_path + "/" + "gaussian_noise_font.pdf",
-            bbox_inches='tight')
+format="png" # or "pdf"
+fig.savefig(dir_path + "/" + "gaussian_noise_font." + format,
+            bbox_inches='tight',
+            transparent=True)

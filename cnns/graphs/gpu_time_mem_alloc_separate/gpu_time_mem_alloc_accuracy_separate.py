@@ -45,8 +45,20 @@ def read_columns(dataset):
                 mem.append(int(row[4]) / max_mem_size * 100)
     return compression, accuracy, time, mem
 
+# width=10
+# height=8
+# fontsize=14
+# ylim_max=120
+# ylim_min=0
 
-fig = plt.figure(figsize=(10, 8))
+width=15
+height=2.5
+fontsize=30
+ylim_max=100
+ylim_min=0
+
+fig = plt.figure(figsize=(width, height))
+
 
 file_name = "file_name"
 title = "title"
@@ -60,9 +72,9 @@ cifar100 = {file_name: "cifar100",
 imagenet = {file_name: "imagenet",
             title: "ResNet-50 on ImageNet"}
 
-datasets = [cifar10, cifar100, imagenet]
+datasets = [cifar10] #[cifar10, cifar100, imagenet]
 
-rows = 3
+rows = len(datasets)
 cols = 2
 iter = 1
 subplots = ["compression "]
@@ -72,7 +84,7 @@ for i, dataset in enumerate(datasets):
     print("dataset: ", dataset)
     compression, accuracy, time, mem = read_columns(dataset[file_name])
     lw = 3
-    fontsize = 14
+    fontsize = fontsize
 
     plt.subplot(rows, cols, iter)
     iter += 1
@@ -81,12 +93,12 @@ for i, dataset in enumerate(datasets):
              marker="v", color=get_color(MY_RED))
     plt.grid()
     plt.legend(loc='lower left', frameon=False, prop={'size': fontsize})
-    plt.xlabel('Compression ratio (%)', fontsize=fontsize)
+    plt.xlabel('Compression rate (%)', fontsize=fontsize)
     plt.title(dataset[title], fontsize=fontsize)
     if iter % 2 == 0:
         plt.ylabel("Normalized\nperformance (%)", fontsize=fontsize)
     plt.yticks(fontsize=fontsize)
-    plt.ylim(20, 130)
+    plt.ylim(ylim_min, ylim_max)
     plt.xticks(fontsize=fontsize)
     plt.xlim(0, 80)
 
@@ -97,16 +109,17 @@ for i, dataset in enumerate(datasets):
              marker="s", color=get_color(MY_BLUE))
     plt.grid()
     plt.legend(loc='lower left', frameon=False, prop={'size': fontsize})
-    plt.xlabel('Compression ratio (%)', fontsize=fontsize)
+    plt.xlabel('Compression rate (%)', fontsize=fontsize)
     plt.title(dataset[title], fontsize=fontsize)
     plt.yticks(fontsize=fontsize)
-    plt.ylim(20, 130)
+    plt.ylim(ylim_min, ylim_max)
     plt.xticks(fontsize=fontsize)
     plt.xlim(0, 80)
 
+plt.subplots_adjust(hspace=0.6)
 # plt.gcf().autofmt_xdate()
 # plt.xticks(rotation=0)
 plt.show()
-fig.savefig(
-    dir_path + "/" + "gpu_time_mem_alloc_font.pdf",
-    bbox_inches='tight')
+format = "png"
+fig.savefig(dir_path + "/" + "gpu_time_mem_alloc_font3." + format,
+            bbox_inches='tight', transparent=True)

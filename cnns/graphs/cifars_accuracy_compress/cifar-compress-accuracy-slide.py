@@ -51,7 +51,7 @@ plt.plot(resnet_x, resnet_y, label='ResNet-18 on CIFAR-10', lw=3, marker='o',
 plt.plot(densenet_x, densenet_y, label='DenseNet-121 on CIFAR-100', lw=3,
          marker='s', color=get_color(MY_GREEN))
 
-plt.xlabel('Compression ratio (%)')
+plt.xlabel('Compression rate (%)')
 plt.ylabel('Test accuracy (%)')
 plt.grid()
 plt.legend(loc=legend_position, frameon=frameon, prop={'size': legend_size},

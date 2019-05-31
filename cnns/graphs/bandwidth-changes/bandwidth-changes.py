@@ -1,4 +1,5 @@
 import matplotlib
+
 # matplotlib.use('TkAgg')
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
@@ -20,8 +21,9 @@ MY_BLACK = (83, 81, 84)
 def get_color(COLOR_TUPLE_255):
     return [x / 255 for x in COLOR_TUPLE_255]
 
-
-font = {'size': 20}
+# fontsize=20
+fontsize=25
+font = {'size': fontsize}
 matplotlib.rc('font', **font)
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -44,24 +46,36 @@ def read_columns(dataset, columns=5):
     return cols
 
 
-fig = plt.figure(figsize=(10, 8))
+ylabel = "ylabel"
+title = "title"
+legend_pos = "center_pos"
+bbox = "bbox"
 
-datasets = ["accuracy", "compression"]
-titles = ["accuracy", "compression"]
+accuracy = {ylabel: "Test accuracy (%)",
+            title: "accuracy",
+            legend_pos: "center left",
+            bbox: (0.0, 0.1)}
+compression = {ylabel: "Compression rate (%)",
+               title: "compression",
+               legend_pos: "upper left",
+               bbox: (0.0, 0.2)}
+
 labels = ["", "80", "90", "95"]
-legend_pos = ["center left", "upper left"]
 ncols = [3, 3]
-bbox = [(0.0, 0.1), (0.0, 0.2)]
 columns = 4
+
 colors = [get_color(color) for color in
           ["", MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK]]
 markers = ["+", "o", "v", "s", "D", "^"]
 linestyles = ["", "-", "--", ":"]
 
+datasets = [compression]
+fig = plt.figure(figsize=(12, len(datasets)*5))
+
 for j, dataset in enumerate(datasets):
-    plt.subplot(2, 1, j + 1)
+    plt.subplot(len(datasets), 1, j + 1)
     print("dataset: ", dataset)
-    cols = read_columns(dataset, columns=columns)
+    cols = read_columns(dataset[title], columns=columns)
 
     print("col 0: ", cols[0])
     print("col 1: ", cols[1])
@@ -72,14 +86,11 @@ for j, dataset in enumerate(datasets):
                      color=colors[i], linestyle=linestyles[i])
 
     plt.grid()
-    plt.legend(loc=legend_pos[j], ncol=ncols[j], frameon=False,
-               prop={'size': 18}, bbox_to_anchor=bbox[j])
+    plt.legend(loc=dataset[legend_pos], ncol=ncols[j], frameon=False,
+               prop={'size': 20}, bbox_to_anchor=dataset[bbox])
     plt.xlabel('Epoch')
     # plt.title(titles[j], fontsize=16)
-    if j == 0:
-        plt.ylabel("Test accuracy (%)")
-    else:
-        plt.ylabel("Compression ratio (%)")
+    plt.ylabel(dataset[ylabel])
     plt.ylim(0, 100)
     plt.xlim(0, 350)
 
@@ -87,6 +98,9 @@ for j, dataset in enumerate(datasets):
 # plt.xticks(rotation=0)
 # plt.interactive(False)
 # plt.imshow()
+plt.subplots_adjust(hspace=0.3)
 plt.show(block=True)
 plt.interactive(False)
-fig.savefig(dir_path + "/" + "bandwidth-changes-font2.pdf", bbox_inches='tight')
+format = "png"  # "pdf" or "png"
+fig.savefig(dir_path + "/" + "bandwidth-changes-font3." + format,
+            bbox_inches='tight', transparent=True)
