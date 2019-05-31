@@ -11,7 +11,7 @@ from enum import Enum
 
 counter = 0
 
-plots_folder_name = "plots"
+plots_folder_name = "fft_visualize"
 plots_dir = os.path.join(os.curdir, plots_folder_name)
 pathlib.Path(plots_dir).mkdir(parents=True, exist_ok=True)
 

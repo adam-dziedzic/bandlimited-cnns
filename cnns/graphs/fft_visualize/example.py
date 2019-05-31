@@ -43,7 +43,7 @@ for im in image2s:
         i_max= im.max()
     if im.min() < i_min:
         i_min = im.min()
-# plot these as you would the others, but use identical vmin and vmax for all three plots
+# plot these as you would the others, but use identical vmin and vmax for all three fft_visualize
 for i,im in enumerate(image2s):
     ax = bottom_row[i]
     im2_scaled = ax.imshow(im, vmin = i_min, vmax = i_max)

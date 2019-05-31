@@ -122,11 +122,11 @@ def elem_wise_dist(image, images, p=2, axis=(1, 2, 3)):
     return norm(x, p=p, axis=axis)
 
 
-def to_fft(x, fft_type, is_log=True):
+def to_fft(x, fft_type, is_log=True, signal_dim=2, onesided=False):
     x = torch.from_numpy(x)
     # x = torch.tensor(x)
     # x = x.permute(2, 0, 1)  # move channel as the first dimension
-    xfft = torch.rfft(x, onesided=False, signal_ndim=2)
+    xfft = torch.rfft(x, onesided=onesided, signal_ndim=signal_dim)
     if fft_type == "magnitude":
         return to_fft_magnitude(xfft, is_log)
     elif fft_type == "phase":
@@ -154,11 +154,16 @@ def to_fft_magnitude(xfft, is_log=True):
         # Ensure xfft does not have zeros.
         # xfft = xfft + 0.00001
         # xfft = np.clip(xfft, 1e-12, None)
-        xfft += 1  # shift tensor +1: zeros become ones, but after log, they are zeros again
+
+        # Shift tensor +1: zeros become ones, but after log, they are zeros
+        # again.
+        xfft += 1
+
         # min_xfft = xfft.min()
         # print("min xfft: ", min_xfft)
-        xfft = 20 * np.log10(xfft)
+        xfft = 20 * np.log10(xfft)  # Decibel scale.
         # xfft = np.log10(xfft) / np.log10(1000000)
+
         # print("xfft: ", xfft)
         # print("xfft min: ", xfft.min())
         # print("xfft max: ", xfft.max())

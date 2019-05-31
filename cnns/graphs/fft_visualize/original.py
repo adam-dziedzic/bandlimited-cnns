@@ -125,7 +125,7 @@ cbar1 = top_row.cbar_axes[0].colorbar(im1)
 # colorbar labels don't appear to factor in to the adjustment
 plt.subplots_adjust(left=0.075, right=0.9)
 
-format = "png"
+format = "pdf" # "png" "pdf"
 plt.savefig(fname=type + "-" + dataset + "." + format, format=format)
 plt.show(block=True)
 plt.close()
