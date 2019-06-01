@@ -20,6 +20,7 @@ from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.general_utils import ConvExecType
 from cnns.nnlib.utils.arguments import Arguments
+from numpy.testing.utils import assert_allclose
 
 
 class TestPyTorchConv2d(unittest.TestCase):
@@ -341,7 +342,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         # print("expect result from convStandard: ", expect)
 
         np.testing.assert_allclose(
-            desired=get_numpy(expect), actual=get_numpy(result), rtol=1e-6,
+            desired=get_numpy(expect), actual=get_numpy(result), rtol=1e-5,
             err_msg=self.ERR_MESSAGE_ALL_CLOSE)
 
     def test_FunctionForwardRandomWithPytorchWeights(self):
@@ -383,7 +384,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         result = conv.forward(ctx=None, input=x_torch, filter=weight, bias=None)
 
         np.testing.assert_allclose(
-            desired=get_numpy(expect), actual=get_numpy(result), rtol=1e-4,
+            desired=get_numpy(expect), actual=get_numpy(result), rtol=1e-3,
             err_msg=self.ERR_MESSAGE_ALL_CLOSE)
 
     def test_FunctionForwardRandomWithPytorchWeightsCifar10Image(self):
@@ -428,7 +429,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         result = conv.forward(ctx=None, input=x_torch, filter=weight, bias=None)
 
         np.testing.assert_allclose(
-            desired=get_numpy(expect), actual=get_numpy(result), rtol=1e-5,
+            desired=get_numpy(expect), actual=get_numpy(result), rtol=1e-4,
             err_msg=self.ERR_MESSAGE_ALL_CLOSE)
 
     def test_FunctionBackwardNoCompressionWithBias(self):
@@ -930,17 +931,21 @@ class TestPyTorchConv2d(unittest.TestCase):
         W = 32  # width
 
         input_fft = torch.randn(N, C, H, W, dtype=self.dtype,
-                                device=self.device,
-                                requires_grad=True)
-        input_torch = input_fft.clone().requires_grad_()
+                                device=self.device, requires_grad=True)
+        # input_torch = input_fft.clone().requires_grad_(requires_grad=True)
+        input_torch = torch.tensor(input_fft, dtype=self.dtype,
+                                   device=self.device, requires_grad=True)
 
         conv_torch = torch.nn.Conv2d(
             in_channels=C, out_channels=F, kernel_size=K)
         conv_torch.to(self.device)
 
         is_manual = tensor([0])
-        conv_fft = Conv2dfft(weight_value=conv_torch.weight.clone(),
-                             bias_value=conv_torch.bias.clone(),
+        fft_weight = torch.tensor(conv_torch.weight, dtype=self.dtype,
+                                  device=self.device, requires_grad=True)
+        fft_bias = torch.tensor(conv_torch.bias, dtype=self.dtype,
+                                device=self.device, requires_grad=True)
+        conv_fft = Conv2dfft(weight_value=fft_weight, bias_value=fft_bias,
                              is_manual=is_manual)
 
         result_torch = conv_torch.forward(input=input_torch)
@@ -961,25 +966,25 @@ class TestPyTorchConv2d(unittest.TestCase):
         dy = get_numpy(conv_fft.weight.grad)
         db = get_numpy(conv_fft.bias.grad)
 
-        result_torch = result_fft.cpu().detach().numpy()
-        result_fft = result_torch.cpu().detach().numpy()
+        result_torch = get_numpy(result_torch)
+        result_fft = get_numpy(result_fft)
 
         np.testing.assert_allclose(
             desired=result_torch, actual=result_fft,
-            rtol=1e-6, err_msg=self.ERR_MESSAGE_ALL_CLOSE)
+            rtol=1e-6, atol=1e-6, err_msg=self.ERR_MESSAGE_ALL_CLOSE)
 
         # are the gradients correct
         np.testing.assert_allclose(
             desired=dx_expect, actual=dx,
-            rtol=1e-6, err_msg=self.ERR_MESSAGE_ALL_CLOSE)
+            rtol=1e-5, atol=1e-4, err_msg=self.ERR_MESSAGE_ALL_CLOSE)
 
         np.testing.assert_allclose(
             desired=dy_expect, actual=dy,
-            rtol=1e-6, err_msg=self.ERR_MESSAGE_ALL_CLOSE)
+            rtol=1e-4, atol=1e-4, err_msg=self.ERR_MESSAGE_ALL_CLOSE)
 
         np.testing.assert_allclose(
             desired=db_expect, actual=db,
-            rtol=1e-6, err_msg=self.ERR_MESSAGE_ALL_CLOSE)
+            rtol=1e-5, atol=1e-4, err_msg=self.ERR_MESSAGE_ALL_CLOSE)
 
     def test_ForwardCompressionForConv2dfftPreserveEenrgy(self):
         # Don't use next power of 2.
@@ -1567,7 +1572,7 @@ class TestPyTorchConv2d(unittest.TestCase):
         np.testing.assert_allclose(
             desired=convStandard.cpu().detach().numpy(),
             actual=convFFT.cpu().detach().numpy(),
-            rtol=1e-6, err_msg=self.ERR_MESSAGE_ALL_CLOSE)
+            rtol=1e-6, atol=1e-4, err_msg=self.ERR_MESSAGE_ALL_CLOSE)
 
     def testConvStrideForwardBackward(self):
         x = tensor(
@@ -1580,14 +1585,14 @@ class TestPyTorchConv2d(unittest.TestCase):
                 [0.0, 2.0, -1.0, 1.0, 1.0, 1.0, 0.0],
                 [2.0, 0.0, 1.0, 2.0, 2.0, 0.0, 8.0]
             ]]], requires_grad=True, dtype=self.dtype)
-        x_expect = x.clone()
+        x_expect = torch.tensor(x, requires_grad=True, dtype=self.dtype)
         y = tensor([[
             [[1.0, 2.0, 3.0],
              [-1.0, -1.0, 5.0],
              [1.0, -2.0, 4.0]]]], requires_grad=True, dtype=self.dtype)
-        y_expect = y.clone()
+        y_expect = torch.tensor(y, requires_grad=True, dtype=self.dtype)
         b = tensor([1.0], requires_grad=True, dtype=self.dtype)
-        b_expect = b.clone()
+        b_expect = torch.tensor(b, requires_grad=True, dtype=self.dtype)
 
         x = x.to(self.device)
         x_expect = x_expect.to(self.device)
@@ -1627,10 +1632,6 @@ class TestPyTorchConv2d(unittest.TestCase):
         assert conv.is_manual[0] == 1
 
         print("convFFT: ", convFFT)
-        np.testing.assert_array_almost_equal(
-            x=conv_torch.cpu().detach().numpy(),
-            y=convFFT.cpu().detach().numpy(), decimal=5,
-            err_msg="The expected array x and computed y are not almost equal.")
 
         x_expect = x_expect.cpu()
         y_expect = y_expect.cpu()
@@ -1671,7 +1672,17 @@ class TestPyTorchConv2d(unittest.TestCase):
             x=b_expect.grad, y=conv.bias.grad, decimal=4,
             err_msg="Expected x is different from computed y for bias gradient.")
 
+        assert_allclose(
+            actual=conv_torch.cpu().detach().numpy(),
+            desired=convFFT.cpu().detach().numpy(),
+            rtol=1e-6, atol=1e-5,
+            err_msg=self.ERR_MESSAGE_ALL_CLOSE)
+
     def test_conv2d_picker(self):
+        """
+        Test if the custom backward pass is executed.
+
+        """
         in_planes = 3
         out_planes = 64
         stride = 1
@@ -1683,9 +1694,14 @@ class TestPyTorchConv2d(unittest.TestCase):
                     padding=[1], args=args, is_bias=False).get_conv()
         conv.to(self.device)
         result = conv.forward(
-            torch.randn(8, 3, 32, 32, device=self.device, dtype=self.dtype))
-        result.backward(torch.ones_like(result, device=self.device,
-                                        dtype=self.dtype))
+            torch.randn(8, 3, 32, 32,
+                        device=self.device,
+                        dtype=self.dtype,
+                        # requires_grad=True
+                        ))
+        back_values = torch.ones_like(result, device=self.device,
+                                     dtype=self.dtype)
+        result.backward(back_values)
         assert conv.is_manual[0] == 1
 
     def test_correctness_forward_backward_pass_for_all_conv_modes(self):

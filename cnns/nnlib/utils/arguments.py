@@ -79,7 +79,8 @@ else:
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
     precision_type = PrecisionType.FP32
-    conv_exec_type = ConvExecType.CUDA
+    # conv_exec_type = ConvExecType.CUDA
+    conv_exec_type = ConvExecType.SGEMM
     visualize = True  # test model for different compress rates
     next_power2 = False
     schedule_patience = 10
@@ -473,6 +474,7 @@ class Arguments(object):
         self.many_attack_iterations = many_attack_iterations
         self.laplace_epsilon = laplace_epsilon
         self.laplace_epsilons = laplace_epsilons
+        self.set_dtype()
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False
@@ -519,6 +521,9 @@ class Arguments(object):
         if hasattr(parsed_args, "preserve_energy"):
             self.preserve_energy = parsed_args.preserve_energy
 
+        self.set_dtype()
+
+    def set_dtype(self):
         tensor_type = self.tensor_type
         if tensor_type is TensorType.FLOAT32:
             dtype = torch.float32

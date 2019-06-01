@@ -1,9 +1,9 @@
 import torch
 
 
-def shift_DC(xfft, onesided=True, shift_to="center"):
-    W = xfft.size(-2)
-    H = xfft.size(-3)
+def shift_DC(xfft, onesided=True, shift_to="center", W_dim=-2):
+    W = xfft.size(W_dim)
+    H = xfft.size(W_dim-1)
 
     if shift_to == "center":
         HH = H // 2 + 1  # middle H
@@ -26,9 +26,9 @@ def shift_DC(xfft, onesided=True, shift_to="center"):
         return torch.cat((bottom, top), dim=-3)
 
 
-def shift_DC_np(xfft, onesided=True, shift_type="center"):
-    xfft = torch.tensor(xfft)
-    xfft = shift_DC(xfft, onesided=onesided)
+def shift_DC_np(xfft, onesided=True, shift_to="center"):
+    xfft = torch.from_numpy(xfft)
+    xfft = shift_DC(xfft, onesided=onesided, shift_to=shift_to)
     return xfft.numpy()
 
 

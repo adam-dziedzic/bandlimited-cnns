@@ -13,12 +13,12 @@ class TestShiftDCComponent(TestCase):
     def setUp(self) -> None:
         self.dtype = np.float32
 
-    def test_empty(self):
-        xfft = torch.tensor([[[]]])
-        xfft_out = shift_DC(xfft)
-        assert_equal(actual=xfft_out.numpy(), desired=np.array([[[]]]))
-
     def test_one(self):
+        xfft = torch.tensor([[[1.0]]])
+        xfft_out = shift_DC(xfft)
+        assert_equal(actual=xfft_out.numpy(), desired=np.array([[[1.0]]]))
+
+    def test_single_element(self):
         value = 14.0
         xfft = torch.tensor([[[value]]])
         xfft_out = shift_DC(xfft)
@@ -97,22 +97,30 @@ class TestShiftDCComponent(TestCase):
 
     def test_to_corner_arange_9_elemwise(self):
         xfft = np.arange(9, dtype=self.dtype).reshape(1, 3, 3, 1)
+        print("xfft: ", xfft)
         xfft = torch.tensor(xfft)
-        xfft_out = shift_DC_elemwise(xfft, onesided=True, shift_to="corner")
+        xfft_out = shift_DC_elemwise(xfft, onesided=True)
         assert_equal(actual=xfft_out.numpy().squeeze(),
-                     desired=np.array([[3., 4., 5.],
-                                       [6., 7., 8.],
-                                       [0., 1., 2.]], dtype=self.dtype))
+                     desired=np.array([[6., 7., 8.],
+                                       [0., 1., 2.],
+                                       [3., 4., 5.]], dtype=self.dtype))
 
     def test_to_corner_arange_9_bothsided_elemwise(self):
         xfft = np.arange(9, dtype=self.dtype).reshape(1, 3, 3, 1)
+        print("xfft: ", xfft)
         xfft = torch.tensor(xfft)
         xfft_out = shift_DC_elemwise(xfft, onesided=False)
         assert_equal(actual=xfft_out.numpy().squeeze(),
-                     desired=np.array([[4., 5., 3.],
-                                       [7., 8., 6.],
-                                       [1., 2., 0.]], dtype=self.dtype))
+                     desired=np.array([[8, 6., 7.],
+                                       [2., 0, 1.],
+                                       [5., 3., 4.]], dtype=self.dtype))
 
+    def test_elemwise_general_random(self):
+        xfft = np.random.rand(32, 32, 1) # simulate complex maps
+        xfft = torch.from_numpy(xfft)
+        xfft_out1 = shift_DC_elemwise(xfft, onesided=False)
+        xfft_out2 = shift_DC(xfft, onesided=False)
+        assert_equal(actual=xfft_out1, desired=xfft_out2)
 
 if __name__ == '__main__':
     unittest.main()

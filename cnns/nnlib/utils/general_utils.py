@@ -138,6 +138,7 @@ class ConvExecType(EnumWithNames):
     CUDA = 3
     CUDA_SHARED_LOG = 4
     CUDA_DEEP = 5
+    SGEMM = 6
 
 
 class TensorType(EnumWithNames):

@@ -43,7 +43,6 @@ from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.arguments import Arguments
 from cnns.nnlib.utils.general_utils import additional_log_file
 
-
 MAX_BLOCK_THREADS = 1024
 
 if torch.cuda.is_available():
@@ -94,6 +93,33 @@ global_restore_filter = 0.0
 global_irfft_filter = 0.0
 
 global_threshold = 10000
+
+
+def fast_multiply(xfft, yfft):
+    """
+    Fast complex multiplication (3 real multiplications instead of 4) using
+    torch.matmul (SGEMM).
+
+    :param xfft: input with dims: (H, W, N, C, I)
+    :param yfft: input with dims: (H, W, C, F, I
+    :return: outfft: output with dims: (N, F, H, W, I)
+    """
+    x_re = xfft[..., 0]
+    x_im = xfft[..., 1]
+    y_re = yfft[..., 0]
+    y_im = yfft[..., 1]
+
+    # Change to matrix multiply.
+    # UaVc = x_re * (y_re + y_im)
+    # out_re = UaVc - (x_re + x_im) * y_im
+    # out_im = (x_im - x_re) * y_re + UaVc
+    UaVc = torch.matmul(x_re, (y_re + y_im))
+    out_re = UaVc - torch.matmul((x_re + x_im), y_im)
+    out_im = torch.matmul((x_im - x_re), y_re) + UaVc
+    outfft = torch.cat((out_re.unsqueeze(-1),
+                        out_im.unsqueeze(-1)),
+                       dim=-1)
+    return outfft
 
 
 class Conv2dfftFunction(torch.autograd.Function):
@@ -448,7 +474,19 @@ class Conv2dfftFunction(torch.autograd.Function):
                     # the dimension of the out to properly sum up the values).
                     out[nn] += unsqueezed_bias
         else:
-            if args.conv_exec_type is ConvExecType.CUDA_SHARED_LOG:
+            if args.conv_exec_type is ConvExecType.SGEMM:
+                # We want for xfft: H, W, C, N, I
+                xfft = xfft.permute(2, 3, 1, 0, 4).contiguous()
+                # We want for yfft: H, W, F, C, I
+                yfft = yfft.permute(2, 3, 0, 1, 4).contiguous()
+
+                # result: H, W, F, N, I
+                outfft = fast_multiply(yfft, xfft)
+
+                # From H, W, F, N, I to N, F, H, W, I
+                outfft = outfft.permute(3, 2, 0, 1, 4)
+
+            elif args.conv_exec_type is ConvExecType.CUDA_SHARED_LOG:
                 if torch.cuda.is_available():
                     # print("complex cuda multiplication")
                     outfft = torch.zeros([N, F, half_fft_compressed_H,
@@ -509,6 +547,7 @@ class Conv2dfftFunction(torch.autograd.Function):
                 else:
                     raise Exception("Selected CUDA conv execution but no cuda "
                                     "device is available.")
+
             # Convolve some part of the input batch with all filters.
             # 2 is for complex numbers
             # start = 0
@@ -822,11 +861,22 @@ class Conv2dfftFunction(torch.autograd.Function):
                     out = torch.unsqueeze(input=out, dim=0)
                     dx[nn] = out
             else:
-                dxfft = torch.zeros([N, C, half_fft_compressed_H,
-                                     half_fft_compressed_W, 2],
-                                    dtype=dtype, device=device)
-                if args.conv_exec_type is ConvExecType.CUDA_SHARED_LOG:
+                if args.conv_exec_type is ConvExecType.SGEMM:
+                    # We want for doutfft: H, W, N, F, I
+                    doutfft = doutfft.permute(2, 3, 0, 1, 4).contiguous()
+                    # We have yfft: H, W, F, C, I
+
+                    # returns: H, W, N, C, I
+                    dxfft = fast_multiply(doutfft, yfft)
+
+                    dxfft = dxfft.permute(2, 3, 0, 1, 4).contiguous()
+
+                elif args.conv_exec_type is ConvExecType.CUDA_SHARED_LOG:
                     if torch.cuda.is_available():
+                        dxfft = torch.zeros([N, C, half_fft_compressed_H,
+                                             half_fft_compressed_W, 2],
+                                            dtype=dtype, device=device)
+
                         # global global_permute_time
                         # start_permute = time.time()
                         # yfft is F, H, W, C -> C, H, W, F
@@ -849,6 +899,9 @@ class Conv2dfftFunction(torch.autograd.Function):
                             "device is available.")
                 elif args.conv_exec_type is ConvExecType.CUDA_DEEP:
                     if torch.cuda.is_available():
+                        dxfft = torch.zeros([N, C, half_fft_compressed_H,
+                                             half_fft_compressed_W, 2],
+                                            dtype=dtype, device=device)
                         # global global_permute_time
                         # start_permute = time.time()
                         # yfft is F, H, W, C -> C, H, W, F
@@ -871,6 +924,9 @@ class Conv2dfftFunction(torch.autograd.Function):
                             "device is available.")
                 elif args.conv_exec_type is ConvExecType.CUDA:
                     if torch.cuda.is_available():
+                        dxfft = torch.zeros([N, C, half_fft_compressed_H,
+                                             half_fft_compressed_W, 2],
+                                            dtype=dtype, device=device)
                         # global global_permute_time
                         # start_permute = time.time()
                         doutfft = doutfft.contiguous()
@@ -890,7 +946,13 @@ class Conv2dfftFunction(torch.autograd.Function):
                         raise Exception(
                             "Selected CUDA conv execution but no cuda "
                             "device is available.")
+
                 elif args.conv_exec_type is ConvExecType.BATCH:
+
+                    dxfft = torch.zeros([N, C, half_fft_compressed_H,
+                                         half_fft_compressed_W, 2],
+                                        dtype=dtype, device=device)
+
                     # Convolve some part of the dout batch with all filters.
                     # 2 is for complex numbers
                     start = 0
@@ -1002,12 +1064,30 @@ class Conv2dfftFunction(torch.autograd.Function):
                     #     str(C), str(F)))
                     dw[ff] = out
             else:
-                # 2 is for the complex numbers
-                dwfft = torch.zeros([F, C, half_fft_compressed_H,
-                                     half_fft_compressed_W, 2],
-                                    dtype=dtype, device=device)
-                if args.conv_exec_type is ConvExecType.CUDA_SHARED_LOG:
+
+                if args.conv_exec_type is ConvExecType.SGEMM:
+                    # We have xfft: H, W, C, N, I
+
+                    if need_input_grad == False:
+                        # doutfft is: N, F, H, W, I
+                        # We want for doutfft: H, W, N, F, I
+                        doutfft = doutfft.permute(2, 3, 0, 1, 4).contiguous()
+                    # We have doutfft: H, W, N, F, I
+
+                    # returns: H, W, C, F, I
+                    dwfft = fast_multiply(xfft, doutfft)
+
+                    # go to: F, C, H, W, I
+                    dwfft = dwfft.permute(3, 2, 0, 1, 4)
+
+                elif args.conv_exec_type is ConvExecType.CUDA_SHARED_LOG:
                     if torch.cuda.is_available():
+
+                        # 2 is for the complex numbers
+                        dwfft = torch.zeros([F, C, half_fft_compressed_H,
+                                             half_fft_compressed_W, 2],
+                                            dtype=dtype, device=device)
+
                         # Set the F channels as the last but one dimension in
                         # both the fft-ed gradient and xfft.
                         # size of doutfft: N, H, W, F, I -> F,H,W,N,I
@@ -1032,6 +1112,12 @@ class Conv2dfftFunction(torch.autograd.Function):
                             "device is available.")
                 elif args.conv_exec_type is ConvExecType.CUDA_DEEP:
                     if torch.cuda.is_available():
+
+                        # 2 is for the complex numbers
+                        dwfft = torch.zeros([F, C, half_fft_compressed_H,
+                                             half_fft_compressed_W, 2],
+                                            dtype=dtype, device=device)
+
                         # Set the F channels as the last but one dimension in
                         # both the fft-ed gradient and xfft.
                         # size of doutfft: N, H, W, F, I -> F,H,W,N,I
@@ -1056,6 +1142,12 @@ class Conv2dfftFunction(torch.autograd.Function):
                             "device is available.")
                 elif args.conv_exec_type is ConvExecType.CUDA:
                     if torch.cuda.is_available():
+
+                        # 2 is for the complex numbers
+                        dwfft = torch.zeros([F, C, half_fft_compressed_H,
+                                             half_fft_compressed_W, 2],
+                                            dtype=dtype, device=device)
+
                         doutfft = doutfft.permute(1, 0, 2, 3, 4).contiguous()
                         xfft = xfft.permute(1, 0, 2, 3, 4).contiguous()
                         complex_mul_stride_no_permute_cuda(doutfft, xfft, dwfft,
@@ -1066,6 +1158,12 @@ class Conv2dfftFunction(torch.autograd.Function):
                             "Selected CUDA conv execution but no cuda "
                             "device is available.")
                 elif args.conv_exec_type is ConvExecType.BATCH:
+
+                    # 2 is for the complex numbers
+                    dwfft = torch.zeros([F, C, half_fft_compressed_H,
+                                         half_fft_compressed_W, 2],
+                                        dtype=dtype, device=device)
+
                     # Convolve some part of the dout batch with all input maps.
                     start = 0
                     # step = get_step_estimate(xfft, doutfft, memory_size=memory_size,
@@ -1117,7 +1215,6 @@ class Conv2dfftFunction(torch.autograd.Function):
                     global_irfft_filter += time.time() - start_irfft_filter
                     if global_counter % global_threshold == 0:
                         print("irfft filter back: ", global_irfft_filter)
-
 
                 dw = dw[..., :HH, :WW]
         del doutfft
