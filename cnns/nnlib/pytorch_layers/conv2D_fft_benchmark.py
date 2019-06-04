@@ -237,8 +237,25 @@ class TestBenchmarkConv2d(unittest.TestCase):
             self.device = torch.device("cuda")
         else:
             self.device = torch.device("cpu")
+        self.conv_exec_type = ConvExecType.SGEMM
 
     def test_forward_correctness(self):
+        """
+        exec: CUDA
+        convStandard time:  0.004092693328857422
+        convFFT time:  0.19140386581420898
+        Pytorch speedup is: 46.76721426074799 X
+
+        convStandard time:  0.0039272308349609375
+        convFFT time:  0.03870105743408203
+        Pytorch speedup is: 9.854541039339486 X
+
+        exec: SGEMM
+        convStandard time:  0.004120588302612305
+        convFFT time:  0.029807090759277344
+        Pytorch speedup is: 7.233697853381936 X
+
+        """
         dtype = torch.float
         if torch.cuda.is_available():
             device = torch.device("cuda")
@@ -265,7 +282,8 @@ class TestBenchmarkConv2d(unittest.TestCase):
             convFFT = conv.forward(ctx=None, input=x, filter=y, stride=1,
                                    args=Arguments(
                                        stride_type=StrideType.STANDARD,
-                                       conv_exec_type=ConvExecType.CUDA))
+                                       conv_exec_type=self.conv_exec_type,
+                                   ))
         convFFTtime = time.time() - start
         print("convFFT time: ", convFFTtime)
         speedup = convFFTtime / convStandardTime
@@ -277,6 +295,24 @@ class TestBenchmarkConv2d(unittest.TestCase):
             err_msg="The expected array x and computed y are not almost equal.")
 
     def test_forward_timing(self):
+        """
+        device used:  cuda
+        x size:  torch.Size([32, 3, 32, 32])
+        input size:  torch.Size([32, 3, 32, 32])
+        filter size:  torch.Size([64, 3, 3, 3])
+        padding:  0
+        repetitions:  1000
+        preserve energy:  100
+        next_power2:  False
+        cuda exec type:  CUDA
+        output size:  torch.Size([32, 64, 30, 30])
+        PyTorch conv2D:  0.6601831912994385
+        compress rate:  80.0
+        conv FFT time:  16.30516004562378
+        Pytorch speedup: 24.697932726112484
+
+
+        """
         dtype = torch.float
         if torch.cuda.is_available():
             device = torch.device("cuda")
@@ -320,10 +356,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
             stride = 1
             next_power2 = False
             print("next_power2: ", str(next_power2))
-            # cuda_exec_type = ConvExecType.CUDA_DEEP
-            cuda_exec_type = ConvExecType.CUDA
-            # cuda_exec_type = ConvExecType.CUDA_SHARED_LOG
-            print("cuda exec type: ", cuda_exec_type.name)
+            print("cuda exec type: ", self.conv_exec_type.name)
 
             # print("preserve energy: ", preserve_energy)
             # print("min_batch_size (equivalent to the batch slice for fft): ", N)
@@ -333,8 +366,8 @@ class TestBenchmarkConv2d(unittest.TestCase):
                                            kernel_size=(HH, WW), stride=stride,
                                            padding=padding)
             convStandard.to(device)
-            y = convStandard.forward(x)
-            print("output size: ", y.size())
+            out_standard = convStandard.forward(x)
+            print("output size: ", out_standard.size())
 
             start = time.time()
             for repeat in range(repetitions):
@@ -354,7 +387,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
                                                 is_debug=True,
                                                 preserved_energy=preserve_energy,
                                                 next_power2=next_power2,
-                                                conv_exec_type=cuda_exec_type,
+                                                conv_exec_type=self.conv_exec_type,
                                                 compress_rate=compress_rate,
                                                 compress_rates=[compress_rate]))
                 conv.to(device)
@@ -494,10 +527,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
         print("stride: ", stride)
         next_power2 = True
         print("next_power2: ", str(next_power2))
-        # cuda_exec_type = ConvExecType.CUDA_DEEP
-        cuda_exec_type = ConvExecType.CUDA
-        # cuda_exec_type = ConvExecType.CUDA_SHARED_LOG
-        print("cuda exec type: ", cuda_exec_type.name)
+        print("cuda exec type: ", self.conv_exec_type.name)
         compress_rate = 0.0
         print("compress rate: ", compress_rate)
 
@@ -523,7 +553,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
                                         is_debug=True,
                                         preserved_energy=preserve_energy,
                                         next_power2=next_power2,
-                                        conv_exec_type=cuda_exec_type,
+                                        conv_exec_type=self.conv_exec_type,
                                         compress_rate=compress_rate,
                                         compress_rates=[compress_rate]
                                         ))
@@ -587,6 +617,35 @@ class TestBenchmarkConv2d(unittest.TestCase):
                                                  decimal=1)
 
     def test_forward_pass_resnet18(self):
+        """
+        total time for (ConvType.STANDARD2D-ConvExecType.SERIAL): 6.813918352127075
+        total time for (ConvType.FFT2D-ConvExecType.CUDA): 53.35197567939758
+        total time for (ConvType.FFT2D-ConvExecType.SGEMM): 55.51149845123291
+
+        total time for (ConvType.STANDARD2D-ConvExecType.SERIAL): 6.736859083175659
+        total time for (ConvType.FFT2D-ConvExecType.CUDA): 53.84979581832886
+        total time for (ConvType.FFT2D-ConvExecType.SGEMM): 56.26755166053772
+
+        global init time:  0.24471688270568848
+        global pad time:  4.250756025314331
+        (r)fft time:  8.754997730255127
+        conjugate time:  3.734828233718872
+        correlation time:  25.324009656906128
+        restore time (de-compress/concat output):  0.021800994873046875
+        i(r)fft time:  8.525353193283081
+        total time for (ConvType.FFT2D-ConvExecType.SGEMM): 56.27733850479126
+        GPU mem: 2903
+
+        global init time:  0.2371835708618164
+        global pad time:  4.492943286895752
+        (r)fft time:  9.08437442779541
+        conjugate time:  3.8394811153411865
+        correlation time:  25.043412446975708
+        restore time (de-compress/concat output):  0.021334409713745117
+        i(r)fft time:  5.491833925247192
+        total time for (ConvType.FFT2D-ConvExecType.CUDA): 53.804604053497314
+        GPU mem: 2679
+        """
         if not torch.cuda.is_available():
             print("CUDA device is not available.")
             return
@@ -618,7 +677,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
         args.in_channels = C
         args.compress_rate = None
         args.preserve_energy = 100
-        args.is_debug = False
+        args.is_debug = True
         args.next_power2 = True
         args.compress_type = CompressType.STANDARD
         args.tensor_type = TensorType.FLOAT32
@@ -626,13 +685,14 @@ class TestBenchmarkConv2d(unittest.TestCase):
         args.test_batch_size = args.min_batch_size
         args.in_channels = C
         args.dtype = torch.float32
-        conv_exec_types = [(ConvType.STANDARD2D, ConvExecType.SERIAL),
-                           (ConvType.FFT2D, ConvExecType.CUDA),
-                           # (ConvType.FFT2D, ConvExecType.CUDA_SHARED_LOG),
-                           # (ConvType.FFT2D, ConvExecType.CUDA_DEEP),
-                           # (ConvType.FFT2D, ConvExecType.SERIAL),
-                           # (ConvType.FFT2D, ConvExecType.BATCH),
-                           ]
+        conv_exec_types = [  # (ConvType.STANDARD2D, ConvExecType.SERIAL),
+            # (ConvType.FFT2D, ConvExecType.CUDA),
+            (ConvType.FFT2D, ConvExecType.SGEMM),
+            # (ConvType.FFT2D, ConvExecType.CUDA_SHARED_LOG),
+            # (ConvType.FFT2D, ConvExecType.CUDA_DEEP),
+            # (ConvType.FFT2D, ConvExecType.SERIAL),
+            # (ConvType.FFT2D, ConvExecType.BATCH),
+        ]
 
         for conv_type, conv_exec_type in conv_exec_types:
             args.conv_type = conv_type
@@ -870,7 +930,7 @@ class TestBenchmarkConv2d(unittest.TestCase):
         size = 10
         input = torch.randn((32, size, size, 64), dtype=self.dtype,
                             device=self.device)
-        for rep in range(repetitions*3):
+        for rep in range(repetitions * 3):
             xfft = torch.rfft(input,
                               signal_ndim=Conv2dfftFunction.signal_ndim,
                               onesided=True)

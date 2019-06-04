@@ -367,6 +367,11 @@ def get_args():
                         nargs="+",
                         help=f"how much laplace noise to add: "
                         f"{args.laplace_epsilons}")
+    parser.add_argument("--is_DC_shift",
+                        default="TRUE" if args.is_DC_shift else "FALSE",
+                        help="should we shift the DC component to the center in"
+                             "the FFT maps; options: " + ",".join(
+                            Bool.get_names()))
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)

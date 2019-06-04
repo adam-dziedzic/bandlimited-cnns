@@ -16,6 +16,7 @@ from cnns.nnlib.pytorch_architecture.get_model_architecture import \
     getModelPyTorch
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_phase
+from cnns.nnlib.utils.shift_DC_component import shift_DC
 
 nprng = np.random.RandomState()
 
@@ -122,11 +123,14 @@ def elem_wise_dist(image, images, p=2, axis=(1, 2, 3)):
     return norm(x, p=p, axis=axis)
 
 
-def to_fft(x, fft_type, is_log=True, signal_dim=2, onesided=False):
+def to_fft(x, fft_type, is_log=True, signal_dim=2, onesided=False,
+           is_DC_shift=False):
     x = torch.from_numpy(x)
     # x = torch.tensor(x)
     # x = x.permute(2, 0, 1)  # move channel as the first dimension
     xfft = torch.rfft(x, onesided=onesided, signal_ndim=signal_dim)
+    if is_DC_shift:
+        xfft = shift_DC(xfft, onesided=onesided)
     if fft_type == "magnitude":
         return to_fft_magnitude(xfft, is_log)
     elif fft_type == "phase":

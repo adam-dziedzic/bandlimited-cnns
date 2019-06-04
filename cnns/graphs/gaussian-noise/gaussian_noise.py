@@ -23,8 +23,8 @@ def get_color(COLOR_TUPLE_255):
 
 
 # fontsize=20
-legend_font=16
-fontsize=25
+legend_font=20
+fontsize=30
 font = {'size': fontsize}
 matplotlib.rc('font', **font)
 
@@ -51,8 +51,8 @@ def read_columns(dataset):
 # width=8
 # height=6
 
-width=8
-height=6
+width=10
+height=7.5
 
 fig = plt.figure(figsize=(width, height))
 
@@ -89,6 +89,7 @@ plt.xlim(0, 2)
 plt.show(block=True)
 plt.interactive(False)
 format="png" # or "pdf"
-fig.savefig(dir_path + "/" + "gaussian_noise_font." + format,
+fig.savefig(dir_path + "/images/" + "gaussian_noise_font2." + format,
             bbox_inches='tight',
             transparent=True)
+plt.close()

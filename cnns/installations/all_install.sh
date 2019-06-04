@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# remove previous cuda (check if it exists)
+sudo add-apt-repository -r cuda-repo-ubuntu1404_10.1.168-1_amd64.deb
+
 #do this on your own first
 # mkdir code
 # cd code

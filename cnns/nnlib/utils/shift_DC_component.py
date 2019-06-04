@@ -8,9 +8,15 @@ def shift_DC(xfft, onesided=True, shift_to="center", W_dim=-2):
     if shift_to == "center":
         HH = H // 2 + 1  # middle H
         WW = W // 2 + 1  # middle W only for bothsided (onesided = False)
-    else:
+    elif shift_to == "corner":
         HH = H // 2
         WW = W // 2
+        if H % 2 == 0:
+            HH -= 1
+        if W % 2 == 0:
+            WW -= 1
+    else:
+        raise Exception(f"Unknown shift to mode: {shift_to}")
 
     if onesided:
         top = xfft[..., :HH, :, :]

@@ -1,9 +1,7 @@
-//
-// Created by Adam Dziedzic on 7/11/18.
-//
 #include <iostream>
-#include "FFT.h"
 #include <gtest/gtest.h>
+
+#include "FFT.h"
 #include "Utils.h"
 
 void compareTables(double *tableResult, double *tableExpected, int len) {
@@ -42,6 +40,6 @@ TEST(FFTTest, SimpleTest) {
 }
 
 int main(int argc, char **argv) {
-    testing::InitGoogleTest(&argc, argv);
+    ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

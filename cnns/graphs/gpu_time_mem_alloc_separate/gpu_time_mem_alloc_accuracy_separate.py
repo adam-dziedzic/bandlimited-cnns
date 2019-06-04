@@ -52,7 +52,7 @@ def read_columns(dataset):
 # ylim_min=0
 
 width=15
-height=2.5
+height=4.5
 fontsize=30
 ylim_max=100
 ylim_min=0
@@ -119,7 +119,8 @@ for i, dataset in enumerate(datasets):
 plt.subplots_adjust(hspace=0.6)
 # plt.gcf().autofmt_xdate()
 # plt.xticks(rotation=0)
-plt.show()
+plt.show(block=True)
 format = "png"
 fig.savefig(dir_path + "/" + "gpu_time_mem_alloc_font3." + format,
             bbox_inches='tight', transparent=True)
+plt.close()

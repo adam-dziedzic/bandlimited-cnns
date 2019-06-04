@@ -22,7 +22,9 @@ MY_YELLOW = (255, 211, 0)
 def get_color(COLOR_TUPLE_255):
     return [x / 255 for x in COLOR_TUPLE_255]
 
-fontsize=20
+
+fontsize = 30
+legend_size = 30
 # fontsize=25
 font = {'size': fontsize}
 matplotlib.rc('font', **font)
@@ -46,13 +48,17 @@ def read_columns(dataset, columns=5):
                     cols[column].append(float(row[column]))
     return cols
 
-datasets = ["cifar10"] # ["cifar10", "cifar100"]
+
+datasets = ["cifar10"]  # ["cifar10", "cifar100"]
 titles = ["ResNet-18 on CIFAR-10", "DenseNet-121 on CIFAR-100"]
 labels10 = ["compression", "0", "30", "50", "85"]
 labels100 = ["compression", "0", "50", "75", "85"]
 legend_pos = ["center left", "upper left"]
-ncols = [4, 4]
-bbox = [(0.0, 0.08), (0, 1.05)]
+# legend_pos = ["center", "upper left"]
+# ncols = [4, 4]
+ncols = [2, 4]
+# bbox = [(0.0, 0.08), (0, 1.05)]
+bbox = [(0.0, 0.15), (0, 1.05)]
 colors10 = [get_color(color) for color in
             ["", MY_RED, MY_GREEN, MY_BLUE, MY_ORANGE]]
 colors100 = [get_color(color) for color in
@@ -66,10 +72,10 @@ columns = 5
 # width=10.5
 # height=4
 
-width=17
-height=9
+width = 15
+height = 10
 
-fig = plt.figure(figsize=(width, len(datasets)*height))
+fig = plt.figure(figsize=(width, len(datasets) * height))
 
 for j, dataset in enumerate(datasets):
     plt.subplot(2, 1, j + 1)
@@ -98,7 +104,7 @@ for j, dataset in enumerate(datasets):
 
     plt.grid()
     plt.legend(loc=legend_pos[j], ncol=ncols[j], frameon=False,
-               prop={'size': 18}, bbox_to_anchor=bbox[j])
+               prop={'size': legend_size}, bbox_to_anchor=bbox[j])
     plt.xlabel('Test compression (%)')
     plt.title(titles[j], fontsize=fontsize)
     plt.ylabel("Test accuracy (%)")
@@ -109,9 +115,11 @@ for j, dataset in enumerate(datasets):
 # plt.xticks(rotation=0)
 # plt.interactive(False)
 # plt.imshow()
-plt.show(block=True)
-plt.interactive(False)
-format="png" # "png" or "pdf"
-fig.savefig(dir_path + "/" + "test-train-font2." + format,
+# plt.show(block=True)
+plt.show()
+# plt.interactive(False)
+format = "png"  # "png" or "pdf"
+fig.savefig(dir_path + "/images/" + "test-train-font5." + format,
             bbox_inches='tight',
             transparent=True)
+plt.close()

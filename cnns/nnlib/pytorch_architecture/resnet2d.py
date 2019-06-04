@@ -18,6 +18,7 @@ from torch.nn.parameter import Parameter
 from cnns.nnlib.datasets.transformations.denorm_round_norm import \
     DenormRoundNorm
 from cnns.nnlib.datasets.cifar import cifar_std, cifar_mean
+from cnns.nnlib.datasets.svhn import svhn_std, svhn_mean
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_std, \
     imagenet_mean
 
@@ -145,11 +146,16 @@ class ResNet(nn.Module):
         # self.global_layer1_time = 0.0
         self.inplanes = 64
         self.args = args
-        if args.dataset == "cifar10" or args.dataset == "cifar100" or args.dataset == "svhn":
+        if args.dataset == "cifar10" or args.dataset == "cifar100":
             self.conv1 = conv3x3(in_planes=args.in_channels, out_planes=64,
                                  stride=1, args=args)
             self.std = cifar_std
             self.mean = cifar_mean
+        elif args.dataset == "svhn":
+            self.conv1 = conv3x3(in_planes=args.in_channels, out_planes=64,
+                             stride=1, args=args)
+            self.std = svhn_std
+            self.mean = svhn_mean
         elif args.dataset == "imagenet":
             self.conv1 = conv7x7(in_planes=args.in_channels, out_planes=64,
                                  stride=2, padding=3, args=args)

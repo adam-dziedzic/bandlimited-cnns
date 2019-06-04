@@ -12,11 +12,6 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import MockContext
 class TestFFTBand2D(unittest.TestCase):
 
     def test_FFTBand2D(self):
-        # uncomment the line below to run on gpu
-        # device = torch.device("conv1D_cuda:0")
-
-        # To apply our Function, we use Function.apply method.
-        # We alias this as 'relu'.
         args = Arguments()
         args.dtype = torch.float
         args.device = torch.device("cpu")
@@ -38,8 +33,8 @@ class TestFFTBand2D(unittest.TestCase):
             result = FFTBandFunction2D.forward(
                 ctx=ctx,
                 input=a,
+                args=args,
                 onesided=True,
-                compress_rate=args.compress_rate,
                 is_test=True)
             print(args.compress_rate, ",", ctx.fraction_zeroed * 100,
                   torch.dist(a, result, 2).item())
@@ -89,15 +84,15 @@ class TestFFTBand2D(unittest.TestCase):
         print("fraction of zeroed out: ", (zero2 - zero1) / total_size)
 
     def test_zero_out2(self):
-        compress_rate = 0.5
-        print("compress rate: ", compress_rate)
+        args = Arguments()
+        args.compress_rate = 0.5
+        print("compress rate: ", args.compress_rate)
         torch.set_printoptions(threshold=5000)
         input = torch.rand((1, 1, 7, 7))
         ctx = MockContext()
         out = FFTBandFunction2D.forward(ctx=ctx, input=input,
-                                        compress_rate=compress_rate,
-                                        onesided=True,
-                                        is_next_power2=False)
+                                        args=args,
+                                        onesided=True)
 
 
 if __name__ == '__main__':

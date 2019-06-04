@@ -25,8 +25,9 @@ def get_color(COLOR_TUPLE_255):
 
 # fontsize=20
 # label_font=16
-fontsize=25
-label_font=20
+fontsize=30
+lw=4
+label_font=24
 font = {'size': fontsize}
 matplotlib.rc('font', **font)
 
@@ -53,8 +54,8 @@ def read_columns(dataset, columns=7):
 # widht=10
 # height=8
 
-width=10
-height=8
+width=12
+height=8.5
 
 fig = plt.figure(figsize=(width, height))
 
@@ -78,7 +79,7 @@ plt.plot(cols[0], cols[1],
          # label=("Test accuracy (%) of the full-spectra\n"
          #       "model vs. accuracy of band-limited\n"
          #       "model with 50% compression"),
-         lw=3,
+         lw=lw,
          color=get_color(MY_BLUE), linestyle="", marker="o", markersize=10)
 
 # red middle line
@@ -114,7 +115,8 @@ plt.ylim(60, 100)
 # plt.interactive(False)
 # plt.imshow()
 plt.show(block=True)
-plt.interactive(False)
+# plt.interactive(False)
 format="png"
 fig.savefig(dir_path + "/" + "time-series-font2." + format,
             bbox_inches='tight', transparent=True)
+plt.close()

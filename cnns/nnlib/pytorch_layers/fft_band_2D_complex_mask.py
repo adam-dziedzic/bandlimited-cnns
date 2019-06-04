@@ -4,7 +4,7 @@ from cnns.nnlib.utils.general_utils import next_power2
 from torch.nn.functional import pad as torch_pad
 from cnns.nnlib.utils.complex_mask import get_disk_mask
 from cnns.nnlib.utils.complex_mask import get_hyper_mask
-
+from cnns.nnlib.utils.shift_DC_component import shift_DC
 
 class FFTBandFunctionComplexMask2D(torch.autograd.Function):
     """
@@ -16,8 +16,8 @@ class FFTBandFunctionComplexMask2D(torch.autograd.Function):
     signal_ndim = 2
 
     @staticmethod
-    def forward(ctx, input, compress_rate, val=0, interpolate=None,
-                get_mask=get_hyper_mask, onesided=True, is_next_power2=False):
+    def forward(ctx, input, args, val=0, get_mask=get_hyper_mask,
+                onesided=True):
         """
         In the forward pass we receive a Tensor containing the input
         and return a Tensor containing the output. ctx is a context
@@ -26,10 +26,10 @@ class FFTBandFunctionComplexMask2D(torch.autograd.Function):
         backward pass using the ctx.save_for_backward method.
 
         :param input: the input image
-        :param compress_rate: the compression ratio
-        :param val: the value (to change coefficients to) for the mask
-        :param interpolate: the interpolation within mask: const, linear, exp,
+        :param args: arguments that define: compress_rate - the compression 
+        ratio, interpolate - the interpolation within mask: const, linear, exp,
         log, etc.
+        :param val: the value (to change coefficients to) for the mask
         :onesided: should use the onesided FFT thanks to the conjugate symmetry
         or want to preserve all the coefficients
         """
@@ -42,7 +42,7 @@ class FFTBandFunctionComplexMask2D(torch.autograd.Function):
         if H != W:
             raise Exception("We support only squared input.")
 
-        if is_next_power2:
+        if args.next_power2:
             H_fft = next_power2(H)
             W_fft = next_power2(W)
             pad_H = H_fft - H
@@ -55,11 +55,13 @@ class FFTBandFunctionComplexMask2D(torch.autograd.Function):
                           signal_ndim=FFTBandFunctionComplexMask2D.signal_ndim,
                           onesided=onesided)
         del input
+
         _, _, H_xfft, W_xfft, _ = xfft.size()
         # assert H_fft == W_xfft, "The input tensor has to be squared."
 
-        mask, _ = get_mask(H=H_xfft, W=W_xfft, compress_rate=compress_rate,
-                           val=val, interpolate=interpolate, onesided=onesided)
+        mask, _ = get_mask(H=H_xfft, W=W_xfft, compress_rate=args.compress_rate,
+                           val=val, interpolate=args.interpolate,
+                           onesided=onesided)
         mask = mask[:, 0:W_xfft, :]
         # print(mask)
         mask = mask.to(xfft.dtype).to(xfft.device)
@@ -67,7 +69,11 @@ class FFTBandFunctionComplexMask2D(torch.autograd.Function):
 
         if ctx is not None:
             ctx.xfft = xfft
+            if args.is_DC_shift:
+                ctx.xfft = shift_DC(xfft, onesided=onesided)
 
+        xfft = shift_DC(xfft, onesided=onesided, shift_to="center")
+        xfft = shift_DC(xfft, onesided=onesided, shift_to="corner")
         out = torch.irfft(input=xfft,
                           signal_ndim=FFTBandFunctionComplexMask2D.signal_ndim,
                           signal_sizes=(H_fft, W_fft),
@@ -86,10 +92,17 @@ class FFTBandFunctionComplexMask2D(torch.autograd.Function):
 
         We do not want to zero out the gradient.
 
-        Defenses that mask a network’s gradients by quantizingthe input values pose a challenge to gradient-based opti-mization  methods  for  generating  adversarial  examples,such  as  the  procedure  we  describe  in  Section  2.4.   Astraightforward application of the approach would findzero gradients, because small changes to the input do notalter the output at all.  In Section 3.1.1, we describe anapproach where we run the optimizer on a substitute net-work without the color depth reduction step, which ap-proximates the real network.
+        Defenses that mask a network’s gradients by quantizing the input values
+        pose a challenge to gradient-based opt-mizationmethodsfor
+        generating  adversarial  examples,such  as  the  procedure  we
+        describe  in  Section  2.4.   Astraightforward application of the
+        approach would findzero gradients, because small changes to the input
+        do notalter the output at all.  In Section 3.1.1, we describe
+        an approach where we run the optimizer on a substitute net-work without
+        the color depth reduction step, which ap-proximates the real network.
         """
         # print("round backward")
-        return grad_output.clone(), None, None, None, None, None, None
+        return grad_output.clone(), None, None, None, None, None
 
 
 class FFTBand2DcomplexMask(Module):
@@ -114,9 +127,9 @@ class FFTBand2DcomplexMask(Module):
         """
         return FFTBandFunctionComplexMask2D.apply(
             input,  # input image
-            self.args.compress_fft_layer,  # compress rate
-            0, # value set after compression (we usually zero out the coefficients)
-            self.args.interpolate, # interpolate (how to set the values if not zeros)
-            get_hyper_mask, # get_mask (the hyper mask is the most precise one)
-            True, # onesided
-            self.args.next_power2)  # is nextPower2
+            self.args,  # arguments for compression rate, is_nextPower2, etc.
+            0,
+            # value set after compression (we usually zero out the coefficients)
+            get_hyper_mask,  # get_mask (the hyper mask is the most precise one)
+            True,  # onesided
+        )

@@ -3,6 +3,7 @@ from torch.nn import Module
 from cnns.nnlib.utils.general_utils import next_power2
 from torch.nn.functional import pad as torch_pad
 import numpy as np
+from cnns.nnlib.utils.shift_DC_component import shift_DC
 
 
 class FFTBandFunction2D(torch.autograd.Function):
@@ -15,8 +16,7 @@ class FFTBandFunction2D(torch.autograd.Function):
     signal_ndim = 2
 
     @staticmethod
-    def forward(ctx, input, compress_rate, onesided=True, is_next_power2=False,
-                is_test=False):
+    def forward(ctx, input, args, onesided=True, is_test=False):
         """
         In the forward pass we receive a Tensor containing the input
         and return a Tensor containing the output. ctx is a context
@@ -25,12 +25,10 @@ class FFTBandFunction2D(torch.autograd.Function):
         backward pass using the ctx.save_for_backward method.
 
         :param input: the input image
-        :param compress_rate: compression rate
+        :param args: for compress rate and next_power2.
         :param onesided: FFT convolution leverages the conjugate symmetry and
         returns only roughly half of the FFT map, otherwise the full map is
         returned
-        :param is_next_power2: the FFT is faster if the image size (each side)
-        is a power of 2
         :param is_test: test if the number of zero-ed out coefficients is
         correct
         """
@@ -44,7 +42,7 @@ class FFTBandFunction2D(torch.autograd.Function):
             raise Exception(f"We support only squared input but the width: {W}"
                             f" is differnt from height: {H}")
 
-        if is_next_power2:
+        if args.next_power2:
             H_fft = next_power2(H)
             W_fft = next_power2(W)
             pad_H = H_fft - H
@@ -64,7 +62,7 @@ class FFTBandFunction2D(torch.autograd.Function):
         # 4 * r ** 2 / (H * W) = (1 - c)
         # r = np.sqrt((1 - c) * (H * W) / 4)
 
-        compress_rate = compress_rate / 100
+        compress_rate = args.compress_rate / 100
 
         if onesided:
             divisor = 2
@@ -89,10 +87,12 @@ class FFTBandFunction2D(torch.autograd.Function):
         else:
             xfft[..., :, r:W_fft - r, :] = 0.0
 
-        # print(xfft)
 
         if ctx is not None:
             ctx.xfft = xfft
+            if args.is_DC_shift is True:
+                ctx.xfft = shift_DC(xfft, onesided=onesided)
+
 
         if is_test:
             zero2 = torch.sum(xfft == 0.0).item() / 2
@@ -144,7 +144,7 @@ class FFTBand2D(Module):
 
     def __init__(self, args):
         super(FFTBand2D, self).__init__()
-        self.compress_rate = args.compress_rate
+        self.args = args
 
     def forward(self, input):
         """
@@ -154,7 +154,7 @@ class FFTBand2D(Module):
         :param input: the input map (e.g., an image)
         :return: the result of 1D convolution
         """
-        return FFTBandFunction2D.apply(input, self.compress_rate)
+        return FFTBandFunction2D.apply(input, self.args)
 
 if __name__ == "__main__":
     compress_rate = 0.6

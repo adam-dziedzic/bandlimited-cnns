@@ -1,4 +1,7 @@
 import numpy as np
+import matplotlib
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
 import foolbox
@@ -10,6 +13,7 @@ from cnns.nnlib.pytorch_layers.fft_band_2D_complex_mask import \
     FFTBandFunctionComplexMask2D
 from cnns.nnlib.utils.complex_mask import get_hyper_mask
 from cnns.nnlib.utils.object import Object
+from cnns.nnlib.utils.arguments import Arguments
 
 figuresizex = 9.0
 figuresizey = 8.1
@@ -54,7 +58,9 @@ def get_fft(image):
 type = "original"
 # type = "exact"
 # type = "proxy"
-compress_fft_layer = 50
+args = Arguments()
+args.compress_fft_layer = 50
+args.compress_rate = 50
 result = Object()
 
 if dataset == "mnist":
@@ -65,9 +71,8 @@ xfft = get_fft(image)
 image_exact = FFTBandFunctionComplexMask2D.forward(
     ctx=result,
     input=torch.from_numpy(image).unsqueeze(0),
-    compress_rate=compress_fft_layer,
+    args=args,
     val=0,
-    interpolate="const",
     get_mask=get_hyper_mask,
     onesided=False).numpy().squeeze(0)
 xfft_exact = result.xfft.squeeze(0)
@@ -77,7 +82,7 @@ xfft_exact = process_fft(xfft_exact)
 image_proxy = FFTBandFunction2D.forward(
     ctx=result,
     input=torch.from_numpy(image).unsqueeze(0),
-    compress_rate=compress_fft_layer,
+    args=args,
     onesided=False).numpy().squeeze(0)
 xfft_proxy = result.xfft.squeeze(0)
 xfft_proxy = to_fft_magnitude(xfft_proxy, is_log)

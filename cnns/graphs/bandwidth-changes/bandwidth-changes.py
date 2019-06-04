@@ -21,8 +21,10 @@ MY_BLACK = (83, 81, 84)
 def get_color(COLOR_TUPLE_255):
     return [x / 255 for x in COLOR_TUPLE_255]
 
+
 # fontsize=20
-fontsize=25
+fontsize = 30
+legend_size = 30
 font = {'size': fontsize}
 matplotlib.rc('font', **font)
 
@@ -70,7 +72,16 @@ markers = ["+", "o", "v", "s", "D", "^"]
 linestyles = ["", "-", "--", ":"]
 
 datasets = [compression]
-fig = plt.figure(figsize=(12, len(datasets)*5))
+
+# width = 12
+# height = 5
+# lw = 3
+
+width = 15
+height = 7
+lw = 4
+
+fig = plt.figure(figsize=(width, len(datasets) * height))
 
 for j, dataset in enumerate(datasets):
     plt.subplot(len(datasets), 1, j + 1)
@@ -82,12 +93,12 @@ for j, dataset in enumerate(datasets):
 
     for i in range(columns):
         if i > 0:  # skip first column with the epoch number
-            plt.plot(cols[0], cols[i], label=f"E={labels[i]}%", lw=3,
+            plt.plot(cols[0], cols[i], label=f"E={labels[i]}%", lw=lw,
                      color=colors[i], linestyle=linestyles[i])
 
     plt.grid()
     plt.legend(loc=dataset[legend_pos], ncol=ncols[j], frameon=False,
-               prop={'size': 20}, bbox_to_anchor=dataset[bbox])
+               prop={'size': legend_size}, bbox_to_anchor=dataset[bbox])
     plt.xlabel('Epoch')
     # plt.title(titles[j], fontsize=16)
     plt.ylabel(dataset[ylabel])
@@ -102,5 +113,6 @@ plt.subplots_adjust(hspace=0.3)
 plt.show(block=True)
 plt.interactive(False)
 format = "png"  # "pdf" or "png"
-fig.savefig(dir_path + "/" + "bandwidth-changes-font3." + format,
+fig.savefig(dir_path + "/images/" + "bandwidth-changes-font6." + format,
             bbox_inches='tight', transparent=True)
+plt.close()

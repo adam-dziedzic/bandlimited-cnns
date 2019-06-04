@@ -50,6 +50,18 @@ class TestShiftDCComponent(TestCase):
                                        [0., 1., 2.],
                                        [3., 4., 5.]], dtype=self.dtype))
 
+    def test_symmetry(self):
+        for n in range(1, 10, 1):
+            print("n: ", n)
+            xfft = np.arange(n**2, dtype=self.dtype).reshape(1, n, n, 1)
+            xfft = torch.tensor(xfft)
+            print("xfft: ", xfft)
+            xfft_out = shift_DC(xfft, onesided=True, shift_to="center")
+            print("xfft_out: ", xfft_out)
+            xfft_out2 = shift_DC(xfft_out, onesided=True, shift_to="corner")
+            print("xfft_out2: ", xfft_out2)
+            assert_equal(actual=xfft_out2.numpy(), desired=xfft)
+
     def test_to_center_arange_9_bothsided(self):
         xfft = np.arange(9, dtype=self.dtype).reshape(1, 3, 3, 1)
         xfft = torch.tensor(xfft)

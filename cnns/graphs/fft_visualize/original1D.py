@@ -1,4 +1,7 @@
 import numpy as np
+import matplotlib
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
 import foolbox
@@ -11,6 +14,7 @@ from cnns.nnlib.pytorch_layers.fft_band_2D_complex_mask import \
 from cnns.nnlib.utils.complex_mask import get_hyper_mask
 from cnns.nnlib.utils.object import Object
 from cnns.nnlib.datasets.ucr.ucr_example import fifty_words
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_full_energy_only
 
 # http://ksrowell.com/blog-visualizing-data/2012/02/02/optimal-colors-for-graphs/
 MY_BLUE = (56, 106, 177)
@@ -34,8 +38,10 @@ fig = plt.figure(figsize=(figuresizex, figuresizey))
 
 lw = 1
 onesided = False
-
+normalized = True
 signal = fifty_words
+
+print("Energy of the input signal: ", np.sum(np.square(signal)))
 
 print("min max value signal: ", np.min(signal), np.max(signal))
 is_log = True
@@ -43,6 +49,8 @@ markers = ["^", "o", "v", "s", "D", "p"]
 
 signal = signal[0][0]
 print("signal length: ", len(signal))
+print("Energy of the input signal (torch): ",
+      torch.sum(torch.pow(torch.from_numpy(signal), 2)).item())
 plt.subplot(2, 2, 1)
 plt.plot(range(len(signal)), signal, label="input signal", lw=1,
          color=colors[1])
@@ -53,7 +61,12 @@ plt.legend(frameon=False)
 
 plt.subplot(2, 2, 2)
 
-xfft = torch.rfft(torch.from_numpy(signal), onesided=onesided, signal_ndim=1)
+xfft = torch.rfft(torch.from_numpy(signal), onesided=onesided, signal_ndim=1,
+                  normalized=normalized)
+print("Energy in the frequency domain (pytorch): ", get_full_energy_only(xfft))
+x_numpy = xfft[..., 0].numpy() + 1.0j * xfft[..., 1].numpy()
+print("Energy in the frequency domain (numpy): ",
+      np.sum(np.power(np.absolute(x_numpy), 2)))
 xfft_mag = to_fft_magnitude(xfft, is_log)
 plt.plot(range(len(signal)), xfft_mag, label="fft-ed signal", lw=lw,
          color=colors[2])
@@ -68,7 +81,8 @@ start = int(out_len // 2)
 end = int(len(signal) - start)
 print("compression rate, start, end: ", compression_rate, start, end)
 xfft[start:end] = 0
-signal2 = torch.irfft(xfft, onesided=onesided, signal_ndim=1)
+signal2 = torch.irfft(xfft, onesided=onesided, signal_ndim=1,
+                      normalized=normalized)
 signal2 = signal2.numpy()
 
 plt.subplot(2, 2, 3)
@@ -117,6 +131,6 @@ plt.subplots_adjust(hspace=0.3)
 
 type = "original"
 format = "pdf"  # "png" "pdf"
-plt.savefig(fname=type + "-1D." + format, format=format)
+plt.savefig(fname=type + "-1D-2." + format, format=format)
 plt.show(block=True)
 plt.close()

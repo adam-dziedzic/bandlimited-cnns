@@ -2007,7 +2007,7 @@ def compress_2D_index_forward(xfft, index_forward):
     top_left = xfft[..., :n + 1, :n + 1, :]
     if n > 0:
         bottom_left = xfft[..., -n:, :n + 1, :]
-        return torch.cat((top_left, bottom_left), dim=2)
+        return torch.cat((top_left, bottom_left), dim=-3)
     else:
         return top_left
 

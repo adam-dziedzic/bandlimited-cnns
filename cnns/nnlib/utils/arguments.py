@@ -342,7 +342,8 @@ class Arguments(object):
                  attack_max_iterations=100,
                  many_attack_iterations=[100],
                  laplace_epsilon=0.0,
-                 laplace_epsilons=[0.0]
+                 laplace_epsilons=[0.0],
+                 is_DC_shift=False,
                  ):
         """
         The default parameters for the execution of the program.
@@ -474,6 +475,7 @@ class Arguments(object):
         self.many_attack_iterations = many_attack_iterations
         self.laplace_epsilon = laplace_epsilon
         self.laplace_epsilons = laplace_epsilons
+        self.is_DC_shift = is_DC_shift
         self.set_dtype()
 
     def get_bool(self, arg):
@@ -517,6 +519,7 @@ class Arguments(object):
         self.test_compress_rates = self.get_bool(
             parsed_args.test_compress_rates)
         self.distributed = self.get_bool(parsed_args.distributed)
+        self.is_DC_shift = self.get_bool(parsed_args.is_DC_shift)
 
         if hasattr(parsed_args, "preserve_energy"):
             self.preserve_energy = parsed_args.preserve_energy

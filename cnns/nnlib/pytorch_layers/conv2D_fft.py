@@ -92,7 +92,8 @@ global_irfft_input = 0.0
 global_restore_filter = 0.0
 global_irfft_filter = 0.0
 
-global_threshold = 10000
+# global_threshold = 10000
+global_threshold = 5321
 
 
 def fast_multiply(xfft, yfft):
@@ -202,7 +203,7 @@ class Conv2dfftFunction(torch.autograd.Function):
             global global_counter
             global global_threshold
             global_counter += 1
-            # print("global_counter: ", global_counter)
+            print("global_counter: ", global_counter)
 
         if is_debug:
             global global_init_time
@@ -607,7 +608,7 @@ class Conv2dfftFunction(torch.autograd.Function):
             elif args.fft_type == "complex_fft":
                 out = torch.ifft(input=outfft,
                                  signal_ndim=Conv2dfftFunction.signal_ndim)
-                print("out: ", out)
+                # print("out: ", out)
                 out = out[..., 0]  # retain only the real numbers
 
             if is_debug:
@@ -656,7 +657,6 @@ class Conv2dfftFunction(torch.autograd.Function):
             # for fft operations
             ctx.init_H_fft = init_H_fft
             ctx.init_W_fft = init_W_fft
-            ctx.run_args = args
             ctx.cuda_block_threads = cuda_block_threads
             ctx.half_fft_compressed_H = half_fft_compressed_H
             ctx.half_fft_compressed_W = half_fft_compressed_W
@@ -704,7 +704,6 @@ class Conv2dfftFunction(torch.autograd.Function):
         conv_index = ctx.conv_index
         init_H_fft = ctx.init_H_fft
         init_W_fft = ctx.init_W_fft
-        args = ctx.run_args
         cuda_block_threads = ctx.cuda_block_threads
         half_fft_compressed_H = ctx.half_fft_compressed_H
         half_fft_compressed_W = ctx.half_fft_compressed_W
