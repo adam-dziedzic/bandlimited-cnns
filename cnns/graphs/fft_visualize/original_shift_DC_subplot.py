@@ -60,7 +60,7 @@ def get_fft(image, is_DC_shift=True):
     return process_fft(xfft)
 
 
-def show_fft(xfft, ax, extent=[0, limx, 0, limy]):
+def show_fft(xfft, ax, extent=[0, limx, 0, limy], add_to_figure=True):
     vmin = xfft.min()
     # vmax = 110.0  # image.max()
     vmax = xfft.max()
@@ -69,8 +69,10 @@ def show_fft(xfft, ax, extent=[0, limx, 0, limy]):
                    interpolation='nearest', extent=extent)
     # https://stackoverflow.com/questions/23876588/matplotlib-colorbar-in-each-subplot
     divider = make_axes_locatable(ax)
-    cax = divider.append_axes('right', size='4%', pad=0.1)
-    fig.colorbar(im, cax=cax, orientation='vertical')
+    cax = divider.append_axes('right', size='4%', pad=0.1,
+                              add_to_figure=add_to_figure)
+    if add_to_figure:
+        fig.colorbar(im, cax=cax, orientation='vertical')
     return im
 
 
@@ -91,9 +93,9 @@ def show_image(image, ax, extent=[0, limx, 0, limy]):
 # type = "original"
 # type = "exact"
 # type = "exact"
-type = "dc"
+# type = "dc"
 # type = "practice"
-# type = "sequence"
+type = "sequence"
 args = Arguments()
 args.compress_fft_layer = 50
 args.compress_rate = 50
@@ -181,9 +183,12 @@ elif type == "practice":
     xfft_proxy = process_fft(xfft_proxy)
     im = show_fft(xfft_proxy, index=1)
 elif type == "sequence":
-    show_image(image, index=0)
-    show_fft(xfft_exact, index=1)
-    show_fft(xfft_proxy, index=2)
+    ax = plt.subplot(1, cols, 1)
+    show_image(image, ax=ax)
+    ax = plt.subplot(1, cols, 2)
+    show_fft(xfft_exact, ax=ax, add_to_figure=False, extent=extent2)
+    ax = plt.subplot(1, cols, 3)
+    show_fft(xfft_proxy, ax=ax, add_to_figure=False, extent=extent2)
     args.is_DC_shift = False
     result = Object()
     image_proxy = FFTBandFunction2D.forward(
@@ -195,7 +200,8 @@ elif type == "sequence":
     xfft_proxy = result.xfft.squeeze(0)
     xfft_proxy = to_fft_magnitude(xfft_proxy, is_log)
     xfft_proxy = process_fft(xfft_proxy)
-    im = show_fft(xfft_proxy, index=3)
+    ax = plt.subplot(1, cols, 4)
+    im = show_fft(xfft_proxy, ax=ax, add_to_figure=True)
 else:
     raise Exception(f"Unknown type: {type}")
 
@@ -203,7 +209,7 @@ else:
 cbar1 = top_row.cbar_axes[0].colorbar(im)
 
 # example of titling colorbar1
-cbar1.set_label_text("20*log10")
+# cbar1.set_label_text("20*log10")
 
 # readjust figure margins after adding colorbars,
 # left and right are unequal because of how
@@ -212,7 +218,8 @@ plt.subplots_adjust(left=0.075, right=0.9)
 
 format = "png"  # "png" "pdf"
 plt.tight_layout()
-plt.show(block=True)
-plt.savefig(fname="images/" + type + "-" + dataset + "3." + format,
-            format=format, transparent=True)
+# plt.show(block=True)
+fname = "images/" + type + "-" + dataset + "3." + format
+print("fname: ", fname)
+plt.savefig(fname=fname, format=format, transparent=True)
 plt.close()
