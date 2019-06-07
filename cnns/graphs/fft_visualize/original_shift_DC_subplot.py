@@ -13,6 +13,7 @@ from cnns.nnlib.utils.complex_mask import get_disk_mask
 from cnns.nnlib.utils.object import Object
 from cnns.nnlib.utils.arguments import Arguments
 from cnns.nnlib.utils.shift_DC_component import shift_DC
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 # figuresizex = 10.0
 # figuresizey = 10.0
@@ -26,6 +27,10 @@ if dataset == "imagenet":
     limx, limy = 224, 224
 elif dataset == "mnist":
     limx, limy = 28, 28
+
+half = limx // 2
+extent1 = [0, limx, 0, limy]
+extent2 = [-half + 1, half, -half + 1, half]
 
 images, labels = foolbox.utils.samples(dataset=dataset, index=0,
                                        batchsize=20,
@@ -55,34 +60,38 @@ def get_fft(image, is_DC_shift=True):
     return process_fft(xfft)
 
 
-def show_fft(xfft, index, extent=[0, limx, 0, limy]):
+def show_fft(xfft, ax, extent=[0, limx, 0, limy]):
     vmin = xfft.min()
     # vmax = 110.0  # image.max()
     vmax = xfft.max()
     print("fft min, max: ", vmin, vmax)
-    ax = top_row[index]
-    # ax.set_yticks([0.2, 0.55, 0.76])
     im = ax.imshow(xfft, vmin=vmin, vmax=vmax, cmap="hot",
                    interpolation='nearest', extent=extent)
+    # https://stackoverflow.com/questions/23876588/matplotlib-colorbar-in-each-subplot
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes('right', size='4%', pad=0.1)
+    fig.colorbar(im, cax=cax, orientation='vertical')
     return im
 
 
-def show_image(image, index, extent=[0, limx, 0, limy]):
+def show_image(image, ax, extent=[0, limx, 0, limy]):
     image = np.clip(image, a_min=0.0, a_max=1.0)
     image = np.moveaxis(image, 0, -1)
     vmin, vmax = image.min(), image.max()
     print("image min, max: ", vmin, vmax)
-    ax = top_row[index]
     image = np.squeeze(image)
     im = ax.imshow(image, vmin=vmin, vmax=vmax, interpolation='nearest',
                    cmap="gray", extent=extent)
+    divider = make_axes_locatable(ax)
+    divider.append_axes('right', size='5%', pad=0.05, add_to_figure=False)
     return im
 
 
+# type = "proxy"
 # type = "original"
 # type = "exact"
-type = "exact"
-# type = "dc"
+# type = "exact"
+type = "dc"
 # type = "practice"
 # type = "sequence"
 args = Arguments()
@@ -134,28 +143,30 @@ if type == "sequence":
     cols = 4
 # create your grid objects
 rect = int(str(cols) + "11")
-top_row = ImageGrid(fig, rect, nrows_ncols=(1, cols), axes_pad=.5,
-                    cbar_location="right", cbar_mode="single",
-                    share_all=False, label_mode="all")
+top_row = ImageGrid(fig, rect, nrows_ncols=(1, cols), axes_pad=.25,
+                    cbar_location="right", cbar_mode="single")
 
 if type == "proxy":
     image = image_proxy
     xfft = xfft_proxy
-    show_image(image, 0)
-    im = show_fft(xfft, 1)
+    ax = plt.subplot(1, cols, 1)
+    show_image(image, ax, extent=extent1)
+    ax = plt.subplot(1, cols, 2)
+    im = show_fft(xfft, ax, extent=extent2)
 elif type == "exact":
     image = image_exact
     xfft = xfft_exact
-    extent = [0, limx, 0, limy]
-    show_image(image, 0, extent=extent)
-    half = limx // 2
-    extent = [-half + 1, half, -half + 1, half]
-    im = show_fft(xfft, 1, extent=extent)
+    ax = plt.subplot(1, cols, 1)
+    show_image(image, ax, extent=extent1)
+    ax = plt.subplot(1, cols, 2)
+    im = show_fft(xfft, ax, extent=extent2)
 elif type == "dc":
     xfft_center = get_fft(image)
     xfft_corner = get_fft(image, is_DC_shift=False)
-    show_fft(xfft_center, index=0)
-    im = show_fft(xfft_corner, index=1)
+    ax = plt.subplot(1, cols, 1)
+    show_image(image, ax, extent=extent1)
+    ax = plt.subplot(1, cols, 2)
+    im = show_fft(xfft, ax, extent=extent2)
 elif type == "practice":
     args.is_DC_shift = False
     result = Object()
@@ -192,7 +203,7 @@ else:
 cbar1 = top_row.cbar_axes[0].colorbar(im)
 
 # example of titling colorbar1
-# cbar1.set_label_text("label")
+cbar1.set_label_text("20*log10")
 
 # readjust figure margins after adding colorbars,
 # left and right are unequal because of how
@@ -202,6 +213,6 @@ plt.subplots_adjust(left=0.075, right=0.9)
 format = "png"  # "png" "pdf"
 plt.tight_layout()
 plt.show(block=True)
-plt.savefig(fname="images/" + type + "-" + dataset + "2." + format,
+plt.savefig(fname="images/" + type + "-" + dataset + "3." + format,
             format=format, transparent=True)
 plt.close()
