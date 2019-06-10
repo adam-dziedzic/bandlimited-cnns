@@ -336,6 +336,8 @@ class Conv2dfftFunction(torch.autograd.Function):
             start_fft_time = time.time()
 
         if args.fft_type == "real_fft":
+            # This is the main fft (real) type. However, PyTorch might run this
+            # slower than the fft complex type.
             # fft of the input and filters
             xfft = torch.rfft(input, signal_ndim=Conv2dfftFunction.signal_ndim,
                               onesided=True)
@@ -587,7 +589,8 @@ class Conv2dfftFunction(torch.autograd.Function):
             if is_debug:
                 start_restore = time.time()
 
-            outfft = restore_size_2D(outfft, init_H_fft=init_H_fft,
+            outfft = restore_size_2D(outfft,
+                                     init_H_fft=init_H_fft,
                                      init_half_W_fft=init_half_W_fft)
 
             if is_debug:

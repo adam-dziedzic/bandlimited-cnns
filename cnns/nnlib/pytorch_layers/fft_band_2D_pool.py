@@ -4,9 +4,12 @@ from cnns.nnlib.utils.general_utils import next_power2
 from torch.nn.functional import pad as torch_pad
 import numpy as np
 from cnns.nnlib.utils.shift_DC_component import shift_DC
+from cnns.nnlib.pytorch_layers.pytorch_utils import compress_2D_index_forward
+from cnns.nnlib.pytorch_layers.pytorch_utils import \
+    compress_2D_index_forward_full
 
 
-class FFTBandFunction2D(torch.autograd.Function):
+class FFTBandFunction2DPool(torch.autograd.Function):
     """
     We can implement our own custom autograd Functions by subclassing
     torch.autograd.Function and implementing the forward and backward
@@ -34,7 +37,7 @@ class FFTBandFunction2D(torch.autograd.Function):
         """
         # ctx.save_for_backward(input)
         # print("round forward")
-        FFTBandFunction2D.mark_dirty(input)
+        FFTBandFunction2DPool.mark_dirty(input)
 
         N, C, H, W = input.size()
 
@@ -48,11 +51,8 @@ class FFTBandFunction2D(torch.autograd.Function):
             pad_H = H_fft - H
             pad_W = W_fft - W
             input = torch_pad(input, (0, pad_W, 0, pad_H), 'constant', 0)
-        else:
-            H_fft = H
-            W_fft = W
 
-        xfft = torch.rfft(input, signal_ndim=FFTBandFunction2D.signal_ndim,
+        xfft = torch.rfft(input, signal_ndim=FFTBandFunction2DPool.signal_ndim,
                           onesided=onesided)
 
         del input
@@ -75,47 +75,28 @@ class FFTBandFunction2D(torch.autograd.Function):
         r = np.ceil(r)
         r = int(r)
 
-        # zero out high energy coefficients
-        if is_test:
-            # We divide by 2 to not count zeros complex number twice.
-            zero1 = torch.sum(xfft == 0.0).item() / 2
-            # print(zero1)
-
-        xfft[..., r:H_fft - r, :, :] = 0.0
         if onesided:
-            xfft[..., :, r:, :] = 0.0
+            xfft = compress_2D_index_forward(xfft, index_forward=r)
         else:
-            xfft[..., :, r:W_fft - r, :] = 0.0
-
+            xfft = compress_2D_index_forward_full(xfft, index_forward=r)
 
         if ctx is not None:
             ctx.xfft = xfft
             if args.is_DC_shift is True:
                 ctx.xfft = shift_DC(xfft, onesided=onesided)
 
+        # Correct real coefficients:
+        xfft = correct_reals(xfft)
 
-        if is_test:
-            zero2 = torch.sum(xfft == 0.0).item() / 2
-            # print(zero2)
-            total_size = C * H_xfft * W_xfft
-            # print("total size: ", total_size)
-            fraction_zeroed = (zero2 - zero1) / total_size
-            ctx.fraction_zeroed = fraction_zeroed
-            # print("compress rate: ", compress_rate, " fraction of zeroed out: ", fraction_zeroed)
-            error = 0.08
-            if fraction_zeroed > compress_rate + error or (
-                    fraction_zeroed < compress_rate - error):
-                raise Exception(f"The compression is wrong, for compression "
-                                f"rate {compress_rate}, the number of fraction "
-                                f"of zeroed out coefficients "
-                                f"is: {fraction_zeroed}")
+        H_xfft = xfft.shape[-3]
+        W_xfft = xfft.shape[-2]
+        if onesided:
+            W_xfft = (W_xfft - 1) * 2
 
-        # N, C, H_fft, W_fft = xfft
         out = torch.irfft(input=xfft,
-                          signal_ndim=FFTBandFunction2D.signal_ndim,
-                          signal_sizes=(H_fft, W_fft),
+                          signal_ndim=FFTBandFunction2DPool.signal_ndim,
+                          signal_sizes=(H_xfft, W_xfft),
                           onesided=onesided)
-        out = out[..., :H, :W]
         return out
 
     @staticmethod
@@ -135,7 +116,34 @@ class FFTBandFunction2D(torch.autograd.Function):
         return grad_output.clone(), None, None, None, None
 
 
-class FFTBand2D(Module):
+def correct_real(xfft, y, x):
+    """
+    Correct a single value to be real.
+
+    :param xfft: input fft map
+    :param y: y coordinate
+    :param x: x coordinate
+    :return: zero out the imaginary part of the (y,x) map
+    """
+    xfft[..., y, x, 1] = 0
+
+def correct_reals(xfft):
+    """
+    Correct the 4 values to be real.
+
+    :param xfft:
+    :return:
+    """
+    H_xfft = xfft.shape[-3]
+    if H_xfft % 2 == 0:
+        even = H_xfft // 2
+        xfft = correct_real(xfft, even, 0)
+        xfft = correct_real(xfft, even, even)
+        xfft = correct_real(xfft, 0, even)
+    return xfft
+
+
+class FFTBand2DPool(Module):
     """
     No PyTorch Autograd used - we compute backward pass on our own.
     """
@@ -144,7 +152,7 @@ class FFTBand2D(Module):
     """
 
     def __init__(self, args):
-        super(FFTBand2D, self).__init__()
+        super(FFTBand2DPool, self).__init__()
         self.args = args
 
     def forward(self, input):
@@ -155,37 +163,8 @@ class FFTBand2D(Module):
         :param input: the input map (e.g., an image)
         :return: the result of 1D convolution
         """
-        return FFTBandFunction2D.apply(input, self.args)
+        return FFTBandFunction2DPool.apply(input, self.args)
+
 
 if __name__ == "__main__":
-    compress_rate = 0.6
-    H_xfft = 8
-    W_xfft = 5
-    divisor = 2
-    is_test = True
-
-    xfft = np.arange(H_xfft*W_xfft).reshape(H_xfft, W_xfft)
-    xfft = torch.tensor(xfft)
-
-    print("initial xfft:\n", xfft)
-
-    r = int(np.sqrt((1 - compress_rate) * H_xfft * W_xfft / divisor))
-    print("r: ", r)
-
-    # zero out high energy coefficients
-    if is_test:
-        # We divide by 2 to not count zeros complex number twice.
-        zero1 = torch.sum(xfft == 0.0).item() / 2
-        # print(zero1)
-
-    xfft[r:H_xfft - r, :] = 0.0
-    xfft[:, r:] = 0.0
-
-    print("compressed xfft:\n", xfft)
-
-    zero2 = torch.sum(xfft == 0.0).item()
-    # print(zero2)
-    total_size = H_xfft * W_xfft
-    # print("total size: ", total_size)
-    fraction_zeroed = (zero2 - zero1) / total_size
-    print("fraction_zeroed: ", fraction_zeroed)
+    print("fft band 2D pool")

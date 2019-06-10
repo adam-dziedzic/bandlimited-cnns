@@ -125,7 +125,10 @@ else:
 
 import os
 
-USER = os.environ['USER']
+try:
+    USER = os.environ['USER']
+except KeyError:
+    USER = "adzie"
 
 
 class Arguments(object):

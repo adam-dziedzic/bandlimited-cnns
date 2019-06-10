@@ -24,7 +24,7 @@ def get_color(COLOR_TUPLE_255):
 
 
 fontsize = 30
-legend_size = 30
+legend_size = 25
 # fontsize=25
 font = {'size': fontsize}
 matplotlib.rc('font', **font)
@@ -49,16 +49,16 @@ def read_columns(dataset, columns=5):
     return cols
 
 
-datasets = ["cifar10"]  # ["cifar10", "cifar100"]
+datasets = ["cifar100"] # ["cifar10", "cifar100"]  # ["cifar10", "cifar100"]
 titles = ["ResNet-18 on CIFAR-10", "DenseNet-121 on CIFAR-100"]
 labels10 = ["compression", "0", "30", "50", "85"]
 labels100 = ["compression", "0", "50", "75", "85"]
-legend_pos = ["center left", "upper left"]
+legend_pos = ["center left", "upper"]
 # legend_pos = ["center", "upper left"]
 # ncols = [4, 4]
 ncols = [2, 4]
 # bbox = [(0.0, 0.08), (0, 1.05)]
-bbox = [(0.0, 0.15), (0, 1.05)]
+bbox = [(0.0, 0.15), (1.0, 1.00)]
 colors10 = [get_color(color) for color in
             ["", MY_RED, MY_GREEN, MY_BLUE, MY_ORANGE]]
 colors100 = [get_color(color) for color in
@@ -73,12 +73,16 @@ columns = 5
 # height=4
 
 width = 15
-height = 10
+height = 4.7 * len(datasets)
 
 fig = plt.figure(figsize=(width, len(datasets) * height))
 
-for j, dataset in enumerate(datasets):
-    plt.subplot(2, 1, j + 1)
+for subplot_idx, dataset in enumerate(datasets):
+    if dataset == "cifar10":
+        j = 0
+    else:
+        j = 1
+    plt.subplot(len(datasets), 1, subplot_idx+1)
     print("dataset: ", dataset)
     cols = read_columns(dataset, columns=columns)
     if dataset == "cifar10":
@@ -105,7 +109,7 @@ for j, dataset in enumerate(datasets):
     plt.grid()
     plt.legend(loc=legend_pos[j], ncol=ncols[j], frameon=False,
                prop={'size': legend_size}, bbox_to_anchor=bbox[j])
-    plt.xlabel('Test compression (%)')
+    plt.xlabel('Test compression rate (%)')
     plt.title(titles[j], fontsize=fontsize)
     plt.ylabel("Test accuracy (%)")
     plt.ylim(0, 100)
@@ -116,10 +120,10 @@ for j, dataset in enumerate(datasets):
 # plt.interactive(False)
 # plt.imshow()
 # plt.show(block=True)
-plt.show()
+# plt.show(block=True)
 # plt.interactive(False)
 format = "png"  # "png" or "pdf"
-fig.savefig(dir_path + "/images/" + "test-train-font5." + format,
+fig.savefig(dir_path + "/images/" + "test-train-font6." + format,
             bbox_inches='tight',
             transparent=True)
 plt.close()

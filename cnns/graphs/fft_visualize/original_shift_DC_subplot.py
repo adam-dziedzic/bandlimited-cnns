@@ -1,4 +1,10 @@
 import numpy as np
+
+import matplotlib
+
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
+
 from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
 import foolbox
@@ -18,6 +24,11 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 # figuresizex = 10.0
 # figuresizey = 10.0
 
+# fontsize=20
+fontsize = 22
+legend_size = 25
+font = {'size': fontsize}
+matplotlib.rc('font', **font)
 # generate images
 
 # dataset = "mnist"
@@ -29,7 +40,7 @@ elif dataset == "mnist":
     limx, limy = 28, 28
 
 half = limx // 2
-extent1 = [0, limx, 0, limy]
+extent1 = [0, limx, limy, 0]
 extent2 = [-half + 1, half, -half + 1, half]
 
 images, labels = foolbox.utils.samples(dataset=dataset, index=0,
@@ -60,7 +71,7 @@ def get_fft(image, is_DC_shift=True):
     return process_fft(xfft)
 
 
-def show_fft(xfft, ax, extent=[0, limx, 0, limy], add_to_figure=True):
+def show_fft(xfft, ax, extent=extent1, add_to_figure=True):
     vmin = xfft.min()
     # vmax = 110.0  # image.max()
     vmax = xfft.max()
@@ -69,14 +80,21 @@ def show_fft(xfft, ax, extent=[0, limx, 0, limy], add_to_figure=True):
                    interpolation='nearest', extent=extent)
     # https://stackoverflow.com/questions/23876588/matplotlib-colorbar-in-each-subplot
     divider = make_axes_locatable(ax)
-    cax = divider.append_axes('right', size='4%', pad=0.1,
-                              add_to_figure=add_to_figure)
     if add_to_figure:
-        fig.colorbar(im, cax=cax, orientation='vertical')
+        cax = divider.append_axes('right', size='4%', pad=0.1,
+                                  add_to_figure=add_to_figure)
+        cbar = fig.colorbar(im, cax=cax, orientation='vertical')
+        # cbar.ax.tick_params(labelsize=legend_size)
+        ticks = [0, 20, 40, 60, 80]
+        cbar.set_ticks(ticks=ticks)
+        cbar.set_ticklabels(ticklabels=ticks)
+    else:
+        divider.append_axes('right', size='4%', pad=0.0,
+                            add_to_figure=add_to_figure)
     return im
 
 
-def show_image(image, ax, extent=[0, limx, 0, limy]):
+def show_image(image, ax, extent=extent1):
     image = np.clip(image, a_min=0.0, a_max=1.0)
     image = np.moveaxis(image, 0, -1)
     vmin, vmax = image.min(), image.max()
@@ -85,7 +103,7 @@ def show_image(image, ax, extent=[0, limx, 0, limy]):
     im = ax.imshow(image, vmin=vmin, vmax=vmax, interpolation='nearest',
                    cmap="gray", extent=extent)
     divider = make_axes_locatable(ax)
-    divider.append_axes('right', size='5%', pad=0.05, add_to_figure=False)
+    divider.append_axes('right', size='4%', pad=0.0, add_to_figure=False)
     return im
 
 
@@ -136,8 +154,10 @@ xfft_proxy = to_fft_magnitude(xfft_proxy, is_log)
 xfft_proxy = process_fft(xfft_proxy)
 
 # draw
-figuresizex = 9.0
-figuresizey = 8.1
+# figuresizex = 9.0
+# figuresizey = 8.1
+figuresizex = 17
+figuresizey = 15
 fig = plt.figure(figsize=(figuresizex, figuresizey))
 # fig = plt.figure()
 cols = 2
@@ -145,7 +165,7 @@ if type == "sequence":
     cols = 4
 # create your grid objects
 rect = int(str(cols) + "11")
-top_row = ImageGrid(fig, rect, nrows_ncols=(1, cols), axes_pad=.25,
+top_row = ImageGrid(fig, rect, nrows_ncols=(1, cols), axes_pad=.15,
                     cbar_location="right", cbar_mode="single")
 
 if type == "proxy":
@@ -205,9 +225,6 @@ elif type == "sequence":
 else:
     raise Exception(f"Unknown type: {type}")
 
-# add your colorbars
-cbar1 = top_row.cbar_axes[0].colorbar(im)
-
 # example of titling colorbar1
 # cbar1.set_label_text("20*log10")
 
@@ -216,10 +233,10 @@ cbar1 = top_row.cbar_axes[0].colorbar(im)
 # colorbar labels don't appear to factor in to the adjustment
 plt.subplots_adjust(left=0.075, right=0.9)
 
-format = "png"  # "png" "pdf"
-plt.tight_layout()
+format = "pdf"  # "png" "pdf"
+# plt.tight_layout()
 # plt.show(block=True)
-fname = "images/" + type + "-" + dataset + "3." + format
+fname = "images/" + type + "-" + dataset + "4." + format
 print("fname: ", fname)
 plt.savefig(fname=fname, format=format, transparent=True)
 plt.close()

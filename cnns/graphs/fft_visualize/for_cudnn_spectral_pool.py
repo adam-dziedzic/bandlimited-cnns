@@ -5,7 +5,7 @@ import foolbox
 from cnns.nnlib.robustness.utils import to_fft
 from cnns.nnlib.robustness.utils import to_fft_magnitude
 import torch
-from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBandFunction2D
+from cnns.nnlib.pytorch_layers.fft_band_2D_pool import FFTBandFunction2DPool
 from cnns.nnlib.pytorch_layers.fft_band_2D_complex_mask import \
     FFTBandFunctionComplexMask2D
 from cnns.nnlib.utils.complex_mask import get_hyper_mask
@@ -65,45 +65,20 @@ save_image("image", image)
 save_image_CHW("image_CHW", image)
 
 args = Arguments()
-args.compress_fft_layer = 80
+args.compress_fft_layer = 50
 args.compress_rate = args.compress_fft_layer
 args.next_power2 = False
 args.is_DC_shift = False
 result = Object()
 image = torch.from_numpy(image).unsqueeze(0)
-N, C, H, W = image.size()
-pad = 3
-pad_fft = 26
-side = "one"
 
-if side == "two":
-    Hfft = H + pad * 2 + pad_fft * 2
-    # (padLeft, padRight, padTop, padBottom)
-    image = torch_pad(image,
-                  (pad + pad_fft, pad + pad_fft, pad + pad_fft, pad + pad_fft),
-                  'constant', 0)
-elif side == "one":
-    Hfft = H + pad * 2 + pad_fft
-    # (padLeft, padRight, padTop, padBottom)
-    image = torch_pad(image,
-                      (pad, pad + pad_fft,
-                       pad, pad + pad_fft),
-                      'constant', 0)
-else:
-    raise Exception(f"Unknown side type: {side}")
-
-print("Hfft: ", Hfft)
-
-image_proxy = FFTBandFunction2D.forward(
+image_proxy = FFTBandFunction2DPool.forward(
     ctx=result,
     input=image,
     args=args,
-    onesided=False).numpy().squeeze(0)
-if side == "two":
-    image_proxy = image_proxy[..., pad + pad_fft:limx + pad + pad_fft,
-                  pad + pad_fft:limy + pad + pad_fft]
+    onesided=True).numpy().squeeze(0)
+
 xfft_proxy = result.xfft.squeeze(0)
 
 save_image(
-    "image_proxy" + str(args.compress_rate) + "_pad_fft_" + str(
-        pad_fft) + "_pad_" + str(pad) + "_side_" + str(side), image_proxy)
+    "images/image_proxy_pool_" + str(args.compress_rate), image_proxy)

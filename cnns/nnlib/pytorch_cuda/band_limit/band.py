@@ -3,16 +3,15 @@ from torch import nn
 from torch.autograd import Function
 import torch
 
-from cnns.nnlib.pytorch_cpp.lltm_cpp.lltm import LLTM
-import lltm_cpp
+import band_cuda
 
-torch.manual_seed(42)
+torch.manual_seed(31)
 
 
 class LLTMFunction(Function):
     @staticmethod
     def forward(ctx, input, weights, bias, old_h, old_cell):
-        outputs = lltm_cpp.forward(input, weights, bias, old_h, old_cell)
+        outputs = band_cuda.forward(input, weights, bias, old_h, old_cell)
         new_h, new_cell = outputs[:2]
         variables = outputs[1:] + [weights]
         ctx.save_for_backward(*variables)
@@ -21,8 +20,9 @@ class LLTMFunction(Function):
 
     @staticmethod
     def backward(ctx, grad_h, grad_cell):
-        d_old_h, d_input, d_weights, d_bias, d_old_cell = lltm_cpp.backward(
-            grad_h, grad_cell, *ctx.saved_variables)
+        outputs = band_cuda.backward(
+            grad_h.contiguous(), grad_cell.contiguous(), *ctx.saved_variables)
+        d_old_h, d_input, d_weights, d_bias, d_old_cell, d_gates = outputs
         return d_input, d_weights, d_bias, d_old_h, d_old_cell
 
 

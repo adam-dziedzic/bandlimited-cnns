@@ -106,7 +106,7 @@ plt.legend(loc="upper left", ncol=1, frameon=False,
            prop={'size': label_font}, bbox_to_anchor=(0.0, 1.025))
 plt.xlabel('Epoch')
 plt.xlabel('Test accuracy (%) of full-spectra model')
-plt.ylabel('Test accuracy (%) of\nband-limited model')
+plt.ylabel('Test accuracy (%) of\nband-limited (50%) model')
 plt.xlim(60, 100)
 plt.ylim(60, 100)
 
@@ -117,6 +117,6 @@ plt.ylim(60, 100)
 plt.show(block=True)
 # plt.interactive(False)
 format="png"
-fig.savefig(dir_path + "/" + "time-series-font2." + format,
+fig.savefig(dir_path + "/" + "time-series-font3." + format,
             bbox_inches='tight', transparent=True)
 plt.close()
