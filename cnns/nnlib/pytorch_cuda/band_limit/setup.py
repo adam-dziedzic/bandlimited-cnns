@@ -7,7 +7,7 @@ setup(
         CUDAExtension('band_cuda', [
             'band_cuda.cpp',
             'band_cuda_kernel.cu',
-            'complex_mu.cu',
+            'complex_mul.cu',
         ]),
     ],
     cmdclass={

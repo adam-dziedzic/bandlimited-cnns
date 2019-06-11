@@ -3,15 +3,15 @@
 #include <vector>
 
 // CUDA declarations
-std::vector<at::Tensor> band_cuda_forward(
-    at::Tensor input,
-    at::Tensor weights);
+std::vector <at::Tensor> band_cuda_forward(
+        at::Tensor input,
+        at::Tensor weights);
 
-std::vector<at::Tensor> band_cuda_backward(
-    at::Tensor grad);
+std::vector <at::Tensor> band_cuda_backward(
+        at::Tensor grad);
 
 void complex_mul_cuda(
-    at::Tensor x, at::Tensor y, at::Tensor out, int threads = 1024);
+        at::Tensor x, at::Tensor y, at::Tensor out, int threads = 1024);
 
 // C++ interface
 
@@ -21,30 +21,33 @@ void complex_mul_cuda(
 #define CHECK_INPUT(x) CHECK_CUDA(x); CHECK_CONTIGUOUS(x)
 
 at::Tensor band_forward(
-    at::Tensor input,
-    at::Tensor weights,
-    at::Tensor bias) {
-  CHECK_INPUT(input);
-  CHECK_INPUT(weights);
-  CHECK_INPUT(bias);
+        at::Tensor input,
+        at::Tensor weights) {
+    CHECK_INPUT(input);
+    CHECK_INPUT(weights);
 
     at::Tensor xfft = input.rfft(
             /*signal_ndim*/2, /*normalized*/false, /*onesided*/true);
-    at::Tensor yfft = input.rfft(
+    at::Tensor yfft = weights.rfft(
             /*signal_ndim*/2, /*normalized*/false, /*onesided*/true);
-
-
-    return xfft;
+    /* Conjugate */
+    yfft.narrow(/*dim*/4, /*start*/1, /*length*/1).mul_(-1);
+    at::Tensor outfft = torch::zeros_like(xfft);
+    complex_mul_cuda(/*x*/xfft, /*y*/yfft, /*out*/outfft);
+    at::Tensor out = outfft.irfft(
+            /*signal_ndim*/2, /*normalized*/false, /*onesided*/true);
+    return out;
 }
 
-std::vector<at::Tensor> band_backward(
-    at::Tensor grad) {
-  CHECK_INPUT(grad);
+std::vector <at::Tensor> band_backward(
+        at::Tensor grad) {
+    CHECK_INPUT(grad);
 
-  return std::vector<at::Tensor>();
+    return std::vector<at::Tensor>();
 }
 
-PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-  m.def("forward", &band_forward, "band forward");
-  m.def("backward", &band_backward, "band backward");
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m
+) {
+m.def("forward", &band_forward, "band forward");
+m.def("backward", &band_backward, "band backward");
 }
