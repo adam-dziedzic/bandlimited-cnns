@@ -20,7 +20,7 @@ void complex_mul_cuda(
 #define CHECK_CONTIGUOUS(x) AT_ASSERTM(x.is_contiguous(), #x " must be contiguous")
 #define CHECK_INPUT(x) CHECK_CUDA(x); CHECK_CONTIGUOUS(x)
 
-at::Tensor band_forward(
+std::vector<at::Tensor> band_forward(
         at::Tensor input,
         at::Tensor weights) {
     CHECK_INPUT(input);
@@ -36,11 +36,15 @@ at::Tensor band_forward(
     complex_mul_cuda(/*x*/xfft, /*y*/yfft, /*out*/outfft);
     at::Tensor out = outfft.irfft(
             /*signal_ndim*/2, /*normalized*/false, /*onesided*/true);
-    return out;
+    std::vector<at::Tensor> result;
+    result.push_back(out);
+    result.push_back(xfft);
+    result.push_back(yfft);
+    return result;
 }
 
 std::vector <at::Tensor> band_backward(
-        at::Tensor grad) {
+        at::Tensor grad, at::Tensor xfft, at::Tensor yfft) {
     CHECK_INPUT(grad);
 
     return std::vector<at::Tensor>();

@@ -387,7 +387,8 @@ def run(args):
         fft_types = ["magnitude"]
         # fft_types = []
 
-    channels = [x for x in range(channels_nr)]
+    # channels = [x for x in range(channels_nr)]
+    channels = []
     attack_round_fft = CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
                                                      get_mask=get_hyper_mask)
     # attacks = [
@@ -671,7 +672,8 @@ def run(args):
             print("Uniform noise defense")
             L2_dist_adv_original = args.meter.measure(original_image, image)
             print(
-                "L2 distance between image (potentiall adversarial) and original images: ",
+                "L2 distance between image (potentiall adversarial) and "
+                "original images: ",
                 L2_dist_adv_original)
             # title = "Level of uniform noise: " + str(args.noise_epsilon)
             title = "Uniform (" + str(args.noise_epsilon) + ")"
@@ -975,7 +977,7 @@ if __name__ == "__main__":
     # args.compress_rate = 0
     # args.interpolate = "exp"
     index_range = range(args.start_epoch, args.epochs, args.step_size)
-    args.use_foolbox_data = False
+    args.use_foolbox_data = True
     if args.is_debug:
         args.use_foolbox_data = True
 
@@ -1001,7 +1003,7 @@ if __name__ == "__main__":
         else:
             raise Exception(f"Unknown dataset: {args.dataset}")
 
-    args.adv_attack = None  # "before" or "after"
+    args.adv_attack = "before"  # "before" or "after"
 
     # args.compress_fft_layer = 5
     # args.values_per_channel = 8

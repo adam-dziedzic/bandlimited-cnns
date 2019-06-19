@@ -65,7 +65,7 @@ else:
     dataset = "imagenet"
     # dataset = "svhn"
 
-    batch_size = 32
+    batch_size = 1
     # test_batch_size = batch_size
     # test_batch_size = 256
     test_batch_size = 1
@@ -109,7 +109,7 @@ else:
         model_path = "no_model"
     elif dataset == "imagenet":
         network_type = NetworkType.ResNet50
-        batch_size = 32
+        batch_size = 1
         test_batch_size = batch_size
         learning_rate = 0.1
         weight_decay = 0.0001
@@ -147,7 +147,7 @@ class Arguments(object):
         return self.__counter__
 
     def __init__(self,
-                 is_debug=True,
+                 is_debug=False,
                  # network_type=NetworkType.ResNet18,
                  # network_type=NetworkType.DenseNetCifar,
                  network_type=network_type,
@@ -267,7 +267,7 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=0,  # run on full data
+                 sample_count_limit=1,  # run on full data
                  # sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
@@ -323,24 +323,24 @@ class Arguments(object):
                  attack_type=AttackType.RECOVERY,
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
-                 compress_fft_layer=50,
-                 # attack_name="CarliniWagnerL2AttackRoundFFT",
-                 attack_name="CarliniWagnerL2Attack",
+                 compress_fft_layer=0,
+                 attack_name="CarliniWagnerL2AttackRoundFFT",
+                 # attack_name="CarliniWagnerL2Attack",
                  # attack_name = None,
                  # attack_name="FGSM",
                  interpolate="const",
                  # recover_type="rounding",
-                 recover_type="fft",
-                 # recover_type="noise",
+                 # recover_type="fft",
+                 recover_type="noise",
                  # recover_type="laplace",
                  # recover_type="debug",
-                 noise_epsilon=0,
-                 noise_epsilons=[0],
+                 noise_epsilon=0.04,
+                 noise_epsilons=[0.04],
                  # recover_type="gauss",
                  step_size=1,
                  noise_iterations=0,
-                 many_noise_iterations=[0],
-                 recover_iterations=0,
+                 many_noise_iterations=[0, 1, 2, 4, 8, 16, 32],
+                 recover_iterations=-1,
                  many_recover_iterations=[0],
                  attack_max_iterations=100,
                  many_attack_iterations=[100],

@@ -1,48 +1,48 @@
 import torch
 import time
-from cnns.nnlib.pytorch_cuda.lltm_cuda.lltm import LLTM
+from cnns.nnlib.pytorch_cuda.band_limit.band import Conv2dfftCpp
+from cnns.nnlib.pytorch_layers.conv2D_fft import Conv2dfft
 
-batch_size = 16
-input_features = 32
-state_size = 128
 
-if torch.cuda.is_available():
-    print("Cuda is available.")
-    device = torch.device('cuda')
-else:
-    device = torch.device('cpu')
+def time_it(layer, name=""):
+    formating = 1e6 / 1e5
+    repetitions = 1
 
-X = torch.randn(batch_size, input_features, device=device)
-h = torch.randn(batch_size, state_size, device=device)
-C = torch.randn(batch_size, state_size, device=device)
+    forward = 0
+    backward = 0
+    for _ in range(repetitions):
+        start = time.time()
+        out = layer.forward(x)
+        forward += time.time() - start
 
-rnn = LLTM(input_features, state_size, device=device)
+        start = time.time()
+        out.backward(b)
+        backward += time.time() - start
 
-forward = 0
-backward = 0
-for _ in range(100000):  # 100000
-    start = time.time()
-    new_h, new_C = rnn(X, (h, C))
-    forward += time.time() - start
+    print(name + ': Forward: {:.3f} us | Backward {:.3f} us'.format(
+        forward * formating, backward * formating))
 
-    start = time.time()
-    (new_h.sum() + new_C.sum()).backward()
-    backward += time.time() - start
+def run():
+    N, C, H, W = 16, 3, 32, 32
+    F = 32
+    HH, WW = 3, 3
 
-print('Forward: {:.3f} us | Backward {:.3f} us'.format(forward * 1e6 / 1e5,
-                                                       backward * 1e6 / 1e5))
+    if torch.cuda.is_available():
+        print("Cuda is available.")
+        device = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
 
-"""
-Result python athena: Forward: 141.675 us | Backward 197.573 us
+    x = torch.randn(N, C, H, W, device=device)
+    y = torch.randn(F, C, HH, WW, device=device)
+    b = torch.randn(N, F, H, W, device=device)
 
-Result lltm_cpp athena: Forward: 132.657 us | Backward 304.706 us
+    layer_cpp = Conv2dfftCpp(weight_value=y, padding=2)
+    layer_python = Conv2dfft(weight_value=y, padding=2)
 
-Result lltm_cpp athena: /home/adam/anaconda3/bin/python3.6 /home/adam/code/time-series-ml/cnns/nnlib/pytorch_cuda/lltm_cpp/benchmark_small.py
-Forward: 126.339 us | Backward 291.037 us
+    time_it(layer=layer_cpp, name="cpp")
+    time_it(layer=layer_python, name="python")
 
-1000 repetitions
-ssh://ady@skr-compute1.cs.uchicago.edu:22/home/ady/anaconda3/bin/python3.6 -u /home/ady/code/bandlimited-cnns-pycharm-win/cnns/nnlib/pytorch_cuda/lltm_cuda/benchmark.py
-Cuda is available.
-Forward: 6.406 us | Backward 7.766 us
 
-"""
+if __name__ == "__main__":
+    run()

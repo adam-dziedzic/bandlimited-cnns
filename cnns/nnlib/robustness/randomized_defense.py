@@ -73,12 +73,15 @@ def defend(image, fmodel, args, iters=None, is_batch=True):
         avg_confidence += soft_predictions
         class_id_counters[predicted_class_id] += 1
 
-        result.L2_distance += elem_wise_dist(image, noise_images,
-                                             p=2, axis=axis)
-        result.L1_distance += elem_wise_dist(image, noise_images,
-                                             p=1, axis=axis)
-        result.Linf_distance += elem_wise_dist(image, noise_images,
-                                               p=float('inf'), axis=axis)
+        result.L2_distance = np.append(
+            result.L2_distance, elem_wise_dist(image, noise_images,
+                                               p=2, axis=axis))
+        result.L1_distance = np.append(
+            result.L1_distance, elem_wise_dist(image, noise_images,
+                                               p=1, axis=axis))
+        result.Linf_distance = np.append(
+            result.Linf_distance, elem_wise_dist(image, noise_images,
+                                                 p=float('inf'), axis=axis))
 
     result.class_id = np.argmax(np.array(class_id_counters))
     result.label = from_class_idx_to_label[result.class_id]

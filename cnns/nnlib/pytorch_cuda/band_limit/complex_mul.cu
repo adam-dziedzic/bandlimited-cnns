@@ -245,7 +245,7 @@ __global__ void complex_mul_cuda_kernel(
 
 } // namespace
 
-void complex_mul(
+void complex_mul_cuda(
     at::Tensor x,
     at::Tensor y,
     at::Tensor out,
