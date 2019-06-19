@@ -594,7 +594,8 @@ def run(args):
                       result_adv.class_id)
                 result.add(result_adv, prefix="adv_")
             else:
-                result.adv_label = None  # The adversarial image has not been found.
+                print('The adversarial example has not been found.')
+                result.adv_label = None
 
         # The rounded image.
         if args.values_per_channel > 0 and image is not None:
@@ -966,7 +967,7 @@ if __name__ == "__main__":
     args.save_out = False
     # args.diff_type = "source"  # "source" or "fft"
     args.diff_type = "fft"
-    args.show_original = False
+    args.show_original = True
     # args.max_iterations = 1000
     # args.max_iterations = 20
     # args.noise_iterations = 1
@@ -977,10 +978,8 @@ if __name__ == "__main__":
     # args.compress_rate = 0
     # args.interpolate = "exp"
     index_range = range(args.start_epoch, args.epochs, args.step_size)
-    args.use_foolbox_data = False
     if args.is_debug:
         args.use_foolbox_data = True
-
         # args.recover_type = "gauss"
         # args.recover_type = "noise"
         # args.recover_type = "fft"
@@ -1092,6 +1091,7 @@ if __name__ == "__main__":
                   "# of recovered",
                   "count adv",
                   "total adv",
+                  "adv time (sec)\n",
                   "run time (sec)\n"]
         f.write(delimiter.join(header))
 
@@ -1143,6 +1143,7 @@ if __name__ == "__main__":
             sum_L1_distance_adv = 0
             sum_Linf_distance_adv = 0
             sum_confidence_adv = 0
+            sum_adv_timing = 0
             args.total_count = 0
 
             # for index in range(4950, -1, -50):
@@ -1231,6 +1232,7 @@ if __name__ == "__main__":
                     sum_L1_distance_adv += result_run.adv_L1_distance
                     sum_Linf_distance_adv += result_run.adv_Linf_distance
                     sum_confidence_adv += result_run.adv_confidence
+                    sum_adv_timing += result_run.adv_timing
 
             total_count = args.total_count
 
@@ -1239,6 +1241,17 @@ if __name__ == "__main__":
             print("classified correctly (base model): ", count_original)
             print("adversarials found: ", count_adv)
             print("recovered correctly: ", count_recovered)
+
+            if total_adv > 0:
+                avg_L2_distance_adv = sum_L2_distance_adv / total_adv
+                avg_L1_distance_adv = sum_L1_distance_adv / total_adv
+                avg_Linf_distance_adv = sum_Linf_distance_adv / total_adv
+                avg_confidence_adv = sum_confidence_adv / total_adv
+            else:
+                avg_L2_distance_adv = 0.0
+                avg_L1_distance_adv = 0.0
+                avg_Linf_distance_adv = 0.0
+                avg_confidence_adv = 0.0
 
             with open(out_recovered_file, "a") as f:
                 f.write(delimiter.join([str(x) for x in
@@ -1256,13 +1269,14 @@ if __name__ == "__main__":
                                          sum_L1_distance_defense / total_count,
                                          sum_Linf_distance_defense / total_count,
                                          sum_confidence_defense / total_count,
-                                         sum_L2_distance_adv / total_adv,
-                                         sum_L1_distance_adv / total_adv,
-                                         sum_Linf_distance_adv / total_adv,
-                                         sum_confidence_adv / total_adv,
+                                         avg_L2_distance_adv,
+                                         avg_L1_distance_adv,
+                                         avg_Linf_distance_adv,
+                                         avg_confidence_adv,
                                          count_recovered,
                                          count_adv,
                                          total_adv,
+                                         sum_adv_timing,
                                          run_time]]) + "\n")
 
     print("total elapsed time: ", time.time() - start_time)

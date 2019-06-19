@@ -27,7 +27,7 @@ class AdversarialRoundFFT(Adversarial):
         transformation) is misclassified, then the adversarial image is the
         input to the transformation. This pre-transformed image is kept as adv.
         The general pipeline is that we receive the standard non-adversarial
-        image x. Then we modify image x via our attack to get and adversarial
+        image x. Then we modify image x via our attack to get an adversarial
         image (adv). Then, the adv is not immediately given into the classifier
         but transformed and then given into the classifier (we denote this image
         as adv_transformed). Thus, the attack has to return the adv image if the

@@ -372,6 +372,10 @@ def get_args():
                         help="should we shift the DC component to the center in"
                              "the FFT maps; options: " + ",".join(
                             Bool.get_names()))
+    parser.add_argument("--use_foolbox_data",
+                        default="TRUE" if args.use_foolbox_data else "FALSE",
+                        help="should we use the data from the foolbox "
+                             "library" + ",".join(Bool.get_names()))
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)

@@ -58,22 +58,23 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     loss_type = LossType.CROSS_ENTROPY
     loss_reduction = LossReduction.ELEMENTWISE_MEAN
     model_path = "no_model"
+    in_channels = 1
 else:
     # dataset = "mnist"
-    # dataset = "cifar10"
+    dataset = "cifar10"
     # dataset = "cifar100"
-    dataset = "imagenet"
+    # dataset = "imagenet"
     # dataset = "svhn"
 
     batch_size = 1
     # test_batch_size = batch_size
     # test_batch_size = 256
-    test_batch_size = 1
+    test_batch_size = batch_size
     learning_rate = 0.01
     weight_decay = 0.0005
     momentum = 0.9
     # epochs=50
-    epochs = 1
+    epochs = 20
     # epochs = 100
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
@@ -88,6 +89,7 @@ else:
     optimizer_type = OptimizerType.MOMENTUM
     loss_type = LossType.CROSS_ENTROPY
     loss_reduction = LossReduction.ELEMENTWISE_MEAN
+    in_channels = 3
 
     if dataset == "mnist":
         batch_size = 64
@@ -98,7 +100,7 @@ else:
         loss_type = LossType.NLL
         loss_reduction = LossReduction.SUM
         network_type = NetworkType.Net
-        model_path="2019-05-03-10-08-51-149612-dataset-mnist-preserve-energy-100-compress-rate-0.0-test-accuracy-99.07-channel-vals-0.model"
+        model_path = "2019-05-03-10-08-51-149612-dataset-mnist-preserve-energy-100-compress-rate-0.0-test-accuracy-99.07-channel-vals-0.model"
     elif dataset == "cifar10":
         network_type = NetworkType.ResNet18
         # model_path = "saved_model_2019-04-08-16-51-16-845688-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.22-channel-vals-0.model"
@@ -204,7 +206,7 @@ class Arguments(object):
                  loss_reduction=LossReduction.ELEMENTWISE_MEAN,
                  memory_type=MemoryType.PINNED,
                  workers=4,
-                 model_path = model_path,
+                 model_path=model_path,
                  # model_path="no_model",
                  # model_path="2019-05-03-10-08-51-149612-dataset-mnist-preserve-energy-100-compress-rate-0.0-test-accuracy-99.07-channel-vals-0.model",
                  # ="saved_model_2019-04-08-16-51-16-845688-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.22-channel-vals-0.model",
@@ -267,7 +269,7 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=1,  # run on full data
+                 sample_count_limit=5,  # run on full data
                  # sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
@@ -311,7 +313,7 @@ class Arguments(object):
                  fft_type="real_fft",  # real_fft or complex_fft
                  imagenet_path="/home/" + str(USER) + "/imagenet",
                  distributed=False,
-                 in_channels=1,
+                 in_channels=in_channels,
                  values_per_channel=0,
                  many_values_per_channel=[0],
                  # ucr_path = "../sathya",
@@ -347,6 +349,7 @@ class Arguments(object):
                  laplace_epsilon=0.0,
                  laplace_epsilons=[0.0],
                  is_DC_shift=False,
+                 use_foolbox_data=True,
                  ):
         """
         The default parameters for the execution of the program.
@@ -479,13 +482,15 @@ class Arguments(object):
         self.laplace_epsilon = laplace_epsilon
         self.laplace_epsilons = laplace_epsilons
         self.is_DC_shift = is_DC_shift
+        self.use_foolbox_data = use_foolbox_data
         self.set_dtype()
+
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False
 
-    def set_parsed_args(self, parsed_args):
 
+    def set_parsed_args(self, parsed_args):
         # Make sure you do not miss any properties.
         # https://stackoverflow.com/questions/243836/how-to-copy-all-properties-of-an-object-to-another-object-in-python
         self.__dict__ = parsed_args.__dict__.copy()
@@ -523,11 +528,13 @@ class Arguments(object):
             parsed_args.test_compress_rates)
         self.distributed = self.get_bool(parsed_args.distributed)
         self.is_DC_shift = self.get_bool(parsed_args.is_DC_shift)
+        self.use_foolbox_data = self.get_bool(parsed_args.use_foolbox_data)
 
         if hasattr(parsed_args, "preserve_energy"):
             self.preserve_energy = parsed_args.preserve_energy
 
         self.set_dtype()
+
 
     def set_dtype(self):
         tensor_type = self.tensor_type
@@ -541,12 +548,14 @@ class Arguments(object):
             raise Exception(f"Unknown tensor type: {tensor_type}")
         self.dtype = dtype
 
+
     def get_str(self):
         args_dict = self.__dict__
         args_str = " ".join(
             ["--" + str(key) + "=" + str(value) for key, value in
              sorted(args_dict.items())])
         return args_str
+
 
     def from_bool_arg(self, arg):
         """
@@ -555,6 +564,7 @@ class Arguments(object):
         :return: int
         """
         return 1 if self.is_debug else -1
+
 
     def to_bool_arg(self, arg):
         """
@@ -570,17 +580,20 @@ class Arguments(object):
             Exception(
                 f"Unknown int value for the trarnsformation to bool: {arg}")
 
+
     def from_float_arg(self, arg):
         if arg is None:
             return -1
         else:
             return arg
 
+
     def to_float_arg(self, arg):
         if arg == -1:
             return None
         else:
             return arg
+
 
     def to_tensor(self):
         t = torch.empty(self.__counter__, dtype=torch.float,
@@ -593,6 +606,7 @@ class Arguments(object):
         t[self.__idx_preserve_energy] = self.from_float_arg(
             self.preserve_energy)
         t[self.__idx_index_back] = self.from_float_arg(self.compress_rate)
+
 
     def from_tensor(self, t):
         self.network_type = NetworkType(t[int(self.__idx_nework_type)])
