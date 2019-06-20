@@ -1132,12 +1132,22 @@ if __name__ == "__main__":
                 f"Unknown recover type: {args.recover_type}")
 
         # recover_iterations = [0]  # + [2 ** x for x in range(1, 9)]
-        # for recover_iter in args.many_recover_iterations:
-        for noise_iter in args.many_noise_iterations:
-            # for attack_iterations in args.many_attack_iterations:
+        # iterations = [0]
+        # if lenargs.many_recover_iterations > 0 and args.many_noise_iterations > 0:
+        #     raise Exception('Set either many_recover_iterations or '
+        #                     'many_noise_iterations in args.')
+        # if args.many_attack_iterations > 0 and args.many_noise_iterations > 0:
+        #     raise Exception('Set either many_attack_iterations or '
+        #                     'many_noise_iterations in args.')
+        # if args.many_recover_iterations > 0:
+        #     iterations = args.many_recover_iterations
+        # elif args.many_attack_iterations
+        for recover_iter in args.many_recover_iterations:
+        # for noise_iter in args.many_noise_iterations:
+        # for attack_iterations in args.many_attack_iterations:
             # args.attack_max_iterations = attack_iterations
-            # args.recover_iterations = recover_iter
-            args.noise_iterations = noise_iter
+            args.recover_iterations = recover_iter
+            # args.noise_iterations = noise_iter
 
             # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
             # print("indexes: ", indexes)
