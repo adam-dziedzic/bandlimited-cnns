@@ -262,8 +262,8 @@ def print_color_map(x, args, fig=None, ax=None):
                         ha='center', va='center')
 
 
-def show_image(image, original_image, args, title="",
-               clip_input_image=False, ylabel_text="Original image"):
+def classify_image(image, original_image, args, title="",
+                   clip_input_image=False, ylabel_text="Original image"):
     result = Object()
     predictions = args.fmodel.predictions(image=image)
     soft_predictions = softmax(predictions)
@@ -278,10 +278,10 @@ def show_image(image, original_image, args, title="",
     result.L1_distance = args.meter.measure(original_image, image, norm=1)
     result.Linf_distance = args.meter.measure(original_image, image,
                                               norm=float('inf'))
-    # Set the lim_y and lim_x in args.
-    get_cmap(args=args)
 
     if args.is_debug:
+        # Set the lim_y and lim_x in args.
+        get_cmap(args=args)
         true_label = args.true_label
         print("Number of unique values: ", len(np.unique(image)))
         print(title + ": model predicted label: ", predicted_label)
@@ -526,7 +526,7 @@ def run(args):
         # Original image.
         if args.show_original:
             original_title = "Original"
-            original_result = show_image(
+            original_result = classify_image(
                 image=original_image,
                 original_image=original_image,
                 args=args,
@@ -535,7 +535,7 @@ def run(args):
             print("Label for the original image: ", original_result.label)
 
         if show_2nd:
-            result_original2 = show_image(
+            result_original2 = classify_image(
                 image=original_image2,
                 original_image=original_image2,
                 args=args,
@@ -585,7 +585,7 @@ def run(args):
                 created_new_adversarial = True
             if adv_image is not None:
                 image = adv_image
-                result_adv = show_image(
+                result_adv = classify_image(
                     image=adv_image,
                     original_image=original_image,
                     args=args,
@@ -610,7 +610,7 @@ def run(args):
             print("rounded_image min and max: ", rounded_image.min(), ",",
                   rounded_image.max())
             title = "CD (" + str(args.values_per_channel) + ")"
-            result_round = show_image(
+            result_round = classify_image(
                 image=rounded_image,
                 original_image=original_image,
                 args=args,
@@ -635,7 +635,7 @@ def run(args):
             # title = "FC (" + str(args.compress_fft_layer) + ")"
             title = "Spatial domain"
             # title += "interpolation: " + args.interpolate
-            result_fft = show_image(
+            result_fft = classify_image(
                 image=compress_image,
                 original_image=original_image,
                 args=args,
@@ -656,14 +656,15 @@ def run(args):
             gauss_image = image + noise
             # title = "Level of Gaussian-noise: " + str(args.noise_sigma)
             title = "Gauss (" + str(args.noise_sigma) + ")"
-            result_gauss = show_image(
+            result_gauss = classify_image(
                 image=gauss_image,
                 original_image=original_image,
                 args=args,
                 title=title)
             result.add(result_gauss, prefix="gauss_")
 
-            result_noise = randomized_defense(image=image, fmodel=fmodel)
+            result_noise = randomized_defense(image=image, fmodel=fmodel,
+                                              original_image=original_image)
 
             result.add(result_noise, prefix="gauss_many_")
         else:
@@ -682,7 +683,7 @@ def run(args):
                 epsilon=args.noise_epsilon, image=image,
                 bounds=(args.min, args.max))
             noise_image = image + noise
-            result_noise = show_image(
+            result_noise = classify_image(
                 image=noise_image,
                 original_image=original_image,
                 args=args,
@@ -691,7 +692,8 @@ def run(args):
                   result_noise.label, result_noise.class_id)
             result.add(result_noise, prefix="noise_")
 
-            result_noise = randomized_defense(image=image, fmodel=fmodel)
+            result_noise = randomized_defense(image=image, fmodel=fmodel,
+                                              original_image=original_image)
 
             result.add(result_noise, prefix="noise_many_")
         else:
@@ -705,7 +707,7 @@ def run(args):
                                   dtype=image.dtype,
                                   args=args)
             noise_image = image + noise
-            result_laplace = show_image(
+            result_laplace = classify_image(
                 image=noise_image,
                 original_image=original_image,
                 args=args,
@@ -714,11 +716,12 @@ def run(args):
                   result_laplace.label, result_laplace.class_id)
             result.add(result_laplace, prefix="laplace_")
 
-            result_laplace = randomized_defense(image=image, fmodel=fmodel)
+            result_laplace = randomized_defense(image=image, fmodel=fmodel,
+                                                original_image=original_image)
 
             result.add(result_laplace, prefix="laplace_many_")
         else:
-            result.noise_label = None
+            result.laplace_label = None
 
         if args.adv_attack == "after":
             full_name += "-after"
@@ -733,7 +736,7 @@ def run(args):
                 result.adv_timing = time.time() - start_adv
                 created_new_adversarial = True
             if adv_image is not None:
-                result_adv = show_image(
+                result_adv = classify_image(
                     image=adv_image,
                     original_image=original_image,
                     args=args,
@@ -890,17 +893,17 @@ def run(args):
     return result
 
 
-def randomized_defense(image, fmodel):
+def randomized_defense(image, fmodel, original_image=None):
     """
     The randomized defense.
 
     :param image: the adversarial image
     :param fmodel: the foolbox "wrapped" model
+    :param original_image: the original image
+
     :return: the result of the defense: recovered label, L2 distance, etc. in
     the result object.
     """
-    result = Object()
-    # This is the randomized defense.
     if args.noise_iterations > 0 or args.recover_iterations > 0:
         # Number of random trials and classifications to select the
         # final recovered class based on the plurality: the input image
@@ -923,12 +926,13 @@ def randomized_defense(image, fmodel):
             image=image,
             fmodel=fmodel,
             args=args,
-            iters=iters)
+            iters=iters,
+            original_image=original_image)
         print(
             f"Recovered label, id by {args.noise_iterations} iterations: ",
             result_noise.label, result_noise.class_id)
-        result.add(result_noise, prefix="noise_many_")
-    return result
+        return result_noise
+    return Object()
 
 
 def index_ranges(
@@ -1080,18 +1084,24 @@ if __name__ == "__main__":
                   "% base accuracy",
                   "% of adversarials",
                   "% recovered accuracy",
+                  "% recovered many accuracy",
                   "avg. L2 distance defense",
                   "avg. L1 distance defense",
                   "avg. Linf distance defense",
                   "avg. confidence defense",
+                  "avg. L2 distance defense many",
+                  "avg. L1 distance defense many",
+                  "avg. Linf distance defense many",
+                  "avg. confidence defense many",
                   "avg. L2 distance attack",
                   "avg. L1 distance attack",
                   "avg. Linf distance attack",
                   "avg. confidence attack",
                   "# of recovered",
+                  "# of recovered many",
                   "count adv",
                   "total adv",
-                  "adv time (sec)\n",
+                  "adv time (sec)",
                   "run time (sec)\n"]
         f.write(delimiter.join(header))
 
@@ -1133,12 +1143,17 @@ if __name__ == "__main__":
             # print("indexes: ", indexes)
             count_original = 0  # how many examples correctly classified by the base model
             count_recovered = 0
+            count_many_recovered = 0
             count_adv = 0  # count the number of adversarial examples that have label different than the ground truth
             total_adv = 0  # adversarial might return the correct label as the transformation can cause mis-prediction
             sum_L1_distance_defense = 0
             sum_L2_distance_defense = 0
             sum_Linf_distance_defense = 0
             sum_confidence_defense = 0
+            sum_L1_distance_defense_many = 0
+            sum_L2_distance_defense_many = 0
+            sum_Linf_distance_defense_many = 0
+            sum_confidence_defense_many = 0
             sum_L2_distance_adv = 0
             sum_L1_distance_adv = 0
             sum_Linf_distance_adv = 0
@@ -1201,6 +1216,13 @@ if __name__ == "__main__":
                     sum_L1_distance_defense += result_run.gauss_L1_distance
                     sum_Linf_distance_defense += result_run.gauss_Linf_distance
                     sum_confidence_defense += result_run.gauss_confidence
+                    if args.noise_iterations > 0 or args.recover_iterations > 0:
+                        if result_run.true_label == result_run.gauss_many_label:
+                            count_many_recovered += 1
+                        sum_L2_distance_defense_many += result_run.gauss_many_L2_distance
+                        sum_L1_distance_defense_many += result_run.gauss_many_L1_distance
+                        sum_Linf_distance_defense_many += result_run.gauss_many_Linf_distance
+                        sum_confidence_defense_many += result_run.noisegauss_confidence
                 elif args.recover_type == "noise":
                     if result_run.noise_label is not None:
                         if result_run.true_label == result_run.noise_label:
@@ -1209,6 +1231,13 @@ if __name__ == "__main__":
                         sum_L1_distance_defense += result_run.noise_L1_distance
                         sum_Linf_distance_defense += result_run.noise_Linf_distance
                         sum_confidence_defense += result_run.noise_confidence
+                    if args.noise_iterations > 0 or args.recover_iterations > 0:
+                        if result_run.true_label == result_run.noise_many_label:
+                            count_many_recovered += 1
+                        sum_L2_distance_defense_many += result_run.noise_many_L2_distance
+                        sum_L1_distance_defense_many += result_run.noise_many_L1_distance
+                        sum_Linf_distance_defense_many += result_run.noise_many_Linf_distance
+                        sum_confidence_defense_many += result_run.noise_many_confidence
                 elif args.recover_type == "laplace":
                     if result_run.laplace_label is not None:
                         if result_run.true_label == result_run.laplace_label:
@@ -1217,6 +1246,13 @@ if __name__ == "__main__":
                         sum_L1_distance_defense += result_run.laplace_L1_distance
                         sum_Linf_distance_defense += result_run.laplace_Linf_distance
                         sum_confidence_defense += result_run.laplace_confidence
+                    if args.noise_iterations > 0 or args.recover_iterations > 0:
+                        if result_run.true_label == result_run.laplace_many_label:
+                            count_many_recovered += 1
+                        sum_L2_distance_defense_many += result_run.laplace_many_L2_distance
+                        sum_L1_distance_defense_many += result_run.laplace_many_L1_distance
+                        sum_Linf_distance_defense_many += result_run.laplace_many_Linf_distance
+                        sum_confidence_defense_many += result_run.laplace_many_confidence
                 elif args.recover_type == "debug":
                     exit(0)
                 else:
@@ -1265,15 +1301,21 @@ if __name__ == "__main__":
                                          count_original / total_count * 100,
                                          count_adv / total_count * 100,
                                          count_recovered / total_count * 100,
+                                         count_many_recovered / total_count * 100,
                                          sum_L2_distance_defense / total_count,
                                          sum_L1_distance_defense / total_count,
                                          sum_Linf_distance_defense / total_count,
                                          sum_confidence_defense / total_count,
+                                         sum_L2_distance_defense_many / total_count,
+                                         sum_L1_distance_defense_many / total_count,
+                                         sum_Linf_distance_defense_many / total_count,
+                                         sum_confidence_defense_many / total_count,
                                          avg_L2_distance_adv,
                                          avg_L1_distance_adv,
                                          avg_Linf_distance_adv,
                                          avg_confidence_adv,
                                          count_recovered,
+                                         count_many_recovered,
                                          count_adv,
                                          total_adv,
                                          sum_adv_timing,

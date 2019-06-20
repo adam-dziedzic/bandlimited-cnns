@@ -60,14 +60,15 @@ class AdversarialRoundFFT(Adversarial):
         # transformation (for example, via the randomized/noisy channel or after
         # the FFT or color depth reduction (feature squeezing).
         predictions = self._Adversarial__model.predictions(adv_transformed)
+        assert predictions.ndim == 1
         # The whole inference should be given the initial adversarial (adv)
-        # example since the "noisy channel" is a part of the inference. Note,
-        # that the predictions are given from the network run with transfromed
+        # example since the "noisy channel" is a part of the inference. Note
+        # that the predictions are given from the network run with transformed
         # adversarial example.
         is_adversarial, is_best, distance = self._Adversarial__is_adversarial(
             adv, predictions, in_bounds)
 
-        assert predictions.ndim == 1
+
         if return_details:
             return predictions, is_adversarial, is_best, distance
         else:

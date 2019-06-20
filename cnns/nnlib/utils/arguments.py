@@ -341,7 +341,7 @@ class Arguments(object):
                  # recover_type="gauss",
                  step_size=1,
                  noise_iterations=0,
-                 many_noise_iterations=[0, 1, 2, 4, 8, 16, 32],
+                 many_noise_iterations=[1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048],
                  recover_iterations=-1,
                  many_recover_iterations=[0],
                  attack_max_iterations=100,

@@ -4,18 +4,21 @@ from cnns.nnlib.robustness.utils import uniform_noise
 from cnns.nnlib.robustness.utils import laplace_noise
 from cnns.nnlib.robustness.utils import gauss_noise
 from cnns.nnlib.robustness.utils import elem_wise_dist
+from cnns.nnlib.robustness.utils import most_frequent_class
 import numpy as np
 
 nprng = np.random.RandomState()
 
 
-def defend(image, fmodel, args, iters=None, is_batch=True):
+def defend(image, fmodel, args, iters=None, is_batch=True, original_image=None):
     """
     Recover the correct label.
 
     :param image: the input image (after attack)
     :param fmodel: a foolbox model
     :param args: the global arguments
+    :param original_image: the original image
+
     :return: the result object with selected label, distances and confidence
     """
     if iters is None:
@@ -24,9 +27,15 @@ def defend(image, fmodel, args, iters=None, is_batch=True):
 
     result = Object()
     result.confidence = 0
-    result.L1_distance = []
-    result.L2_distance = []
-    result.Linf_distance = []
+    if original_image is not None:
+        result.L1_distance = []
+        result.L2_distance = []
+        result.Linf_distance = []
+    else:
+        result.L1_distance = [-1]
+        result.L2_distance = [-1]
+        result.Linf_distance = [-1]
+
     avg_predictions = np.array([0.0] * args.num_classes)
     avg_confidence = np.array([0.0] * args.num_classes)
     class_id_counters = [0] * args.num_classes
@@ -70,10 +79,8 @@ def defend(image, fmodel, args, iters=None, is_batch=True):
         soft_predictions = softmax(agg_predictions)
 
         # We use the pluralism rule - find the most frequent class.
-        # 1. Get the max prediction from each random noise (row).
-        max_each_row = np.argmax(predictions, axis=0)
-        # 2. Get the most frequent class.
-        predicted_class_id = np.bincount(max_each_row).argmax()
+        predicted_class_id = most_frequent_class(predictions)
+
         # Alternatively, we could compute the final class from the soft
         # predictions.
         # predicted_class_id = np.argmax(soft_predictions)
@@ -82,21 +89,31 @@ def defend(image, fmodel, args, iters=None, is_batch=True):
         avg_confidence += soft_predictions
         class_id_counters[predicted_class_id] += 1
 
-        result.L2_distance = np.append(
-            result.L2_distance, elem_wise_dist(image, noise_images,
-                                               p=2, axis=axis))
-        result.L1_distance = np.append(
-            result.L1_distance, elem_wise_dist(image, noise_images,
-                                               p=1, axis=axis))
-        result.Linf_distance = np.append(
-            result.Linf_distance, elem_wise_dist(image, noise_images,
-                                                 p=float('inf'), axis=axis))
+        if original_image is not None:
+            for noise_image in noise_images:
+                L2 = args.meter.measure(original_image, noise_image, norm=2)
+                result.L2_distance.append(L2)
+                L1 = args.meter.measure(original_image, noise_image, norm=1)
+                result.L1_distance.append(L1)
+                Linf = args.meter.measure(original_image, noise_image,
+                                          norm=float('inf'))
+                result.Linf_distance.append(Linf)
+
+        # result.L2_distance = np.append(
+        # result.L2_distance, elem_wise_dist(image, noise_images,
+        #                                        p=2, axis=axis))
+        # result.L1_distance = np.append(
+        #     result.L1_distance, elem_wise_dist(image, noise_images,
+        #                                        p=1, axis=axis))
+        # result.Linf_distance = np.append(
+        #     result.Linf_distance, elem_wise_dist(image, noise_images,
+        #                                          p=float('inf'), axis=axis))
 
     result.class_id = np.argmax(np.array(class_id_counters))
     result.label = from_class_idx_to_label[result.class_id]
 
     avg_predictions /= iters
-    result.confidence = avg_confidence / iters
+    result.confidence = np.max(avg_confidence / iters)
 
     result.L2_distance = np.average(result.L2_distance)
     result.L1_distance = np.average(result.L1_distance)

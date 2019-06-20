@@ -27,6 +27,14 @@ def softmax(logits):
     return s
 
 
+def most_frequent_class(predictions):
+    # 1. Get the max prediction from each random noise (row).
+    max_each_row = np.argmax(predictions, axis=1)
+    # 2. Get the most frequent class.
+    predicted_class_id = np.bincount(max_each_row).argmax()
+    return predicted_class_id
+
+
 def softmax_from_torch(x):
     s = torch.nn.functional.softmax(torch.tensor(x, dtype=torch.float))
     return s.numpy()

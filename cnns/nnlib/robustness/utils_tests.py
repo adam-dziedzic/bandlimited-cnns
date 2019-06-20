@@ -3,6 +3,8 @@ import numpy as np
 import torch
 from cnns.nnlib.robustness.utils import elem_wise_dist
 from cnns.nnlib.robustness.utils import norm
+from cnns.nnlib.robustness.utils import most_frequent_class
+from cnns.nnlib.robustness.utils import elem_wise_dist
 from numpy.testing import assert_equal
 from numpy.testing import assert_allclose
 from numpy import linalg as LA
@@ -60,6 +62,29 @@ class TestUtils(unittest.TestCase):
             assert_allclose(actual=my_result, desired=la_result)
 
 
+    def test_most_frequent_class(self):
+        predictions = np.array([[1]])
+        class_id = most_frequent_class(predictions)
+        assert_equal(actual=class_id, desired=0)
+
+        predictions = np.array([[1,2,3,1,1]])
+        class_id = most_frequent_class(predictions)
+        assert_equal(actual=class_id, desired=2)
+
+        predictions = np.array([[1,2,1,4,1],[5,4,1,2,0],[1,1,0,2,1]])
+        class_id = most_frequent_class(predictions)
+        assert_equal(actual=class_id, desired=3)
+
+    def test_elem_wise_dist(self):
+        a = [1.0, 2, 3, 4, 1]
+        b = [3.0, 1, 2, 1, 5]
+        aa = np.array(a)
+        bb = np.array(b)
+        dist_desire = np.linalg.norm(aa - bb, ord=2)
+        aaa = np.array([[a]])
+        bbb = np.array([[[b]]])
+        dist_got = elem_wise_dist(aaa, bbb, p=2)
+        assert_equal(actual=dist_got, desired=dist_desire)
 
 if __name__ == '__main__':
     unittest.main()
