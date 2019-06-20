@@ -56,7 +56,14 @@ class AdversarialRoundFFT(Adversarial):
                             " max_bound: ", max_)
 
         self._total_prediction_calls += 1
+        # The predictions are computed for the adversarial example after the
+        # transformation (for example, via the randomized/noisy channel or after
+        # the FFT or color depth reduction (feature squeezing).
         predictions = self._Adversarial__model.predictions(adv_transformed)
+        # The whole inference should be given the initial adversarial (adv)
+        # example since the "noisy channel" is a part of the inference. Note,
+        # that the predictions are given from the network run with transfromed
+        # adversarial example.
         is_adversarial, is_best, distance = self._Adversarial__is_adversarial(
             adv, predictions, in_bounds)
 

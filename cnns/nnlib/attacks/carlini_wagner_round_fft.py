@@ -334,15 +334,23 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                     # Our defense does not rely on the logits/predictions but
                     # on pluralism method: class with the highest count is
                     # selected.
-                    logits = class_id_counters
+                    # logits = class_id_counters
 
                     in_bounds = self.roundfft_adversarial.in_bounds(x)
                     if in_bounds is False:
                         raise Exception("Not in bounds")
                     # To asses if this is an adversarial example we rely on the
                     # predictions/logits returned by the defense.
-                    is_adv, _, _ = self.roundfft_adversarial._Adversarial__is_adversarial(
-                        x, logits, in_bounds)
+                    original_class = self.roundfft_adversarial.original_class
+                    if result_noise.class_id != original_class:
+                        is_adv = True
+                        self.roundfft_adversarial._Adversarial__new_adversarial(
+                            image=x, predictions=predictions,
+                            in_bounds=in_bounds)
+                    else:
+                        is_adv = False
+                    # is_adv, _, _ = self.roundfft_adversarial._Adversarial__is_adin_bounds(
+                    #     x, logits, in_bounds)
                 else:
                     # x_prime = np.clip(x_prime, self.args.min, self.args.max)
                     # update the adversarial for the rounded version of the image

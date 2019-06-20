@@ -64,12 +64,21 @@ def defend(image, fmodel, args, iters=None, is_batch=True):
             args=args)
         noise_images = image + noise
         predictions = fmodel.batch_predictions(images=noise_images)
-        predictions = np.average(predictions, axis=0)
-        assert len(predictions) == args.num_classes
-        soft_predictions = softmax(predictions)
-        predicted_class_id = np.argmax(soft_predictions)
+        # Aggregate predictions via average.
+        agg_predictions = np.average(predictions, axis=0)
+        assert len(agg_predictions) == args.num_classes
+        soft_predictions = softmax(agg_predictions)
 
-        avg_predictions += predictions
+        # We use the pluralism rule - find the most frequent class.
+        # 1. Get the max prediction from each random noise (row).
+        max_each_row = np.argmax(predictions, axis=0)
+        # 2. Get the most frequent class.
+        predicted_class_id = np.bincount(max_each_row).argmax()
+        # Alternatively, we could compute the final class from the soft
+        # predictions.
+        # predicted_class_id = np.argmax(soft_predictions)
+
+        avg_predictions += agg_predictions
         avg_confidence += soft_predictions
         class_id_counters[predicted_class_id] += 1
 
