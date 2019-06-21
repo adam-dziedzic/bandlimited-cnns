@@ -1077,7 +1077,7 @@ if __name__ == "__main__":
         header = ["compress_" + args.recover_type + "_layer",
                   "total_count",
                   "recover iterations",
-                  "noise iterations",
+                  "noise iterxations",
                   "noise epsilon",
                   "laplace epsilon",
                   "attack max iterations",
@@ -1143,142 +1143,140 @@ if __name__ == "__main__":
         #     iterations = args.many_recover_iterations
         # elif args.many_attack_iterations
         for recover_iter in args.many_recover_iterations:
-        # for noise_iter in args.many_noise_iterations:
-        # for attack_iterations in args.many_attack_iterations:
-            # args.attack_max_iterations = attack_iterations
             args.recover_iterations = recover_iter
-            # args.noise_iterations = noise_iter
+            for noise_iter in args.many_noise_iterations:
+                args.noise_iterations = noise_iter
+                for attack_iterations in args.many_attack_iterations:
+                    args.attack_max_iterations = attack_iterations
 
-            # indexes = index_ranges([(0, 49999)])  # all validation ImageNet
-            # print("indexes: ", indexes)
-            count_original = 0  # how many examples correctly classified by the base model
-            count_recovered = 0
-            count_many_recovered = 0
-            count_adv = 0  # count the number of adversarial examples that have label different than the ground truth
-            total_adv = 0  # adversarial might return the correct label as the transformation can cause mis-prediction
-            sum_L1_distance_defense = 0
-            sum_L2_distance_defense = 0
-            sum_Linf_distance_defense = 0
-            sum_confidence_defense = 0
-            sum_L1_distance_defense_many = 0
-            sum_L2_distance_defense_many = 0
-            sum_Linf_distance_defense_many = 0
-            sum_confidence_defense_many = 0
-            sum_L2_distance_adv = 0
-            sum_L1_distance_adv = 0
-            sum_Linf_distance_adv = 0
-            sum_confidence_adv = 0
-            sum_adv_timing = 0
-            args.total_count = 0
+                    count_original = 0  # how many examples correctly classified by the base model
+                    count_recovered = 0
+                    count_many_recovered = 0
+                    count_adv = 0  # count the number of adversarial examples that have label different than the ground truth
+                    total_adv = 0  # adversarial might return the correct label as the transformation can cause mis-prediction
+                    sum_L1_distance_defense = 0
+                    sum_L2_distance_defense = 0
+                    sum_Linf_distance_defense = 0
+                    sum_confidence_defense = 0
+                    sum_L1_distance_defense_many = 0
+                    sum_L2_distance_defense_many = 0
+                    sum_Linf_distance_defense_many = 0
+                    sum_confidence_defense_many = 0
+                    sum_L2_distance_adv = 0
+                    sum_L1_distance_adv = 0
+                    sum_Linf_distance_adv = 0
+                    sum_confidence_adv = 0
+                    sum_adv_timing = 0
+                    args.total_count = 0
 
-            # for index in range(4950, -1, -50):
-            # for index in range(0, 5000, 50):
-            # for index in range(0, 20):
+                    # for index in range(4950, -1, -50):
+                    # for index in range(0, 5000, 50):
+                    # for index in range(0, 20):
 
-            run_time = 0
+                    run_time = 0
 
-            for image_index in index_range:
-                # for index in range(args.start_epoch, limit, step):
-                # for index in range(args.start_epoch, 5000, 50):
-                # for index in range(limit - step, args.start_epoch - 1, -step):
-                args.image_index = image_index
-                print("image index: ", image_index)
+                    for image_index in index_range:
+                        # for index in range(args.start_epoch, limit, step):
+                        # for index in range(args.start_epoch, 5000, 50):
+                        # for index in range(limit - step, args.start_epoch - 1, -step):
+                        args.image_index = image_index
+                        print("image index: ", image_index)
 
-                start = time.time()
+                        start = time.time()
 
-                result_run = run(args)
+                        result_run = run(args)
 
-                single_run_time = time.time() - start
+                        single_run_time = time.time() - start
 
-                args.total_count += 1
-                print("single run elapsed time: ", single_run_time)
-                run_time += single_run_time
+                        args.total_count += 1
+                        print("single run elapsed time: ", single_run_time)
+                        run_time += single_run_time
 
-                if args.show_original and result_run.original_label is not None:
-                    if result_run.true_label == result_run.original_label:
-                        count_original += 1
+                        if args.show_original and result_run.original_label is not None:
+                            if result_run.true_label == result_run.original_label:
+                                count_original += 1
 
-                if args.recover_type == "rounding":
-                    if result_run.round_label is not None:
-                        if result_run.true_label == result_run.round_label:
-                            count_recovered += 1
-                        sum_L2_distance_defense += result_run.round_L2_distance
-                        sum_L1_distance_defense += result_run.round_L1_distance
-                        sum_Linf_distance_defense += result_run.round_Linf_distance
-                        sum_confidence_defense += result_run.round_confidence
-                elif args.recover_type == "fft":
-                    if result_run.fft_label is not None:
-                        if result_run.true_label == result_run.fft_label:
-                            count_recovered += 1
-                        sum_L2_distance_defense += result_run.fft_L2_distance
-                        sum_L1_distance_defense += result_run.fft_L1_distance
-                        sum_Linf_distance_defense += result_run.fft_Linf_distance
-                        sum_confidence_defense += result_run.fft_confidence
-                elif args.recover_type == "roundfft":
-                    if result_run.fft_label is not None:
-                        if result_run.true_label == result_run.fft_label:
-                            count_recovered += 1
-                elif args.recover_type == "gauss":
-                    if result_run.gauss_label is not None:
-                        if result_run.true_label == result_run.gauss_label:
-                            count_recovered += 1
-                    sum_L2_distance_defense += result_run.gauss_L2_distance
-                    sum_L1_distance_defense += result_run.gauss_L1_distance
-                    sum_Linf_distance_defense += result_run.gauss_Linf_distance
-                    sum_confidence_defense += result_run.gauss_confidence
-                    if args.noise_iterations > 0 or args.recover_iterations > 0:
-                        if result_run.true_label == result_run.gauss_many_label:
-                            count_many_recovered += 1
-                        sum_L2_distance_defense_many += result_run.gauss_many_L2_distance
-                        sum_L1_distance_defense_many += result_run.gauss_many_L1_distance
-                        sum_Linf_distance_defense_many += result_run.gauss_many_Linf_distance
-                        sum_confidence_defense_many += result_run.noisegauss_confidence
-                elif args.recover_type == "noise":
-                    if result_run.noise_label is not None:
-                        if result_run.true_label == result_run.noise_label:
-                            count_recovered += 1
-                        sum_L2_distance_defense += result_run.noise_L2_distance
-                        sum_L1_distance_defense += result_run.noise_L1_distance
-                        sum_Linf_distance_defense += result_run.noise_Linf_distance
-                        sum_confidence_defense += result_run.noise_confidence
-                    if args.noise_iterations > 0 or args.recover_iterations > 0:
-                        if result_run.true_label == result_run.noise_many_label:
-                            count_many_recovered += 1
-                        sum_L2_distance_defense_many += result_run.noise_many_L2_distance
-                        sum_L1_distance_defense_many += result_run.noise_many_L1_distance
-                        sum_Linf_distance_defense_many += result_run.noise_many_Linf_distance
-                        sum_confidence_defense_many += result_run.noise_many_confidence
-                elif args.recover_type == "laplace":
-                    if result_run.laplace_label is not None:
-                        if result_run.true_label == result_run.laplace_label:
-                            count_recovered += 1
-                        sum_L2_distance_defense += result_run.laplace_L2_distance
-                        sum_L1_distance_defense += result_run.laplace_L1_distance
-                        sum_Linf_distance_defense += result_run.laplace_Linf_distance
-                        sum_confidence_defense += result_run.laplace_confidence
-                    if args.noise_iterations > 0 or args.recover_iterations > 0:
-                        if result_run.true_label == result_run.laplace_many_label:
-                            count_many_recovered += 1
-                        sum_L2_distance_defense_many += result_run.laplace_many_L2_distance
-                        sum_L1_distance_defense_many += result_run.laplace_many_L1_distance
-                        sum_Linf_distance_defense_many += result_run.laplace_many_Linf_distance
-                        sum_confidence_defense_many += result_run.laplace_many_confidence
-                elif args.recover_type == "debug":
-                    exit(0)
-                else:
-                    raise Exception(
-                        f"Unknown recover type: {args.recover_type}")
+                        if args.recover_type == "rounding":
+                            if result_run.round_label is not None:
+                                if result_run.true_label == result_run.round_label:
+                                    count_recovered += 1
+                                sum_L2_distance_defense += result_run.round_L2_distance
+                                sum_L1_distance_defense += result_run.round_L1_distance
+                                sum_Linf_distance_defense += result_run.round_Linf_distance
+                                sum_confidence_defense += result_run.round_confidence
+                        elif args.recover_type == "fft":
+                            if result_run.fft_label is not None:
+                                if result_run.true_label == result_run.fft_label:
+                                    count_recovered += 1
+                                sum_L2_distance_defense += result_run.fft_L2_distance
+                                sum_L1_distance_defense += result_run.fft_L1_distance
+                                sum_Linf_distance_defense += result_run.fft_Linf_distance
+                                sum_confidence_defense += result_run.fft_confidence
+                        elif args.recover_type == "roundfft":
+                            if result_run.fft_label is not None:
+                                if result_run.true_label == result_run.fft_label:
+                                    count_recovered += 1
+                        elif args.recover_type == "gauss":
+                            if result_run.gauss_label is not None:
+                                if result_run.true_label == result_run.gauss_label:
+                                    count_recovered += 1
+                            sum_L2_distance_defense += result_run.gauss_L2_distance
+                            sum_L1_distance_defense += result_run.gauss_L1_distance
+                            sum_Linf_distance_defense += result_run.gauss_Linf_distance
+                            sum_confidence_defense += result_run.gauss_confidence
+                            if args.noise_iterations > 0 or args.recover_iterations > 0:
+                                if result_run.true_label == result_run.gauss_many_label:
+                                    count_many_recovered += 1
+                                sum_L2_distance_defense_many += result_run.gauss_many_L2_distance
+                                sum_L1_distance_defense_many += result_run.gauss_many_L1_distance
+                                sum_Linf_distance_defense_many += result_run.gauss_many_Linf_distance
+                                sum_confidence_defense_many += result_run.noisegauss_confidence
+                        elif args.recover_type == "noise":
+                            if result_run.noise_label is not None:
+                                if result_run.true_label == result_run.noise_label:
+                                    count_recovered += 1
+                                sum_L2_distance_defense += result_run.noise_L2_distance
+                                sum_L1_distance_defense += result_run.noise_L1_distance
+                                sum_Linf_distance_defense += result_run.noise_Linf_distance
+                                sum_confidence_defense += result_run.noise_confidence
+                            if args.noise_iterations > 0 or args.recover_iterations > 0:
+                                if result_run.true_label == result_run.noise_many_label:
+                                    count_many_recovered += 1
+                                sum_L2_distance_defense_many += result_run.noise_many_L2_distance
+                                sum_L1_distance_defense_many += result_run.noise_many_L1_distance
+                                sum_Linf_distance_defense_many += result_run.noise_many_Linf_distance
+                                sum_confidence_defense_many += result_run.noise_many_confidence
+                        elif args.recover_type == "laplace":
+                            if result_run.laplace_label is not None:
+                                if result_run.true_label == result_run.laplace_label:
+                                    count_recovered += 1
+                                sum_L2_distance_defense += result_run.laplace_L2_distance
+                                sum_L1_distance_defense += result_run.laplace_L1_distance
+                                sum_Linf_distance_defense += result_run.laplace_Linf_distance
+                                sum_confidence_defense += result_run.laplace_confidence
+                            if args.noise_iterations > 0 or args.recover_iterations > 0:
+                                if result_run.true_label == result_run.laplace_many_label:
+                                    count_many_recovered += 1
+                                sum_L2_distance_defense_many += result_run.laplace_many_L2_distance
+                                sum_L1_distance_defense_many += result_run.laplace_many_L1_distance
+                                sum_Linf_distance_defense_many += result_run.laplace_many_Linf_distance
+                                sum_confidence_defense_many += result_run.laplace_many_confidence
+                        elif args.recover_type == "debug":
+                            exit(0)
+                        else:
+                            raise Exception(
+                                f"Unknown recover type: {args.recover_type}")
 
-                if result_run.adv_label is not None:
-                    if result_run.true_label != result_run.adv_label:
-                        count_adv += 1
-                    total_adv += 1
-                    # Aggregate the statistics about the attack.
-                    sum_L2_distance_adv += result_run.adv_L2_distance
-                    sum_L1_distance_adv += result_run.adv_L1_distance
-                    sum_Linf_distance_adv += result_run.adv_Linf_distance
-                    sum_confidence_adv += result_run.adv_confidence
-                    sum_adv_timing += result_run.adv_timing
+                        if result_run.adv_label is not None:
+                            if result_run.true_label != result_run.adv_label:
+                                count_adv += 1
+                            total_adv += 1
+                            # Aggregate the statistics about the attack.
+                            sum_L2_distance_adv += result_run.adv_L2_distance
+                            sum_L1_distance_adv += result_run.adv_L1_distance
+                            sum_Linf_distance_adv += result_run.adv_Linf_distance
+                            sum_confidence_adv += result_run.adv_confidence
+                            sum_adv_timing += result_run.adv_timing
 
             total_count = args.total_count
 
