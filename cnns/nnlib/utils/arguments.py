@@ -66,7 +66,7 @@ else:
     # dataset = "imagenet"
     # dataset = "svhn"
 
-    batch_size = 1
+    batch_size = 16
     # test_batch_size = batch_size
     # test_batch_size = 256
     test_batch_size = batch_size
@@ -333,21 +333,21 @@ class Arguments(object):
                  interpolate="const",
                  # recover_type="rounding",
                  # recover_type="fft",
-                 # recover_type="noise",
-                 recover_type="laplace",
+                 recover_type="noise",
+                 # recover_type="laplace",
                  # recover_type="debug",
                  noise_epsilon=0.0,
-                 noise_epsilons=[0.0],
+                 noise_epsilons=[0.04],
                  # recover_type="gauss",
                  step_size=1,
                  noise_iterations=0,
                  many_noise_iterations=[0],
                  recover_iterations=-1,
-                 many_recover_iterations=[0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048],
+                 many_recover_iterations=[16, 32, 64, 128, 256, 512, 1024, 2048],
                  attack_max_iterations=100,
                  many_attack_iterations=[100],
                  laplace_epsilon=0.04,
-                 laplace_epsilons=[0.04],
+                 laplace_epsilons=[0.0],
                  is_DC_shift=False,
                  use_foolbox_data=True,
                  ):

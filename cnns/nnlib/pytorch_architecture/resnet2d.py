@@ -21,6 +21,7 @@ from cnns.nnlib.datasets.cifar import cifar_std, cifar_mean
 from cnns.nnlib.datasets.svhn import svhn_std, svhn_mean
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_std, \
     imagenet_mean
+from cnns.nnlib.robustness.utils import AdditiveLaplaceNoiseAttack
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152']
@@ -185,16 +186,22 @@ class ResNet(nn.Module):
             self.band = lambda x: x
 
         if args.noise_sigma > 0:
-            self.noise = Noise(args=args)
+            self.gauss = Noise(args=args)
         else:
             # identity function
-            self.noise = lambda x: x
+            self.gauss = lambda x: x
 
         if args.noise_epsilon > 0:
             self.noise = Noise(args=args)
         else:
             # identity function
             self.noise = lambda x: x
+
+        if args.laplace_epsilon > 0:
+            self.laplace = AdditiveLaplaceNoiseAttack(args=args)
+        else:
+            # identity function
+            self.laplace = lambda x: x
 
 
         self.bn1 = nn.BatchNorm2d(64)
@@ -256,6 +263,10 @@ class ResNet(nn.Module):
             x = self.band(x)
         elif self.args.attack_type == AttackType.NOISE_ONLY:
             x = self.noise(x)
+        elif self.args.attack_type == AttackType.GAUSS_ONLY:
+            x = self.gauss(x)
+        elif self.args.attack_type == AttackType.LAPLACE_ONLY:
+            x = self.laplace(x)
         elif self.args.attack_type == AttackType.RECOVERY:
             pass
         else:

@@ -12,11 +12,11 @@ from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
 from cnns.nnlib.datasets.cifar import cifar_min
 from cnns.nnlib.datasets.cifar import cifar_max
 from cnns.nnlib.datasets.transformations.rounding import RoundingTransformation
-from cnns.nnlib.pytorch_architecture.get_model_architecture import \
-    getModelPyTorch
+
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_phase
 from cnns.nnlib.utils.shift_DC_component import shift_DC
+from foolbox.attacks.additive_noise import AdditiveNoiseAttack
 
 nprng = np.random.RandomState()
 
@@ -69,6 +69,20 @@ def gauss_noise(epsilon, shape, dtype, args):
     noise = noise.astype(dtype)
     return noise
 
+
+class AdditiveLaplaceNoiseAttack(AdditiveNoiseAttack):
+    """Adds uniform noise to the image, gradually increasing
+    the standard deviation until the image is misclassified.
+
+    """
+
+    def __init__(self, args):
+        super(AdditiveLaplaceNoiseAttack, self).__init__()
+        self.args = args
+
+    def _sample_noise(self, epsilon, image, bounds):
+        return laplace_noise(epsilon=epsilon, shape=image.shape,
+                             dtype=image.dtype, args=self.args)
 
 def laplace_noise(epsilon, shape, dtype, args):
     """
@@ -223,23 +237,6 @@ def unnormalize(x, mean=cifar_mean_array, std=cifar_std_array):
     result += mean
     result = np.clip(result, 0.0, 1.0)
     return result
-
-
-def load_model(args):
-    model = getModelPyTorch(args=args)
-    # load pretrained weights
-    models_folder_name = "models"
-    models_dir = os.path.join(os.getcwd(), os.path.pardir,
-                              "pytorch_experiments", models_folder_name)
-    if args.model_path != "no_model":
-        model.load_state_dict(
-            torch.load(os.path.join(models_dir, args.model_path),
-                       map_location=args.device))
-        msg = "loaded model: " + args.model_path
-        # logger.info(msg)
-        # print(msg)
-    return model.eval()
-
 
 def get_foolbox_model(args, model_path, compress_rate=0, min=cifar_min,
                       max=cifar_max):

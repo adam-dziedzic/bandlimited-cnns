@@ -1,7 +1,3 @@
-from cnns.nnlib.pytorch_architecture.le_net import LeNet
-from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
-from cnns.nnlib.pytorch_architecture.densenet import densenet_cifar
-from cnns.nnlib.pytorch_architecture.fcnn import FCNNPytorch
 from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.general_utils import AttackType
 from cnns.nnlib.utils.general_utils import ConvExecType

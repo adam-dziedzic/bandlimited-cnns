@@ -6,7 +6,7 @@ from cnns.nnlib.robustness.utils import gauss_noise
 from cnns.nnlib.robustness.utils import elem_wise_dist
 from cnns.nnlib.robustness.utils import most_frequent_class
 import numpy as np
-
+from cnns.nnlib.datasets.transformations.denormalize import Denormalize
 nprng = np.random.RandomState()
 
 
@@ -89,26 +89,36 @@ def defend(image, fmodel, args, iters=None, is_batch=True, original_image=None):
         avg_confidence += soft_predictions
         class_id_counters[predicted_class_id] += 1
 
-        if original_image is not None:
-            for noise_image in noise_images:
-                L2 = args.meter.measure(original_image, noise_image, norm=2)
-                result.L2_distance.append(L2)
-                L1 = args.meter.measure(original_image, noise_image, norm=1)
-                result.L1_distance.append(L1)
-                Linf = args.meter.measure(original_image, noise_image,
-                                          norm=float('inf'))
-                result.Linf_distance.append(Linf)
-
-        # result.L2_distance = np.append(
-        # result.L2_distance, elem_wise_dist(image, noise_images,
-        #                                        p=2, axis=axis))
-        # result.L1_distance = np.append(
-        #     result.L1_distance, elem_wise_dist(image, noise_images,
-        #                                        p=1, axis=axis))
-        # result.Linf_distance = np.append(
-        #     result.Linf_distance, elem_wise_dist(image, noise_images,
-        #                                          p=float('inf'), axis=axis))
-
+        batch_mode = True
+        if batch_mode:
+            denorm_original_image = args.denormalizer.denormalize(original_image)
+            denormalizer_noise_images = Denormalize(
+                mean_array=np.expand_dims(args.mean_array, axis=0),
+                std_array=np.expand_dims(args.std_array, axis=0))
+            denorm_noise_images = denormalizer_noise_images.denormalize(
+                noise_images)
+            result.L2_distance = np.append(
+            result.L2_distance, elem_wise_dist(
+                denorm_original_image, denorm_noise_images, p=2, axis=axis))
+            print('result L2 distance batch: ', result.L2_distance)
+            result.L1_distance = np.append(
+                result.L1_distance, elem_wise_dist(
+                    denorm_original_image, denorm_noise_images, p=1, axis=axis))
+            result.Linf_distance = np.append(
+                result.Linf_distance, elem_wise_dist(
+                    denorm_original_image, denorm_noise_images, p=float('inf'),
+                    axis=axis))
+        else:
+            if original_image is not None:
+                for noise_image in noise_images:
+                    L2 = args.meter.measure(original_image, noise_image, norm=2)
+                    result.L2_distance.append(L2)
+                    L1 = args.meter.measure(original_image, noise_image, norm=1)
+                    result.L1_distance.append(L1)
+                    Linf = args.meter.measure(original_image, noise_image,
+                                              norm=float('inf'))
+                    result.Linf_distance.append(Linf)
+                print('result L2 distance iterative: ', result.L2_distance)
     result.class_id = np.argmax(np.array(class_id_counters))
     result.label = from_class_idx_to_label[result.class_id]
 

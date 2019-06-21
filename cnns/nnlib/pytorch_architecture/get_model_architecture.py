@@ -6,7 +6,7 @@ from cnns.nnlib.pytorch_architecture.densenet import densenet_cifar
 from cnns.nnlib.pytorch_architecture.fcnn import FCNNPytorch
 from cnns.nnlib.utils.general_utils import NetworkType
 
-def getModelPyTorch(args):
+def getModelPyTorch(args, pretrained=False):
     """
     Get the PyTorch version of the FCNN model.
     :param input_size: the length (width) of the time series.
@@ -30,10 +30,10 @@ def getModelPyTorch(args):
             args.out_channels = [128, 256, 128]
         return FCNNPytorch(args=args)
     elif network_type == NetworkType.ResNet18:
-        return resnet18(args=args)
+        return resnet18(args=args, pretrained=pretrained)
     elif network_type == NetworkType.DenseNetCifar:
         return densenet_cifar(args=args)
     elif network_type == NetworkType.ResNet50:
-        return resnet50_imagenet(args=args)
+        return resnet50_imagenet(args=args, pretrained=pretrained)
     else:
         raise Exception("Unknown network_type: ", network_type)

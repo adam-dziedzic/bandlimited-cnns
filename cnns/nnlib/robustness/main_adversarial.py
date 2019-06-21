@@ -14,11 +14,9 @@ print("Using:", matplotlib_backend.backend)
 import time
 import matplotlib.pyplot as plt
 import os
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 import foolbox
 import numpy as np
 import torch
-import torchvision.models as models
 from cnns.nnlib.datasets.imagenet.imagenet_from_class_idx_to_label import \
     imagenet_from_class_idx_to_label
 from cnns.nnlib.datasets.cifar10_from_class_idx_to_label import \
@@ -26,8 +24,7 @@ from cnns.nnlib.datasets.cifar10_from_class_idx_to_label import \
 from cnns.nnlib.utils.exec_args import get_args
 from cnns.nnlib.datasets.cifar import get_cifar
 from cnns.nnlib.datasets.mnist.mnist import get_mnist
-# from scipy.special import softmax
-from cnns.nnlib.robustness.utils import load_model
+from cnns.nnlib.utils.model_utils import load_model
 from cnns.nnlib.datasets.cifar import cifar_max, cifar_min
 from cnns.nnlib.datasets.cifar import cifar_std_array, cifar_mean_array
 from cnns.nnlib.datasets.cifar import cifar_mean_mean
@@ -44,29 +41,20 @@ from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_mean_mean
 from cnns.nnlib.attacks.carlini_wagner_round_fft import \
     CarliniWagnerL2AttackRoundFFT
 from cnns.nnlib.utils.general_utils import get_log_time
-from cnns.nnlib.datasets.transformations.denorm_round_norm import \
-    DenormRoundNorm
 from cnns.nnlib.datasets.transformations.normalize import Normalize
 from cnns.nnlib.datasets.transformations.denormalize import Denormalize
-from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.datasets.transformations.denorm_distance import DenormDistance
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
-from cnns.nnlib.utils.complex_mask import get_disk_mask
 from cnns.nnlib.utils.complex_mask import get_hyper_mask
-from cnns.nnlib.utils.general_utils import AttackType
-from cnns.nnlib.datasets.transformations.gaussian_noise import gauss
 from foolbox.attacks.additive_noise import AdditiveUniformNoiseAttack
 from foolbox.attacks.additive_noise import AdditiveGaussianNoiseAttack
 from cnns.nnlib.utils.object import Object
 from cnns.nnlib.robustness.utils import softmax
 from cnns.nnlib.robustness.utils import to_fft
 from cnns.nnlib.robustness.utils import laplace_noise
-from cnns.nnlib.robustness.utils import to_fft_magnitude
-from cnns.nnlib.robustness.utils import to_fft_phase
-from cnns.nnlib.robustness.utils import softmax_from_torch
 from cnns.nnlib.robustness.randomized_defense import defend
-from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBandFunction2D
 import matplotlib
+import torchvision.models as models
 
 results_folder = "results/"
 delimiter = ";"
@@ -81,8 +69,7 @@ def get_fmodel(args):
     if args.dataset == "imagenet":
         args.cmap = None
         args.init_y, args.init_x = 224, 224
-        network_model = models.resnet50(
-            pretrained=True).cuda().eval()  # for CPU, remove cuda()
+
         min = imagenet_min
         max = imagenet_max
         args.min = min
@@ -91,6 +78,10 @@ def get_fmodel(args):
         args.mean_mean = imagenet_mean_mean
         args.std_array = imagenet_std_array
         args.num_classes = 1000
+
+        network_model = models.resnet50(pretrained=True).eval().to(device=args.device)
+        # network_model = load_model(args=args, pretrained=True)
+
         from_class_idx_to_label = imagenet_from_class_idx_to_label
 
     elif args.dataset == "cifar10":
@@ -282,11 +273,11 @@ def classify_image(image, original_image, args, title="",
     if args.is_debug:
         # Set the lim_y and lim_x in args.
         get_cmap(args=args)
-        True_label = args.True_label
+        true_label = args.true_label
         print("Number of unique values: ", len(np.unique(image)))
         print(title + ": model predicted label: ", predicted_label)
-        if predicted_label != True_label:
-            print(f"The True label: {True_label} is different than "
+        if predicted_label != true_label:
+            print(f"The True label: {true_label} is different than "
                   f"the predicted label: {predicted_label}")
         print(title)
         title_str = title
@@ -516,10 +507,10 @@ def run(args):
         if args.dataset == "mnist":
             args.True_class_id = args.True_class_id.item()
 
-        args.True_label = from_class_idx_to_label[args.True_class_id]
-        result.True_label = args.True_label
+        args.true_label = from_class_idx_to_label[args.True_class_id]
+        result.true_label = args.true_label
         print("True class id:", args.True_class_id, ", is label: ",
-              args.True_label)
+              args.true_label)
 
         # original image.
         if args.show_original:
@@ -567,10 +558,10 @@ def run(args):
             print("attack name: ", attack_name)
             # if attack_name != "carliniwagnerl2attack":
             full_name += "-" + str(attack_name)
-            if attack_name == "carliniwagnerl2attackroundfft":
+            if attack_name == "CarliniWagnerL2AttackRoundFFT":
                 full_name += "-" + str(args.recover_type)
             print("full name of stored adversarial example: ", full_name)
-            if attack_name != "carliniwagnerl2attackroundfft" and (
+            if attack_name != "CarliniWagnerL2AttackRoundFFT" and (
                     os.path.exists(full_name + ".npy")):
                 adv_image = np.load(file=full_name + ".npy")
                 result.adv_timing = -1
@@ -661,8 +652,10 @@ def run(args):
                 title=title)
             result.add(result_gauss, prefix="gauss_")
 
+            start_time = time.time()
             result_noise = randomized_defense(image=image, fmodel=fmodel,
                                               original_image=original_image)
+            result.time_gauss_defend = time.time() - start_time
 
             result.add(result_noise, prefix="gauss_many_")
         else:
@@ -672,7 +665,7 @@ def run(args):
             print("uniform noise defense")
             l2_dist_adv_original = args.meter.measure(original_image, image)
             print(
-                "l2 distance between image (potentiall adversarial) and "
+                "l2 distance between image (potential adversarial) and "
                 "original images: ",
                 l2_dist_adv_original)
             # title = "level of uniform noise: " + str(args.noise_epsilon)
@@ -690,8 +683,10 @@ def run(args):
                   result_noise.label, result_noise.class_id)
             result.add(result_noise, prefix="noise_")
 
+            start_time_defend = time.time()
             result_noise = randomized_defense(image=image, fmodel=fmodel,
                                               original_image=original_image)
+            result.time_noise_defend = time.time() - start_time_defend
 
             result.add(result_noise, prefix="noise_many_")
         else:
@@ -714,8 +709,10 @@ def run(args):
                   result_laplace.label, result_laplace.class_id)
             result.add(result_laplace, prefix="laplace_")
 
+            start_time = time.time()
             result_laplace = randomized_defense(image=image, fmodel=fmodel,
                                                 original_image=original_image)
+            result.time_laplace_defend = time.time() - start_time
 
             result.add(result_laplace, prefix="laplace_many_")
         else:
@@ -749,7 +746,7 @@ def run(args):
             adv_image = None
 
         if adv_image is not None and (created_new_adversarial) and (
-                attack_name != "carliniwagnerl2attackroundfft"):
+                attack_name != "CarliniWagnerL2AttackRoundFFT"):
             np.save(file=full_name + ".npy", arr=adv_image)
 
         if show_diff:
@@ -1102,6 +1099,7 @@ if __name__ == "__main__":
                   "count adv",
                   "total adv",
                   "adv time (sec)",
+                  "defend time (sec)",
                   "run time (sec)\n"]
         f.write(delimiter.join(header))
 
@@ -1167,6 +1165,7 @@ if __name__ == "__main__":
                     sum_Linf_distance_adv = 0
                     sum_confidence_adv = 0
                     sum_adv_timing = 0
+                    sum_defend_timing = 0
                     args.total_count = 0
 
                     # for index in range(4950, -1, -50):
@@ -1193,12 +1192,12 @@ if __name__ == "__main__":
                         run_time += single_run_time
 
                         if args.show_original and result_run.original_label is not None:
-                            if result_run.True_label == result_run.original_label:
+                            if result_run.true_label == result_run.original_label:
                                 count_original += 1
 
                         if args.recover_type == "rounding":
                             if result_run.round_label is not None:
-                                if result_run.True_label == result_run.round_label:
+                                if result_run.true_label == result_run.round_label:
                                     count_recovered += 1
                                 sum_L2_distance_defense += result_run.round_L2_distance
                                 sum_L1_distance_defense += result_run.round_L1_distance
@@ -1206,7 +1205,7 @@ if __name__ == "__main__":
                                 sum_confidence_defense += result_run.round_confidence
                         elif args.recover_type == "fft":
                             if result_run.fft_label is not None:
-                                if result_run.True_label == result_run.fft_label:
+                                if result_run.true_label == result_run.fft_label:
                                     count_recovered += 1
                                 sum_L2_distance_defense += result_run.fft_L2_distance
                                 sum_L1_distance_defense += result_run.fft_L1_distance
@@ -1214,53 +1213,56 @@ if __name__ == "__main__":
                                 sum_confidence_defense += result_run.fft_confidence
                         elif args.recover_type == "roundfft":
                             if result_run.fft_label is not None:
-                                if result_run.True_label == result_run.fft_label:
+                                if result_run.true_label == result_run.fft_label:
                                     count_recovered += 1
                         elif args.recover_type == "gauss":
                             if result_run.gauss_label is not None:
-                                if result_run.True_label == result_run.gauss_label:
+                                if result_run.true_label == result_run.gauss_label:
                                     count_recovered += 1
                             sum_L2_distance_defense += result_run.gauss_L2_distance
                             sum_L1_distance_defense += result_run.gauss_L1_distance
                             sum_Linf_distance_defense += result_run.gauss_Linf_distance
                             sum_confidence_defense += result_run.gauss_confidence
                             if args.noise_iterations > 0 or args.recover_iterations > 0:
-                                if result_run.True_label == result_run.gauss_many_label:
+                                if result_run.true_label == result_run.gauss_many_label:
                                     count_many_recovered += 1
                                 sum_L2_distance_defense_many += result_run.gauss_many_L2_distance
                                 sum_L1_distance_defense_many += result_run.gauss_many_L1_distance
                                 sum_Linf_distance_defense_many += result_run.gauss_many_Linf_distance
-                                sum_confidence_defense_many += result_run.noisegauss_confidence
+                                sum_confidence_defense_many += result_run.gauss_many_confidence
+                                sum_defend_timing += result_run.time_gauss_defend
                         elif args.recover_type == "noise":
                             if result_run.noise_label is not None:
-                                if result_run.True_label == result_run.noise_label:
+                                if result_run.true_label == result_run.noise_label:
                                     count_recovered += 1
                                 sum_L2_distance_defense += result_run.noise_L2_distance
                                 sum_L1_distance_defense += result_run.noise_L1_distance
                                 sum_Linf_distance_defense += result_run.noise_Linf_distance
                                 sum_confidence_defense += result_run.noise_confidence
                             if args.noise_iterations > 0 or args.recover_iterations > 0:
-                                if result_run.True_label == result_run.noise_many_label:
+                                if result_run.true_label == result_run.noise_many_label:
                                     count_many_recovered += 1
                                 sum_L2_distance_defense_many += result_run.noise_many_L2_distance
                                 sum_L1_distance_defense_many += result_run.noise_many_L1_distance
                                 sum_Linf_distance_defense_many += result_run.noise_many_Linf_distance
                                 sum_confidence_defense_many += result_run.noise_many_confidence
+                                sum_defend_timing += result_run.time_noise_defend
                         elif args.recover_type == "laplace":
                             if result_run.laplace_label is not None:
-                                if result_run.True_label == result_run.laplace_label:
+                                if result_run.true_label == result_run.laplace_label:
                                     count_recovered += 1
                                 sum_L2_distance_defense += result_run.laplace_L2_distance
                                 sum_L1_distance_defense += result_run.laplace_L1_distance
                                 sum_Linf_distance_defense += result_run.laplace_Linf_distance
                                 sum_confidence_defense += result_run.laplace_confidence
                             if args.noise_iterations > 0 or args.recover_iterations > 0:
-                                if result_run.True_label == result_run.laplace_many_label:
+                                if result_run.true_label == result_run.laplace_many_label:
                                     count_many_recovered += 1
                                 sum_L2_distance_defense_many += result_run.laplace_many_L2_distance
                                 sum_L1_distance_defense_many += result_run.laplace_many_L1_distance
                                 sum_Linf_distance_defense_many += result_run.laplace_many_Linf_distance
                                 sum_confidence_defense_many += result_run.laplace_many_confidence
+                                sum_defend_timing += result_run.time_laplace_defend
                         elif args.recover_type == "debug":
                             exit(0)
                         else:
@@ -1268,7 +1270,7 @@ if __name__ == "__main__":
                                 f"Unknown recover type: {args.recover_type}")
 
                         if result_run.adv_label is not None:
-                            if result_run.True_label != result_run.adv_label:
+                            if result_run.true_label != result_run.adv_label:
                                 count_adv += 1
                             total_adv += 1
                             # Aggregate the statistics about the attack.
@@ -1327,6 +1329,7 @@ if __name__ == "__main__":
                                          count_adv,
                                          total_adv,
                                          sum_adv_timing,
+                                         sum_defend_timing,
                                          run_time]]) + "\n")
 
     print("total elapsed time: ", time.time() - start_time)

@@ -2,6 +2,7 @@ import torch
 from torch.nn import Module
 from foolbox.attacks.additive_noise import AdditiveUniformNoiseAttack
 from foolbox.attacks.additive_noise import AdditiveGaussianNoiseAttack
+from cnns.nnlib.robustness.utils import AdditiveLaplaceNoiseAttack
 import numpy as np
 
 
@@ -70,6 +71,9 @@ class Noise(Module):
         elif args.noise_epsilon > 0:
             self.noiser = AdditiveUniformNoiseAttack()
             self.noise_level = args.noise_epsilon
+        elif args.laplace_epsilon > 0:
+            self.noiser = AdditiveLaplaceNoiseAttack()
+            self.noise_level = args.laplace_epsilon
         self.min = args.min
         self.max = args.max
 
