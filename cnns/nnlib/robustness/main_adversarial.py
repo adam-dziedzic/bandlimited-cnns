@@ -282,11 +282,11 @@ def classify_image(image, original_image, args, title="",
     if args.is_debug:
         # Set the lim_y and lim_x in args.
         get_cmap(args=args)
-        true_label = args.true_label
+        True_label = args.True_label
         print("Number of unique values: ", len(np.unique(image)))
         print(title + ": model predicted label: ", predicted_label)
-        if predicted_label != true_label:
-            print(f"The true label: {true_label} is different than "
+        if predicted_label != True_label:
+            print(f"The True label: {True_label} is different than "
                   f"the predicted label: {predicted_label}")
         print(title)
         title_str = title
@@ -425,45 +425,50 @@ def run(args):
     else:
         raise Exception("Unknown attack name: " + str(args.attack_name))
     attacks = [attack]
-    # 1 is for the first row of images.
-    rows = len(attacks) * (1 + len(fft_types) * len(channels))
-    cols = 1  # print at least the original image
-    if args.values_per_channel > 0:
-        cols += 1
-    if args.compress_fft_layer > 0:
-        cols += 1
-    if args.noise_sigma > 0:
-        cols += 1
-    if args.noise_epsilon > 0:
-        cols += 1
-    if args.laplace_epsilon > 0:
-        cols += 1
-    if args.adv_attack is not None:
-        cols += 1
-    show_diff = False
-    if show_diff:
-        col_diff = 2
-        cols += col_diff
-    show_2nd = False  # show 2nd image
-    if show_2nd:
-        col_diff2nd = 3
-        cols += col_diff2nd
 
-    # args.rows = rows
-    # args.cols = cols
-    args.rows = 1
-    args.cols = 2
-    # plt.figure(figsize=(cols * 10, rows * 10))
-    # This returns the fig object.
-    plt.figure()
+    if args.is_debug:
+        # 1 is for the first row of images.
+        rows = len(attacks) * (1 + len(fft_types) * len(channels))
+        cols = 1  # print at least the original image
+        if args.values_per_channel > 0:
+            cols += 1
+        if args.compress_fft_layer > 0:
+            cols += 1
+        if args.noise_sigma > 0:
+            cols += 1
+        if args.noise_epsilon > 0:
+            cols += 1
+        if args.laplace_epsilon > 0:
+            cols += 1
+        if args.adv_attack is not None:
+            cols += 1
+        show_diff = False
+        if show_diff:
+            col_diff = 2
+            cols += col_diff
+        show_2nd = False  # show 2nd image
+        if show_2nd:
+            col_diff2nd = 3
+            cols += col_diff2nd
+
+        # args.rows = rows
+        # args.cols = cols
+        args.rows = 1
+        args.cols = 2
+        # plt.figure(figsize=(cols * 10, rows * 10))
+        # This returns the fig object.
+        plt.figure()
+
+        # index for each subplot
+        args.plot_index = 0
+    else:
+        show_2nd = False
+        show_diff = False
 
     if False:
         args.rows = 3
         args.cols = 2
         plt.figure(figsize=(cols * 2, rows * 21))
-
-    # index for each subplot
-    args.plot_index = 0
 
     args.normalizer = Normalize(mean_array=args.mean_array,
                                 std_array=args.std_array)
@@ -480,66 +485,59 @@ def run(args):
         print("max value in images pixels: ", np.max(images))
         images = images / 255
         print("max value in images after 255 division: ", np.max(images))
-    elif args.dataset == "imagenet":
-        train_loader, test_loader, train_dataset, test_dataset = load_imagenet(
-            args)
-    elif args.dataset == "cifar10":
-        train_loader, test_loader, train_dataset, test_dataset = get_cifar(
-            args, args.dataset)
-    elif args.dataset == "mnist":
-        train_loader, test_loader, train_dataset, test_dataset = get_mnist(args)
+
 
     for attack in attacks:
         # get source image and label, args.idx - is the index of the image
         # image, label = foolbox.utils.imagenet_example()
         if args.use_foolbox_data:
-            original_image, args.true_class_id = images[args.image_index], \
+            original_image, args.True_class_id = images[args.image_index], \
                                                  labels[
                                                      args.image_index]
             original_image = original_image.astype(np.float32)
 
-            # Normalize the data for the Pytorch models.
+            # normalize the data for the pytorch models.
             original_image = args.normalizer.normalize(original_image)
 
             if show_2nd:
-                original_image2, args.true_class_id2 = images[
+                original_image2, args.True_class_id2 = images[
                                                            args.image_index + 1], \
                                                        labels[
                                                            args.image_index + 1]
                 original_image = original_image.astype(np.float32)
 
-                # Normalize the data for the Pytorch models.
+                # normalize the data for the pytorch models.
                 original_image2 = args.normalizer.normalize(original_image2)
         else:
-            original_image, args.true_class_id = test_dataset.__getitem__(
+            original_image, args.True_class_id = test_dataset.__getitem__(
                 args.image_index)
             original_image = original_image.numpy()
 
         if args.dataset == "mnist":
-            args.true_class_id = args.true_class_id.item()
+            args.True_class_id = args.True_class_id.item()
 
-        args.true_label = from_class_idx_to_label[args.true_class_id]
-        result.true_label = args.true_label
-        print("true class id:", args.true_class_id, ", is label: ",
-              args.true_label)
+        args.True_label = from_class_idx_to_label[args.True_class_id]
+        result.True_label = args.True_label
+        print("True class id:", args.True_class_id, ", is label: ",
+              args.True_label)
 
-        # Original image.
+        # original image.
         if args.show_original:
-            original_title = "Original"
+            original_title = "original"
             original_result = classify_image(
                 image=original_image,
                 original_image=original_image,
                 args=args,
                 title=original_title)
             result.add(original_result, prefix="original_")
-            print("Label for the original image: ", original_result.label)
+            print("label for the original image: ", original_result.label)
 
         if show_2nd:
             result_original2 = classify_image(
                 image=original_image2,
                 original_image=original_image2,
                 args=args,
-                title="Original 2nd")
+                title="original 2nd")
             result.add(result_original2, prefix="original2_")
 
         image = original_image
@@ -567,19 +565,19 @@ def run(args):
         if args.adv_attack == "before":
             attack_name = attack.name()
             print("attack name: ", attack_name)
-            # if attack_name != "CarliniWagnerL2Attack":
+            # if attack_name != "carliniwagnerl2attack":
             full_name += "-" + str(attack_name)
-            if attack_name == "CarliniWagnerL2AttackRoundFFT":
+            if attack_name == "carliniwagnerl2attackroundfft":
                 full_name += "-" + str(args.recover_type)
             print("full name of stored adversarial example: ", full_name)
-            if attack_name != "CarliniWagnerL2AttackRoundFFT" and (
+            if attack_name != "carliniwagnerl2attackroundfft" and (
                     os.path.exists(full_name + ".npy")):
                 adv_image = np.load(file=full_name + ".npy")
                 result.adv_timing = -1
             else:
                 start_adv = time.time()
                 adv_image = attack(original_image,
-                                   args.true_class_id,
+                                   args.True_class_id,
                                    max_iterations=args.attack_max_iterations)
                 result.adv_timing = time.time() - start_adv
                 created_new_adversarial = True
@@ -589,27 +587,27 @@ def run(args):
                     image=adv_image,
                     original_image=original_image,
                     args=args,
-                    title="Adv.")
-                print("Adversarial label, id: ", result_adv.label,
+                    title="adv.")
+                print("adversarial label, id: ", result_adv.label,
                       result_adv.class_id)
                 result.add(result_adv, prefix="adv_")
             else:
-                print('The adversarial example has not been found.')
+                print('the adversarial example has not been found.')
                 result.adv_label = None
 
-        # The rounded image.
+        # the rounded image.
         if args.values_per_channel > 0 and image is not None:
-            rounder = DenormRoundNorm(
+            rounder = denormroundnorm(
                 mean_array=args.mean_array, std_array=args.std_array,
                 values_per_channel=args.values_per_channel)
             rounded_image = rounder.round(image)
-            # rounder = RoundingTransformation(
+            # rounder = roundingtransformation(
             #     values_per_channel=args.values_per_channel,
             #     rounder=np.around)
             # rounded_image = rounder(image)
             print("rounded_image min and max: ", rounded_image.min(), ",",
                   rounded_image.max())
-            title = "CD (" + str(args.values_per_channel) + ")"
+            title = "cd (" + str(args.values_per_channel) + ")"
             result_round = classify_image(
                 image=rounded_image,
                 original_image=original_image,
@@ -624,26 +622,26 @@ def run(args):
         if args.compress_fft_layer > 0 and image is not None:
             is_approximate = True
             if is_approximate:
-                compress_image = FFTBandFunction2D.forward(
+                compress_image = fftbandfunction2d.forward(
                     ctx=None,
                     input=torch.from_numpy(image).unsqueeze(0),
                     compress_rate=args.compress_fft_layer).numpy().squeeze(0)
             else:
-                # Exact compression.
+                # exact compression.
                 compress_image = attack_round_fft.fft_complex_compression(
                     image=image)
-            # title = "FC (" + str(args.compress_fft_layer) + ")"
-            title = "Spatial domain"
+            # title = "fc (" + str(args.compress_fft_layer) + ")"
+            title = "spatial domain"
             # title += "interpolation: " + args.interpolate
             result_fft = classify_image(
                 image=compress_image,
                 original_image=original_image,
                 args=args,
-                ylabel_text="Compressed (" + str(
+                ylabel_text="compressed (" + str(
                     args.compress_fft_layer) + "%)",
                 title=title)
             result.add(result_fft, prefix="fft_")
-            print("Label, id found after applying FFT: ",
+            print("label, id found after applying fft: ",
                   result_fft.label, result_fft.class_id)
         else:
             result.fft_label = None
@@ -654,8 +652,8 @@ def run(args):
                 epsilon=args.noise_sigma, image=image,
                 bounds=(args.min, args.max))
             gauss_image = image + noise
-            # title = "Level of Gaussian-noise: " + str(args.noise_sigma)
-            title = "Gauss (" + str(args.noise_sigma) + ")"
+            # title = "level of gaussian-noise: " + str(args.noise_sigma)
+            title = "gauss (" + str(args.noise_sigma) + ")"
             result_gauss = classify_image(
                 image=gauss_image,
                 original_image=original_image,
@@ -671,14 +669,14 @@ def run(args):
             result.gauss_label = None
 
         if args.noise_epsilon > 0 and image is not None:
-            print("Uniform noise defense")
-            L2_dist_adv_original = args.meter.measure(original_image, image)
+            print("uniform noise defense")
+            l2_dist_adv_original = args.meter.measure(original_image, image)
             print(
-                "L2 distance between image (potentiall adversarial) and "
+                "l2 distance between image (potentiall adversarial) and "
                 "original images: ",
-                L2_dist_adv_original)
-            # title = "Level of uniform noise: " + str(args.noise_epsilon)
-            title = "Uniform (" + str(args.noise_epsilon) + ")"
+                l2_dist_adv_original)
+            # title = "level of uniform noise: " + str(args.noise_epsilon)
+            title = "uniform (" + str(args.noise_epsilon) + ")"
             noise = AdditiveUniformNoiseAttack()._sample_noise(
                 epsilon=args.noise_epsilon, image=image,
                 bounds=(args.min, args.max))
@@ -688,7 +686,7 @@ def run(args):
                 original_image=original_image,
                 args=args,
                 title=title)
-            print("Label, id found after applying random noise once: ",
+            print("label, id found after applying random noise once: ",
                   result_noise.label, result_noise.class_id)
             result.add(result_noise, prefix="noise_")
 
@@ -700,8 +698,8 @@ def run(args):
             result.noise_label = None
 
         if args.laplace_epsilon > 0 and image is not None:
-            print("Laplace noise defense")
-            title = "Laplace (" + str(args.laplace_epsilon) + ")"
+            print("laplace noise defense")
+            title = "laplace (" + str(args.laplace_epsilon) + ")"
             noise = laplace_noise(shape=image.shape,
                                   epsilon=args.laplace_epsilon,
                                   dtype=image.dtype,
@@ -712,7 +710,7 @@ def run(args):
                 original_image=original_image,
                 args=args,
                 title=title)
-            print("Label, id found after applying random noise once: ",
+            print("label, id found after applying random noise once: ",
                   result_laplace.label, result_laplace.class_id)
             result.add(result_laplace, prefix="laplace_")
 
@@ -732,7 +730,7 @@ def run(args):
                 result.adv_timing = -1
             else:
                 start_adv = time.time()
-                adv_image = attack(original_image, args.true_class_id)
+                adv_image = attack(original_image, args.True_class_id)
                 result.adv_timing = time.time() - start_adv
                 created_new_adversarial = True
             if adv_image is not None:
@@ -740,7 +738,7 @@ def run(args):
                     image=adv_image,
                     original_image=original_image,
                     args=args,
-                    title="Adversarial")
+                    title="adversarial")
                 result.add(result_adv, prefix="adv_")
             else:
                 adv_image = None
@@ -751,19 +749,19 @@ def run(args):
             adv_image = None
 
         if adv_image is not None and (created_new_adversarial) and (
-                attack_name != "CarliniWagnerL2AttackRoundFFT"):
+                attack_name != "carliniwagnerl2attackroundfft"):
             np.save(file=full_name + ".npy", arr=adv_image)
 
         if show_diff:
-            # Omit the diff image in the spatial domain.
+            # omit the diff image in the spatial domain.
             args.plot_index += col_diff
 
         if show_2nd:
-            # Omit the diff image in the spatial domain.
+            # omit the diff image in the spatial domain.
             args.plot_index += 2
 
         result.image_index = args.image_index
-        # Write labels to the log file.
+        # write labels to the log file.
         with open(args.file_name_labels, "a") as f:
             if args.total_count == 0:
                 header = result.get_attrs_sorted(delimiter=delimiter)
@@ -779,63 +777,63 @@ def run(args):
                     image_fft = print_fft(image=original_image,
                                           channel=channel,
                                           args=args,
-                                          title="Frequency domain",
-                                          # title="Original",
+                                          title="frequency domain",
+                                          # title="original",
                                           is_log=is_log)
 
                 if adv_image is not None and args.adv_attack == "before":
                     adversarial_fft = print_fft(image=adv_image,
                                                 channel=channel,
                                                 args=args,
-                                                title="Adversarial",
+                                                title="adversarial",
                                                 is_log=is_log)
 
                 if args.values_per_channel > 0:
                     rounded_fft = print_fft(image=rounded_image,
                                             channel=channel,
                                             args=args,
-                                            title="CD (color depth)",
+                                            title="cd (color depth)",
                                             is_log=is_log)
 
                 if args.compress_fft_layer > 0:
                     compressed_fft = print_fft(image=compress_image,
                                                channel=channel,
                                                args=args,
-                                               title="FC (FFT compression)",
+                                               title="fc (fft compression)",
                                                is_log=is_log)
                 if args.noise_sigma > 0:
                     gauss_fft = print_fft(image=gauss_image,
                                           channel=channel,
                                           args=args,
-                                          title="Gaussian noise",
+                                          title="gaussian noise",
                                           is_log=is_log)
 
                 if args.noise_epsilon > 0:
                     noise_fft = print_fft(image=noise_image,
                                           channel=channel,
                                           args=args,
-                                          title="Uniform noise",
+                                          title="uniform noise",
                                           is_log=is_log)
 
                 if args.laplace_epsilon > 0:
                     laplace_fft = print_fft(image=noise_image,
                                             channel=channel,
                                             args=args,
-                                            title="Laplace noise",
+                                            title="laplace noise",
                                             is_log=is_log)
 
                 if adv_image is not None and args.attack_type == "after":
                     adversarial_fft = print_fft(image=adv_image,
                                                 channel=channel,
                                                 args=args,
-                                                title="Adversarial",
+                                                title="adversarial",
                                                 is_log=is_log)
 
                 if show_2nd:
                     image2_fft = print_fft(image=original_image2,
                                            channel=channel,
                                            args=args,
-                                           title="Original 2nd",
+                                           title="original 2nd",
                                            is_log=is_log)
 
                 if show_diff:
@@ -843,7 +841,7 @@ def run(args):
                     ylabel = "fft-ed channel " + str(channel) + ":\n" + fft_type
                     diff_fft_avg = np.average(diff_fft)
                     print_heat_map(diff_fft, args=args,
-                                   title="FFT(adv) / FFT(original)\n"
+                                   title="fft(adv) / fft(original)\n"
                                    f"(avg: {diff_fft_avg})",
                                    ylabel=ylabel)
 
@@ -851,7 +849,7 @@ def run(args):
                     diff_fft_avg = np.average(diff_fft)
                     ylabel = "fft-ed channel " + str(channel) + ":\n" + fft_type
                     print_heat_map(diff_fft, args=args,
-                                   title="FFT(adv) - FFT(original)\n"
+                                   title="fft(adv) - fft(original)\n"
                                    f"(avg: {diff_fft_avg})",
                                    ylabel=ylabel)
 
@@ -860,7 +858,7 @@ def run(args):
                     ylabel = "fft-ed channel " + str(channel) + ":\n" + fft_type
                     diff_fft_avg = np.average(diff_fft)
                     print_heat_map(diff_fft, args=args,
-                                   title="FFT(original2) / FFT(original)\n"
+                                   title="fft(original2) / fft(original)\n"
                                    f"(avg: {diff_fft_avg})",
                                    ylabel=ylabel)
 
@@ -868,7 +866,7 @@ def run(args):
                     diff_fft_avg = np.average(diff_fft)
                     ylabel = "fft-ed channel " + str(channel) + ":\n" + fft_type
                     print_heat_map(diff_fft, args=args,
-                                   title="FFT(original2) - FFT(original)\n"
+                                   title="fft(original2) - fft(original)\n"
                                    f"(avg: {diff_fft_avg})",
                                    ylabel=ylabel)
 
@@ -895,17 +893,17 @@ def run(args):
 
 def randomized_defense(image, fmodel, original_image=None):
     """
-    The randomized defense.
+    the randomized defense.
 
     :param image: the adversarial image
     :param fmodel: the foolbox "wrapped" model
     :param original_image: the original image
 
-    :return: the result of the defense: recovered label, L2 distance, etc. in
+    :return: the result of the defense: recovered label, l2 distance, etc. in
     the result object.
     """
     if args.noise_iterations > 0 or args.recover_iterations > 0:
-        # Number of random trials and classifications to select the
+        # number of random trials and classifications to select the
         # final recovered class based on the plurality: the input image
         # is perturbed many times with random noise, we record class
         # for each trial and return as the result the class that was
@@ -913,7 +911,7 @@ def randomized_defense(image, fmodel, original_image=None):
         # noise_iterations is also used in the attack.
         # recover_iterations is used only for the defense.
         if args.noise_iterations > 0 and args.recover_iterations > 0:
-            raise Exception(f"Only one iterations for recovery can be "
+            raise Exception(f"only one iterations for recovery can be "
                             "set but "
                             "noise_iterations={args.noise_iterations} "
                             "and "
@@ -929,7 +927,7 @@ def randomized_defense(image, fmodel, original_image=None):
             iters=iters,
             original_image=original_image)
         print(
-            f"Recovered label, id by {args.noise_iterations} iterations: ",
+            f"recovered label, id by {args.noise_iterations} iterations: ",
             result_noise.label, result_noise.class_id)
         return result_noise
     return Object()
@@ -938,7 +936,7 @@ def randomized_defense(image, fmodel, original_image=None):
 def index_ranges(
         input_ranges=[(20, 58), (2500, 2516), (5000, 5050), (9967, 10000)]):
     """
-    Generate list of indexes with the given pair of inclusive ranges.
+    generate list of indexes with the given pair of inclusive ranges.
 
     :param ranges:
     :return:
@@ -994,15 +992,17 @@ if __name__ == "__main__":
         # index_range = range(1, 1000, 1)
 
     else:
-        step = 1
         if args.dataset == "imagenet":
+            train_loader, test_loader, train_dataset, test_dataset = load_imagenet(
+                args)
             limit = 50000
-            # limit = 400
         elif args.dataset == "cifar10":
+            train_loader, test_loader, train_dataset, test_dataset = get_cifar(
+                args, args.dataset)
             limit = 10000
         elif args.dataset == "mnist":
+            train_loader, test_loader, train_dataset, test_dataset = get_mnist(args)
             limit = 10000
-            # limit = 1
         else:
             raise Exception(f"Unknown dataset: {args.dataset}")
 
@@ -1193,12 +1193,12 @@ if __name__ == "__main__":
                         run_time += single_run_time
 
                         if args.show_original and result_run.original_label is not None:
-                            if result_run.true_label == result_run.original_label:
+                            if result_run.True_label == result_run.original_label:
                                 count_original += 1
 
                         if args.recover_type == "rounding":
                             if result_run.round_label is not None:
-                                if result_run.true_label == result_run.round_label:
+                                if result_run.True_label == result_run.round_label:
                                     count_recovered += 1
                                 sum_L2_distance_defense += result_run.round_L2_distance
                                 sum_L1_distance_defense += result_run.round_L1_distance
@@ -1206,7 +1206,7 @@ if __name__ == "__main__":
                                 sum_confidence_defense += result_run.round_confidence
                         elif args.recover_type == "fft":
                             if result_run.fft_label is not None:
-                                if result_run.true_label == result_run.fft_label:
+                                if result_run.True_label == result_run.fft_label:
                                     count_recovered += 1
                                 sum_L2_distance_defense += result_run.fft_L2_distance
                                 sum_L1_distance_defense += result_run.fft_L1_distance
@@ -1214,18 +1214,18 @@ if __name__ == "__main__":
                                 sum_confidence_defense += result_run.fft_confidence
                         elif args.recover_type == "roundfft":
                             if result_run.fft_label is not None:
-                                if result_run.true_label == result_run.fft_label:
+                                if result_run.True_label == result_run.fft_label:
                                     count_recovered += 1
                         elif args.recover_type == "gauss":
                             if result_run.gauss_label is not None:
-                                if result_run.true_label == result_run.gauss_label:
+                                if result_run.True_label == result_run.gauss_label:
                                     count_recovered += 1
                             sum_L2_distance_defense += result_run.gauss_L2_distance
                             sum_L1_distance_defense += result_run.gauss_L1_distance
                             sum_Linf_distance_defense += result_run.gauss_Linf_distance
                             sum_confidence_defense += result_run.gauss_confidence
                             if args.noise_iterations > 0 or args.recover_iterations > 0:
-                                if result_run.true_label == result_run.gauss_many_label:
+                                if result_run.True_label == result_run.gauss_many_label:
                                     count_many_recovered += 1
                                 sum_L2_distance_defense_many += result_run.gauss_many_L2_distance
                                 sum_L1_distance_defense_many += result_run.gauss_many_L1_distance
@@ -1233,14 +1233,14 @@ if __name__ == "__main__":
                                 sum_confidence_defense_many += result_run.noisegauss_confidence
                         elif args.recover_type == "noise":
                             if result_run.noise_label is not None:
-                                if result_run.true_label == result_run.noise_label:
+                                if result_run.True_label == result_run.noise_label:
                                     count_recovered += 1
                                 sum_L2_distance_defense += result_run.noise_L2_distance
                                 sum_L1_distance_defense += result_run.noise_L1_distance
                                 sum_Linf_distance_defense += result_run.noise_Linf_distance
                                 sum_confidence_defense += result_run.noise_confidence
                             if args.noise_iterations > 0 or args.recover_iterations > 0:
-                                if result_run.true_label == result_run.noise_many_label:
+                                if result_run.True_label == result_run.noise_many_label:
                                     count_many_recovered += 1
                                 sum_L2_distance_defense_many += result_run.noise_many_L2_distance
                                 sum_L1_distance_defense_many += result_run.noise_many_L1_distance
@@ -1248,14 +1248,14 @@ if __name__ == "__main__":
                                 sum_confidence_defense_many += result_run.noise_many_confidence
                         elif args.recover_type == "laplace":
                             if result_run.laplace_label is not None:
-                                if result_run.true_label == result_run.laplace_label:
+                                if result_run.True_label == result_run.laplace_label:
                                     count_recovered += 1
                                 sum_L2_distance_defense += result_run.laplace_L2_distance
                                 sum_L1_distance_defense += result_run.laplace_L1_distance
                                 sum_Linf_distance_defense += result_run.laplace_Linf_distance
                                 sum_confidence_defense += result_run.laplace_confidence
                             if args.noise_iterations > 0 or args.recover_iterations > 0:
-                                if result_run.true_label == result_run.laplace_many_label:
+                                if result_run.True_label == result_run.laplace_many_label:
                                     count_many_recovered += 1
                                 sum_L2_distance_defense_many += result_run.laplace_many_L2_distance
                                 sum_L1_distance_defense_many += result_run.laplace_many_L1_distance
@@ -1268,7 +1268,7 @@ if __name__ == "__main__":
                                 f"Unknown recover type: {args.recover_type}")
 
                         if result_run.adv_label is not None:
-                            if result_run.true_label != result_run.adv_label:
+                            if result_run.True_label != result_run.adv_label:
                                 count_adv += 1
                             total_adv += 1
                             # Aggregate the statistics about the attack.
