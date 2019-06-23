@@ -572,6 +572,7 @@ def run(args):
                                    max_iterations=args.attack_max_iterations)
                 result.adv_timing = time.time() - start_adv
                 created_new_adversarial = True
+
             if adv_image is not None:
                 image = adv_image
                 result_adv = classify_image(
@@ -662,7 +663,7 @@ def run(args):
             result.gauss_label = None
 
         if args.noise_epsilon > 0 and image is not None:
-            print("uniform noise defense")
+            print("uniform additive noise defense")
             l2_dist_adv_original = args.meter.measure(original_image, image)
             print(
                 "l2 distance between image (potential adversarial) and "

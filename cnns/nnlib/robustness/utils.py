@@ -75,7 +75,6 @@ class AdditiveLaplaceNoiseAttack(AdditiveNoiseAttack):
     the standard deviation until the image is misclassified.
 
     """
-
     def __init__(self, args):
         super(AdditiveLaplaceNoiseAttack, self).__init__()
         self.args = args

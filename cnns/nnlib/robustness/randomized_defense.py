@@ -47,9 +47,13 @@ def defend(image, fmodel, args, iters=None, is_batch=True, original_image=None):
     axis = (1, 2, 3)
 
     if is_batch:
-        iters = iters // batch_size
-        if iters == 0:
+        if iters <= batch_size:
+            batch_size = iters
             iters = 1
+        else:
+            iters = iters // batch_size
+            if iters % batch_size != 0:
+                iters += 1
     else:
         batch_size = 1
 
@@ -90,26 +94,28 @@ def defend(image, fmodel, args, iters=None, is_batch=True, original_image=None):
         class_id_counters[predicted_class_id] += 1
 
         batch_mode = True
-        if batch_mode:
-            denorm_original_image = args.denormalizer.denormalize(original_image)
-            denormalizer_noise_images = Denormalize(
-                mean_array=np.expand_dims(args.mean_array, axis=0),
-                std_array=np.expand_dims(args.std_array, axis=0))
-            denorm_noise_images = denormalizer_noise_images.denormalize(
-                noise_images)
-            result.L2_distance = np.append(
-            result.L2_distance, elem_wise_dist(
-                denorm_original_image, denorm_noise_images, p=2, axis=axis))
-            print('result L2 distance batch: ', result.L2_distance)
-            result.L1_distance = np.append(
-                result.L1_distance, elem_wise_dist(
-                    denorm_original_image, denorm_noise_images, p=1, axis=axis))
-            result.Linf_distance = np.append(
-                result.Linf_distance, elem_wise_dist(
-                    denorm_original_image, denorm_noise_images, p=float('inf'),
-                    axis=axis))
-        else:
-            if original_image is not None:
+        if original_image is not None:
+            if batch_mode:
+                denorm_original_image = args.denormalizer.denormalize(
+                    original_image)
+                denormalizer_noise_images = Denormalize(
+                    mean_array=np.expand_dims(args.mean_array, axis=0),
+                    std_array=np.expand_dims(args.std_array, axis=0))
+                denorm_noise_images = denormalizer_noise_images.denormalize(
+                    noise_images)
+                result.L2_distance = np.append(
+                result.L2_distance, elem_wise_dist(
+                    denorm_original_image, denorm_noise_images, p=2, axis=axis))
+                # print('result L2 distance batch: ', result.L2_distance)
+                result.L1_distance = np.append(
+                    result.L1_distance, elem_wise_dist(
+                        denorm_original_image, denorm_noise_images, p=1,
+                        axis=axis))
+                result.Linf_distance = np.append(
+                    result.Linf_distance, elem_wise_dist(
+                        denorm_original_image, denorm_noise_images,
+                        p=float('inf'), axis=axis))
+            else:
                 for noise_image in noise_images:
                     L2 = args.meter.measure(original_image, noise_image, norm=2)
                     result.L2_distance.append(L2)
@@ -118,8 +124,8 @@ def defend(image, fmodel, args, iters=None, is_batch=True, original_image=None):
                     Linf = args.meter.measure(original_image, noise_image,
                                               norm=float('inf'))
                     result.Linf_distance.append(Linf)
-                print('result L2 distance iterative: ', result.L2_distance)
-    result.class_id = np.argmax(np.array(class_id_counters))
+                # print('result L2 distance iterative: ', result.L2_distance)
+        result.class_id = np.argmax(np.array(class_id_counters))
     result.label = from_class_idx_to_label[result.class_id]
 
     avg_predictions /= iters

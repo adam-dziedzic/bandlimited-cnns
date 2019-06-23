@@ -22,6 +22,7 @@ from foolbox.attacks.additive_noise import AdditiveUniformNoiseAttack
 from cnns.nnlib.robustness.randomized_defense import defend
 from foolbox.attacks.additive_noise import AdditiveGaussianNoiseAttack
 from cnns.nnlib.attacks.adversarial_round_fft import AdversarialRoundFFT
+from cnns.nnlib.robustness.utils import AdditiveLaplaceNoiseAttack
 
 
 class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
@@ -61,6 +62,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             self.get_mask = get_mask
             self.noise = AdditiveUniformNoiseAttack()
             self.gauss = AdditiveGaussianNoiseAttack()
+            self.laplace = AdditiveLaplaceNoiseAttack(args=args)
 
     def fft_complex_compression(self, image, is_clip=False, ctx=None,
                                 onesided=True):
@@ -119,7 +121,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
 
     def add_distortion(self, image, is_clip=False):
         """
-        Adds rounding, fft, uniform and gaussian noise distortions.
+        Adds rounding, fft, uniform, gaussian, laplace noise distortions.
 
         :param image: the input image
         :return: the distorted image
@@ -128,16 +130,11 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             image = self.rounder.round(image)
             if is_clip:
                 image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
+
         if self.args.compress_fft_layer > 0:
             # clip is done inside fft compression.
             image = self.fft_complex_compression(image, is_clip=is_clip)
-        if self.args.noise_epsilon > 0:
-            noise = self.noise._sample_noise(
-                epsilon=self.args.noise_epsilon, image=image,
-                bounds=(self.args.min, self.args.max))
-            image += noise
-            if is_clip:
-                image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
+
         if self.args.noise_sigma > 0:
             noise = self.gauss._sample_noise(
                 epsilon=self.args.noise_sigma, image=image,
@@ -146,11 +143,25 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             if is_clip:
                 image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
 
+        if self.args.noise_epsilon > 0:
+            noise = self.noise._sample_noise(
+                epsilon=self.args.noise_epsilon, image=image,
+                bounds=(self.args.min, self.args.max))
+            image += noise
+            if is_clip:
+                image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
+
+        if self.args.laplace_epsilon > 0:
+            noise = self.laplace._sample_noise(
+                epsilon=self.args.laplace_epsilon, image=image,
+                bounds=(self.args.min, self.args.max))
+            image += noise
+            if is_clip:
+                image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
         return image
 
     def get_roundfft_adversarial(self):
         """
-
         :return: the current best adversarial against the rounding defnese or
         None if no such adversarial was found.
         """
