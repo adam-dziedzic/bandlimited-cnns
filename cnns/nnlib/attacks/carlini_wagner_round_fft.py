@@ -69,8 +69,8 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
         fft_image = FFTBandFunctionComplexMask2D.forward(
             ctx=ctx,
             input=torch.from_numpy(image).unsqueeze(0),
-            compress_rate=self.args.compress_fft_layer, val=0,
-            interpolate=self.args.interpolate,
+            args=self.args,
+            val=0,
             get_mask=self.get_mask,
             onesided=onesided).numpy().squeeze(0)
         if is_clip:

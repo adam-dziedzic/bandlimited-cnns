@@ -55,6 +55,7 @@ from cnns.nnlib.robustness.utils import laplace_noise
 from cnns.nnlib.robustness.randomized_defense import defend
 import matplotlib
 import torchvision.models as models
+from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBandFunction2D
 
 results_folder = "results/"
 delimiter = ";"
@@ -612,9 +613,9 @@ def run(args):
             result.round_label = None
 
         if args.compress_fft_layer > 0 and image is not None:
-            is_approximate = True
+            is_approximate = False
             if is_approximate:
-                compress_image = fftbandfunction2d.forward(
+                compress_image = FFTBandFunction2D.forward(
                     ctx=None,
                     input=torch.from_numpy(image).unsqueeze(0),
                     compress_rate=args.compress_fft_layer).numpy().squeeze(0)

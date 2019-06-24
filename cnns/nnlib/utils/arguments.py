@@ -28,7 +28,7 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 # 2D
 conv_type = ConvType.STANDARD2D
 # conv_type = ConvType.FFT2D
-compress_rate = 0.0
+compress_rate = 30.0
 
 if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # dataset = "ucr"
@@ -325,28 +325,28 @@ class Arguments(object):
                  attack_type=AttackType.RECOVERY,
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
-                 compress_fft_layer=0,
-                 attack_name="CarliniWagnerL2AttackRoundFFT",
-                 # attack_name="CarliniWagnerL2Attack",
+                 compress_fft_layer=30,
+                 # attack_name="CarliniWagnerL2AttackRoundFFT",
+                 attack_name="CarliniWagnerL2Attack",
                  # attack_name = None,
                  # attack_name="FGSM",
                  interpolate="const",
                  # recover_type="rounding",
-                 # recover_type="fft",
-                 recover_type="noise",
+                 recover_type="fft",
+                 # recover_type="noise",
                  # recover_type="laplace",
                  # recover_type="debug",
                  noise_epsilon=0.0,
-                 noise_epsilons=[0.04],
+                 noise_epsilons=[0.0],
                  # recover_type="gauss",
                  step_size=1,
                  noise_iterations=0,
                  many_noise_iterations=[0],
                  recover_iterations=-1,
-                 many_recover_iterations=[16, 32, 64, 128, 256, 512, 1024, 2048],
+                 many_recover_iterations=[1],
                  attack_max_iterations=100,
                  many_attack_iterations=[100],
-                 laplace_epsilon=0.04,
+                 laplace_epsilon=0.0,
                  laplace_epsilons=[0.0],
                  is_DC_shift=False,
                  use_foolbox_data=True,
