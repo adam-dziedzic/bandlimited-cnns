@@ -56,6 +56,7 @@ from cnns.nnlib.robustness.randomized_defense import defend
 import matplotlib
 import torchvision.models as models
 from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBandFunction2D
+from cnns.nnlib.datasets.transformations.denorm_round_norm import DenormRoundNorm
 
 results_folder = "results/"
 delimiter = ";"
@@ -588,16 +589,12 @@ def run(args):
                 print('the adversarial example has not been found.')
                 result.adv_label = None
 
-        # the rounded image.
+        # The rounded image.
         if args.values_per_channel > 0 and image is not None:
-            rounder = denormroundnorm(
+            rounder = DenormRoundNorm(
                 mean_array=args.mean_array, std_array=args.std_array,
                 values_per_channel=args.values_per_channel)
             rounded_image = rounder.round(image)
-            # rounder = roundingtransformation(
-            #     values_per_channel=args.values_per_channel,
-            #     rounder=np.around)
-            # rounded_image = rounder(image)
             print("rounded_image min and max: ", rounded_image.min(), ",",
                   rounded_image.max())
             title = "cd (" + str(args.values_per_channel) + ")"
