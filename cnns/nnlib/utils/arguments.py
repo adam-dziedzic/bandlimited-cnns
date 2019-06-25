@@ -66,7 +66,7 @@ else:
     # dataset = "imagenet"
     # dataset = "svhn"
 
-    batch_size = 16
+    batch_size = 32
     # test_batch_size = batch_size
     # test_batch_size = 256
     test_batch_size = batch_size
@@ -74,7 +74,7 @@ else:
     weight_decay = 0.0005
     momentum = 0.9
     # epochs=50
-    epochs = 20
+    epochs = 100
     # epochs = 100
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
@@ -168,10 +168,10 @@ class Arguments(object):
                  use_cuda=True,
                  compress_type=CompressType.STANDARD,
                  compress_rate=compress_rate,
-                 compress_rates=[compress_rate],
+                 # compress_rates=[compress_rate],
                  # compress_rates=[75, 50, 10, 1],
                  # ndexes_back=[5,15,25,35,45],
-                 # compress_rates=range(0, 101),
+                 compress_rates=range(80, 101, 10),
                  # compress_rates=[x/2 for x in range(28,111,1)],
                  # compress_rate=0.1,  # for unit tests
                  # compress_rates=[84.0], # 47.5, 84.0
@@ -269,7 +269,7 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=20,  # run on full data
+                 sample_count_limit=100,  # run on full data
                  # sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
@@ -349,7 +349,7 @@ class Arguments(object):
                  laplace_epsilon=0.0,
                  laplace_epsilons=[0.0],
                  is_DC_shift=False,
-                 use_foolbox_data=True,
+                 use_foolbox_data=False,
                  ):
         """
         The default parameters for the execution of the program.
