@@ -28,7 +28,7 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 # 2D
 conv_type = ConvType.STANDARD2D
 # conv_type = ConvType.FFT2D
-compress_rate = 30.0
+compress_rate = 0.0
 
 if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # dataset = "ucr"
@@ -82,7 +82,7 @@ else:
     precision_type = PrecisionType.FP32
     # conv_exec_type = ConvExecType.CUDA
     conv_exec_type = ConvExecType.SGEMM
-    visualize = True  # test model for different compress rates
+    visualize = False  # test model for different compress rates
     next_power2 = False
     schedule_patience = 10
     schedule_factor = 0.1
@@ -168,10 +168,10 @@ class Arguments(object):
                  use_cuda=True,
                  compress_type=CompressType.STANDARD,
                  compress_rate=compress_rate,
-                 # compress_rates=[compress_rate],
+                 compress_rates=[compress_rate],
                  # compress_rates=[75, 50, 10, 1],
                  # ndexes_back=[5,15,25,35,45],
-                 compress_rates=range(80, 101, 10),
+                 # compress_rates=range(80, 101, 10),
                  # compress_rates=[x/2 for x in range(28,111,1)],
                  # compress_rate=0.1,  # for unit tests
                  # compress_rates=[84.0], # 47.5, 84.0
@@ -325,23 +325,23 @@ class Arguments(object):
                  attack_type=AttackType.RECOVERY,
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
-                 compress_fft_layer=30,
-                 # attack_name="CarliniWagnerL2AttackRoundFFT",
-                 attack_name="CarliniWagnerL2Attack",
+                 compress_fft_layer=0,
+                 attack_name="CarliniWagnerL2AttackRoundFFT",
+                 # attack_name="CarliniWagnerL2Attack",
                  # attack_name = None,
                  # attack_name="FGSM",
                  interpolate="const",
                  # recover_type="rounding",
-                 recover_type="fft",
-                 # recover_type="noise",
+                 # recover_type="fft",
+                 recover_type="noise",
                  # recover_type="laplace",
                  # recover_type="debug",
                  noise_epsilon=0.0,
-                 noise_epsilons=[0.0],
+                 noise_epsilons=[0.04],
                  # recover_type="gauss",
                  step_size=1,
                  noise_iterations=0,
-                 many_noise_iterations=[0],
+                 many_noise_iterations=[2],
                  recover_iterations=-1,
                  many_recover_iterations=[1],
                  attack_max_iterations=100,

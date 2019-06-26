@@ -1281,56 +1281,56 @@ if __name__ == "__main__":
                             sum_confidence_adv += result_run.adv_confidence
                             sum_adv_timing += result_run.adv_timing
 
-            total_count = args.total_count
+                    total_count = args.total_count
 
-            print("total_count: ", total_count)
-            print("total adv: ", total_adv)
-            print("classified correctly (base model): ", count_original)
-            print("adversarials found: ", count_adv)
-            print("recovered correctly: ", count_recovered)
+                    print("total_count: ", total_count)
+                    print("total adv: ", total_adv)
+                    print("classified correctly (base model): ", count_original)
+                    print("adversarials found: ", count_adv)
+                    print("recovered correctly: ", count_recovered)
 
-            if total_adv > 0:
-                avg_L2_distance_adv = sum_L2_distance_adv / total_adv
-                avg_L1_distance_adv = sum_L1_distance_adv / total_adv
-                avg_Linf_distance_adv = sum_Linf_distance_adv / total_adv
-                avg_confidence_adv = sum_confidence_adv / total_adv
-            else:
-                avg_L2_distance_adv = 0.0
-                avg_L1_distance_adv = 0.0
-                avg_Linf_distance_adv = 0.0
-                avg_confidence_adv = 0.0
+                    if total_adv > 0:
+                        avg_L2_distance_adv = sum_L2_distance_adv / total_adv
+                        avg_L1_distance_adv = sum_L1_distance_adv / total_adv
+                        avg_Linf_distance_adv = sum_Linf_distance_adv / total_adv
+                        avg_confidence_adv = sum_confidence_adv / total_adv
+                    else:
+                        avg_L2_distance_adv = 0.0
+                        avg_L1_distance_adv = 0.0
+                        avg_Linf_distance_adv = 0.0
+                        avg_confidence_adv = 0.0
 
-            with open(out_recovered_file, "a") as f:
-                f.write(delimiter.join([str(x) for x in
-                                        [compress_value,
-                                         total_count,
-                                         args.recover_iterations,
-                                         args.noise_iterations,
-                                         args.noise_epsilon,
-                                         args.laplace_epsilon,
-                                         args.attack_max_iterations,
-                                         count_original / total_count * 100,
-                                         count_adv / total_count * 100,
-                                         count_recovered / total_count * 100,
-                                         count_many_recovered / total_count * 100,
-                                         sum_L2_distance_defense / total_count,
-                                         sum_L1_distance_defense / total_count,
-                                         sum_Linf_distance_defense / total_count,
-                                         sum_confidence_defense / total_count,
-                                         sum_L2_distance_defense_many / total_count,
-                                         sum_L1_distance_defense_many / total_count,
-                                         sum_Linf_distance_defense_many / total_count,
-                                         sum_confidence_defense_many / total_count,
-                                         avg_L2_distance_adv,
-                                         avg_L1_distance_adv,
-                                         avg_Linf_distance_adv,
-                                         avg_confidence_adv,
-                                         count_recovered,
-                                         count_many_recovered,
-                                         count_adv,
-                                         total_adv,
-                                         sum_adv_timing,
-                                         sum_defend_timing,
-                                         run_time]]) + "\n")
+                    with open(out_recovered_file, "a") as f:
+                        f.write(delimiter.join([str(x) for x in
+                                                [compress_value,
+                                                 total_count,
+                                                 args.recover_iterations,
+                                                 args.noise_iterations,
+                                                 args.noise_epsilon,
+                                                 args.laplace_epsilon,
+                                                 args.attack_max_iterations,
+                                                 count_original / total_count * 100,
+                                                 count_adv / total_count * 100,
+                                                 count_recovered / total_count * 100,
+                                                 count_many_recovered / total_count * 100,
+                                                 sum_L2_distance_defense / total_count,
+                                                 sum_L1_distance_defense / total_count,
+                                                 sum_Linf_distance_defense / total_count,
+                                                 sum_confidence_defense / total_count,
+                                                 sum_L2_distance_defense_many / total_count,
+                                                 sum_L1_distance_defense_many / total_count,
+                                                 sum_Linf_distance_defense_many / total_count,
+                                                 sum_confidence_defense_many / total_count,
+                                                 avg_L2_distance_adv,
+                                                 avg_L1_distance_adv,
+                                                 avg_Linf_distance_adv,
+                                                 avg_confidence_adv,
+                                                 count_recovered,
+                                                 count_many_recovered,
+                                                 count_adv,
+                                                 total_adv,
+                                                 sum_adv_timing,
+                                                 sum_defend_timing,
+                                                 run_time]]) + "\n")
 
     print("total elapsed time: ", time.time() - start_time)

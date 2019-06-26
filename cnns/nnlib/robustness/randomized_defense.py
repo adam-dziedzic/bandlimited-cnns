@@ -125,7 +125,8 @@ def defend(image, fmodel, args, iters=None, is_batch=True, original_image=None):
                                               norm=float('inf'))
                     result.Linf_distance.append(Linf)
                 # print('result L2 distance iterative: ', result.L2_distance)
-        result.class_id = np.argmax(np.array(class_id_counters))
+
+    result.class_id = np.argmax(np.array(class_id_counters))
     result.label = from_class_idx_to_label[result.class_id]
 
     avg_predictions /= iters
