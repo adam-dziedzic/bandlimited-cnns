@@ -569,9 +569,13 @@ def run(args):
                 result.adv_timing = -1
             else:
                 start_adv = time.time()
-                adv_image = attack(original_image,
-                                   args.True_class_id,
-                                   max_iterations=args.attack_max_iterations)
+                if attack_name.startswith("Carlini"):
+                    adv_image = attack(original_image,
+                                       args.True_class_id,
+                                       max_iterations=args.attack_max_iterations)
+                else:
+                    adv_image = attack(original_image,
+                                       args.True_class_id)
                 result.adv_timing = time.time() - start_adv
                 created_new_adversarial = True
 
@@ -1073,7 +1077,7 @@ if __name__ == "__main__":
         header = ["compress_" + args.recover_type + "_layer",
                   "total_count",
                   "recover iterations",
-                  "noise iterxations",
+                  "noise iterations",
                   "noise epsilon",
                   "laplace epsilon",
                   "attack max iterations",
