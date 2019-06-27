@@ -139,7 +139,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             noise = self.gauss._sample_noise(
                 epsilon=self.args.noise_sigma, image=image,
                 bounds=(self.args.min, self.args.max))
-            image += noise
+            image = image + noise
             if is_clip:
                 image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
 
@@ -147,7 +147,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             noise = self.noise._sample_noise(
                 epsilon=self.args.noise_epsilon, image=image,
                 bounds=(self.args.min, self.args.max))
-            image += noise
+            image = image + noise
             if is_clip:
                 image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
 
@@ -155,7 +155,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             noise = self.laplace._sample_noise(
                 epsilon=self.args.laplace_epsilon, image=image,
                 bounds=(self.args.min, self.args.max))
-            image += noise
+            image = image + noise
             if is_clip:
                 image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
         return image
