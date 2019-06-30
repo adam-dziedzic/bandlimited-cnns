@@ -9,7 +9,8 @@ import sys
 # type = "_small"  # nothing i.e. "" normal or "_small" for small files
 type = ""
 # sample_size: 1000, 500, 250, 32, 64
-sample_size = 192  # 500 for small data # how many values in a single sample collected
+# sample_size = 192  # 500 for small data # how many values in a single sample collected
+sample_size = 512
 train_rate = 0.5  # rate of training data, test data rate is 1 - train_rate
 outlier_std_count = 10
 # class_counter = 5
