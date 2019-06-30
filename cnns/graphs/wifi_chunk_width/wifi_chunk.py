@@ -28,9 +28,10 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 fig = plt.figure(figsize=(8, 6))
 
 # plt.title("Model accuracy for a given chunk size", fontsize=title_size)
-static_x = (1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048)
+static_x = (
+    1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048)
 static_y = (
-85.01, 87.15, 91.19, 94.92, 97.01, 98.09, 98.92, 99.15, 99.21, 99.28, 99.42,
+    85.01, 87.15, 91.19, 94.92, 97.01, 98.09, 98.92, 99.15, 99.21, 99.28, 99.42,
 99.60)
 
 plt.plot(static_x, static_y, label='static compression', lw=2, marker='o',

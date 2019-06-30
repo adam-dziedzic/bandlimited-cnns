@@ -6,11 +6,13 @@ import sys
 # from sklearn import preprocessing
 # import seaborn as sns
 
+print("current working directory: ", os.getcwd())
+
 # type = "_small"  # nothing i.e. "" normal or "_small" for small files
 type = ""
 # sample_size: 1000, 500, 250, 32, 64
 # sample_size = 192  # 500 for small data # how many values in a single sample collected
-sample_size = 512
+sample_size = 128
 train_rate = 0.5  # rate of training data, test data rate is 1 - train_rate
 outlier_std_count = 10
 # class_counter = 5
@@ -21,7 +23,7 @@ outlier_std_count = 10
 
 class_counter=3
 prefix="wifi0-1-2/Test_165_"
-suffix="_Wi-Fi"
+suffix="_Wi-Fi_28"
 datasets = []
 min_len = sys.maxsize  # get the minimum length of dataset for each class
 
@@ -127,8 +129,8 @@ del test_datasets
 # print("data train dims: ", data_train.shape)
 # np.savetxt("WIFI_TRAIN", data_train, delimiter=",")
 sample_size = str(sample_size)
-dataset_name = "WIFI_clean_" + str(class_counter)
-dir_name = dataset_name + "-" + sample_size
+dataset_name = "WIFI_class_" + str(class_counter)
+dir_name = dataset_name + "_sample_" + sample_size
 full_dir = dir_name + "/" + dir_name
 
 if not os.path.exists(dir_name):
