@@ -24,7 +24,7 @@ def get_color(COLOR_TUPLE_255):
 
 # fontsize=20
 fontsize = 30
-legend_size = 30
+legend_size = 26
 font = {'size': fontsize}
 matplotlib.rc('font', **font)
 
@@ -52,17 +52,15 @@ ylabel = "ylabel"
 title = "title"
 legend_pos = "center_pos"
 bbox = "bbox"
+file_name = "file_name"
 
-accuracy = {ylabel: "Test accuracy (%)",
-            title: "accuracy",
-            legend_pos: "center left",
-            bbox: (0.0, 0.1)}
-compression = {ylabel: "Compression rate (%)",
-               title: "compression",
-               legend_pos: "upper left",
-               bbox: (0.0, 0.2)}
+energy = {ylabel: "Energy (dB)",
+        file_name: "wifi_energy",
+        title: "accuracy",
+        legend_pos: "upper left",
+        bbox: (0.0, 0.1)}
 
-labels = ["", "80", "90", "95"]
+labels = ["", "0 Wi-Fi", "1 Wi-Fi", "2 Wi-Fis"]
 ncols = [3, 3]
 columns = 4
 
@@ -71,7 +69,7 @@ colors = [get_color(color) for color in
 markers = ["+", "o", "v", "s", "D", "^"]
 linestyles = ["", "-", "--", ":"]
 
-datasets = [compression]
+datasets = [energy]
 
 # width = 12
 # height = 5
@@ -86,24 +84,26 @@ fig = plt.figure(figsize=(width, len(datasets) * height))
 for j, dataset in enumerate(datasets):
     plt.subplot(len(datasets), 1, j + 1)
     print("dataset: ", dataset)
-    cols = read_columns(dataset[title], columns=columns)
+    cols = read_columns(dataset[file_name], columns=columns)
 
     print("col 0: ", cols[0])
     print("col 1: ", cols[1])
 
     for i in range(columns):
         if i > 0:  # skip first column with the epoch number
-            plt.plot(cols[0], cols[i], label=f"E={labels[i]}%", lw=lw,
+            plt.plot(cols[0], cols[i], label=f"{labels[i]}%", lw=lw,
                      color=colors[i], linestyle=linestyles[i])
 
     plt.grid()
     plt.legend(loc=dataset[legend_pos], ncol=ncols[j], frameon=False,
-               prop={'size': legend_size}, bbox_to_anchor=dataset[bbox])
-    plt.xlabel('Epoch')
+               prop={'size': legend_size},
+               # bbox_to_anchor=dataset[bbox]
+               )
+    plt.xlabel('Sample number')
     # plt.title(titles[j], fontsize=16)
     plt.ylabel(dataset[ylabel])
-    plt.ylim(0, 100)
-    plt.xlim(0, 350)
+    plt.ylim(-40, -15)
+    plt.xlim(0, 2048)
 
 # plt.gcf().autofmt_xdate()
 # plt.xticks(rotation=0)
@@ -112,7 +112,7 @@ for j, dataset in enumerate(datasets):
 plt.subplots_adjust(hspace=0.3)
 plt.show(block=True)
 plt.interactive(False)
-format = "png"  # "pdf" or "png"
+format = "pdf"  # "pdf" or "png"
 fig.savefig(dir_path + "wifi-clean-energy." + format,
             bbox_inches='tight', transparent=True)
 plt.close()
