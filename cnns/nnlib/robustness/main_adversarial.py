@@ -902,7 +902,7 @@ def randomized_defense(image, fmodel, original_image=None):
     :return: the result of the defense: recovered label, l2 distance, etc. in
     the result object.
     """
-    if args.noise_iterations > 0 or args.recover_iterations > 0:
+    if args.recover_iterations > 0 or args.noise_iterations > 0:
         # number of random trials and classifications to select the
         # final recovered class based on the plurality: the input image
         # is perturbed many times with random noise, we record class
@@ -910,12 +910,12 @@ def randomized_defense(image, fmodel, original_image=None):
         # selected most times.
         # noise_iterations is also used in the attack.
         # recover_iterations is used only for the defense.
-        if args.noise_iterations > 0 and args.recover_iterations > 0:
-            raise Exception(f"only one iterations for recovery can be "
-                            "set but "
-                            "noise_iterations={args.noise_iterations} "
-                            "and "
-                            "recover_iterations={args.recover_iterations}.")
+        # if args.noise_iterations > 0 and args.recover_iterations > 0:
+        #     raise Exception(f"only one iterations for recovery can be "
+        #                     "set but "
+        #                     "noise_iterations={args.noise_iterations} "
+        #                     "and "
+        #                     "recover_iterations={args.recover_iterations}.")
         if args.recover_iterations > 0:
             iters = args.recover_iterations
         elif args.noise_iterations > 0:

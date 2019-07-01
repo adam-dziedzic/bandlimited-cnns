@@ -340,7 +340,8 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                     result_noise, predictions, class_id_counters = defend(
                         image=x,
                         fmodel=self._default_model,
-                        args=self.args)
+                        args=self.args,
+                        iters=self.args.noise_iterations)
 
                     # Our defense does not rely on the logits/predictions but
                     # on pluralism method: class with the highest count is
