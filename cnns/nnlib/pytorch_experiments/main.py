@@ -461,15 +461,26 @@ def main(args):
 
     if args.visulize is True:
         start_visualize_time = time.time()
+
+        train_loss, train_accuracy = 0, 0
+        # train_loss, train_accuracy = test(
+        #     model=model, test_loader=train_loader,
+        #     loss_function=loss_function, args=args)
+
         test_loss, test_accuracy = test(
             model=model, test_loader=test_loader,
             loss_function=loss_function, args=args)
+
         elapsed_time = time.time() - start_visualize_time
+
         print("test time: ", elapsed_time)
         print("test accuracy: ", test_accuracy)
+        print("train accuracy: ", train_accuracy)
+
         with open(global_log_file, "a") as file:
             file.write(
-                dataset_name + ",None,None,None,None," + str(
+                dataset_name + "," + str(train_loss) + "," + str(
+                    train_accuracy) + ",None,None," + str(
                     test_loss) + "," + str(test_accuracy) + "," + str(
                     elapsed_time) + ",visualize," + str(
                     args.preserve_energy) + "," + str(

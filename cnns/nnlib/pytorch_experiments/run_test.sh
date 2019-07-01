@@ -3803,3 +3803,37 @@ echo ${timestamp}.csv
 [2] 63493
 cc@ch2-2:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.csv
 2019-06-30-16-07-55.csv
+
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type='STANDARD' --conv_exec_type=CUDA --dataset='WIFI_class_3_sample_512' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=10000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.001 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_STANDARD' --next_power2='TRUE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='TRUE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=50 --schedule_factor=0.5 --ucr_path="../sathya" >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.csv
+
+ady@skr-compute1:~/code/bandlimited-cnns-pycharm-win/cnns/nnlib/pytorch_experiments$ cat 2019-06-30-20-48-53.txt
+nohup: ignoring input
+stty: 'standard input': Inappropriate ioctl for device
+Using: agg
+current dir:  /local/ady/code/bandlimited-cnns-pycharm-win/cnns/nnlib/pytorch_experiments
+models_dir:  /local/ady/code/bandlimited-cnns-pycharm-win/cnns/nnlib/pytorch_experiments/models
+current file name:  main
+start learning!
+cuda is available:
+CUDA is available
+flist:  ['WIFI_class_3_sample_512']
+compress rate:  0.0
+Dataset:  WIFI_class_3_sample_512
+preserve energy:  100.0
+noise sigma:  0.0
+test time:  9.179271936416626
+test accuracy:  33.333333333333336
+train accuracy:  33.333333333333336
+elapsed time (sec):  28.344162464141846
+total elapsed time (sec):  28.364001989364624
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type='STANDARD' --conv_exec_type=CUDA --dataset='WIFI_class_3_sample_512' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=10000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.001 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_STANDARD' --next_power2='TRUE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=50 --schedule_factor=0.5 --ucr_path="../sathya" >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.csv
+[1] 30004
+ady@skr-compute1:~/code/bandlimited-cnns-pycharm-win/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.csv
+2019-06-30-21-59-41.csv
+

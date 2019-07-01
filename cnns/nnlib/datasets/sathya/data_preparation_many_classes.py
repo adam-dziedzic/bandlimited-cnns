@@ -12,7 +12,7 @@ print("current working directory: ", os.getcwd())
 type = ""
 # sample_size: 1000, 500, 250, 32, 64
 # sample_size = 192  # 500 for small data # how many values in a single sample collected
-sample_size = 128
+sample_size = 512
 train_rate = 0.5  # rate of training data, test data rate is 1 - train_rate
 outlier_std_count = 10
 # class_counter = 5
@@ -21,9 +21,9 @@ outlier_std_count = 10
 # prefix="wifi6_data/"
 # suffix="_wifi_165"
 
-class_counter=3
-prefix="wifi0-1-2/Test_165_"
-suffix="_Wi-Fi_28"
+class_counter = 3
+prefix = "wifi0-1-2/Test_165_"
+suffix = "_Wi-Fi_28"
 datasets = []
 min_len = sys.maxsize  # get the minimum length of dataset for each class
 
@@ -35,21 +35,25 @@ for counter in range(0, class_counter, 1):
     # data1 = np.array(data1.values).squeeze()
 
     dataset = np.genfromtxt(csv_path, delimiter="\n")
-    dataset = np.delete(dataset, np.where(dataset == float("-inf")))
+    dataset = np.delete(dataset, np.where(
+        (dataset == float("-inf")) or (dataset == float("-Inf"))))
     print("dataset class " + str(counter))
     print("max: ", dataset.max())
     print("min: ", dataset.min())
     print("mean: ", dataset.mean())
+    print("len: ", len(dataset))
     # print("data1 head: ", data1.head())
     print("head: ", dataset[:10])
     if len(dataset) < min_len:
         min_len = len(dataset)
     datasets.append(dataset)
 
+print("min_len of the dataset for a class: ", min_len)
 # make sure we have the same number of samples from each class
 for i in range(len(datasets)):
     datasets[i] = datasets[i][:min_len]
 del min_len
+
 
 def get_samples(array):
     with_step = True
@@ -122,7 +126,7 @@ del train_datasets
 test_datasets = []
 for i, array in enumerate(test_arrays):
     test_datasets.append(get_final_data(array, class_number=i, mean=mean,
-                                         std=std))
+                                        std=std))
 data_test = np.concatenate(test_datasets, axis=0)
 del test_datasets
 
@@ -150,3 +154,6 @@ def write_data(data_set, file_name):
 
 write_data(data_train, full_dir + "_TRAIN")
 write_data(data_test, full_dir + "_TEST")
+
+print("train mean: ", data_train.mean())
+print("train mean: ", data_test.mean())

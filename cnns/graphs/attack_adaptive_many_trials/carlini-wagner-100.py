@@ -16,6 +16,7 @@ MY_RED = (204, 37, 41)
 MY_ORANGE = (218, 124, 48)
 MY_GREEN = (62, 150, 81)
 MY_BLACK = (83, 81, 84)
+MY_GOLD = (148, 139, 61)
 
 
 def get_color(COLOR_TUPLE_255):
@@ -54,23 +55,29 @@ title = "title"
 legend_pos = "center_pos"
 bbox = "bbox"
 file_name = "file_name"
+column_nr = "column_nr"
+labels = "labels"
+legend_cols = "legend_cols"
 
-energy = {ylabel: "Energy (dB)",
-        file_name: "wifi_energy",
-        title: "accuracy",
-        legend_pos: "upper left",
-        bbox: (0.0, 0.1)}
-
-labels = ["", "0 Wi-Fi", "1 Wi-Fi", "2 Wi-Fis"]
-ncols = [3, 3]
-columns = 4
+many_trials = {ylabel: "Accuracy (%)",
+               file_name: "many-trials",
+               title: "accuracy",
+               legend_pos: "upper left",
+               bbox: (0.0, 0.1),
+               column_nr: 7,
+               legend_cols: 2,
+               labels: ["", "0.01 single noise", "0.03 single noise",
+                        "0.04 single noise",
+                        "0.01 many noise iterations",
+                        "0.03 many noise iterations",
+                        "0.04 many noise iterations"]}
 
 colors = [get_color(color) for color in
-          ["", MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK]]
-markers = ["+", "o", "v", "s", "D", "^"]
-linestyles = ["", "-", "--", ":"]
+          ["", MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
+markers = ["+", "o", "v", "s", "D", "^", "+"]
+linestyles = ["", "-", "--", ":", "-", "--", ":", "-"]
 
-datasets = [energy]
+datasets = [many_trials]
 
 # width = 12
 # height = 5
@@ -85,6 +92,7 @@ fig = plt.figure(figsize=(width, len(datasets) * height))
 for j, dataset in enumerate(datasets):
     plt.subplot(len(datasets), 1, j + 1)
     print("dataset: ", dataset)
+    columns = dataset[column_nr]
     cols = read_columns(dataset[file_name], columns=columns)
 
     print("col 0: ", cols[0])
@@ -92,19 +100,20 @@ for j, dataset in enumerate(datasets):
 
     for i in range(columns):
         if i > 0:  # skip first column with the epoch number
-            plt.plot(cols[0], cols[i], label=f"{labels[i]}", lw=lw,
+            plt.plot(cols[0], cols[i], label=f"{dataset[labels][i]}", lw=lw,
                      color=colors[i], linestyle=linestyles[i])
 
     plt.grid()
-    plt.legend(loc=dataset[legend_pos], ncol=ncols[j], frameon=False,
+    plt.legend(loc=dataset[legend_pos], ncol=dataset[legend_cols],
+               frameon=False,
                prop={'size': legend_size},
                # bbox_to_anchor=dataset[bbox]
                )
-    plt.xlabel('Sample number')
+    plt.xlabel('# of iterations')
     # plt.title(titles[j], fontsize=16)
     plt.ylabel(dataset[ylabel])
-    plt.ylim(-40, -15)
-    plt.xlim(0, 2048)
+    plt.ylim(0, 80)
+    plt.xlim(0, 16348)
 
 # plt.gcf().autofmt_xdate()
 # plt.xticks(rotation=0)
@@ -112,7 +121,7 @@ for j, dataset in enumerate(datasets):
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "wifi-energy." + format
+destination = dir_path + "/" + "many_trials." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
