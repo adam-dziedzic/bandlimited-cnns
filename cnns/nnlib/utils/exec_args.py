@@ -372,6 +372,15 @@ def get_args():
                         default="TRUE" if args.use_foolbox_data else "FALSE",
                         help="should we use the data from the foolbox "
                              "library" + ",".join(Bool.get_names()))
+    parser.add_argument("--svd_compress", default=args.svd_compress,
+                        type=float,
+                        help=f"svd compress rate: "
+                        f"{args.svd_compress}")
+    parser.add_argument("--many_svd_compress", default=args.many_svd_compress,
+                        type=float,
+                        nargs="+",
+                        help=f"many svd compression rates: "
+                        f"{args.many_svd_compress}")
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)

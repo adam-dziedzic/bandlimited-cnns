@@ -350,6 +350,8 @@ class Arguments(object):
                  laplace_epsilons=[0.0],
                  is_DC_shift=False,
                  use_foolbox_data=False,
+                 svd_compress=0.0,
+                 many_svd_compress=[0.0]
                  ):
         """
         The default parameters for the execution of the program.
@@ -483,6 +485,8 @@ class Arguments(object):
         self.laplace_epsilons = laplace_epsilons
         self.is_DC_shift = is_DC_shift
         self.use_foolbox_data = use_foolbox_data
+        self.svd_compress = svd_compress
+        self.many_svd_compress = many_svd_compress
         self.set_dtype()
 
 

@@ -57,6 +57,7 @@ import matplotlib
 import torchvision.models as models
 from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBandFunction2D
 from cnns.nnlib.datasets.transformations.denorm_round_norm import DenormRoundNorm
+from cnns.nnlib.utils.svd2d import compress_svd
 
 results_folder = "results/"
 delimiter = ";"
@@ -433,6 +434,8 @@ def run(args):
             cols += 1
         if args.laplace_epsilon > 0:
             cols += 1
+        if args.svd_compress > 0:
+            cols += 1
         if args.adv_attack is not None:
             cols += 1
         show_diff = False
@@ -721,6 +724,25 @@ def run(args):
         else:
             result.laplace_label = None
 
+        if args.svd_compress > 0 and image is not None:
+            print("svd defense")
+            title = "svd (" + str(args.svd_compress) + ")"
+            svd_image = compress_svd(torch_img=torch.tensor(image),
+                                     compress_rate=args.svd_compress)
+            svd_image = svd_image.cpu().numpy()
+            print("svd image min and max: ", svd_image.min(), ",",
+                  svd_image.max())
+            result_svd = classify_image(
+                image=svd_image,
+                original_image=original_image,
+                args=args,
+                title=title)
+            print("show diff between input image and svd image: ",
+                  np.sum(np.abs(svd_image - original_image)))
+            result.add(result_svd, prefix="svd_")
+        else:
+            result.svd_label = None
+
         if args.adv_attack == "after":
             full_name += "-after"
             print("adv_attack: ", args.adv_attack, " attack name: ",
@@ -820,6 +842,13 @@ def run(args):
                                             channel=channel,
                                             args=args,
                                             title="laplace noise",
+                                            is_log=is_log)
+
+                if args.svd_compress > 0:
+                    svd_fft = print_fft(image=svd_image,
+                                            channel=channel,
+                                            args=args,
+                                            title="svd",
                                             is_log=is_log)
 
                 if adv_image is not None and args.attack_type == "after":
@@ -1056,6 +1085,8 @@ if __name__ == "__main__":
         val_range = args.laplace_epsilons
         if args.is_debug:
             val_range = [0.03]
+    elif args.recover_type == "svd":
+        val_range = args.many_svd_compress
     elif args.recover_type == "debug":
         val_range = [0.009]
     else:
@@ -1080,6 +1111,7 @@ if __name__ == "__main__":
                   "noise iterations",
                   "noise epsilon",
                   "laplace epsilon",
+                  "svd compress",
                   "attack max iterations",
                   "% base accuracy",
                   "% of adversarials",
@@ -1128,6 +1160,8 @@ if __name__ == "__main__":
             args.noise_epsilon = compress_value
         elif args.recover_type == "laplace":
             args.laplace_epsilon = compress_value
+        elif args.recover_type == "svd":
+            args.svd_compress = compress_value
         elif args.recover_type == "roundfft":
             pass
         else:
@@ -1268,6 +1302,22 @@ if __name__ == "__main__":
                                 sum_Linf_distance_defense_many += result_run.laplace_many_Linf_distance
                                 sum_confidence_defense_many += result_run.laplace_many_confidence
                                 sum_defend_timing += result_run.time_laplace_defend
+                        elif args.recover_type == "svd":
+                            if result_run.svd_label is not None:
+                                if result_run.true_label == result_run.svd_label:
+                                    count_recovered += 1
+                                sum_L2_distance_defense += result_run.svd_L2_distance
+                                sum_L1_distance_defense += result_run.svd_L1_distance
+                                sum_Linf_distance_defense += result_run.svd_Linf_distance
+                                sum_confidence_defense += result_run.svd_confidence
+                            if args.noise_iterations > 0 or args.recover_iterations > 0:
+                                if result_run.true_label == result_run.svd_many_label:
+                                    count_many_recovered += 1
+                                sum_L2_distance_defense_many += result_run.svd_many_L2_distance
+                                sum_L1_distance_defense_many += result_run.svd_many_L1_distance
+                                sum_Linf_distance_defense_many += result_run.svd_many_Linf_distance
+                                sum_confidence_defense_many += result_run.svd_many_confidence
+                                sum_defend_timing += result_run.time_svd_defend
                         elif args.recover_type == "debug":
                             exit(0)
                         else:
@@ -1312,6 +1362,7 @@ if __name__ == "__main__":
                                                  args.noise_iterations,
                                                  args.noise_epsilon,
                                                  args.laplace_epsilon,
+                                                 args.svd_compress,
                                                  args.attack_max_iterations,
                                                  count_original / total_count * 100,
                                                  count_adv / total_count * 100,
