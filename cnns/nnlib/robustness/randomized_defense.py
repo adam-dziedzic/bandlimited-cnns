@@ -63,7 +63,7 @@ def defend(image, fmodel, args, iters=None, is_batch=True, original_image=None):
     elif args.laplace_epsilon > 0:
         noiser = laplace_noise
         epsilon = args.laplace_epsilon
-    elif args.sigma_epsilon > 0:
+    elif args.noise_sigma > 0:
         noiser = gauss_noise
         epsilon = args.noise_sigma
     else:
