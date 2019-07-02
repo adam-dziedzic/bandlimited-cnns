@@ -140,6 +140,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
         if self.args.svd_compress > 0:
             image = compress_svd(torch_img=torch.tensor(image),
                                  compress_rate=self.args.svd_compress)
+            image = image.cpu().numpy()
             if is_clip:
                 image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
 
@@ -188,6 +189,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
         if self.args.attack_type == AttackType.SVD_RECOVERY:
             image = compress_svd(torch_img=torch.tensor(image),
                                  compress_rate=self.args.svd_compress)
+            image = image.cpu().numpy()
             if is_clip:
                 image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
 
