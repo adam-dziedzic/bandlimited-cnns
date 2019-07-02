@@ -25,7 +25,7 @@ def get_color(COLOR_TUPLE_255):
 
 # fontsize=20
 fontsize = 30
-legend_size = 24
+legend_size = 30
 font = {'size': fontsize}
 matplotlib.rc('font', **font)
 
@@ -46,7 +46,10 @@ def read_columns(dataset, columns=5):
         for i, row in enumerate(data):
             if i > 0:  # skip header
                 for column in range(columns):
-                    cols[column].append(float(row[column]))
+                    try:
+                        cols[column].append(float(row[column]))
+                    except ValueError as ex:
+                        print("Exception: ", ex)
     return cols
 
 
@@ -60,22 +63,18 @@ labels = "labels"
 legend_cols = "legend_cols"
 
 many_trials = {ylabel: "Accuracy (%)",
-               file_name: "many-trials",
+               file_name: "distortion",
                title: "accuracy",
-               legend_pos: "upper left",
-               bbox: (0.0, 1.05),
-               column_nr: 7,
+               legend_pos: "upper right",
+               bbox: (0.0, 0.1),
+               column_nr: 12,
                legend_cols: 2,
-               labels: ["", "0.01 single noise", "0.03 single noise",
-                        "0.04 single noise",
-                        "0.01 many noise iterations",
-                        "0.03 many noise iterations",
-                        "0.04 many noise iterations"]}
+               labels: ['FC', 'CD', 'Unif', 'Gauss', 'Laplace', 'SVD']}
 
 colors = [get_color(color) for color in
-          ["", MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
+          [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
 markers = ["+", "o", "v", "s", "D", "^", "+"]
-linestyles = ["", "-", "--", ":", "-", "--", ":", "-"]
+linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 
 datasets = [many_trials]
 
@@ -98,23 +97,23 @@ for j, dataset in enumerate(datasets):
     print("col 0: ", cols[0])
     print("col 1: ", cols[1])
 
-    for i in range(columns):
-        if i > 0:  # skip first column with the epoch number
-            plt.plot(cols[0], cols[i], label=f"{dataset[labels][i]}", lw=lw,
+    i = -1
+    for col in range(0, columns, 2):
+        i += 1
+        plt.plot(cols[col], cols[col+1], label=f"{dataset[labels][i]}", lw=lw,
                      color=colors[i], linestyle=linestyles[i])
 
     plt.grid()
     plt.legend(loc=dataset[legend_pos], ncol=dataset[legend_cols],
                frameon=False,
                prop={'size': legend_size},
-               bbox_to_anchor=dataset[bbox]
+               # bbox_to_anchor=dataset[bbox]
                )
-    plt.xlabel('# of iterations')
+    plt.xlabel('L2 distortion')
     # plt.title(titles[j], fontsize=16)
     plt.ylabel(dataset[ylabel])
     plt.ylim(0, 100)
-    plt.xscale('log', basex=2)
-    plt.xlim(0, 16348)
+    plt.xlim(0, 14)
 
 # plt.gcf().autofmt_xdate()
 # plt.xticks(rotation=0)
@@ -122,7 +121,7 @@ for j, dataset in enumerate(datasets):
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "many_trials2." + format
+destination = dir_path + "/" + "distortion." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
