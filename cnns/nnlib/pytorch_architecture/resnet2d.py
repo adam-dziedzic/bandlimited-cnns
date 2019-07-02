@@ -269,6 +269,18 @@ class ResNet(nn.Module):
             x = self.laplace(x)
         elif self.args.attack_type == AttackType.RECOVERY:
             pass
+        elif self.args.attack_type == AttackType.FFT_RECOVERY:
+            pass
+        elif self.args.attack_type == AttackType.ROUND_RECOVERY:
+            pass
+        elif self.args.attack_type == AttackType.SVD_RECOVERY:
+            pass
+        elif self.args.attack_type == AttackType.GAUSS_RECOVERY:
+            pass
+        elif self.args.attack_type == AttackType.UNIFORM_RECOVERY:
+            pass
+        elif self.args.attack_type == AttackType.LAPLACE_RECOVERY:
+            pass
         else:
             raise Exception("Unknown attack type: ", self.args.attack_type)
 

@@ -23,6 +23,8 @@ from cnns.nnlib.robustness.randomized_defense import defend
 from foolbox.attacks.additive_noise import AdditiveGaussianNoiseAttack
 from cnns.nnlib.attacks.adversarial_round_fft import AdversarialRoundFFT
 from cnns.nnlib.robustness.utils import AdditiveLaplaceNoiseAttack
+from cnns.nnlib.utils.svd2d import compress_svd
+from cnns.nnlib.utils.general_utils import AttackType
 
 
 class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
@@ -135,6 +137,12 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             # clip is done inside fft compression.
             image = self.fft_complex_compression(image, is_clip=is_clip)
 
+        if self.args.svd_compress > 0:
+            image = compress_svd(torch_img=torch.tensor(image),
+                                 compress_rate=self.args.svd_compress)
+            if is_clip:
+                image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
+
         if self.args.noise_sigma > 0:
             noise = self.gauss._sample_noise(
                 epsilon=self.args.noise_sigma, image=image,
@@ -152,6 +160,54 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                 image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
 
         if self.args.laplace_epsilon > 0:
+            noise = self.laplace._sample_noise(
+                epsilon=self.args.laplace_epsilon, image=image,
+                bounds=(self.args.min, self.args.max))
+            image = image + noise
+            if is_clip:
+                image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
+        return image
+
+    def add_one_distortion(self, image, is_clip=False):
+        """
+        Adds either rounding, fft, uniform, gaussian, or laplace noise
+        distortions.
+
+        :param image: the input image
+        :return: the distorted image
+        """
+        if self.args.attack_type == AttackType.ROUND_RECOVERY:
+            image = self.rounder.round(image)
+            if is_clip:
+                image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
+
+        if self.args.attack_type == AttackType.FFT_RECOVERY:
+            # clip is done inside fft compression.
+            image = self.fft_complex_compression(image, is_clip=is_clip)
+
+        if self.args.attack_type == AttackType.SVD_RECOVERY:
+            image = compress_svd(torch_img=torch.tensor(image),
+                                 compress_rate=self.args.svd_compress)
+            if is_clip:
+                image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
+
+        if self.args.attack_type == AttackType.GAUSS_RECOVERY:
+            noise = self.gauss._sample_noise(
+                epsilon=self.args.noise_sigma, image=image,
+                bounds=(self.args.min, self.args.max))
+            image = image + noise
+            if is_clip:
+                image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
+
+        if self.args.attack_type == AttackType.UNIFORM_RECOVERY:
+            noise = self.noise._sample_noise(
+                epsilon=self.args.noise_epsilon, image=image,
+                bounds=(self.args.min, self.args.max))
+            image = image + noise
+            if is_clip:
+                image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
+
+        if self.args.attack_type == AttackType.LAPLACE_RECOVERY:
             noise = self.laplace._sample_noise(
                 epsilon=self.args.laplace_epsilon, image=image,
                 bounds=(self.args.min, self.args.max))
@@ -332,7 +388,7 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                 # Instead of clipping, we could scale the values to the proper
                 # range.
                 # x = np.clip(x, a_min=self.args.min, a_max=self.args.max)
-                x_prime = self.add_distortion(x)
+                x_prime = self.add_one_distortion(x)
 
                 if self.args.noise_iterations > 0:
                     # This is the randomized defense.

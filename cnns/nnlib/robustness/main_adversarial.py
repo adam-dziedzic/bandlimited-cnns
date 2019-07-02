@@ -514,6 +514,7 @@ def run(args):
 
         args.true_label = from_class_idx_to_label[args.True_class_id]
         result.true_label = args.true_label
+        result.true_id = args.True_class_id
         print("True class id:", args.True_class_id, ", is label: ",
               args.true_label)
 
@@ -601,7 +602,7 @@ def run(args):
             rounder = DenormRoundNorm(
                 mean_array=args.mean_array, std_array=args.std_array,
                 values_per_channel=args.values_per_channel)
-            rounded_image = rounder.round(image)
+            rounded_image = rounder.round(np.copy(image))
             print("rounded_image min and max: ", rounded_image.min(), ",",
                   rounded_image.max())
             title = "cd (" + str(args.values_per_channel) + ")"
@@ -613,6 +614,8 @@ def run(args):
             print("show diff between input image and rounded: ",
                   np.sum(np.abs(rounded_image - original_image)))
             result.add(result_round, prefix="round_")
+            print("label, id found after applying rounding: ",
+                  result_round.label, result_round.class_id)
         else:
             result.round_label = None
 
@@ -621,12 +624,12 @@ def run(args):
             if is_approximate:
                 compress_image = FFTBandFunction2D.forward(
                     ctx=None,
-                    input=torch.from_numpy(image).unsqueeze(0),
+                    input=torch.from_numpy(np.copy(image)).unsqueeze(0),
                     compress_rate=args.compress_fft_layer).numpy().squeeze(0)
             else:
                 # exact compression.
                 compress_image = attack_round_fft.fft_complex_compression(
-                    image=image)
+                    image=np.copy(image))
             # title = "fc (" + str(args.compress_fft_layer) + ")"
             title = "spatial domain"
             # title += "interpolation: " + args.interpolate
@@ -660,10 +663,13 @@ def run(args):
 
             start_time = time.time()
             result_noise = randomized_defense(image=image, fmodel=fmodel,
-                                              original_image=original_image)
+                                              original_image=original_image,
+                                              defense_name="gauss")
             result.time_gauss_defend = time.time() - start_time
 
             result.add(result_noise, prefix="gauss_many_")
+            print("label, id found after applying gauss: ",
+                  result_gauss.label, result_gauss.class_id)
         else:
             result.gauss_label = None
 
@@ -685,13 +691,14 @@ def run(args):
                 original_image=original_image,
                 args=args,
                 title=title)
-            print("label, id found after applying random noise once: ",
+            print("label, id found after applying uniform random noise once: ",
                   result_noise.label, result_noise.class_id)
             result.add(result_noise, prefix="noise_")
 
             start_time_defend = time.time()
             result_noise = randomized_defense(image=image, fmodel=fmodel,
-                                              original_image=original_image)
+                                              original_image=original_image,
+                                              defense_name="uniform")
             result.time_noise_defend = time.time() - start_time_defend
 
             result.add(result_noise, prefix="noise_many_")
@@ -711,7 +718,7 @@ def run(args):
                 original_image=original_image,
                 args=args,
                 title=title)
-            print("label, id found after applying random noise once: ",
+            print("label, id found after applying laplace noise once: ",
                   result_laplace.label, result_laplace.class_id)
             result.add(result_laplace, prefix="laplace_")
 
@@ -727,7 +734,7 @@ def run(args):
         if args.svd_compress > 0 and image is not None:
             print("svd defense")
             title = "svd (" + str(args.svd_compress) + ")"
-            svd_image = compress_svd(torch_img=torch.tensor(image),
+            svd_image = compress_svd(torch_img=torch.tensor(np.copy(image)),
                                      compress_rate=args.svd_compress)
             svd_image = svd_image.cpu().numpy()
             print("svd image min and max: ", svd_image.min(), ",",
@@ -740,6 +747,8 @@ def run(args):
             print("show diff between input image and svd image: ",
                   np.sum(np.abs(svd_image - original_image)))
             result.add(result_svd, prefix="svd_")
+            print("label, id found after applying svd: ",
+                  result_svd.label, result_svd.class_id)
         else:
             result.svd_label = None
 
@@ -920,7 +929,7 @@ def run(args):
     return result
 
 
-def randomized_defense(image, fmodel, original_image=None):
+def randomized_defense(image, fmodel, original_image=None, defense_name=""):
     """
     the randomized defense.
 
@@ -956,7 +965,8 @@ def randomized_defense(image, fmodel, original_image=None):
             iters=iters,
             original_image=original_image)
         print(
-            f"recovered label, id by {args.noise_iterations} iterations: ",
+            f"{defense_name} recovered label, id by {args.noise_iterations} "
+            f"iterations: ",
             result_noise.label, result_noise.class_id)
         return result_noise
     return Object()
@@ -1089,6 +1099,8 @@ if __name__ == "__main__":
         val_range = args.many_svd_compress
     elif args.recover_type == "debug":
         val_range = [0.009]
+    elif args.recover_type == "all":
+        val_range = [0.0]
     else:
         raise Exception(f"Unknown recover type: {args.recover_type}")
 
@@ -1163,6 +1175,8 @@ if __name__ == "__main__":
         elif args.recover_type == "svd":
             args.svd_compress = compress_value
         elif args.recover_type == "roundfft":
+            pass
+        elif args.recover_type == "all":
             pass
         else:
             raise Exception(
@@ -1320,6 +1334,8 @@ if __name__ == "__main__":
                                 sum_defend_timing += result_run.time_svd_defend
                         elif args.recover_type == "debug":
                             exit(0)
+                        elif args.recover_type == "all":
+                            pass
                         else:
                             raise Exception(
                                 f"Unknown recover type: {args.recover_type}")
