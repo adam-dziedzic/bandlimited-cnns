@@ -1,5 +1,6 @@
 from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.general_utils import AttackType
+from cnns.nnlib.utils.general_utils import AdversarialType
 from cnns.nnlib.utils.general_utils import ConvExecType
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import OptimizerType
@@ -293,6 +294,13 @@ def get_args():
                         default=args.attack_type.name,
                         help="The type of the attack: " + ",".join(
                             AttackType.get_names()))
+    parser.add_argument("--adv_type",
+                        default=args.adv_type.name,
+                        help="The type of the adversarial for robustnes; "
+                             "apply the adversarial attack before or after a "
+                             "noisy "
+                             "channel or do not apply at all: " + ",".join(
+                            AdversarialType.get_names()))
     parser.add_argument('--start_epsilon',
                         default=args.start_epsilon, type=int,
                         help="The start epsilon value for the attack.")

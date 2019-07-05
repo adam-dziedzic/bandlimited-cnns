@@ -1,6 +1,7 @@
 from cnns.nnlib.pytorch_architecture.le_net import LeNet
 from cnns.nnlib.pytorch_architecture.net import Net
 from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
+from cnns.nnlib.pytorch_architecture.resnet2d import resnet50
 from cnns.nnlib.pytorch_architecture.resnet2d import resnet50_imagenet
 from cnns.nnlib.pytorch_architecture.densenet import densenet_cifar
 from cnns.nnlib.pytorch_architecture.fcnn import FCNNPytorch
@@ -34,6 +35,7 @@ def getModelPyTorch(args, pretrained=False):
     elif network_type == NetworkType.DenseNetCifar:
         return densenet_cifar(args=args)
     elif network_type == NetworkType.ResNet50:
-        return resnet50_imagenet(args=args, pretrained=pretrained)
+        # return resnet50_imagenet(args=args, pretrained=pretrained)
+        return resnet50(args=args, pretrained=pretrained)
     else:
         raise Exception("Unknown network_type: ", network_type)

@@ -140,6 +140,12 @@ class AttackType(EnumWithNames):
     LAPLACE_RECOVERY = 14
 
 
+class AdversarialType(EnumWithNames):
+    NONE = 1
+    BEFORE = 2
+    AFTER = 3
+
+
 class ConvExecType(EnumWithNames):
     SERIAL = 1
     BATCH = 2

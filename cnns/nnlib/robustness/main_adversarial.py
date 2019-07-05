@@ -58,6 +58,8 @@ import torchvision.models as models
 from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBandFunction2D
 from cnns.nnlib.datasets.transformations.denorm_round_norm import DenormRoundNorm
 from cnns.nnlib.utils.svd2d import compress_svd
+from cnns.nnlib.utils.general_utils import AdversarialType
+
 
 results_folder = "results/"
 delimiter = ";"
@@ -414,8 +416,9 @@ def run(args):
         attack = foolbox.attacks.LBFGSAttack(fmodel)
     elif args.attack_name == "L1BasicIterativeAttack":
         attack = foolbox.attacks.L1BasicIterativeAttack(fmodel)
-    elif args.attack_name is None:
+    elif args.attack_name is None or args.attack_name == 'None':
         print("No attack set!")
+        attack = None
     else:
         raise Exception("Unknown attack name: " + str(args.attack_name))
     attacks = [attack]
@@ -436,7 +439,7 @@ def run(args):
             cols += 1
         if args.svd_compress > 0:
             cols += 1
-        if args.adv_attack is not None:
+        if args.adv_type != AdversarialType.NONE:
             cols += 1
         show_diff = False
         if show_diff:
@@ -559,7 +562,7 @@ def run(args):
 
         adv_image = None
         created_new_adversarial = False
-        if args.adv_attack == "before":
+        if args.adv_type == AdversarialType.BEFORE:
             attack_name = attack.name()
             print("attack name: ", attack_name)
             # if attack_name != "carliniwagnerl2attack":
@@ -752,9 +755,9 @@ def run(args):
         else:
             result.svd_label = None
 
-        if args.adv_attack == "after":
+        if args.adv_type == AdversarialType.AFTER:
             full_name += "-after"
-            print("adv_attack: ", args.adv_attack, " attack name: ",
+            print("adv_type: ", args.adv_type, " attack name: ",
                   attack.name())
             if os.path.exists(full_name + ".npy"):
                 adv_image = np.load(file=full_name + ".npy")
@@ -775,7 +778,7 @@ def run(args):
                 adv_image = None
                 result.adv_label = None
 
-        if args.adv_attack is None:
+        if args.adv_type == AdversarialType.NONE:
             result.adv_label = None
             adv_image = None
 
@@ -812,7 +815,7 @@ def run(args):
                                           # title="original",
                                           is_log=is_log)
 
-                if adv_image is not None and args.adv_attack == "before":
+                if adv_image is not None and args.adv_type == AdversarialType.BEFORE:
                     adversarial_fft = print_fft(image=adv_image,
                                                 channel=channel,
                                                 args=args,
@@ -911,7 +914,10 @@ def run(args):
         plt.subplots_adjust(hspace=0.6, left=0.075, right=0.9)
 
     format = 'png'  # "pdf" or "png" file_name
-    file_name = "images/" + attack.name() + "-" + str(
+    attack_name = "None"
+    if attack != None:
+        attack_name = attack.name()
+    file_name = "images/" + attack_name + "-" + str(
         args.attack_type) + "-round-fft-" + str(
         args.compress_fft_layer) + "-" + args.dataset + "-channel-" + str(
         channels_nr) + "-" + "val-per-channel-" + str(
@@ -1044,8 +1050,6 @@ if __name__ == "__main__":
             limit = 10000
         else:
             raise Exception(f"Unknown dataset: {args.dataset}")
-
-    args.adv_attack = "before"  # "before" or "after"
 
     # args.compress_fft_layer = 5
     # args.values_per_channel = 8

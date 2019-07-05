@@ -357,7 +357,7 @@ def main(args):
     # model = torch.nn.DataParallel(model)
 
     # https://pytorch.org/docs/master/notes/serialization.html
-    if args.model_path != "no_model":
+    if args.model_path != "no_model" and args.model_path != "pretrained":
         model.load_state_dict(
             torch.load(os.path.join(models_dir, args.model_path),
                        map_location=args.device))

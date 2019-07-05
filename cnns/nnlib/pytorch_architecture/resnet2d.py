@@ -317,14 +317,14 @@ def resnet18(pretrained=False, **kwargs):
     return model
 
 
-def resnet50_imagenet(pretrained=False, **kwargs):
+def resnet50_imagenet(pretrained=False, args=None, **kwargs):
     """Constructs a ResNet-50 model for training on imagenet.
 
     Arguments:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(BasicBlock, [3, 4, 6, 3], **kwargs)
-    if pretrained:
+    model = ResNet(BasicBlock, [3, 4, 6, 3], args=args, **kwargs)
+    if pretrained or (args is not None and args.model_path == "pretrained"):
         model.load_state_dict(model_zoo.load_url(model_urls['resnet50']))
     return model
 
@@ -341,14 +341,14 @@ def resnet34(pretrained=False, **kwargs):
     return model
 
 
-def resnet50(pretrained=False, **kwargs):
+def resnet50(pretrained=False, args=None, **kwargs):
     """Constructs a ResNet-50 model.
 
     Arguments:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
-    if pretrained:
+    model = ResNet(Bottleneck, [3, 4, 6, 3], args=args, **kwargs)
+    if pretrained or (args is not None and args.model_path == "pretrained"):
         model.load_state_dict(model_zoo.load_url(model_urls['resnet50']))
     return model
 

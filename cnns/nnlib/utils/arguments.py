@@ -4,6 +4,7 @@ from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.utils.general_utils import AttackType
+from cnns.nnlib.utils.general_utils import AdversarialType
 from cnns.nnlib.utils.general_utils import ConvExecType
 from cnns.nnlib.utils.general_utils import OptimizerType
 from cnns.nnlib.utils.general_utils import SchedulerType
@@ -48,7 +49,7 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     precision_type = PrecisionType.FP32
     # conv_exec_type = ConvExecType.BATCH
     conv_exec_type = ConvExecType.CUDA
-    visualize = False  # test model for different compress rates
+    visualize = True  # test model for different compress rates
     next_power2 = True
     schedule_patience = 50
     schedule_factor = 0.5
@@ -61,9 +62,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     in_channels = 1
 else:
     # dataset = "mnist"
-    dataset = "cifar10"
+    # dataset = "cifar10"
     # dataset = "cifar100"
-    # dataset = "imagenet"
+    dataset = "imagenet"
     # dataset = "svhn"
 
     batch_size = 32
@@ -82,7 +83,7 @@ else:
     precision_type = PrecisionType.FP32
     # conv_exec_type = ConvExecType.CUDA
     conv_exec_type = ConvExecType.SGEMM
-    visualize = False  # test model for different compress rates
+    visualize = True  # test model for different compress rates
     next_power2 = False
     schedule_patience = 10
     schedule_factor = 0.1
@@ -115,7 +116,7 @@ else:
         test_batch_size = batch_size
         learning_rate = 0.1
         weight_decay = 0.0001
-        model_path = "no_model"
+        model_path = "pretrained"
     elif dataset == "svhn":
         network_type = NetworkType.ResNet18
         model_path = "no_model"
@@ -269,7 +270,7 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=100,  # run on full data
+                 sample_count_limit=100,  # 0 means run on full data
                  # sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
@@ -307,27 +308,27 @@ class Arguments(object):
                  start_epoch=0,
                  only_train=False,
                  test_compress_rates=False,
-                 noise_sigma=0.03,
+                 noise_sigma=0.0,
                  noise_sigmas=[0],
                  # noise_epsilons=[0.1, 0.07, 0.03, 0.009, 0.007, 0.04, 0.02, 0.3],
                  fft_type="real_fft",  # real_fft or complex_fft
                  imagenet_path="/home/" + str(USER) + "/imagenet",
                  distributed=False,
                  in_channels=in_channels,
-                 values_per_channel=16,
+                 values_per_channel=0,
                  many_values_per_channel=[0],
                  # ucr_path = "../sathya",
                  ucr_path="../../TimeSeriesDatasets",
                  start_epsilon=0,
-                 # attack_type=AttackType.BAND_ONLY,
+                 attack_type=AttackType.BAND_ONLY,
                  # attack_type=AttackType.NOISE_ONLY,
                  # attack_type=AttackType.ROUND_ONLY,
-                 attack_type=AttackType.FFT_RECOVERY,
+                 # attack_type=AttackType.FFT_RECOVERY,
                  # attack_type=AttackType.RECOVERY,
                  # attack_type=AttackType.ROUND_RECOVERY,
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
-                 compress_fft_layer=30,
+                 compress_fft_layer=0,
                  attack_name="CarliniWagnerL2AttackRoundFFT",
                  # attack_name="CarliniWagnerL2Attack",
                  # attack_name = None,
@@ -340,7 +341,7 @@ class Arguments(object):
                  # recover_type="debug",
                  # attack_type="fft",
                  noise_epsilon=0.0,
-                 noise_epsilons=[0.04],
+                 noise_epsilons=[0.0],
                  # recover_type="gauss",
                  step_size=1,
                  noise_iterations=0,
@@ -349,12 +350,13 @@ class Arguments(object):
                  many_recover_iterations=[1],
                  attack_max_iterations=100,
                  many_attack_iterations=[100],
-                 laplace_epsilon=0.03,
+                 laplace_epsilon=0.0,
                  laplace_epsilons=[0.0],
                  is_DC_shift=False,
                  use_foolbox_data=False,
-                 svd_compress=0.5,
+                 svd_compress=0.0,
                  many_svd_compress=[0.0],
+                 adv_type=AdversarialType.NONE,
                  ):
         """
         The default parameters for the execution of the program.
@@ -490,6 +492,7 @@ class Arguments(object):
         self.use_foolbox_data = use_foolbox_data
         self.svd_compress = svd_compress
         self.many_svd_compress = many_svd_compress
+        self.adv_type = adv_type
         self.set_dtype()
 
 
@@ -516,6 +519,7 @@ class Arguments(object):
         self.stride_type = StrideType[parsed_args.stride_type]
         self.precision_type = PrecisionType[parsed_args.precision_type]
         self.attack_type = AttackType[parsed_args.attack_type]
+        self.adv_type = AdversarialType[parsed_args.adv_type]
 
         # Bools:
         self.is_debug = self.get_bool(parsed_args.is_debug)

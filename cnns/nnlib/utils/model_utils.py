@@ -2,7 +2,7 @@ import torch
 import os
 from cnns.nnlib.pytorch_architecture.get_model_architecture import \
     getModelPyTorch
-
+import torchvision.models as models
 
 def load_model(args, pretrained=False):
     model = getModelPyTorch(args=args, pretrained=pretrained)
@@ -17,3 +17,12 @@ def load_model(args, pretrained=False):
         msg = "loaded model: " + args.model_path
         # print(msg)
     return model.eval()
+
+def save_model_from_pretrained():
+    model = models.resnet50(pretrained=True)
+    model_path = "../pytorch_experiments/models/imagenet_resnet50.model"
+    torch.save(model.state_dict(), model_path)
+
+
+if __name__ == "__main__":
+    save_model_from_pretrained()
