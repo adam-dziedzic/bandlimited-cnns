@@ -22,7 +22,7 @@ from cnns.nnlib.datasets.svhn import svhn_std, svhn_mean
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_std, \
     imagenet_mean
 from cnns.nnlib.robustness.utils import AdditiveLaplaceNoiseAttack
-from cnns.nnlib.utils.svd2d import compress_svd
+from cnns.nnlib.utils.svd2d import compress_svd_batch
 
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
@@ -189,8 +189,8 @@ class ResNet(nn.Module):
             self.rounder = lambda x: x
 
         if args.svd_compress > 0:
-            self.svd = lambda x: compress_svd(torch_img=x,
-                                              compress_rate=args.svd_compress)
+            self.svd = lambda x: compress_svd_batch(x,
+                                                compress_rate=args.svd_compress)
         else:
             self.svd = lambda x: x
 

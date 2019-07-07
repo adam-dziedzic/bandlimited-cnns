@@ -4290,8 +4290,20 @@ ady@skr-compute1:~/code/bandlimited-cnns-pycharm-win/cnns/nnlib/robustness$ echo
 2019-07-07-10-34-39.txt
 
 
-for i in 0 1 5 10 20 30 40 50 60 70 80 90 100; do
+for i in 1 5 10 20 30 40 50 60 70 80 90 100; do
 timestamp=$(date +%Y-%m-%d-%H-%M-%S)
 echo ${timestamp}.txt
 CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type="STANDARD2D" --conv_exec_type=CUDA --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=50000 --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.01 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path="pretrained" --momentum=0.9 --next_power2='FALSE' --optimizer_type='MOMENTUM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='TRUE' --weight_decay=0.0005 --workers=4 --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigma=0.0 --noise_sigmas 0.0 --noise_epsilon=0.0 --noise_epsilons 0 --start_epsilon=0 --attack_type="SVD_ONLY" --attack_name="CarliniWagnerL2AttackRoundFFT" --start_epoch=0 --network_type='ResNet50' --dataset="imagenet" --compress_fft_layer=0 --values_per_channel=0 --many_values_per_channel 0 --recover_type="fft" --step_size=1 --many_recover_iterations 0 --many_attack_iterations 0 --many_noise_iterations 0 --use_foolbox_data='FALSE' --laplace_epsilon=0.0 --laplace_epsilons 0.0 --svd_compress=${i} --many_svd_compress ${i} --adv_type='BEFORE' >> ${timestamp}.txt 2>&1
+done;
+
+0.007 0.009 0.01 0.02 0.03 0.04 0.05 0.07 0.1
+
+
+
+for i in 0.007 0.009 0.01 0.02 0.03 0.04 0.05 0.07 0.1; do
+timestamp=$(date +%Y-%m-%d-%H-%M-%S)
+echo ${timestamp}.txt
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type="STANDARD2D" --conv_exec_type=CUDA --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=50000 --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.01 --log_conv_size=FALSE --loss_reduction='ELEMENTWISE_MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path="pretrained" --momentum=0.9 --next_power2='FALSE' --optimizer_type='MOMENTUM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='TRUE' --weight_decay=0.0005 --workers=4 --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigma=0.0 --noise_sigmas 0.0 --noise_epsilon=${i} --noise_epsilons 0 --start_epsilon=0 --attack_type="GAUSS_ONLY" --attack_name="CarliniWagnerL2AttackRoundFFT" --start_epoch=0 --network_type='ResNet50' --dataset="imagenet" --compress_fft_layer=0 --values_per_channel=0 --many_values_per_channel 0 --recover_type="all" --step_size=1 --many_recover_iterations 0 --many_attack_iterations 0 --many_noise_iterations 0 --use_foolbox_data='FALSE' --laplace_epsilon=0.0 --laplace_epsilons 0.0 --svd_compress=0.0 --many_svd_compress 0 --adv_type='BEFORE' >> ${timestamp}.txt 2>&1 &
+pid=$!
+wait ${pid}
 done;

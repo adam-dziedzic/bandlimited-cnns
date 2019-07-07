@@ -26,3 +26,11 @@ def compress_svd_numpy(numpy_array, compress_rate):
     torch_image = compress_svd(torch_img=torch_image,
                                compress_rate=compress_rate)
     return torch_image.cpu().numpy()
+
+
+def compress_svd_batch(x, compress_rate):
+    result = torch.zeros_like(x)
+    for i, torch_img in enumerate(x):
+        result[i] = compress_svd(torch_img=x, compress_rate=compress_rate)
+    return result
+
