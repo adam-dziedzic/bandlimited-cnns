@@ -123,9 +123,11 @@ def get_cifar(args, dataset_name):
     args.out_channels = None
     args.signal_dimension = 2
     args.mean_array = cifar_mean_array
+    args.mean_mean = cifar_mean_mean
     args.std_array = cifar_std_array
     args.min = cifar_min
     args.max = cifar_max
+
     if args.network_type is NetworkType.LE_NET:
         args.out_channels = [10, 20]
         args.signal_dimension = 2

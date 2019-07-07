@@ -41,6 +41,13 @@ def get_mnist(args):
     args.width = 28 * 28
     args.in_channels = 1  # number of channels in the input data
     args.out_channels = [10, 20]
+
+    args.min = mnist_min
+    args.max = mnist_max
+    args.mean_array = mnist_mean_array
+    args.mean_mean = mnist_mean_mean
+    args.std_array = mnist_std_array
+
     train_dataset = torchvision.datasets.MNIST(
         root='./data', train=True,
         download=True,

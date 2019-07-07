@@ -2,17 +2,14 @@ import torch
 
 
 class RoundingTransformation(object):
-    """Add a gaussian noise to the tensor.
 
-    Given tensor (C,H,W): add the Gaussian noise of the same shape.
+    def __init__(self, values_per_channel, rounder=torch.round):
+        """
+        Compress by decreasing the number of values per channel.
 
-    Source: https://stackoverflow.com/questions/14435632/impulse-gaussian-and-salt-and-pepper-noise-with-opencv
-
-    """
-
-    def __init__(self, values_per_channel,
-                 rounder=torch.round,  # or np.around
-                 ):
+        :param values_per_channel: number of values used per channel
+        :param rounder: use np.around for numpy arrays
+        """
         self.round_multiplier = values_per_channel - 1.0
         self.ext_multiplier = 1.0 / self.round_multiplier
         self.rounder = rounder

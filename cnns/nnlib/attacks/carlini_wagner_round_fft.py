@@ -189,9 +189,10 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
         if self.args.attack_type == AttackType.SVD_RECOVERY:
             image = compress_svd(torch_img=torch.tensor(image),
                                  compress_rate=self.args.svd_compress)
-            image = image.cpu().numpy()
-            if is_clip:
-                image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
+            if image is not None:
+                image = image.cpu().numpy()
+                if is_clip:
+                    image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
 
         if self.args.attack_type == AttackType.GAUSS_RECOVERY:
             noise = self.gauss._sample_noise(
@@ -391,6 +392,8 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                 # range.
                 # x = np.clip(x, a_min=self.args.min, a_max=self.args.max)
                 x_prime = self.add_one_distortion(x)
+                if x_prime is None:
+                    break
 
                 if self.args.noise_iterations > 0:
                     # This is the randomized defense.
