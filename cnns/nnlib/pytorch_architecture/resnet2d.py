@@ -207,7 +207,7 @@ class ResNet(nn.Module):
             self.noise = lambda x: x
 
         if args.laplace_epsilon > 0:
-            self.laplace = AdditiveLaplaceNoiseAttack(args=args)
+            self.laplace = Noise(args=args)
         else:
             # identity function
             self.laplace = lambda x: x

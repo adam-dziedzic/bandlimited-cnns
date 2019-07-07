@@ -72,7 +72,7 @@ class Noise(Module):
             self.noiser = AdditiveUniformNoiseAttack()
             self.noise_level = args.noise_epsilon
         elif args.laplace_epsilon > 0:
-            self.noiser = AdditiveLaplaceNoiseAttack()
+            self.noiser = AdditiveLaplaceNoiseAttack(args=args)
             self.noise_level = args.laplace_epsilon
         self.min = args.min
         self.max = args.max
