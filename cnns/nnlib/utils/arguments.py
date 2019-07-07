@@ -348,7 +348,7 @@ class Arguments(object):
                  many_noise_iterations=[0],
                  recover_iterations=0,
                  many_recover_iterations=[1],
-                 attack_max_iterations=100,
+                 attack_max_iterations=1000,
                  many_attack_iterations=[100],
                  laplace_epsilon=0.0,
                  laplace_epsilons=[0.0],
