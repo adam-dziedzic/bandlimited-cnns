@@ -22,6 +22,8 @@ from cnns.nnlib.datasets.svhn import svhn_std, svhn_mean
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_std, \
     imagenet_mean
 from cnns.nnlib.robustness.utils import AdditiveLaplaceNoiseAttack
+from cnns.nnlib.utils.svd2d import compress_svd
+
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152']
@@ -166,6 +168,14 @@ class ResNet(nn.Module):
             raise Exception(
                 f"Unknown dataset: {args.dataset} in ResNet architecture.")
 
+
+        if args.compress_fft_layer > 0:
+            # self.band = FFTBand2D(args=args)
+            self.band = FFTBand2DcomplexMask(args=args)
+        else:
+            # identity function
+            self.band = lambda x: x
+
         if args.values_per_channel > 0:
             self.rounder = Round(args=args)
             # pass
@@ -178,12 +188,11 @@ class ResNet(nn.Module):
             # identity function
             self.rounder = lambda x: x
 
-        if args.compress_fft_layer > 0:
-            # self.band = FFTBand2D(args=args)
-            self.band = FFTBand2DcomplexMask(args=args)
+        if args.svd_compress > 0:
+            self.svd = lambda x: compress_svd(torch_img=x,
+                                              compress_rate=args.svd_compress)
         else:
-            # identity function
-            self.band = lambda x: x
+            self.svd = lambda x: x
 
         if args.noise_sigma > 0:
             self.gauss = Noise(args=args)

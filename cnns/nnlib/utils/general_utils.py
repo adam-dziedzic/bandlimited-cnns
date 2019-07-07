@@ -132,12 +132,13 @@ class AttackType(EnumWithNames):
     NO_ATTACK = 6
     GAUSS_ONLY = 7
     LAPLACE_ONLY = 8
-    FFT_RECOVERY = 9
-    ROUND_RECOVERY = 10
-    SVD_RECOVERY = 11
-    GAUSS_RECOVERY = 12
-    UNIFORM_RECOVERY = 13
-    LAPLACE_RECOVERY = 14
+    SVD_ONLY = 9
+    FFT_RECOVERY = 10
+    ROUND_RECOVERY = 11
+    SVD_RECOVERY = 12
+    GAUSS_RECOVERY = 13
+    UNIFORM_RECOVERY = 14
+    LAPLACE_RECOVERY = 15
 
 
 class AdversarialType(EnumWithNames):

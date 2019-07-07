@@ -19,3 +19,10 @@ def compress_svd(torch_img, compress_rate):
         torch_compress_img[c] = torch.mm(torch.mm(u_c, torch.diag(s_c)),
                                          v_c.t())
     return torch_compress_img
+
+
+def compress_svd_numpy(numpy_array, compress_rate):
+    torch_image = torch.from_numpy(numpy_array)
+    torch_image = compress_svd(torch_img=torch_image,
+                               compress_rate=compress_rate)
+    return torch_image.cpu().numpy()
