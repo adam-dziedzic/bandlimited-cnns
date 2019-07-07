@@ -276,6 +276,8 @@ class ResNet(nn.Module):
             x = self.gauss(x)
         elif self.args.attack_type == AttackType.LAPLACE_ONLY:
             x = self.laplace(x)
+        elif self.args.attack_type == AttackType.SVD_ONLY:
+            x = self.svd(x)
         elif self.args.attack_type == AttackType.RECOVERY:
             pass
         elif self.args.attack_type == AttackType.FFT_RECOVERY:
