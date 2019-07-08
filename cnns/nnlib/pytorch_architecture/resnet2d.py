@@ -5,7 +5,9 @@ import torch.utils.model_zoo as model_zoo
 from cnns.nnlib.pytorch_layers.conv_picker import Conv
 from cnns.nnlib.pytorch_layers.conv2D_fft import Conv2dfft
 from cnns.nnlib.pytorch_layers.round import Round
-from cnns.nnlib.pytorch_layers.noise import Noise
+from cnns.nnlib.pytorch_layers.noise import NoiseGauss
+from cnns.nnlib.pytorch_layers.noise import NoiseUniform
+from cnns.nnlib.pytorch_layers.noise import NoiseLaplace
 from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBand2D
 from cnns.nnlib.pytorch_layers.fft_band_2D_complex_mask import \
     FFTBand2DcomplexMask
@@ -195,19 +197,19 @@ class ResNet(nn.Module):
             self.svd = lambda x: x
 
         if args.noise_sigma > 0:
-            self.gauss = Noise(args=args)
+            self.gauss = NoiseGauss(args=args)
         else:
             # identity function
             self.gauss = lambda x: x
 
         if args.noise_epsilon > 0:
-            self.noise = Noise(args=args)
+            self.noise = NoiseUniform(args=args)
         else:
             # identity function
             self.noise = lambda x: x
 
         if args.laplace_epsilon > 0:
-            self.laplace = Noise(args=args)
+            self.laplace = NoiseLaplace(args=args)
         else:
             # identity function
             self.laplace = lambda x: x

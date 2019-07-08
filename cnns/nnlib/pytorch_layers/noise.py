@@ -39,7 +39,6 @@ class NoiseFunction(torch.autograd.Function):
         noise = torch.from_numpy(noise).to(input.dtype).to(input.device)
         return input + noise
 
-
     @staticmethod
     def backward(ctx, grad_output):
         """
@@ -87,3 +86,30 @@ class Noise(Module):
         """
         return NoiseFunction.apply(input, self.noiser, self.noise_level,
                                    self.min, self.max)
+
+
+class NoiseGauss(Noise):
+
+    def __init__(self, args):
+        super(NoiseGauss, self).__init__(args=args)
+        if args.noise_sigma > 0:
+            self.noiser = AdditiveGaussianNoiseAttack()
+            self.noise_level = args.noise_sigma
+
+
+class NoiseUniform(Noise):
+
+    def __init__(self, args):
+        super(NoiseUniform, self).__init__(args=args)
+        if args.noise_epsilon > 0:
+            self.noiser = AdditiveUniformNoiseAttack()
+            self.noise_level = args.noise_epsilon
+
+
+class NoiseLaplace(Noise):
+
+    def __init__(self, args):
+        super(NoiseLaplace, self).__init__(args=args)
+        if args.laplace_epsilon > 0:
+            self.noiser = AdditiveLaplaceNoiseAttack(args=args)
+            self.noise_level = args.laplace_epsilon

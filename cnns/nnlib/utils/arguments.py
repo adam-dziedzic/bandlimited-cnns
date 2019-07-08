@@ -62,9 +62,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     in_channels = 1
 else:
     # dataset = "mnist"
-    # dataset = "cifar10"
+    dataset = "cifar10"
     # dataset = "cifar100"
-    dataset = "imagenet"
+    # dataset = "imagenet"
     # dataset = "svhn"
 
     batch_size = 32
@@ -169,8 +169,9 @@ class Arguments(object):
                  use_cuda=True,
                  compress_type=CompressType.STANDARD,
                  compress_rate=compress_rate,
-                 compress_rates=[compress_rate],
+                 # compress_rates=[compress_rate],
                  # compress_rates=[75, 50, 10, 1],
+                 compress_rates=[0.007, 0.009, 0.01, 0.02, 0.03, 0.04, 0.05, 0.07, 0.1],
                  # ndexes_back=[5,15,25,35,45],
                  # compress_rates=range(80, 101, 10),
                  # compress_rates=[x/2 for x in range(28,111,1)],
@@ -270,7 +271,7 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=100,  # 0 means run on full data
+                 sample_count_limit=0,  # 0 means run on full data
                  # sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
@@ -320,12 +321,13 @@ class Arguments(object):
                  # ucr_path = "../sathya",
                  ucr_path="../../TimeSeriesDatasets",
                  start_epsilon=0,
-                 attack_type=AttackType.BAND_ONLY,
+                 # attack_type=AttackType.BAND_ONLY,
                  # attack_type=AttackType.NOISE_ONLY,
                  # attack_type=AttackType.ROUND_ONLY,
                  # attack_type=AttackType.FFT_RECOVERY,
                  # attack_type=AttackType.RECOVERY,
                  # attack_type=AttackType.ROUND_RECOVERY,
+                 attack_type=AttackType.LAPLACE_ONLY,
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
                  compress_fft_layer=0,
@@ -336,8 +338,8 @@ class Arguments(object):
                  interpolate="const",
                  # recover_type="rounding",
                  # recover_type="fft",
-                 recover_type="all",
-                 # recover_type="laplace",
+                 # recover_type="all",
+                 recover_type="laplace",
                  # recover_type="debug",
                  # attack_type="fft",
                  noise_epsilon=0.0,
