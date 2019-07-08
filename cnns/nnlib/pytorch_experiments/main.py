@@ -42,7 +42,7 @@ from cnns.nnlib.utils.exec_args import get_args
 # from cnns.nnlib.pytorch_experiments.track_utils.progress_bar import progress_bar
 from cnns.nnlib.pytorch_architecture.get_model_architecture import getModelPyTorch
 from cnns.nnlib.pytorch_experiments.utils.progress_bar import progress_bar
-
+from cnns.nnlib.utils.general_utils import AttackType
 # from memory_profiler import profile
 
 logger = logging.getLogger(__name__)
@@ -1225,14 +1225,13 @@ if __name__ == '__main__':
         args.compress_rate = compress_rate
 
         # compression techniques
-        args.compress_fft_layer = compress_rate
-        args.svd_compress = compress_rate
-        args.values_per_channel = compress_rate
+        if args.attack_type == AttackType.GAUSS_ONLY:
+            args.compress_fft_layer = compress_rate
+        if args.attack_type == AttackType.ROUND_ONLY:
+            args.values_per_channel = compress_rate
+        if args.attack_type == AttackType.SVD_ONLY:
+            args.svd_compress = compress_rate
 
-        # additive noise channels
-        args.noise_sigma = compress_rate
-        args.noise_epsilon = compress_rate
-        args.laplace_epsilon = compress_rate
 
         for dataset_name in flist:
             args.dataset_name = dataset_name
@@ -1243,13 +1242,17 @@ if __name__ == '__main__':
                 for noise_sigma in args.noise_sigmas:
                     print("noise sigma: ", noise_sigma)
                     args.noise_sigma = noise_sigma
-                    start_training = time.time()
-                    try:
-                        main(args=args)
-                    except RuntimeError as err:
-                        print(f"ERROR: {dataset_name}. "
-                              "Details: " + str(err))
-                        traceback.print_tb(err.__traceback__)
-                    print("elapsed time (sec): ", time.time() - start_training)
+                    for noise_epsilon in args.noise_epsilons:
+                        args.noise_epsilon = noise_epsilon
+                        for laplace_epsilon in args.laplace_epsilons:
+                            args.laplace_epsilon = laplace_epsilon
+                            start_training = time.time()
+                            try:
+                                main(args=args)
+                            except RuntimeError as err:
+                                print(f"ERROR: {dataset_name}. "
+                                      "Details: " + str(err))
+                                traceback.print_tb(err.__traceback__)
+                            print("elapsed time (sec): ", time.time() - start_training)
 
     print("total elapsed time (sec): ", time.time() - start_time)
