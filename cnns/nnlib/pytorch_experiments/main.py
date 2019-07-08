@@ -1218,8 +1218,22 @@ if __name__ == '__main__':
     # for noise_epsilon in args.noise_epsilons:
         # args.noise_epsilon = noise_epsilon
         print("compress rate: ", compress_rate)
+
+        # This is to run many experiments and get a single file with answers.
+        # This assumes that we use only a single additional laver for the
+        # ResNet network.
         args.compress_rate = compress_rate
-        # args.compress_fft_layer = compress_rate
+
+        # compression techniques
+        args.compress_fft_layer = compress_rate
+        args.svd_compress = compress_rate
+        args.values_per_channel = compress_rate
+
+        # additive noise channels
+        args.noise_sigma = compress_rate
+        args.noise_epsilon = compress_rate
+        args.laplace_epsilon = compress_rate
+
         for dataset_name in flist:
             args.dataset_name = dataset_name
             print("Dataset: ", dataset_name)
