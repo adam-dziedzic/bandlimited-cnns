@@ -424,6 +424,7 @@ def roundsvd_recover(result, image, original_image):
         roundsvd_image = compress_svd(
             torch_img=torch.tensor(np.copy(round_image)),
             compress_rate=args.svd_compress)
+        roundsvd_image = roundsvd_image.cpu().numpy()
         result_roundsvd = classify_image(
             image=roundsvd_image,
             original_image=original_image,
