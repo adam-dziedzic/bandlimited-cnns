@@ -365,6 +365,38 @@ def print_fft(image, channel, args, title="", is_log=True):
     return xfft
 
 
+def roundfft_recover(result, image, original_image, attack_round_fft):
+    if args.values_per_channel > 0 and args.compress_fft_layer > 0 and image is not None:
+        rounder = DenormRoundNorm(
+            mean_array=args.mean_array, std_array=args.std_array,
+            values_per_channel=args.values_per_channel)
+        round_image = rounder.round(np.copy(image))
+        roundfft_image = attack_round_fft.fft_complex_compression(
+            image=np.copy(round_image))
+        result_roundfft = classify_image(
+            image=roundfft_image,
+            original_image=original_image,
+            args=args)
+        result.add(result_roundfft, prefix="roundfft_")
+    else:
+        result.roundfft_label = None
+
+def fftround_recover(result, image, original_image, attack_round_fft):
+    if args.values_per_channel > 0 and args.compress_fft_layer > 0 and image is not None:
+        fft_image = attack_round_fft.fft_complex_compression(
+            image=np.copy(image))
+        rounder = DenormRoundNorm(
+            mean_array=args.mean_array, std_array=args.std_array,
+            values_per_channel=args.values_per_channel)
+        fftround_image = rounder.round(np.copy(fft_image))
+        result_roundfft = classify_image(
+            image=fftround_image,
+            original_image=original_image,
+            args=args)
+        result.add(result_roundfft, prefix="fftround_")
+    else:
+        result.fftround_label = None
+
 def run(args):
     result = Object()
     fmodel, from_class_idx_to_label = get_fmodel(args=args)
@@ -755,6 +787,16 @@ def run(args):
         else:
             result.svd_label = None
 
+        if args.recover_type == "roundfft":
+            roundfft_recover(result=result, image=image,
+                             original_image=original_image,
+                             attack_round_fft=attack_round_fft)
+
+        if args.recover_type == "fftround":
+            fftround_recover(result=result, image=image,
+                             original_image=original_image,
+                             attack_round_fft=attack_round_fft)
+
         if args.adv_type == AdversarialType.AFTER:
             full_name += "-after"
             print("adv_type: ", args.adv_type, " attack name: ",
@@ -1078,7 +1120,9 @@ if __name__ == "__main__":
         # val_range = range(1, 100, 2)
         # val_range = range(3)
     elif args.recover_type == "roundfft":
-        val_range = range(5)
+        val_range = range(1)
+    elif args.recofer_type == "fftround":
+        val_range = range(1)
     elif args.recover_type == "gauss":
         # val_range = [0.001, 0.009, 0.03, 0.07, 0.1, 0.2, 0.3, 0.4, 0.5]
         val_range = args.noise_sigmas
@@ -1180,6 +1224,8 @@ if __name__ == "__main__":
             args.svd_compress = compress_value
         elif args.recover_type == "roundfft":
             pass
+        elif args.recover_type == "fftround":
+            pass
         elif args.recover_type == "all":
             pass
         else:
@@ -1260,6 +1306,7 @@ if __name__ == "__main__":
                                 sum_L1_distance_defense += result_run.round_L1_distance
                                 sum_Linf_distance_defense += result_run.round_Linf_distance
                                 sum_confidence_defense += result_run.round_confidence
+
                         elif args.recover_type == "fft":
                             if result_run.fft_label is not None:
                                 if result_run.true_label == result_run.fft_label:
@@ -1268,10 +1315,25 @@ if __name__ == "__main__":
                                 sum_L1_distance_defense += result_run.fft_L1_distance
                                 sum_Linf_distance_defense += result_run.fft_Linf_distance
                                 sum_confidence_defense += result_run.fft_confidence
+
                         elif args.recover_type == "roundfft":
-                            if result_run.fft_label is not None:
-                                if result_run.true_label == result_run.fft_label:
+                            if result_run.roundfft_label is not None:
+                                if result_run.true_label == result_run.roundfft_label:
                                     count_recovered += 1
+                                sum_L2_distance_defense += result_run.roundfft_L2_distance
+                                sum_L1_distance_defense += result_run.roundfft_L1_distance
+                                sum_Linf_distance_defense += result_run.roundfft_Linf_distance
+                                sum_confidence_defense += result_run.roundfft_confidence
+
+                        elif args.recover_type == "fftround":
+                            if result_run.fftround_label is not None:
+                                if result_run.true_label == result_run.fftround_label:
+                                    count_recovered += 1
+                                sum_L2_distance_defense += result_run.fftround_L2_distance
+                                sum_L1_distance_defense += result_run.fftround_L1_distance
+                                sum_Linf_distance_defense += result_run.fftround_Linf_distance
+                                sum_confidence_defense += result_run.fftround_confidence
+
                         elif args.recover_type == "gauss":
                             if result_run.gauss_label is not None:
                                 if result_run.true_label == result_run.gauss_label:

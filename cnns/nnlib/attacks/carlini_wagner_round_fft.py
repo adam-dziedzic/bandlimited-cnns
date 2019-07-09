@@ -192,7 +192,8 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
             if image is not None:
                 image = image.cpu().numpy()
                 if is_clip:
-                    image = np.clip(image, a_min=self.args.min, a_max=self.args.max)
+                    image = np.clip(image, a_min=self.args.min,
+                                    a_max=self.args.max)
 
         if self.args.attack_type == AttackType.GAUSS_RECOVERY:
             noise = self.gauss._sample_noise(

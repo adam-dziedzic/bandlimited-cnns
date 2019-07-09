@@ -76,7 +76,7 @@ cifar_compress = {ylabel: "Accuracy (%)",
                   labels: ["", "FC", 'CD', "SVD"],
                   xlim: (0, 90),
                   ylim: (30, 100),
-                  title: "Cifar10"}
+                  title: "CIFAR-10"}
 
 cifar_noise = {ylabel: "Accuracy (%)",
                xlabel: "Epsilon (strength of the noise)",
@@ -88,8 +88,8 @@ cifar_noise = {ylabel: "Accuracy (%)",
                legend_cols: 3,
                labels: ["", "Gauss", "Uniform", "Laplace"],
                xlim: (0, 0.1),
-               ylim: (47, 100),
-               title: "Cifar10"}
+               ylim: (30, 100),
+               title: "CIFAR-10"}
 
 imagenet_compress = {ylabel: "Accuracy (%)",
                   xlabel: "Compression rate (%)",
@@ -114,7 +114,7 @@ imagenet_noise = {ylabel: "Accuracy (%)",
                legend_cols: 3,
                labels: ["", "Gauss", "Uniform", "Laplace"],
                xlim: (0, 0.1),
-               ylim: (55, 80),
+               ylim: (0, 90),
                title: "ImageNet"}
 
 colors = [get_color(color) for color in
@@ -146,7 +146,8 @@ for j, dataset in enumerate(datasets):
     for i in range(columns):
         if i > 0:  # skip first column with the epoch number
             plt.plot(cols[0], cols[i], label=f"{dataset[labels][i]}", lw=lw,
-                     color=colors[i], linestyle=linestyles[i])
+                     color=colors[i], linestyle=linestyles[i],
+                     marker=markers[i], markersize=15)
 
     plt.grid()
     plt.legend(loc=dataset[legend_pos], ncol=dataset[legend_cols],
@@ -167,7 +168,7 @@ for j, dataset in enumerate(datasets):
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "noisy_channels_max_accuracy." + format
+destination = dir_path + "/" + "noisyChannelsMaxAccuracy." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
