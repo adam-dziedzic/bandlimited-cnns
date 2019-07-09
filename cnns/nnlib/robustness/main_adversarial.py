@@ -389,13 +389,30 @@ def fftround_recover(result, image, original_image, attack_round_fft):
             mean_array=args.mean_array, std_array=args.std_array,
             values_per_channel=args.values_per_channel)
         fftround_image = rounder.round(np.copy(fft_image))
-        result_roundfft = classify_image(
+        result_fftround = classify_image(
             image=fftround_image,
             original_image=original_image,
             args=args)
-        result.add(result_roundfft, prefix="fftround_")
+        result.add(result_fftround, prefix="fftround_")
     else:
         result.fftround_label = None
+
+
+def fftuniform_recover(result, image, original_image, attack_round_fft):
+    if args.noise_epsilon > 0 and args.compress_fft_layer > 0 and image is not None:
+        fft_image = attack_round_fft.fft_complex_compression(
+            image=np.copy(image))
+        noise = AdditiveUniformNoiseAttack()._sample_noise(
+            epsilon=args.noise_epsilon, image=fft_image,
+            bounds=(args.min, args.max))
+        fftuniform_image = fft_image + noise
+        result_fftuniform = classify_image(
+            image=fftuniform_image,
+            original_image=original_image,
+            args=args)
+        result.add(result_fftuniform, prefix="fftuniform_")
+    else:
+        result.fftuniform_label = None
 
 def run(args):
     result = Object()
@@ -797,6 +814,11 @@ def run(args):
                              original_image=original_image,
                              attack_round_fft=attack_round_fft)
 
+        if args.recover_type == "fftuniform":
+            fftuniform_recover(result=result, image=image,
+                             original_image=original_image,
+                             attack_round_fft=attack_round_fft)
+
         if args.adv_type == AdversarialType.AFTER:
             full_name += "-after"
             print("adv_type: ", args.adv_type, " attack name: ",
@@ -1123,6 +1145,8 @@ if __name__ == "__main__":
         val_range = range(1)
     elif args.recover_type == "fftround":
         val_range = range(1)
+    elif args.recover_type == "fftuniform":
+        val_range = range(1)
     elif args.recover_type == "gauss":
         # val_range = [0.001, 0.009, 0.03, 0.07, 0.1, 0.2, 0.3, 0.4, 0.5]
         val_range = args.noise_sigmas
@@ -1225,6 +1249,8 @@ if __name__ == "__main__":
         elif args.recover_type == "roundfft":
             pass
         elif args.recover_type == "fftround":
+            pass
+        elif args.recover_type == "fftuniform":
             pass
         elif args.recover_type == "all":
             pass
@@ -1333,6 +1359,15 @@ if __name__ == "__main__":
                                 sum_L1_distance_defense += result_run.fftround_L1_distance
                                 sum_Linf_distance_defense += result_run.fftround_Linf_distance
                                 sum_confidence_defense += result_run.fftround_confidence
+
+                        elif args.recover_type == "fftuniform":
+                            if result_run.fftuniform_label is not None:
+                                if result_run.true_label == result_run.fftuniform_label:
+                                    count_recovered += 1
+                                sum_L2_distance_defense += result_run.fftuniform_L2_distance
+                                sum_L1_distance_defense += result_run.fftuniform_L1_distance
+                                sum_Linf_distance_defense += result_run.fftuniform_Linf_distance
+                                sum_confidence_defense += result_run.fftuniform_confidence
 
                         elif args.recover_type == "gauss":
                             if result_run.gauss_label is not None:
