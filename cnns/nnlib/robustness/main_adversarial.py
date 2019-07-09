@@ -434,6 +434,24 @@ def roundsvd_recover(result, image, original_image):
         result.roundsvd_label = None
 
 
+def rounduniform_recover(result, image, original_image):
+    if args.values_per_channel > 0 and args.noise_epsilon > 0 and image is not None:
+        rounder = DenormRoundNorm(
+            mean_array=args.mean_array, std_array=args.std_array,
+            values_per_channel=args.values_per_channel)
+        round_image = rounder.round(np.copy(image))
+        noise = AdditiveUniformNoiseAttack()._sample_noise(
+            epsilon=args.noise_epsilon, image=round_image,
+            bounds=(args.min, args.max))
+        rounduniform_image = round_image + noise
+        result_rounduniform = classify_image(
+            image=rounduniform_image,
+            original_image=original_image,
+            args=args)
+        result.add(result_rounduniform, prefix="rounduniform_")
+    else:
+        result.rounduniform_label = None
+
 def run(args):
     result = Object()
     fmodel, from_class_idx_to_label = get_fmodel(args=args)
@@ -843,6 +861,10 @@ def run(args):
             roundsvd_recover(result=result, image=image,
                              original_image=original_image)
 
+        if args.recover_type == "rounduniform":
+            rounduniform_recover(result=result, image=image,
+                             original_image=original_image)
+
         if args.adv_type == AdversarialType.AFTER:
             full_name += "-after"
             print("adv_type: ", args.adv_type, " attack name: ",
@@ -1173,6 +1195,8 @@ if __name__ == "__main__":
         val_range = range(1)
     elif args.recover_type == "roundsvd":
         val_range = range(1)
+    elif args.recover_type == "rounduniform":
+        val_range = range(1)
     elif args.recover_type == "gauss":
         # val_range = [0.001, 0.009, 0.03, 0.07, 0.1, 0.2, 0.3, 0.4, 0.5]
         val_range = args.noise_sigmas
@@ -1279,6 +1303,8 @@ if __name__ == "__main__":
         elif args.recover_type == "fftuniform":
             pass
         elif args.recover_type == "roundsvd":
+            pass
+        elif args.recover_type == "rounduniform":
             pass
         elif args.recover_type == "all":
             pass
@@ -1387,6 +1413,15 @@ if __name__ == "__main__":
                                 sum_L1_distance_defense += result_run.roundsvd_L1_distance
                                 sum_Linf_distance_defense += result_run.roundsvd_Linf_distance
                                 sum_confidence_defense += result_run.roundsvd_confidence
+
+                        elif args.recover_type == "rounduniform":
+                            if result_run.rounduniform_label is not None:
+                                if result_run.true_label == result_run.rounduniform_label:
+                                    count_recovered += 1
+                                sum_L2_distance_defense += result_run.rounduniform_L2_distance
+                                sum_L1_distance_defense += result_run.rounduniform_L1_distance
+                                sum_Linf_distance_defense += result_run.rounduniform_Linf_distance
+                                sum_confidence_defense += result_run.rounduniform_confidence
 
                         elif args.recover_type == "fftround":
                             if result_run.fftround_label is not None:
