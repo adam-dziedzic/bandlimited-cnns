@@ -1121,7 +1121,7 @@ if __name__ == "__main__":
         # val_range = range(3)
     elif args.recover_type == "roundfft":
         val_range = range(1)
-    elif args.recofer_type == "fftround":
+    elif args.recover_type == "fftround":
         val_range = range(1)
     elif args.recover_type == "gauss":
         # val_range = [0.001, 0.009, 0.03, 0.07, 0.1, 0.2, 0.3, 0.4, 0.5]
@@ -1350,6 +1350,7 @@ if __name__ == "__main__":
                                 sum_Linf_distance_defense_many += result_run.gauss_many_Linf_distance
                                 sum_confidence_defense_many += result_run.gauss_many_confidence
                                 sum_defend_timing += result_run.time_gauss_defend
+
                         elif args.recover_type == "noise":
                             if result_run.noise_label is not None:
                                 if result_run.true_label == result_run.noise_label:
@@ -1366,6 +1367,7 @@ if __name__ == "__main__":
                                 sum_Linf_distance_defense_many += result_run.noise_many_Linf_distance
                                 sum_confidence_defense_many += result_run.noise_many_confidence
                                 sum_defend_timing += result_run.time_noise_defend
+
                         elif args.recover_type == "laplace":
                             if result_run.laplace_label is not None:
                                 if result_run.true_label == result_run.laplace_label:
@@ -1382,6 +1384,7 @@ if __name__ == "__main__":
                                 sum_Linf_distance_defense_many += result_run.laplace_many_Linf_distance
                                 sum_confidence_defense_many += result_run.laplace_many_confidence
                                 sum_defend_timing += result_run.time_laplace_defend
+
                         elif args.recover_type == "svd":
                             if result_run.svd_label is not None:
                                 if result_run.true_label == result_run.svd_label:
