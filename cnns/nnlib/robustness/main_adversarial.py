@@ -1170,6 +1170,8 @@ if __name__ == "__main__":
         val_range = range(1)
     elif args.recover_type == "fftuniform":
         val_range = range(1)
+    elif args.recover_type == "roundsvd":
+        val_range = range(1)
     elif args.recover_type == "gauss":
         # val_range = [0.001, 0.009, 0.03, 0.07, 0.1, 0.2, 0.3, 0.4, 0.5]
         val_range = args.noise_sigmas
