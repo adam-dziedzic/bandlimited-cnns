@@ -1379,6 +1379,15 @@ if __name__ == "__main__":
                                 sum_Linf_distance_defense += result_run.roundfft_Linf_distance
                                 sum_confidence_defense += result_run.roundfft_confidence
 
+                        elif args.recover_type == "roundsvd":
+                            if result_run.roundsvd_label is not None:
+                                if result_run.true_label == result_run.roundsvd_label:
+                                    count_recovered += 1
+                                sum_L2_distance_defense += result_run.roundsvd_L2_distance
+                                sum_L1_distance_defense += result_run.roundsvd_L1_distance
+                                sum_Linf_distance_defense += result_run.roundsvd_Linf_distance
+                                sum_confidence_defense += result_run.roundsvd_confidence
+
                         elif args.recover_type == "fftround":
                             if result_run.fftround_label is not None:
                                 if result_run.true_label == result_run.fftround_label:
