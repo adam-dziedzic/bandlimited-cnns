@@ -1277,6 +1277,8 @@ if __name__ == "__main__":
             pass
         elif args.recover_type == "fftuniform":
             pass
+        elif args.recover_type == "roundsvd":
+            pass
         elif args.recover_type == "all":
             pass
         else:
