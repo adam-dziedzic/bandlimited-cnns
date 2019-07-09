@@ -414,6 +414,25 @@ def fftuniform_recover(result, image, original_image, attack_round_fft):
     else:
         result.fftuniform_label = None
 
+
+def roundsvd_recover(result, image, original_image):
+    if args.values_per_channel > 0 and args.svd_compress > 0 and image is not None:
+        rounder = DenormRoundNorm(
+            mean_array=args.mean_array, std_array=args.std_array,
+            values_per_channel=args.values_per_channel)
+        round_image = rounder.round(np.copy(image))
+        roundsvd_image = compress_svd(
+            torch_img=torch.tensor(np.copy(round_image)),
+            compress_rate=args.svd_compress)
+        result_roundsvd = classify_image(
+            image=roundsvd_image,
+            original_image=original_image,
+            args=args)
+        result.add(result_roundsvd, prefix="roundsvd_")
+    else:
+        result.roundsvd_label = None
+
+
 def run(args):
     result = Object()
     fmodel, from_class_idx_to_label = get_fmodel(args=args)
@@ -818,6 +837,10 @@ def run(args):
             fftuniform_recover(result=result, image=image,
                              original_image=original_image,
                              attack_round_fft=attack_round_fft)
+
+        if args.recover_type == "roundsvd":
+            roundsvd_recover(result=result, image=image,
+                             original_image=original_image)
 
         if args.adv_type == AdversarialType.AFTER:
             full_name += "-after"
