@@ -12,7 +12,7 @@ print("current working directory: ", os.getcwd())
 type = ""
 # sample_size: 1000, 500, 250, 32, 64
 # sample_size = 192  # 500 for small data # how many values in a single sample collected
-sample_size = 512
+sample_size = 64
 train_rate = 0.5  # rate of training data, test data rate is 1 - train_rate
 outlier_std_count = 10
 # class_counter = 5

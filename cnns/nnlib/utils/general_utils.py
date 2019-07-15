@@ -171,6 +171,12 @@ class NetworkType(EnumWithNames):
     DenseNetCifar = 5  # DenseNet-121 with growth-rate 12
     ResNet50 = 6  # for ImageNet
     Net = 7  # for MNIST
+    Linear = 8
+    Linear2 = 9
+    VGG1D_4 = 10 # 4 weight layers
+    VGG1D_5 = 11
+    Linear3 = 12
+    FCNN_MEDIUM = 13
 
 
 class CompressType(EnumWithNames):

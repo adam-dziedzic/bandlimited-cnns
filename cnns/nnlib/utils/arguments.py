@@ -24,10 +24,10 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 
 # 1D
 # conv_type = ConvType.FFT1D
-# conv_type = ConvType.STANDARD
+conv_type = ConvType.STANDARD
 
 # 2D
-conv_type = ConvType.STANDARD2D
+# conv_type = ConvType.STANDARD2D
 # conv_type = ConvType.FFT2D
 compress_rate = 0.0
 
@@ -35,21 +35,26 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # dataset = "ucr"
     # dataset = "WIFI64"
     # dataset = "debug22"  # only Adiac
-    dataset = "WIFI5-192"
-    network_type = NetworkType.FCNN_STANDARD
+    # dataset = "WIFI5-192"
+    # dataset = "WIFI"
+    dataset = "WIFI_class_3_sample_512"
+    # network_type = NetworkType.FCNN_STANDARD
+    network_type = NetworkType.Linear3
     preserved_energy = 100  # for unit tests
-    # learning_rate = 0.0001
-    learning_rate = 0.001
+    learning_rate = 0.0001
+    # learning_rate = 0.001
     batch_size = 16
     test_batch_size = batch_size
     # test_batch_size = 256
-    weight_decay = 0.0001
+    # weight_decay = 0.0001
+    # weight_decay = 0.0
+    weight_decay = 0.01
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
     precision_type = PrecisionType.FP32
     # conv_exec_type = ConvExecType.BATCH
     conv_exec_type = ConvExecType.CUDA
-    visualize = True  # test model for different compress rates
+    visualize = False  # test model for different compress rates
     next_power2 = True
     schedule_patience = 50
     schedule_factor = 0.5
@@ -318,8 +323,8 @@ class Arguments(object):
                  in_channels=in_channels,
                  values_per_channel=0,
                  many_values_per_channel=[0],
-                 # ucr_path = "../sathya",
-                 ucr_path="../../TimeSeriesDatasets",
+                 ucr_path = "../sathya",
+                 # ucr_path="../../TimeSeriesDatasets",
                  start_epsilon=0,
                  # attack_type=AttackType.BAND_ONLY,
                  # attack_type=AttackType.NOISE_ONLY,
@@ -333,8 +338,8 @@ class Arguments(object):
                  schedule_factor=schedule_factor,
                  compress_fft_layer=0,
                  # attack_name="CarliniWagnerL2AttackRoundFFT",
-                 attack_name="CarliniWagnerL2Attack",
-                 # attack_name = None,
+                 # attack_name="CarliniWagnerL2Attack",
+                 attack_name = None,
                  # attack_name="FGSM",
                  interpolate="const",
                  # recover_type="rounding",

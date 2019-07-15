@@ -6,6 +6,12 @@ from cnns.nnlib.pytorch_architecture.resnet2d import resnet50_imagenet
 from cnns.nnlib.pytorch_architecture.densenet import densenet_cifar
 from cnns.nnlib.pytorch_architecture.fcnn import FCNNPytorch
 from cnns.nnlib.utils.general_utils import NetworkType
+from cnns.nnlib.pytorch_architecture.linear import Linear
+from cnns.nnlib.pytorch_architecture.linear2 import Linear2
+from cnns.nnlib.pytorch_architecture.linear3 import Linear3
+from cnns.nnlib.pytorch_architecture.vgg1D import vgg4bn
+from cnns.nnlib.pytorch_architecture.vgg1D import vgg5bn
+
 
 def getModelPyTorch(args, pretrained=False):
     """
@@ -27,6 +33,8 @@ def getModelPyTorch(args, pretrained=False):
             network_type is NetworkType.FCNN_STANDARD):
         if network_type is NetworkType.FCNN_SMALL:
             args.out_channels = [16, 32, 16]
+        elif network_type is NetworkType.FCNN_MEDIUM:
+            args.out_channels = [64, 128, 64]
         elif network_type is NetworkType.FCNN_STANDARD:
             args.out_channels = [128, 256, 128]
         return FCNNPytorch(args=args)
@@ -37,5 +45,15 @@ def getModelPyTorch(args, pretrained=False):
     elif network_type == NetworkType.ResNet50:
         # return resnet50_imagenet(args=args, pretrained=pretrained)
         return resnet50(args=args, pretrained=pretrained)
+    elif network_type == NetworkType.Linear:
+        return Linear(args)
+    elif network_type == NetworkType.Linear2:
+        return Linear2(args)
+    elif network_type == NetworkType.Linear3:
+        return Linear3(args)
+    elif network_type == NetworkType.VGG1D_4:
+        return vgg4bn(args)
+    elif network_type == NetworkType.VGG1D_5:
+        return vgg5bn(args)
     else:
         raise Exception("Unknown network_type: ", network_type)
