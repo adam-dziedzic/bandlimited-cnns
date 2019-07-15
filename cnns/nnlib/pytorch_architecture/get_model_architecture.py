@@ -31,9 +31,9 @@ def getModelPyTorch(args, pretrained=False):
     elif network_type is NetworkType.Net:
         return Net(args=args)
     elif str(network_type).startswith("NetworkType.FCNN_"):
-        if network_type is NetworkType.TINY:
+        if network_type is NetworkType.FCNN_TINY:
             args.out_channels = [4, 8, 4]
-        if network_type is NetworkType.VERY_SMALL:
+        if network_type is NetworkType.FCNN_VERY_SMALL:
             args.out_channels = [8, 16, 8]
         elif network_type is NetworkType.FCNN_SMALL:
             args.out_channels = [16, 32, 16]
