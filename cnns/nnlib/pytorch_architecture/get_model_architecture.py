@@ -30,7 +30,9 @@ def getModelPyTorch(args, pretrained=False):
     elif network_type is NetworkType.Net:
         return Net(args=args)
     elif network_type is NetworkType.FCNN_SMALL or (
-            network_type is NetworkType.FCNN_STANDARD):
+            network_type is NetworkType.FCNN_STANDARD) or (
+            network_type is NetworkType.FCNN_MEDIUM
+    ):
         if network_type is NetworkType.FCNN_SMALL:
             args.out_channels = [16, 32, 16]
         elif network_type is NetworkType.FCNN_MEDIUM:
