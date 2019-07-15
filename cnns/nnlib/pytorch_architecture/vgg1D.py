@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import math
 
@@ -5,12 +6,17 @@ import math
 ## 1D variant of VGG model takes fixed time series inputs
 class VGG(nn.Module):
 
-    def __init__(self, features, args, arch='vgg'):
+    def __init__(self, features, args, arch='vgg', cfg_seq=None):
         super(VGG, self).__init__()
         self.arch = arch
         self.features = features
+        if cfg_seq is None:
+            seq_len = 512 * 6
+        else:
+            seq_len = cfg_seq
+
         self.classifier = nn.Sequential(
-            nn.Linear(512 * 6, 512),
+            nn.Linear(seq_len, 512),
             nn.ReLU(True),
             nn.Dropout(),
             nn.Linear(512, 512),
@@ -66,9 +72,10 @@ cfg = {
     'E': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512,
           512, 'M', 512, 512, 512, 512, 'M'],
     'F': [64, 'M', 128, 'M', 256, 'M', 512, 'M'],
-    'G': [64, 'M', 128, 'M', 256, 'M'],
-    'H': [64, 'M', 128, 'M'],
-    'I': [64, 'M'],
+    'F_seq': 16384,
+    'G': [64, 'M', 128, 'M', 512, 'M'],
+    'H': [64, 'M', 512, 'M'],
+    'I': [512, 'M'],
 }
 
 
@@ -97,9 +104,9 @@ def vgg19bn(**kwargs):
     return model
 
 
-def vgg7bn(**kwargs):
+def vgg7bn(args, **kwargs):
     model = VGG(make_layers(cfg['F'], batch_norm=True), arch='vgg7bn',
-                **kwargs)
+                args=args, cfg_seq=cfg['F_seq'], **kwargs)
     return model
 
 
@@ -109,13 +116,13 @@ def vgg6bn(**kwargs):
     return model
 
 
-def vgg5bn(**kwargs):
-    model = VGG(make_layers(cfg['H'], batch_norm=True), arch='vgg5bn',
-                **kwargs)
+def vgg5bn(args, **kwargs):
+    model = VGG(make_layers(cfg['H'], batch_norm=True), args=args,
+                arch='vgg5bn', **kwargs)
     return model
 
 
-def vgg4bn(**kwargs):
-    model = VGG(make_layers(cfg['I'], batch_norm=True), arch='vgg4bn',
+def vgg4bn(args, **kwargs):
+    model = VGG(make_layers(cfg['I'], batch_norm=True), args=args,arch='vgg4bn',
                 **kwargs)
     return model

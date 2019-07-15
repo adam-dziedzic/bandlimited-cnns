@@ -177,6 +177,10 @@ class NetworkType(EnumWithNames):
     VGG1D_5 = 11
     Linear3 = 12
     FCNN_MEDIUM = 13
+    VGG1D_7 = 14
+    FCNN_TINY = 15
+    FCNN_VERY_SMALL = 16
+    FCNN_SMALL_MEDIUM = 17
 
 
 class CompressType(EnumWithNames):
