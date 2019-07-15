@@ -40,7 +40,8 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     dataset = "WIFI_class_3_sample_512"
     # network_type = NetworkType.FCNN_STANDARD
     # network_type = NetworkType.Linear3
-    network_type = NetworkType.VGG1D_7
+    # network_type = NetworkType.VGG1D_7
+    network_type = NetworkType.VGG1D_6
     preserved_energy = 100  # for unit tests
     learning_rate = 0.0001
     # learning_rate = 0.001

@@ -74,8 +74,11 @@ cfg = {
     'F': [64, 'M', 128, 'M', 256, 'M', 512, 'M'],
     'F_seq': 16384,
     'G': [64, 'M', 128, 'M', 512, 'M'],
+    'G_seq': 32768,
     'H': [64, 'M', 512, 'M'],
+    'H_seq': 65536,
     'I': [512, 'M'],
+    'I_seq': 131072,
 }
 
 
@@ -110,19 +113,19 @@ def vgg7bn(args, **kwargs):
     return model
 
 
-def vgg6bn(**kwargs):
+def vgg6bn(args, **kwargs):
     model = VGG(make_layers(cfg['G'], batch_norm=True), arch='vgg6bn',
-                **kwargs)
+                args=args, cfg_seq=cfg['G_seq'], **kwargs)
     return model
 
 
 def vgg5bn(args, **kwargs):
     model = VGG(make_layers(cfg['H'], batch_norm=True), args=args,
-                arch='vgg5bn', **kwargs)
+                arch='vgg5bn', cfg_seq=cfg['H_seq'], **kwargs)
     return model
 
 
 def vgg4bn(args, **kwargs):
-    model = VGG(make_layers(cfg['I'], batch_norm=True), args=args,arch='vgg4bn',
-                **kwargs)
+    model = VGG(make_layers(cfg['I'], batch_norm=True), args=args,
+                arch='vgg4bn', cfg_seq=cfg['I_seq'], **kwargs)
     return model

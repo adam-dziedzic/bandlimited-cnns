@@ -181,6 +181,7 @@ class NetworkType(EnumWithNames):
     FCNN_TINY = 15
     FCNN_VERY_SMALL = 16
     FCNN_SMALL_MEDIUM = 17
+    VGG1D_6 = 18
 
 
 class CompressType(EnumWithNames):
