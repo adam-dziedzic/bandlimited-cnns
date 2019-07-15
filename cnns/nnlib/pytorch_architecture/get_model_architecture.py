@@ -32,7 +32,11 @@ def getModelPyTorch(args, pretrained=False):
     elif network_type is NetworkType.Net:
         return Net(args=args)
     elif str(network_type).startswith("NetworkType.FCNN_"):
-        if network_type is NetworkType.FCNN_TINY:
+        if network_type is NetworkType.FCNN_MICRO:
+            args.output_channels = [1, 2, 1]
+        elif network_type is NetworkType.FCNN_VERY_TINY:
+            args.out_channels = [2, 4, 2]
+        elif network_type is NetworkType.FCNN_TINY:
             args.out_channels = [4, 8, 4]
         if network_type is NetworkType.FCNN_VERY_SMALL:
             args.out_channels = [8, 16, 8]
@@ -44,7 +48,7 @@ def getModelPyTorch(args, pretrained=False):
             args.out_channels = [64, 128, 64]
         elif network_type is NetworkType.FCNN_STANDARD:
             args.out_channels = [128, 256, 128]
-        return FCNNPytorch(args=args)
+        return FCNNPytorch(args=args, out_channels=args.out_channels)
     elif network_type == NetworkType.ResNet18:
         return resnet18(args=args, pretrained=pretrained)
     elif network_type == NetworkType.DenseNetCifar:
