@@ -95,6 +95,7 @@ def get_cifar10(args):
     if sample_count > 0:
         test_dataset.test_data = test_dataset.test_data[:sample_count]
         test_dataset.test_labels = test_dataset.test_labels[:sample_count]
+
     test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
                                               batch_size=args.test_batch_size,
                                               shuffle=False,

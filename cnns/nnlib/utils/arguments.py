@@ -368,6 +368,7 @@ class Arguments(object):
                  svd_compress=0.0,
                  many_svd_compress=[0.0],
                  adv_type=AdversarialType.BEFORE,
+                 rollout_file='data/Reacher-v2-10000.pkl',
                  ):
         """
         The default parameters for the execution of the program.
@@ -504,6 +505,7 @@ class Arguments(object):
         self.svd_compress = svd_compress
         self.many_svd_compress = many_svd_compress
         self.adv_type = adv_type
+        self.rollout_file = rollout_file
         self.set_dtype()
 
 

@@ -70,6 +70,7 @@ class SchedulerType(EnumWithNames):
 class LossType(EnumWithNames):
     NLL = 1  # Negative Log Likelihood
     CROSS_ENTROPY = 2
+    MSE = 3
 
 
 class LossReduction(EnumWithNames):

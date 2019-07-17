@@ -389,6 +389,10 @@ def get_args():
                         nargs="+",
                         help=f"many svd compression rates: "
                         f"{args.many_svd_compress}")
+    parser.add_argument("--rollout_file",
+                        default=args.rollout_file,
+                        type=str,
+                        help=f"The rollout file for deep RL / IL, default: {args.rollout_file}")
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)

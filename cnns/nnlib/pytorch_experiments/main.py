@@ -133,7 +133,7 @@ def getData(fname):
 
 
 # @profile
-def train(model, train_loader, optimizer, loss_function, epoch, args):
+def train(model, train_loader, optimizer, loss_function, args):
     """
     Train the model.
 
@@ -141,7 +141,6 @@ def train(model, train_loader, optimizer, loss_function, epoch, args):
     :param train_loader: the training dataset.
     :param optimizer: Adam, Momemntum, etc.
     :param epoch: the current epoch number.
-    :param
     """
 
     model.train()
@@ -349,6 +348,8 @@ def main(args):
         test_loader, train_loader, dev_loader = get_ucr(args)
     elif dataset_name in os.listdir(ucr_path):  # dataset from UCR archive
         train_loader, test_loader, dev_loader = get_ucr(args)
+    elif dataset_name == "deeprl":
+        train_loader, test_loader = get_rollouts(args)
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
 
@@ -456,6 +457,8 @@ def main(args):
         loss_function = torch.nn.CrossEntropyLoss(reduction=reduction_function)
     elif loss_type is LossType.NLL:
         loss_function = torch.nn.NLLLoss(reduction=reduction_function)
+    elif loss_type is LossType.MSE:
+        loss_function = torch.nn.MSELoss(reduction=reduction_function)
     else:
         raise Exception(f"Unknown loss type: {loss_type}")
 
