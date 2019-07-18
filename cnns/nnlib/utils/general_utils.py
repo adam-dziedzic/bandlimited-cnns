@@ -97,6 +97,12 @@ class ModelType(EnumWithNames):
     RES_NET = 0
     DENSE_NET = 1
 
+class PolicyType(EnumWithNames):
+    EXPERT = 0
+    PYTORCH_BEHAVE = 1
+    PYTORCH_DAGGER = 2
+    TENSORFLOW_BEHAVE = 3
+    TENSORFLOW_DAGGER = 4
 
 class PrecisionType(EnumWithNames):
     AMP = 0  # Automatic Mixed Precision
@@ -148,6 +154,11 @@ class AdversarialType(EnumWithNames):
     AFTER = 3
 
 
+class PredictionType(EnumWithNames):
+    CLASSIFICATION = 1
+    REGRESSION = 2
+
+
 class ConvExecType(EnumWithNames):
     SERIAL = 1
     BATCH = 2
@@ -185,6 +196,7 @@ class NetworkType(EnumWithNames):
     VGG1D_6 = 18
     FCNN_VERY_TINY = 19
     FCNN_MICRO = 20
+    Linear4 = 21
 
 
 class CompressType(EnumWithNames):

@@ -15,6 +15,8 @@ from cnns.nnlib.utils.general_utils import TensorType
 from cnns.nnlib.utils.general_utils import Bool
 from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.general_utils import PrecisionType
+from cnns.nnlib.utils.general_utils import PredictionType
+from cnns.nnlib.utils.general_utils import PolicyType
 
 """
 cFFT cuda_multiply: total elapsed time (sec):  15.602577447891235
@@ -37,21 +39,23 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # dataset = "debug22"  # only Adiac
     # dataset = "WIFI5-192"
     # dataset = "WIFI"
-    dataset = "WIFI_class_3_sample_512"
+    # dataset = "WIFI_class_3_sample_512"
+    dataset = 'deeprl'
     # network_type = NetworkType.FCNN_STANDARD
     # network_type = NetworkType.Linear3
     # network_type = NetworkType.VGG1D_7
     # network_type = NetworkType.VGG1D_6
-    network_type = NetworkType.FCNN_VERY_TINY
+    # network_type = NetworkType.FCNN_VERY_TINY
+    network_type = NetworkType.Linear4
     preserved_energy = 100  # for unit tests
-    learning_rate = 0.0001
+    learning_rate = 0.0005
     # learning_rate = 0.001
-    batch_size = 16
+    batch_size = 32
     test_batch_size = batch_size
     # test_batch_size = 256
     # weight_decay = 0.0001
-    # weight_decay = 0.0
-    weight_decay = 0.01
+    weight_decay = 0.0
+    # weight_decay = 0.01
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
     precision_type = PrecisionType.FP32
@@ -59,14 +63,16 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     conv_exec_type = ConvExecType.CUDA
     visualize = False  # test model for different compress rates
     next_power2 = True
-    schedule_patience = 50
+    schedule_patience = 10
     schedule_factor = 0.5
     epochs = 2000
     optimizer_type = OptimizerType.ADAM
     momentum = 0.9
-    loss_type = LossType.CROSS_ENTROPY
+    # loss_type = LossType.CROSS_ENTROPY
+    loss_type = LossType.MSE
     loss_reduction = LossReduction.ELEMENTWISE_MEAN
-    model_path = "no_model"
+    # model_path = "no_model"
+    model_path = 'pytorch_behave1.model'
     in_channels = 1
 else:
     # dataset = "mnist"
@@ -212,8 +218,8 @@ class Arguments(object):
                  optimizer_type=optimizer_type,
                  scheduler_type=SchedulerType.ReduceLROnPlateau,
                  # scheduler_type=SchedulerType.Custom,
-                 loss_type=LossType.CROSS_ENTROPY,
-                 loss_reduction=LossReduction.ELEMENTWISE_MEAN,
+                 loss_type=loss_type,
+                 loss_reduction=loss_reduction,
                  memory_type=MemoryType.PINNED,
                  workers=4,
                  model_path=model_path,
@@ -326,7 +332,7 @@ class Arguments(object):
                  in_channels=in_channels,
                  values_per_channel=0,
                  many_values_per_channel=[0],
-                 ucr_path = "../sathya",
+                 ucr_path="../sathya",
                  # ucr_path="../../TimeSeriesDatasets",
                  start_epsilon=0,
                  # attack_type=AttackType.BAND_ONLY,
@@ -342,7 +348,7 @@ class Arguments(object):
                  compress_fft_layer=0,
                  # attack_name="CarliniWagnerL2AttackRoundFFT",
                  # attack_name="CarliniWagnerL2Attack",
-                 attack_name = None,
+                 attack_name=None,
                  # attack_name="FGSM",
                  interpolate="const",
                  # recover_type="rounding",
@@ -368,7 +374,9 @@ class Arguments(object):
                  svd_compress=0.0,
                  many_svd_compress=[0.0],
                  adv_type=AdversarialType.BEFORE,
-                 rollout_file='data/Reacher-v2-10000.pkl',
+                 rollout_file='../nnlib/datasets/deeprl/data/Reacher-v2-10000.pkl',
+                 prediction_type=PredictionType.REGRESSION,
+                 # 'regression' or 'classification'
                  ):
         """
         The default parameters for the execution of the program.
@@ -506,17 +514,66 @@ class Arguments(object):
         self.many_svd_compress = many_svd_compress
         self.adv_type = adv_type
         self.rollout_file = rollout_file
-        self.set_dtype()
+        self.prediction_type = prediction_type
 
+        # deeprl
+        self.env_name = "Reacher-v2"
+        self.expert_data_dir = 'expert_data/'
+        self.behave_model_prefix = 'behave_models/'
+        self.dagger_model_prefix = 'dagger_models/'
+        self.input_output_size = {}
+        self.hidden_units = 64
+        # train_steps = 1000000
+        self.train_steps = 100000
+        self.rollouts = 10000
+        self.verbose = False
+        self.max_timesteps = None
+        self.render = True
+        # self.policy_type = PolicyType.PYTORCH_BEHAVE
+        # self.policy_type = PolicyType.EXPERT
+        self.policy_type = PolicyType.TENSORFLOW_BEHAVE
+        self.expert_policy_file = self.get_model_file()
+
+        self.set_dtype()
+        self.set_device()
+
+    def set_device(self):
+        if torch.cuda.is_available() and args.use_cuda:
+            print("cuda is available: ")
+            self.device = torch.device("cuda")
+            # torch.set_default_tensor_type('torch.cuda.FloatTensor')
+        else:
+            self.device = torch.device("cpu")
+
+    def get_model_file(self):
+        if self.verbose:
+            print('model file rollouts: ', self.rollouts)
+            print('model file train steps: ', self.train_steps)
+
+        if self.policy_type == PolicyType.TENSORFLOW_BEHAVE:
+            model_file = self.behave_model_prefix + self.env_name + '-rollouts' + str(
+                self.rollouts) + '-train-steps-' + str(
+                self.train_steps) + '.ckpt'
+        elif self.policy_type == PolicyType.EXPERT:
+            model_file = "experts/" + self.env_name + ".pkl"
+        elif self.policy_type == PolicyType.PYTORCH_BEHAVE:
+            model_number = 2
+            model_file = '../nnlib/pytorch_experiments/models/pytorch_behave' + str(
+                model_number) + '.model'
+        else:
+            raise Exception(f'Unknown model type: {self.policy_type.name}')
+        return model_file
 
     def get_bool(self, arg):
         return True if Bool[arg] is Bool.TRUE else False
 
-
     def set_parsed_args(self, parsed_args):
         # Make sure you do not miss any properties.
         # https://stackoverflow.com/questions/243836/how-to-copy-all-properties-of-an-object-to-another-object-in-python
-        self.__dict__ = parsed_args.__dict__.copy()
+        # self.__dict__ = parsed_args.__dict__.copy()
+        parsed_dict = parsed_args.__dict__.copy()
+        for arg in parsed_dict.keys():
+            self.__dict__[arg] = parsed_dict[arg]
 
         # Enums:
         self.network_type = NetworkType[parsed_args.network_type]
@@ -533,6 +590,8 @@ class Arguments(object):
         self.precision_type = PrecisionType[parsed_args.precision_type]
         self.attack_type = AttackType[parsed_args.attack_type]
         self.adv_type = AdversarialType[parsed_args.adv_type]
+        self.prediction_type = PredictionType[parsed_args.prediction_type]
+        self.policy_type = PolicyType[parsed_args.policy_type]
 
         # Bools:
         self.is_debug = self.get_bool(parsed_args.is_debug)
@@ -558,7 +617,7 @@ class Arguments(object):
             self.preserve_energy = parsed_args.preserve_energy
 
         self.set_dtype()
-
+        self.set_device()
 
     def set_dtype(self):
         tensor_type = self.tensor_type
@@ -572,14 +631,12 @@ class Arguments(object):
             raise Exception(f"Unknown tensor type: {tensor_type}")
         self.dtype = dtype
 
-
     def get_str(self):
         args_dict = self.__dict__
         args_str = " ".join(
             ["--" + str(key) + "=" + str(value) for key, value in
              sorted(args_dict.items())])
         return args_str
-
 
     def from_bool_arg(self, arg):
         """
@@ -588,7 +645,6 @@ class Arguments(object):
         :return: int
         """
         return 1 if self.is_debug else -1
-
 
     def to_bool_arg(self, arg):
         """
@@ -604,20 +660,17 @@ class Arguments(object):
             Exception(
                 f"Unknown int value for the trarnsformation to bool: {arg}")
 
-
     def from_float_arg(self, arg):
         if arg is None:
             return -1
         else:
             return arg
 
-
     def to_float_arg(self, arg):
         if arg == -1:
             return None
         else:
             return arg
-
 
     def to_tensor(self):
         t = torch.empty(self.__counter__, dtype=torch.float,
@@ -630,7 +683,6 @@ class Arguments(object):
         t[self.__idx_preserve_energy] = self.from_float_arg(
             self.preserve_energy)
         t[self.__idx_index_back] = self.from_float_arg(self.compress_rate)
-
 
     def from_tensor(self, t):
         self.network_type = NetworkType(t[int(self.__idx_nework_type)])

@@ -12,7 +12,9 @@ from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import TensorType
 from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.general_utils import PrecisionType
+from cnns.nnlib.utils.general_utils import PredictionType
 from cnns.nnlib.utils.general_utils import Bool
+from cnns.nnlib.utils.general_utils import PolicyType
 
 from cnns.nnlib.utils.arguments import Arguments
 import argparse
@@ -392,7 +394,54 @@ def get_args():
     parser.add_argument("--rollout_file",
                         default=args.rollout_file,
                         type=str,
-                        help=f"The rollout file for deep RL / IL, default: {args.rollout_file}")
+                        help=f"The rollout file for deep RL / IL, default: "
+                        f"{args.rollout_file}")
+    parser.add_argument("--prediction_type",
+                        default=args.prediction_type.name,
+                        type=str,
+                        help=f"Is this classification or regression, "
+                             f"default: {args.prediction_type.name}; "
+                             f"choose from " + ','.join(
+                            PredictionType.get_names()))
+
+    # deeprl
+    parser.add_argument('--expert_policy_file',
+                        type=str,
+                        default=args.get_model_file()
+                        )
+    parser.add_argument('--env_name',
+                        type=str,
+                        default=args.env_name
+                        )
+    parser.add_argument('--render',
+                        action='store_true',
+                        default=args.render
+                        )
+    parser.add_argument("--max_timesteps",
+                        type=int,
+                        default=args.max_timesteps
+                        )
+    parser.add_argument('--rollouts',
+                        type=int,
+                        default=args.rollouts,
+                        help='Number of expert rollouts / episodes.'
+                        )
+    parser.add_argument('--hidden_units',
+                        type=int,
+                        default=args.hidden_units
+                        )
+    parser.add_argument('--policy_type',
+                        type=str,
+                        default=args.policy_type.name,
+                        help=f"The type of the policy used: {args.policy_type.name}; "
+                             f"choose from " + ','.join(PolicyType.get_names())
+                        )
+    parser.add_argument('--expert_data_dir',
+                        type=str,
+                        default=args.expert_data_dir)
+    parser.add_argument('--verbose',
+                        type=bool,
+                        default=args.verbose)
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)

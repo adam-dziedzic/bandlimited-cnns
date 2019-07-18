@@ -30,6 +30,8 @@ from cnns.nnlib.utils.general_utils import LossType
 from cnns.nnlib.utils.general_utils import LossReduction
 from cnns.nnlib.utils.general_utils import TensorType
 from cnns.nnlib.utils.general_utils import PrecisionType
+from cnns.nnlib.utils.general_utils import AttackType
+from cnns.nnlib.utils.general_utils import PredictionType
 from cnns.nnlib.utils.general_utils import additional_log_file
 from cnns.nnlib.utils.general_utils import mem_log_file
 from cnns.nnlib.utils.general_utils import get_log_time
@@ -40,10 +42,11 @@ from cnns.nnlib.datasets.ucr.ucr import get_ucr
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
 from cnns.nnlib.utils.exec_args import get_args
 # from cnns.nnlib.pytorch_experiments.track_utils.progress_bar import progress_bar
-from cnns.nnlib.pytorch_architecture.get_model_architecture import getModelPyTorch
+from cnns.nnlib.pytorch_architecture.get_model_architecture import \
+    getModelPyTorch
 from cnns.nnlib.pytorch_experiments.utils.progress_bar import progress_bar
-from cnns.nnlib.utils.general_utils import AttackType
 # from memory_profiler import profile
+from cnns.nnlib.datasets.deeprl.rollouts import get_rollouts_dataset
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -96,6 +99,8 @@ args = get_args()
 current_file_name = __file__.split("/")[-1].split(".")[0]
 print("current file name: ", current_file_name)
 
+delimiter = ';'
+
 
 def readucr(filename, data_type):
     parent_path = os.path.split(os.path.abspath(dir_path))[0]
@@ -133,7 +138,7 @@ def getData(fname):
 
 
 # @profile
-def train(model, train_loader, optimizer, loss_function, args):
+def train(model, train_loader, optimizer, loss_function, args, epoch):
     """
     Train the model.
 
@@ -150,8 +155,8 @@ def train(model, train_loader, optimizer, loss_function, args):
 
     for batch_idx, (data, target) in enumerate(train_loader):
         # fp16 (apex) - the data is cast explicitely to fp16 via data.to() method.
-        data, target = data.to(device=args.device, dtype=args.dtype), target.to(
-            device=args.device)
+        data = data.to(device=args.device, dtype=args.dtype)
+        target = target.to(device=args.device)
         # print("target: ", target)
         optimizer.zero_grad()
         output = model(data)
@@ -190,9 +195,12 @@ def train(model, train_loader, optimizer, loss_function, args):
         #            100.0 * batch_idx / len(train_loader), loss.item()))
 
         train_loss += loss.item()
-        _, predicted = output.max(1)
+
         total += target.size(0)
-        correct += predicted.eq(target).sum().item()
+
+        if args.prediction_type == PredictionType.CLASSIFICATION:
+            _, predicted = output.max(1)
+            correct += predicted.eq(target).sum().item()
 
         if args.log_conv_size is True:
             with open(additional_log_file, "a") as file:
@@ -220,7 +228,7 @@ def test(model, test_loader, loss_function, args, epoch=None):
     :param test_loader: the input data.
     :param dataset_type: test or train.
     :param dtype: the data type of the tensor.
-    :param epoch: current epoch of the model training/testing.
+    :param epoch: current epoch of themodel training/testing.
     :return: test loss and accuracy.
     """
     model.eval()
@@ -235,10 +243,13 @@ def test(model, test_loader, loss_function, args, epoch=None):
             output = model(data)
             test_loss += loss_function(output,
                                        target).item()  # sum up batch loss
-            # get the index of the max log-probability
-            _, predicted = output.max(1)
+
             total += target.size(0)
-            correct += predicted.eq(target).sum().item()
+
+            if args.prediction_type == PredictionType.CLASSIFICATION:
+                # get the index of the max log-probability
+                _, predicted = output.max(1)
+                correct += predicted.eq(target).sum().item()
 
             if args.log_conv_size is True:
                 with open(additional_log_file, "a") as file:
@@ -291,10 +302,21 @@ def main(args):
             # Write the metadata.
             file.write(DATASET_HEADER)
             # Write the header with the names of the columns.
-            file.write(
-                "epoch,train_loss,train_accuracy,dev_loss,dev_accuracy,"
-                "test_loss,test_accuracy,epoch_time,learning_rate,"
-                "train_time,test_time,compress_rate\n")
+            header = ['epoch',
+                      'train_loss',
+                      'test_loss',
+                      'train_accruacy',
+                      'test_accuracy',
+                      'dev_loss',
+                      'dev_accuracy',
+                      'epoch_time',
+                      'learning_rate',
+                      'train_time',
+                      'test_time',
+                      'compress_rate'
+                      ]
+            header = delimiter.join(header)
+            file.write(header + '\n')
 
     # with open(os.path.join(results_dir, additional_log_file), "a") as file:
     #     # Write the metadata.
@@ -349,7 +371,7 @@ def main(args):
     elif dataset_name in os.listdir(ucr_path):  # dataset from UCR archive
         train_loader, test_loader, dev_loader = get_ucr(args)
     elif dataset_name == "deeprl":
-        train_loader, test_loader = get_rollouts(args)
+        train_loader, test_loader = get_rollouts_dataset(args)
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
 
@@ -535,12 +557,19 @@ def main(args):
             lr = raw_optimizer.param_groups[0]['lr']
 
         with open(dataset_log_file, "a") as file:
-            msg = str(epoch) + "," + str(train_loss) + "," + str(
-                train_accuracy) + "," + str(dev_loss) + "," + str(
-                dev_accuracy) + "," + str(test_loss) + "," + str(
-                test_accuracy) + "," + str(epoch_time) + "," + str(
-                lr) + "," + str(train_time) + "," + str(test_time) + "," + str(
-                args.compress_rate)
+            msg = [epoch,
+                   train_loss,
+                   test_loss,
+                   train_accuracy,
+                   test_accuracy,
+                   dev_loss,
+                   dev_accuracy,
+                   epoch_time,
+                   lr,
+                   train_time,
+                   test_time,
+                   args.compress_rate]
+            msg = delimiter.join([str(x) for x in msg])
             # print(msg)
             file.write(msg + "\n")
 
@@ -562,10 +591,13 @@ def main(args):
                                           preserve_energy) + \
                                       "-compress-rate-" + str(
                                           args.compress_rate) + \
+                                      "-test-loss-" + str(
+                                          test_loss) + \
                                       "-test-accuracy-" + str(
                                           test_accuracy) +
                                       "-channel-vals-" + str(
-                                          args.values_per_channel) + ".model")
+                                          args.values_per_channel) + \
+                                      ".model")
             torch.save(model.state_dict(), model_path)
 
         # Save the checkpoint (to resume training).
@@ -596,13 +628,6 @@ if __name__ == '__main__':
         cuda_visible_devices = os.environ['CUDA_VISIBLE_DEVICES']
     except KeyError:
         cuda_visible_devices = 0
-
-    if torch.cuda.is_available() and args.use_cuda:
-        print("cuda is available: ")
-        args.device = torch.device("cuda")
-        # torch.set_default_tensor_type('torch.cuda.FloatTensor')
-    else:
-        args.device = torch.device("cpu")
 
     global_log_file = os.path.join(results_folder_name,
                                    get_log_time() + "-ucr-fcnn.log")
@@ -651,6 +676,8 @@ if __name__ == '__main__':
         flist = ["svhn"]
     elif args.dataset == "imagenet":
         flist = ["imagenet"]
+    elif args.dataset == "deeprl":
+        flist = ["deeprl"]
     elif args.dataset.startswith("WIFI"):
         flist = [args.dataset]
         # flist = ["50words"]
@@ -1127,12 +1154,13 @@ if __name__ == '__main__':
                  'uWaveGestureLibrary_Y', 'uWaveGestureLibrary_Z', 'wafer',
                  'yoga']
     elif args.dataset == "debug25-reversed":
-        flist = reversed(['Strawberry', 'SwedishLeaf', 'Symbols', 'ToeSegmentation1',
-                 'ToeSegmentation2', 'Trace', 'TwoLeadECG', 'Two_Patterns',
-                 'UWaveGestureLibraryAll', 'Wine', 'WordsSynonyms', 'Worms',
-                 'WormsTwoClass', 'synthetic_control', 'uWaveGestureLibrary_X',
-                 'uWaveGestureLibrary_Y', 'uWaveGestureLibrary_Z', 'wafer',
-                 'yoga'])
+        flist = reversed(
+            ['Strawberry', 'SwedishLeaf', 'Symbols', 'ToeSegmentation1',
+             'ToeSegmentation2', 'Trace', 'TwoLeadECG', 'Two_Patterns',
+             'UWaveGestureLibraryAll', 'Wine', 'WordsSynonyms', 'Worms',
+             'WormsTwoClass', 'synthetic_control', 'uWaveGestureLibrary_X',
+             'uWaveGestureLibrary_Y', 'uWaveGestureLibrary_Z', 'wafer',
+             'yoga'])
     elif args.dataset == "debug26-all":
         flist = ['50words', 'Adiac', 'ArrowHead', 'Beef', 'BeetleFly',
                  'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
@@ -1166,37 +1194,53 @@ if __name__ == '__main__':
                  'UWaveGestureLibraryAll', 'Wine', 'WordsSynonyms',
                  'Worms', 'WormsTwoClass', "wafer"]
     elif args.dataset == "debug28-all-reversed":
-        flist = [x for x in reversed(['50words', 'Adiac', 'ArrowHead', 'Beef', 'BeetleFly',
-                 'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
-                 'CinC_ECG_torso', 'Coffee', 'Computers', 'Cricket_X',
-                 'Cricket_Y', 'Cricket_Z', 'DiatomSizeReduction',
-                 'DistalPhalanxOutlineAgeGroup', 'DistalPhalanxOutlineCorrect',
-                 'DistalPhalanxTW', 'Earthquakes', 'ECG200', 'ECG5000',
-                 'ECGFiveDays', 'ElectricDevices', 'FaceAll', 'FaceFour',
-                 'FacesUCR', 'FISH', 'FordA', 'FordB', 'Gun_Point', 'Ham',
-                 'HandOutlines', 'Haptics', 'Herring', 'InlineSkate',
-                 'InsectWingbeatSound', 'ItalyPowerDemand',
-                 'LargeKitchenAppliances', 'Lighting2', 'Lighting7', 'MALLAT',
-                 'Meat', 'MedicalImages', 'MiddlePhalanxOutlineAgeGroup',
-                 'MiddlePhalanxOutlineCorrect', 'MiddlePhalanxTW', 'MoteStrain',
-                 'NonInvasiveFatalECG_Thorax1', 'NonInvasiveFatalECG_Thorax2',
-                 'OliveOil', 'OSULeaf', 'PhalangesOutlinesCorrect', 'Phoneme',
-                 'Plane', 'ProximalPhalanxOutlineAgeGroup',
-                 'ProximalPhalanxOutlineCorrect', 'ProximalPhalanxTW',
-                 'RefrigerationDevices', 'ScreenType', 'ShapeletSim',
-                 'ShapesAll', 'SmallKitchenAppliances', 'SonyAIBORobotSurface',
-                 'SonyAIBORobotSurfaceII', 'StarLightCurves', 'Strawberry',
-                 'SwedishLeaf', 'Symbols', 'synthetic_control',
-                 'ToeSegmentation1', 'ToeSegmentation2', 'Trace',
-                 'Two_Patterns', 'TwoLeadECG', 'uWaveGestureLibrary_X',
-                 'uWaveGestureLibrary_Y', 'uWaveGestureLibrary_Z',
-                 'UWaveGestureLibraryAll', 'wafer', 'Wine', 'WordsSynonyms',
-                 'Worms', 'WormsTwoClass', 'yoga'])]
+        flist = [x for x in
+                 reversed(['50words', 'Adiac', 'ArrowHead', 'Beef', 'BeetleFly',
+                           'BirdChicken', 'Car', 'CBF', 'ChlorineConcentration',
+                           'CinC_ECG_torso', 'Coffee', 'Computers', 'Cricket_X',
+                           'Cricket_Y', 'Cricket_Z', 'DiatomSizeReduction',
+                           'DistalPhalanxOutlineAgeGroup',
+                           'DistalPhalanxOutlineCorrect',
+                           'DistalPhalanxTW', 'Earthquakes', 'ECG200',
+                           'ECG5000',
+                           'ECGFiveDays', 'ElectricDevices', 'FaceAll',
+                           'FaceFour',
+                           'FacesUCR', 'FISH', 'FordA', 'FordB', 'Gun_Point',
+                           'Ham',
+                           'HandOutlines', 'Haptics', 'Herring', 'InlineSkate',
+                           'InsectWingbeatSound', 'ItalyPowerDemand',
+                           'LargeKitchenAppliances', 'Lighting2', 'Lighting7',
+                           'MALLAT',
+                           'Meat', 'MedicalImages',
+                           'MiddlePhalanxOutlineAgeGroup',
+                           'MiddlePhalanxOutlineCorrect', 'MiddlePhalanxTW',
+                           'MoteStrain',
+                           'NonInvasiveFatalECG_Thorax1',
+                           'NonInvasiveFatalECG_Thorax2',
+                           'OliveOil', 'OSULeaf', 'PhalangesOutlinesCorrect',
+                           'Phoneme',
+                           'Plane', 'ProximalPhalanxOutlineAgeGroup',
+                           'ProximalPhalanxOutlineCorrect', 'ProximalPhalanxTW',
+                           'RefrigerationDevices', 'ScreenType', 'ShapeletSim',
+                           'ShapesAll', 'SmallKitchenAppliances',
+                           'SonyAIBORobotSurface',
+                           'SonyAIBORobotSurfaceII', 'StarLightCurves',
+                           'Strawberry',
+                           'SwedishLeaf', 'Symbols', 'synthetic_control',
+                           'ToeSegmentation1', 'ToeSegmentation2', 'Trace',
+                           'Two_Patterns', 'TwoLeadECG',
+                           'uWaveGestureLibrary_X',
+                           'uWaveGestureLibrary_Y', 'uWaveGestureLibrary_Z',
+                           'UWaveGestureLibraryAll', 'wafer', 'Wine',
+                           'WordsSynonyms',
+                           'Worms', 'WormsTwoClass', 'yoga'])]
     elif args.dataset == "debug29-reversed":
         flist = [x for x in reversed(['Ham',
-                 'HandOutlines', 'Haptics', 'Herring', 'InlineSkate',
-                 'InsectWingbeatSound', 'ItalyPowerDemand',
-                 'LargeKitchenAppliances', 'Lighting2', 'Lighting7', 'MALLAT'])]
+                                      'HandOutlines', 'Haptics', 'Herring',
+                                      'InlineSkate',
+                                      'InsectWingbeatSound', 'ItalyPowerDemand',
+                                      'LargeKitchenAppliances', 'Lighting2',
+                                      'Lighting7', 'MALLAT'])]
     elif args.dataset == "debug30":
         flist = ['MALLAT',
                  'Meat', 'MedicalImages', 'MiddlePhalanxOutlineAgeGroup',
@@ -1218,7 +1262,7 @@ if __name__ == '__main__':
     print("flist: ", flist)
     compress_rate = 0
     for compress_rate in args.compress_rates:
-    # for noise_epsilon in args.noise_epsilons:
+        # for noise_epsilon in args.noise_epsilons:
         # args.noise_epsilon = noise_epsilon
         print("compress rate: ", compress_rate)
 
@@ -1234,7 +1278,6 @@ if __name__ == '__main__':
             args.values_per_channel = compress_rate
         if args.attack_type == AttackType.SVD_ONLY:
             args.svd_compress = compress_rate
-
 
         for dataset_name in flist:
             args.dataset_name = dataset_name
@@ -1256,6 +1299,7 @@ if __name__ == '__main__':
                                 print(f"ERROR: {dataset_name}. "
                                       "Details: " + str(err))
                                 traceback.print_tb(err.__traceback__)
-                            print("elapsed time (sec): ", time.time() - start_training)
+                            print("elapsed time (sec): ",
+                                  time.time() - start_training)
 
     print("total elapsed time (sec): ", time.time() - start_time)

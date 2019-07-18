@@ -9,6 +9,7 @@ from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.pytorch_architecture.linear import Linear
 from cnns.nnlib.pytorch_architecture.linear2 import Linear2
 from cnns.nnlib.pytorch_architecture.linear3 import Linear3
+from cnns.nnlib.pytorch_architecture.linear4 import Linear4
 from cnns.nnlib.pytorch_architecture.vgg1D import vgg4bn
 from cnns.nnlib.pytorch_architecture.vgg1D import vgg5bn
 from cnns.nnlib.pytorch_architecture.vgg1D import vgg6bn
@@ -62,6 +63,8 @@ def getModelPyTorch(args, pretrained=False):
         return Linear2(args)
     elif network_type == NetworkType.Linear3:
         return Linear3(args)
+    elif network_type == NetworkType.Linear4:
+        return Linear4(args)
     elif network_type == NetworkType.VGG1D_4:
         return vgg4bn(args)
     elif network_type == NetworkType.VGG1D_5:
