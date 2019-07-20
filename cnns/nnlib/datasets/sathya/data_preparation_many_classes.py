@@ -1,4 +1,4 @@
-import pandas as pd
+# import pandas as pd
 import numpy as np
 import os
 import sys
@@ -15,7 +15,7 @@ type = ""
 # sample_size = 2048
 
 # for sample_size in [2**x for x in range(12, 0, -1)]:
-for sample_size in [1]:
+for sample_size in [512]:
     print("sample size: ", str(sample_size))
     train_rate = 0.5  # rate of training data, test data rate is 1 - train_rate
     outlier_std_count = 10
@@ -25,21 +25,28 @@ for sample_size in [1]:
     # prefix="wifi6_data/"
     # suffix="_wifi_165"
 
-    class_counter = 3
-    prefix = "wifi0-1-2/Test_165_"
-    suffix = "_Wi-Fi_28"
+    class_counter = 2
+    prefix = "ML_"
+    suffix = "WiFi_"
+    los_type = 'LOS'  # LOS or NLOS
+    distance = 10
+
     datasets = []
     min_len = sys.maxsize  # get the minimum length of dataset for each class
 
-    for counter in range(0, class_counter, 1):
-        csv_path = prefix + str(counter) + suffix + type + ".txt"
+    for counter in range(1, class_counter + 1, 1):
+        csv_path = prefix + los_type + '/' + str(
+            distance) + 'F_' + los_type + '/Test_165_' + str(
+            distance) + 'F_' + str(
+            counter) + suffix + los_type.lower() + type + ".txt"
+        print('csv path: ', csv_path)
 
         # data1 = pd.read_csv(csv_path1, header=None)
         # # print("data1 values: ", data1.values)
         # data1 = np.array(data1.values).squeeze()
 
         dataset = np.genfromtxt(csv_path, delimiter="\n")
-        for expression in ['-inf', '-Inf']:
+        for expression in ['-inf', '-Inf', 'inf', 'Inf']:
             dataset = np.delete(dataset, np.where(dataset == float(expression)))
         print("dataset class " + str(counter))
         print("max: ", dataset.max())
@@ -137,9 +144,11 @@ for sample_size in [1]:
     # print("data train dims: ", data_train.shape)
     # np.savetxt("WIFI_TRAIN", data_train, delimiter=",")
     sample_size = str(sample_size)
-    dataset_name = "WIFI_class_" + str(class_counter)
-    dir_name = dataset_name + "_sample_" + sample_size
-    full_dir = dir_name + "/" + dir_name
+    # dataset_name = "WIFI_class_" + str(class_counter)
+    dataset_name = prefix + los_type + '/' + str(
+        distance) + 'F_' + los_type + '/'
+    dir_name = str(class_counter) + '_classes_WiFi'
+    full_dir = dataset_name + "/" + dir_name
 
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)

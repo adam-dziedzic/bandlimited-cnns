@@ -42,7 +42,8 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # dataset = "debug22"  # only Adiac
     # dataset = "WIFI5-192"
     # dataset = "WIFI"
-    dataset = "WIFI_class_3_sample_512"
+    # dataset = "WIFI_class_3_sample_512"
+    dataset = '2_classes_WiFi'
     # dataset = 'deeprl'
     # network_type = NetworkType.FCNN_STANDARD
     # network_type = NetworkType.Linear3
@@ -336,7 +337,7 @@ class Arguments(object):
                  in_channels=in_channels,
                  values_per_channel=0,
                  many_values_per_channel=[0],
-                 ucr_path="../sathya",
+                 ucr_path="../sathya/ML_LOS/6F_LOS/",
                  # ucr_path="../../TimeSeriesDatasets",
                  start_epsilon=0,
                  # attack_type=AttackType.BAND_ONLY,

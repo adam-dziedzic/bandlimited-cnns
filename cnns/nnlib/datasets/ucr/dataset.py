@@ -63,7 +63,10 @@ class UCRDataset(Dataset):
             suffix = "_TRAIN"
         else:
             suffix = "_TEST"
-        csv_path = os.path.join(ucr_path, dataset_name, dataset_name + suffix)
+        if dataset_name.startswith('2_classes_WiFi'):
+            csv_path = os.path.join(ucr_path, dataset_name + suffix)
+        else:
+            csv_path = os.path.join(ucr_path, dataset_name, dataset_name + suffix)
         self.data_all = pd.read_csv(csv_path, header=None)
         self.labels = np.asarray(self.data_all.iloc[:, 0], dtype=np.int)
         self.num_classes = len(np.unique(self.labels))
