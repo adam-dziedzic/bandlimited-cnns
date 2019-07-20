@@ -9,7 +9,7 @@ def load_policy(filename):
 
     # assert len(data.keys()) == 2
     nonlin_type = data['nonlin_type']
-    print("nonline_type: ", nonlin_type)
+    # print("nonline_type: ", nonlin_type)
     policy_type = [k for k in data.keys() if k != 'nonlin_type'][0]
 
     assert policy_type == 'GaussianPolicy', 'Policy type {} not supported'.format(
@@ -42,7 +42,7 @@ def load_policy(filename):
         obsnorm_meansq = policy_params['obsnorm']['Standardizer']['meansq_1_D']
         obsnorm_stdev = np.sqrt(
             np.maximum(0, obsnorm_meansq - np.square(obsnorm_mean)))
-        print('obs', obsnorm_mean.shape, obsnorm_stdev.shape)
+        # print('obs', obsnorm_mean.shape, obsnorm_stdev.shape)
         normedobs_bo = (obs_bo - obsnorm_mean) / (
                     obsnorm_stdev + 1e-6)  # 1e-6 constant from Standardizer class in nn.py:409 in openai/imitation
 
@@ -54,13 +54,13 @@ def load_policy(filename):
         for layer_name in sorted(layer_params.keys()):
             l = layer_params[layer_name]
             W, b = read_layer(l)
-            print("W and b internal shapes: ", W.shape, b.shape)
+            # print("W and b internal shapes: ", W.shape, b.shape)
             curr_activations_bd = apply_nonlin(
                 tf.matmul(curr_activations_bd, W) + b)
 
         # Output layer
         W, b = read_layer(policy_params['out'])
-        print("W and b out shapes: ", W.shape, b.shape)
+        # print("W and b out shapes: ", W.shape, b.shape)
         output_bo = tf.matmul(curr_activations_bd, W) + b
         return output_bo
 

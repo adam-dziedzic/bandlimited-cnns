@@ -65,12 +65,13 @@ def create_model(mean, std, input_size=1, output_size=1, hidden_units=100):
     return input_ph, output_ph, output_pred
 
 
-def run_model(args, policy_fn):
+def run_model(args, policy_fn, expert_policy_fn=None):
     print('number of rollouts: ', args.rollouts)
 
     returns = []
     observations = []
     actions = []
+    expert_actions = []
 
     with tf.Session():
         tf_util.initialize()
@@ -80,7 +81,7 @@ def run_model(args, policy_fn):
         max_steps = args.max_timesteps or env.spec.timestep_limit
         print("max steps: ", max_steps)
 
-        for i in range(args.num_rollouts):
+        for i in range(args.rollouts):
             if args.verbose:
                 print('iter', i)
             obs = env.reset()
@@ -89,6 +90,9 @@ def run_model(args, policy_fn):
             steps = 0
             while not done:
                 action = policy_fn(obs[None, :])
+                if expert_policy_fn is not None:
+                    expert_action = expert_policy_fn(obs[None, :])
+                    expert_actions.append(expert_action)
                 observations.append(obs)
                 actions.append(action)
                 obs, r, done, _ = env.step(action)
@@ -117,4 +121,4 @@ def run_model(args, policy_fn):
                     'wb') as f:
                 pickle.dump(expert_data, f, pickle.HIGHEST_PROTOCOL)
 
-    return returns, observations, actions
+    return returns, observations, actions, expert_actions

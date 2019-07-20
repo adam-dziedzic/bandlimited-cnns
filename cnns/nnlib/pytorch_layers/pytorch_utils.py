@@ -17,8 +17,10 @@ from cnns.nnlib.utils.log_utils import get_logger
 import logging
 import math
 import torch_dct
+import sys
 
-if torch.cuda.is_available():
+
+if torch.cuda.is_available() and sys.platform != 'win32':
     # from complex_mul_cpp import complex_mul as complex_mul_cpp
     # from complex_mul_cuda import complex_mul as complex_mul_cuda
     # from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda

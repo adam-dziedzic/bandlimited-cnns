@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from cnns.nnlib.utils.general_utils import MemoryType
 from torch.utils.data import DataLoader
-# from cnns.nnlib.datasets.transformations.to_tensor import ToTensorWithType
+from cnns.nnlib.datasets.transformations.to_tensor import ToTensorWithType
 import torch
 
 
@@ -14,6 +14,10 @@ class RolloutsDataset(Dataset):
         self.observations = observations
         self.actions = actions
         self.transform = transform
+
+    def add_data(self, observations, actions):
+        self.observations = torch.cat((self.observations, observations), dim=0)
+        self.actions = torch.cat((self.actions, actions), dim=0)
 
     def __len__(self):
         return len(self.observations)
@@ -39,7 +43,7 @@ def read_data(filename):
     return observations, actions
 
 
-def set_args(args):
+def set_kwargs(args):
     use_cuda = args.use_cuda
     num_workers = args.workers
     pin_memory = False
@@ -59,17 +63,27 @@ def to_tensor(ndarray, dtype):
     return torch.from_numpy(ndarray).to(dtype)
 
 
-def get_rollouts_dataset(args):
+def read_data_and_shapes(args):
     obs, actions = read_data(args.rollout_file)
-
-    sample_count = args.sample_count_limit
-    if sample_count > 0:
-        obs, actions = obs[:sample_count], actions[:sample_count]
 
     args.input_size = obs.shape[1]
     args.output_size = actions.shape[1]
 
     print('input and output sizes: ', args.input_size, ' ', args.output_size)
+    return obs, actions
+
+
+def limit_data(args, obs, actions):
+    sample_count = args.sample_count_limit
+    if sample_count > 0:
+        obs, actions = obs[:sample_count], actions[:sample_count]
+    return obs, actions
+
+
+def get_rollouts_dataset(args):
+    obs, actions = read_data_and_shapes(args=args)
+
+    obs, actions = limit_data(args=args, obs=obs, actions=actions)
 
     X_train, X_test, y_train, y_test = train_test_split(
         obs, actions, test_size=0.33, random_state=42)
@@ -86,7 +100,7 @@ def get_rollouts_dataset(args):
     y_train = to_tensor(y_train, args.dtype)
     y_test = to_tensor(y_test, args.dtype)
 
-    kwargs = set_args(args=args)
+    kwargs = set_kwargs(args=args)
 
     train_dataset = RolloutsDataset(observations=X_train, actions=y_train,
                                     # transform=ToTensorWithType(),
@@ -108,4 +122,4 @@ def get_rollouts_dataset(args):
                              shuffle=False,
                              **kwargs)
 
-    return train_loader, test_loader
+    return train_loader, test_loader, train_dataset, test_dataset

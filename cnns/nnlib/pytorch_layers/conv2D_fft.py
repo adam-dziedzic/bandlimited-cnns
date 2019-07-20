@@ -45,7 +45,7 @@ from cnns.nnlib.utils.general_utils import additional_log_file
 
 MAX_BLOCK_THREADS = 1024
 
-if torch.cuda.is_available():
+if torch.cuda.is_available() and sys.platform != 'win32':
     # from complex_mul_cpp import complex_mul as complex_mul_cpp
     # from complex_mul_cuda import complex_mul as complex_mul_cuda
     # from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda

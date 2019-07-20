@@ -405,9 +405,13 @@ def get_args():
                             PredictionType.get_names()))
 
     # deeprl
-    parser.add_argument('--expert_policy_file',
+    parser.add_argument('--learn_policy_file',
                         type=str,
                         default=args.get_model_file()
+                        )
+    parser.add_argument('--expert_policy_file',
+                        type=str,
+                        default=args.expert_policy_file
                         )
     parser.add_argument('--env_name',
                         type=str,
@@ -442,6 +446,11 @@ def get_args():
     parser.add_argument('--verbose',
                         type=bool,
                         default=args.verbose)
+    parser.add_argument('--dagger_iterations',
+                        type=int,
+                        default=args.dagger_iterations,
+                        help='Number of iterations for the dagger algorithm.'
+                        )
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)

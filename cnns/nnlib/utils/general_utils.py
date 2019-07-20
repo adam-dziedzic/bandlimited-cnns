@@ -75,7 +75,7 @@ class LossType(EnumWithNames):
 
 class LossReduction(EnumWithNames):
     SUM = 1
-    ELEMENTWISE_MEAN = 2
+    MEAN = 2
 
 
 class MemoryType(EnumWithNames):
@@ -97,12 +97,14 @@ class ModelType(EnumWithNames):
     RES_NET = 0
     DENSE_NET = 1
 
+
 class PolicyType(EnumWithNames):
     EXPERT = 0
     PYTORCH_BEHAVE = 1
     PYTORCH_DAGGER = 2
     TENSORFLOW_BEHAVE = 3
     TENSORFLOW_DAGGER = 4
+
 
 class PrecisionType(EnumWithNames):
     AMP = 0  # Automatic Mixed Precision
@@ -185,7 +187,7 @@ class NetworkType(EnumWithNames):
     Net = 7  # for MNIST
     Linear = 8
     Linear2 = 9
-    VGG1D_4 = 10 # 4 weight layers
+    VGG1D_4 = 10  # 4 weight layers
     VGG1D_5 = 11
     Linear3 = 12
     FCNN_MEDIUM = 13

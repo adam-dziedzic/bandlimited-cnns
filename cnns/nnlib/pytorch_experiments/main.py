@@ -18,16 +18,10 @@ import socket
 import time
 import shutil
 import torch
-import torch.optim as optim
-from torch.optim.lr_scheduler import \
-    ReduceLROnPlateau as ReduceLROnPlateauPyTorch
-from torch.optim.lr_scheduler import MultiStepLR
 
-from cnns.nnlib.pytorch_layers.AdamFloat16 import AdamFloat16
-from cnns.nnlib.utils.general_utils import OptimizerType
-from cnns.nnlib.utils.general_utils import SchedulerType
-from cnns.nnlib.utils.general_utils import LossType
-from cnns.nnlib.utils.general_utils import LossReduction
+from cnns.nnlib.pytorch_experiments.utils.optim_utils import get_optimizer
+from cnns.nnlib.pytorch_experiments.utils.optim_utils import get_loss_function
+from cnns.nnlib.pytorch_experiments.utils.optim_utils import get_scheduler
 from cnns.nnlib.utils.general_utils import TensorType
 from cnns.nnlib.utils.general_utils import PrecisionType
 from cnns.nnlib.utils.general_utils import AttackType
@@ -80,27 +74,24 @@ ucr_path = os.path.join(os.pardir, ucr_data_folder)
 
 results_folder_name = "results"
 results_dir = os.path.join(os.getcwd(), results_folder_name)
-print("current dir: ", os.getcwd())
+# print("current dir: ", os.getcwd())
 pathlib.Path(results_dir).mkdir(parents=True, exist_ok=True)
 # if not os.path.exists(results_dir):
 #     os.makedirs(results_dir)
 
 models_folder_name = "models"
 models_dir = os.path.join(os.getcwd(), models_folder_name)
-print("models_dir: ", models_dir)
+# print("models_dir: ", models_dir)
 pathlib.Path(models_dir).mkdir(parents=True, exist_ok=True)
 # if not os.path.exists(models_dir):
 #     os.makedirs(models_dir)
 
 # plt.switch_backend('agg')
 
-args = get_args()
-
 current_file_name = __file__.split("/")[-1].split(".")[0]
-print("current file name: ", current_file_name)
 
-delimiter = ';'
 
+# print("current file name: ", current_file_name)
 
 def readucr(filename, data_type):
     parent_path = os.path.split(os.path.abspath(dir_path))[0]
@@ -138,13 +129,13 @@ def getData(fname):
 
 
 # @profile
-def train(model, train_loader, optimizer, loss_function, args, epoch):
+def train(model, train_loader, optimizer, loss_function, args, epoch=None):
     """
     Train the model.
 
     :param model: deep learning model.
     :param train_loader: the training dataset.
-    :param optimizer: Adam, Momemntum, etc.
+    :param optimizer: Adam, Momentum, etc.
     :param epoch: the current epoch number.
     """
 
@@ -237,12 +228,11 @@ def test(model, test_loader, loss_function, args, epoch=None):
     total = 0
     with torch.no_grad():
         for batch_idx, (data, target) in enumerate(test_loader):
-            data, target = data.to(device=args.device,
-                                   dtype=args.dtype), target.to(
-                args.device)
+            data = data.to(device=args.device, dtype=args.dtype)
+            target = target.to(args.device)
             output = model(data)
-            test_loss += loss_function(output,
-                                       target).item()  # sum up batch loss
+            # sum up batch loss
+            test_loss += loss_function(output, target.squeeze()).item()
 
             total += target.size(0)
 
@@ -315,7 +305,7 @@ def main(args):
                       'test_time',
                       'compress_rate'
                       ]
-            header = delimiter.join(header)
+            header = args.delimiter.join(header)
             file.write(header + '\n')
 
     # with open(os.path.join(results_dir, additional_log_file), "a") as file:
@@ -327,10 +317,6 @@ def main(args):
         file.write(DATASET_HEADER)
 
     torch.manual_seed(args.seed)
-    optimizer_type = args.optimizer_type
-    scheduler_type = args.scheduler_type
-    loss_type = args.loss_type
-    loss_reduction = args.loss_reduction
 
     use_cuda = args.use_cuda
     tensor_type = args.tensor_type
@@ -371,7 +357,7 @@ def main(args):
     elif dataset_name in os.listdir(ucr_path):  # dataset from UCR archive
         train_loader, test_loader, dev_loader = get_ucr(args)
     elif dataset_name == "deeprl":
-        train_loader, test_loader = get_rollouts_dataset(args)
+        train_loader, test_loader, _, _ = get_rollouts_dataset(args)
     else:
         raise ValueError(f"Unknown dataset: {dataset_name}")
 
@@ -400,31 +386,9 @@ def main(args):
     #                                                        nn.BatchNorm2d):
     #         layer.float()
 
-    params = model.parameters()
-    eps = 1e-8
+    optimizer = get_optimizer(args=args, model=model)
 
-    if optimizer_type is OptimizerType.MOMENTUM:
-        optimizer = optim.SGD(params, lr=args.learning_rate,
-                              momentum=args.momentum,
-                              weight_decay=args.weight_decay)
-    elif optimizer_type is OptimizerType.ADAM_FLOAT16:
-        optimizer = AdamFloat16(params, lr=args.learning_rate, eps=eps)
-    elif optimizer_type is OptimizerType.ADAM:
-        optimizer = optim.Adam(params, lr=args.learning_rate,
-                               betas=(args.adam_beta1, args.adam_beta2),
-                               weight_decay=args.weight_decay, eps=eps)
-    else:
-        raise Exception(f"Unknown optimizer type: {optimizer_type.name}")
-
-    # https://pytorch.org/docs/stable/optim.html#torch.optim.lr_scheduler.ReduceLROnPlateau
-    if scheduler_type is SchedulerType.ReduceLROnPlateau:
-        scheduler = ReduceLROnPlateauPyTorch(optimizer=optimizer, mode='min',
-                                             factor=args.schedule_factor,
-                                             patience=args.schedule_patience)
-    elif scheduler_type is SchedulerType.MultiStepLR:
-        scheduler = MultiStepLR(optimizer=optimizer, milestones=[150, 250])
-    else:
-        raise Exception(f"Unknown scheduler type: {scheduler_type}")
+    scheduler = get_scheduler(args=args, optimizer=optimizer)
 
     if args.precision_type is PrecisionType.FP16:
         """
@@ -468,21 +432,7 @@ def main(args):
 
         max_train_accuracy = resume()
 
-    if loss_reduction is LossReduction.ELEMENTWISE_MEAN:
-        reduction_function = "mean"
-    elif loss_reduction is LossReduction.SUM:
-        reduction_function = "sum"
-    else:
-        raise Exception(f"Unknown loss reduction: {loss_reduction}")
-
-    if loss_type is LossType.CROSS_ENTROPY:
-        loss_function = torch.nn.CrossEntropyLoss(reduction=reduction_function)
-    elif loss_type is LossType.NLL:
-        loss_function = torch.nn.NLLLoss(reduction=reduction_function)
-    elif loss_type is LossType.MSE:
-        loss_function = torch.nn.MSELoss(reduction=reduction_function)
-    else:
-        raise Exception(f"Unknown loss type: {loss_type}")
+    loss_function = get_loss_function(args)
 
     if args.visulize is True:
         start_visualize_time = time.time()
@@ -569,7 +519,7 @@ def main(args):
                    train_time,
                    test_time,
                    args.compress_rate]
-            msg = delimiter.join([str(x) for x in msg])
+            msg = args.delimiter.join([str(x) for x in msg])
             # print(msg)
             file.write(msg + "\n")
 
@@ -623,6 +573,9 @@ def main(args):
 if __name__ == '__main__':
     print("start learning!")
     start_time = time.time()
+
+    args = get_args()
+
     hostname = socket.gethostname()
     try:
         cuda_visible_devices = os.environ['CUDA_VISIBLE_DEVICES']

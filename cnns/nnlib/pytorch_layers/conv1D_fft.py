@@ -46,7 +46,7 @@ from cnns.nnlib.utils.general_utils import plot_signal_freq
 from cnns.nnlib.utils.general_utils import plot_signal_time
 from cnns.nnlib.utils.arguments import Arguments
 
-if torch.cuda.is_available():
+if torch.cuda.is_available() and sys.platform != 'win32':
     # from complex_mul_cpp import complex_mul as complex_mul_cpp
     # from complex_mul_cuda import complex_mul as complex_mul_cuda
     # from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
@@ -63,17 +63,6 @@ consoleLog = logging.StreamHandler()
 logger.addHandler(consoleLog)
 
 current_file_name = __file__.split("/")[-1].split(".")[0]
-
-if torch.cuda.is_available():
-    # from complex_mul_cpp import complex_mul as complex_mul_cpp
-    # from complex_mul_cuda import complex_mul as complex_mul_cuda
-    # from complex_mul_cuda import complex_mul_stride as complex_mul_stride_cuda
-    from complex_mul_cuda import \
-        complex_mul_stride_no_permute as complex_mul_stride_no_permute_cuda
-    from complex_mul_cuda import \
-        complex_mul_shared_log as complex_mul_shared_log_cuda
-    from complex_mul_cuda import \
-        complex_mul_deep as complex_mul_deep_cuda
 
 global_dataset_name = "50words"
 
