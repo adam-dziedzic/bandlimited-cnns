@@ -63,10 +63,12 @@ class UCRDataset(Dataset):
             suffix = "_TRAIN"
         else:
             suffix = "_TEST"
-        if dataset_name.startswith('2_classes_WiFi'):
+        if dataset_name.startswith('2_classes_WiFi') or dataset_name.startswith(
+                'WIFI_AllCases'):
             csv_path = os.path.join(ucr_path, dataset_name + suffix)
         else:
-            csv_path = os.path.join(ucr_path, dataset_name, dataset_name + suffix)
+            csv_path = os.path.join(ucr_path, dataset_name,
+                                    dataset_name + suffix)
         self.data_all = pd.read_csv(csv_path, header=None)
         self.labels = np.asarray(self.data_all.iloc[:, 0], dtype=np.int)
         self.num_classes = len(np.unique(self.labels))
@@ -87,7 +89,7 @@ class UCRDataset(Dataset):
         # self.transformations = transformations
         self.dtype = torch.float
         self.data = torch.tensor(self.data, device=torch.device("cpu"),
-                     dtype=self.dtype)
+                                 dtype=self.dtype)
         # add the dimension for the channel
         self.data = torch.unsqueeze(self.data, dim=1)
 
