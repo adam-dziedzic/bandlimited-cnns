@@ -5295,5 +5295,58 @@ echo ${timestamp}.txt
 [1] 61699
 ady@gpu3:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
 2019-07-21-10-51-12.txt
+[1] 61845
+ady@gpu3:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2019-07-21-10-57-39.txt
+
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type='STANDARD' --conv_exec_type=CUDA --dataset='WIFI_AllCases_los' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_STANDARD' --next_power2='TRUE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/AllCases/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 62103
+ady@gpu3:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2019-07-21-10-59-03.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S)
+CUDA_VISIBLE_DEVICES=2 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type='STANDARD' --conv_exec_type=CUDA --dataset='WIFI_AllCases_nlos' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_STANDARD' --next_power2='TRUE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/AllCases/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 62555
+ady@gpu3:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2019-07-21-11-00-09.txt
+
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S)
+CUDA_VISIBLE_DEVICES=3 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type='STANDARD' --conv_exec_type=CUDA --dataset='2_classes_WiFi_all' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_STANDARD' --next_power2='TRUE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/All/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 89682
+ady@gpu3:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2019-07-21-11-44-10.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type='STANDARD' --conv_exec_type=CUDA --dataset='2_classes_WiFi_LOS' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_STANDARD' --next_power2='TRUE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/ML_LOS/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 21602
+ady@gpu1:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2019-07-21-11-49-25.txt
+[1] 22044
+ady@gpu1:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2019-07-21-11-51-10.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type='STANDARD' --conv_exec_type=CUDA --dataset='2_classes_WiFi_NLOS' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_STANDARD' --next_power2='TRUE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/ML_NLOS/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 21847
+ady@gpu1:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2019-07-21-11-50-22.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type='STANDARD' --conv_exec_type=CUDA --dataset='2_classes_WiFi_NLOS_LOS' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_STANDARD' --next_power2='TRUE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/ML_NLOS_LOS/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 7398
+ady@gpu2:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2019-07-21-11-55-13.txt
+[1] 7497
+ady@gpu2:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2019-07-21-11-58-16.txt
 
 
