@@ -25,7 +25,7 @@ def get_color(COLOR_TUPLE_255):
 size=18
 fontsize = size
 legend_size = size
-label_size = 12
+label_size = 10
 
 font = {'size': fontsize}
 matplotlib.rc('font', **font)
@@ -34,9 +34,9 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 print("dir path: ", dir_path)
 
 labels = ['ED:LOS', 'ED:NLOS', 'AC:LOS', 'AC:NLOS', 'ML:LOS', 'ML:NLOS']
-v6F = [98.0, 84.0, 99.0, 95.0, 99.8, 99.7]
-v10F = [96.0, 76.0, 98.3, 94.0, 99.4, 99.3]
-v15F = [84.0, 71.0, 98.0, 91.0, 99.2, 99.1]
+v6F = [98.0, 84.0, 99.0, 95.0, 99.91, 99.98]
+v10F = [96.0, 76.0, 98.3, 94.0, 99.99, 99.99]
+v15F = [84.0, 71.0, 98.0, 91.0, 98.95, 99.99]
 
 x = np.arange(len(labels))  # the label locations
 width = 0.3  # the width of the bars
@@ -50,7 +50,7 @@ lw = 4
 fig, ax = plt.subplots(figsize=(fig_width, fig_height))
 rects1 = ax.bar(x - width, v6F, width, label='6F', color=get_color(MY_BLUE))
 rects2 = ax.bar(x, v10F, width, label='10F', color=get_color(MY_RED), hatch='/')
-rects3 = ax.bar(x + width, v10F, width, label='15F',
+rects3 = ax.bar(x + width, v15F, width, label='15F',
                 color=get_color(MY_GREEN), hatch='*')
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
@@ -84,7 +84,7 @@ plt.legend(loc="upper center", ncol=3, frameon=False,
 
 fig.tight_layout()
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "wifi-n-los2." + format
+destination = dir_path + "/" + "wifi-n-los3." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',

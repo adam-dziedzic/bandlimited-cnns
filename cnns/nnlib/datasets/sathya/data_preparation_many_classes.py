@@ -25,8 +25,10 @@ for sample_size in [512]:
     # prefix="wifi6_data/"
     # suffix="_wifi_165"
 
-    class_counter = 2
-    prefix = "ML_"
+    class_counter = 1
+    class_number = None
+    # prefix = "ML_"
+    prefix = 'CaseB'
     suffix = "WiFi_"
     los_type = 'LOS'  # LOS or NLOS
     distance = 10
@@ -34,11 +36,12 @@ for sample_size in [512]:
     datasets = []
     min_len = sys.maxsize  # get the minimum length of dataset for each class
 
-    for counter in range(1, class_counter + 1, 1):
-        csv_path = prefix + los_type + '/' + str(
-            distance) + 'F_' + los_type + '/Test_165_' + str(
-            distance) + 'F_' + str(
-            counter) + suffix + los_type.lower() + type + ".txt"
+    for counter in range(class_counter):
+        # csv_path = prefix + los_type + '/' + str(
+        #     distance) + 'F_' + los_type + '/Test_165_' + str(
+        #     distance) + 'F_' + str(
+        #     counter) + suffix + los_type.lower() + type + ".txt"
+        csv_path = prefix + '/Test_165_' + prefix + '_1WiFi_' + los_type.lower() + '.txt'
         print('csv path: ', csv_path)
 
         # data1 = pd.read_csv(csv_path1, header=None)
@@ -114,10 +117,11 @@ for sample_size in [512]:
     print("train std: ", std)
 
 
-    def get_final_data(data, class_number, mean, std):
+    def get_final_data(data, class_number, mean, std, type=''):
         # replace outliers with the mean value
         count_outliers = np.sum(np.abs(data - mean) > outlier_std_count * std)
-        print(f"count_outliers (for class: {class_number}): ", count_outliers)
+        print(f"count_outliers {type} (for class: {class_number}): ",
+              count_outliers)
         data[np.abs(data - mean) > outlier_std_count * std] = mean
         # normalize the data
         data = (data - mean) / std
@@ -129,15 +133,21 @@ for sample_size in [512]:
 
     train_datasets = []
     for i, array in enumerate(train_arrays):
-        train_datasets.append(get_final_data(array, class_number=i, mean=mean,
-                                             std=std))
+        if class_number is None:
+            class_number = i
+        train_datasets.append(
+            get_final_data(array, class_number=class_number, mean=mean,
+                           std=std, type='train'))
     data_train = np.concatenate(train_datasets, axis=0)
     del train_datasets
 
     test_datasets = []
     for i, array in enumerate(test_arrays):
-        test_datasets.append(get_final_data(array, class_number=i, mean=mean,
-                                            std=std))
+        if class_number is None:
+            class_number = i
+        test_datasets.append(
+            get_final_data(array, class_number=class_number, mean=mean,
+                           std=std, type='test'))
     data_test = np.concatenate(test_datasets, axis=0)
     del test_datasets
 
@@ -148,7 +158,8 @@ for sample_size in [512]:
     dataset_name = prefix + los_type + '/' + str(
         distance) + 'F_' + los_type + '/'
     dir_name = str(class_counter) + '_classes_WiFi'
-    full_dir = dataset_name + "/" + dir_name
+    # full_dir = dataset_name + "/" + dir_name
+    full_dir = prefix + '/' + prefix + '_' + los_type.lower()
 
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
@@ -168,5 +179,7 @@ for sample_size in [512]:
     write_data(data_train, full_dir + "_TRAIN")
     write_data(data_test, full_dir + "_TEST")
 
-    print("train mean: ", data_train.mean())
-    print("train mean: ", data_test.mean())
+    print("normalized train mean (should be close to 0): ", data_train.mean())
+    print("normalized train std: ", data_train.std())
+    print("normalized test mean (should be close to 0): ", data_test.mean())
+    print("normalized test std: ", data_test.std())
