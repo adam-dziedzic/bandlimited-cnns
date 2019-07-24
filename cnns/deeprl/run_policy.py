@@ -23,7 +23,7 @@ if __name__ == '__main__':
         raise Exception(f'Unknown policy type: {args.policy_type.name}')
     print('loaded and built')
 
-    for rollouts in [200, 500]:
+    for rollouts in [100]:
         args.rollouts = rollouts
         run_model(args=args, policy_fn=policy_fn)
 

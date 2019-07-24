@@ -551,6 +551,7 @@ def main(args):
                                           test_accuracy) +
                                       "-channel-vals-" + str(
                                           args.values_per_channel) + \
+                                          "-env_name-" + args.env_name + \
                                       ".model")
             torch.save(model.state_dict(), model_path)
 

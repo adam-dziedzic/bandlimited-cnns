@@ -407,7 +407,7 @@ def get_args():
     # deeprl
     parser.add_argument('--learn_policy_file',
                         type=str,
-                        default=args.get_model_file()
+                        default=args.learn_policy_file
                         )
     parser.add_argument('--expert_policy_file',
                         type=str,

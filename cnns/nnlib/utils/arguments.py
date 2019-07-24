@@ -71,7 +71,7 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     next_power2 = True
     schedule_patience = 50
     schedule_factor = 0.5
-    epochs = 10
+    epochs = 2
     optimizer_type = OptimizerType.ADAM
     momentum = 0.9
     # loss_type = LossType.CROSS_ENTROPY
@@ -292,7 +292,7 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=0,  # 0 means run on full data
+                 sample_count_limit=10,  # 0 means run on full data
                  # sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
@@ -524,26 +524,25 @@ class Arguments(object):
         self.prediction_type = prediction_type
 
         # deeprl
-        self.env_name = "Reacher-v2"
+        # self.env_name = "Reacher-v2"
         # self.env_name = "Ant-v2"
-        # self.env_name = "Hopper-v2"
+        self.env_name = "Hopper-v2"
         self.expert_data_dir = 'expert_data/'
         self.dagger_data_dir = 'dagger_data/'
         self.behave_model_prefix = 'behave_models/'
         self.dagger_model_prefix = 'dagger_models/'
-        self.input_output_size = {}
         self.hidden_units = 64
         # train_steps = 1000000
         self.train_steps = 0
-        self.rollouts = 100
+        self.rollouts = 2
         self.verbose = False
         self.max_timesteps = None
         self.render = False
-        # self.policy_type = PolicyType.PYTORCH_BEHAVE
+        self.policy_type = PolicyType.PYTORCH_BEHAVE
         # self.policy_type = PolicyType.PYTORCH_DAGGER
-        self.policy_type = PolicyType.EXPERT
+        # self.policy_type = PolicyType.EXPERT
         # self.policy_type = PolicyType.TENSORFLOW_BEHAVE
-        self.learn_policy_file = self.get_model_file()
+        # self.learn_policy_file = self.get_model_file()
         # self.learn_policy_file = 'behave_models/reacher-v2-test-loss-3.05.model'
         # self.learn_policy_file = 'behave_models/reacher-v2-test-loss-1.96.model'
         # self.learn_policy_file = 'behave_models/reacher-v2-test-loss-2.6-100rolls.model'
@@ -553,6 +552,7 @@ class Arguments(object):
         # self.learn_policy_file = 'behave_models/hopper-test-loss-5.023237937094757e-05.model'
         # self.learn_policy_file = 'behave_models/hopper-test-loss-5.02-05.model'
         # self.learn_policy_file = 'behave_models/hopper-test-loss-2.45-05.model'
+        self.learn_policy_file = 'dagger_models/2019-07-24-16-15-26-243827_return_61.58420190905099_train_loss_0.023740299610477505_test_loss_0.15592382848262787_.model'
         # self.learn_poicy_file = 'no_policy_file'
         # self.learn_policy_file = 'models/pytorch_behave.model'
         # self.learn_policy_file = 'dagger_models/2019-07-22-15-02-02-783627_return_-8.853555681674216_train_loss_1.1837590678164633e-05_test_loss_6.563135706418314e-06_.model'

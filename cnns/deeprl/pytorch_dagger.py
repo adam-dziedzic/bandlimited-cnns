@@ -17,10 +17,11 @@ import os
 from cnns.nnlib.utils.general_utils import get_log_time
 
 
-def save_model(model, returns, train_loss, test_loss):
+def save_model(model, returns, train_loss, test_loss, env_name):
     mean_return = np.mean(returns)
     models_dir = 'dagger_models'
     file_parts = [get_log_time(),
+                  'env_name', env_name,
                   'return', mean_return,
                   'train_loss', train_loss,
                   'test_loss', test_loss,
@@ -93,7 +94,7 @@ def run(args):
             env=env)
 
         save_model(model=model, returns=returns, train_loss=train_loss,
-                   test_loss=test_loss)
+                   test_loss=test_loss, env_name=args.env_name)
 
         # 4. Aggregate the new data.
         train_dataset.add_data(observations=observations,
