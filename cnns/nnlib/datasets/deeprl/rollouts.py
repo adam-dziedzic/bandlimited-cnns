@@ -16,8 +16,24 @@ class RolloutsDataset(Dataset):
         self.transform = transform
 
     def add_data(self, observations, actions):
+        observations = np.array(observations)
+        actions = np.array(actions).squeeze()
+
+        observations = torch.from_numpy(observations)
+        actions = torch.from_numpy(actions)
+
+        observations = observations.to(self.observations.device).to(
+            self.observations.dtype)
+        actions = actions.to(self.actions.device).to(self.actions.dtype)
+
         self.observations = torch.cat((self.observations, observations), dim=0)
         self.actions = torch.cat((self.actions, actions), dim=0)
+
+    def save_data(self, output_file):
+        expert_data = {'observations': np.array(self.observations),
+                       'actions': np.array(self.actions)}
+        with open(output_file, 'wb') as file:
+            pickle.dump(expert_data, file, pickle.HIGHEST_PROTOCOL)
 
     def __len__(self):
         return len(self.observations)

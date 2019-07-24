@@ -25,7 +25,7 @@ for sample_size in [512]:
     # prefix="wifi6_data/"
     # suffix="_wifi_165"
 
-    class_counter = 1
+    class_counter = 2
     class_number = None
     # prefix = "ML_"
     prefix = 'CaseB'
@@ -41,7 +41,11 @@ for sample_size in [512]:
         #     distance) + 'F_' + los_type + '/Test_165_' + str(
         #     distance) + 'F_' + str(
         #     counter) + suffix + los_type.lower() + type + ".txt"
-        csv_path = prefix + '/Test_165_' + prefix + '_1WiFi_' + los_type.lower() + '.txt'
+        # csv_path = prefix + '/Test_165_' + prefix + '_1WiFi_' + los_type.lower() + '.txt'
+        # csv_path = 'All/raw_files/all_data'
+        csv_path = 'All/one_two_wifi/' + str(counter + 1) + '_wifi'
+        csv_path = 'All/one_two_wifi_2/' + str(counter + 1) + '_wifi_2'
+
         print('csv path: ', csv_path)
 
         # data1 = pd.read_csv(csv_path1, header=None)
@@ -51,6 +55,7 @@ for sample_size in [512]:
         dataset = np.genfromtxt(csv_path, delimiter="\n")
         for expression in ['-inf', '-Inf', 'inf', 'Inf']:
             dataset = np.delete(dataset, np.where(dataset == float(expression)))
+        dataset = dataset[~np.isnan(dataset)]
         print("dataset class " + str(counter))
         print("max: ", dataset.max())
         print("min: ", dataset.min())
@@ -159,7 +164,10 @@ for sample_size in [512]:
         distance) + 'F_' + los_type + '/'
     dir_name = str(class_counter) + '_classes_WiFi'
     # full_dir = dataset_name + "/" + dir_name
-    full_dir = prefix + '/' + prefix + '_' + los_type.lower()
+    # full_dir = prefix + '/' + prefix + '_' + los_type.lower()
+    # full_dir = 'All/raw_files/all_data'
+    # full_dir = 'All/one_two_wifi/2_classes_WiFi'
+    full_dir = 'All/one_two_wifi_2/2_classes_WiFi'
 
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)

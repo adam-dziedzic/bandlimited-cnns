@@ -6,6 +6,11 @@ matplotlib.rcParams['ps.fonttype'] = 42
 import matplotlib.pyplot as plt
 import csv
 import os
+import torch
+import numpy as np
+
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_full_energy_only
+from cnns.nnlib.robustness.utils import to_fft_magnitude
 
 print(matplotlib.get_backend())
 
@@ -51,14 +56,14 @@ def read_columns(dataset, columns=5):
 
 ylabel = "ylabel"
 title = "title"
-legend_pos = "center_pos"
+legend_pos = "upper center"
 bbox = "bbox"
 file_name = "file_name"
 
-energy = {ylabel: "Energy (dB)",
+energy = {ylabel: "Amplitude (log scale)",
         file_name: "wifi_energy",
         title: "accuracy",
-        legend_pos: "upper left",
+        legend_pos: "upper center",
         bbox: (0.0, 0.1)}
 
 labels = ["", "0 Wi-Fi", "1 Wi-Fi", "2 Wi-Fis"]
@@ -80,6 +85,22 @@ width = 15
 height = 7
 lw = 4
 
+onesided = False
+normalized = True
+is_log = True
+
+def to_xfft(signal):
+    xfft = torch.rfft(torch.from_numpy(signal), onesided=onesided,
+                      signal_ndim=1,
+                      normalized=normalized)
+    print("Energy in the frequency domain (pytorch): ",
+          get_full_energy_only(xfft))
+    x_numpy = xfft[..., 0].numpy() + 1.0j * xfft[..., 1].numpy()
+    print("Energy in the frequency domain (numpy): ",
+          np.sum(np.power(np.absolute(x_numpy), 2)))
+    xfft_mag = to_fft_magnitude(xfft, is_log)
+    return xfft_mag
+
 fig = plt.figure(figsize=(width, len(datasets) * height))
 
 for j, dataset in enumerate(datasets):
@@ -92,19 +113,25 @@ for j, dataset in enumerate(datasets):
 
     for i in range(columns):
         if i > 0:  # skip first column with the epoch number
-            plt.plot(cols[0], cols[i], label=f"{labels[i]}", lw=lw,
-                     color=colors[i], linestyle=linestyles[i])
+            signal = cols[i]
+            xfft_mag = to_xfft(signal=np.array(signal))
+            plt.plot(range(len(signal)),
+                     xfft_mag,
+                     label=f"{labels[i]}",
+                     lw=lw,
+                     color=colors[i],
+                     linestyle=linestyles[i])
 
     plt.grid()
     plt.legend(loc=dataset[legend_pos], ncol=ncols[j], frameon=False,
                prop={'size': legend_size},
                # bbox_to_anchor=dataset[bbox]
                )
-    plt.xlabel('Sample number')
+    plt.xlabel('Frequency (sample number)')
     # plt.title(titles[j], fontsize=16)
     plt.ylabel(dataset[ylabel])
-    plt.ylim(-40, -15)
-    plt.xlim(0, 2048)
+    # plt.ylim(-40, -15)
+    # plt.xlim(0, 2048)
 
 # plt.gcf().autofmt_xdate()
 # plt.xticks(rotation=0)
@@ -112,7 +139,7 @@ for j, dataset in enumerate(datasets):
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "wifi-energy." + format
+destination = dir_path + "/" + "wifi-energy-fft." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',

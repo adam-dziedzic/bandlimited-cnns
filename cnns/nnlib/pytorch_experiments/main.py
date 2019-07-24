@@ -53,17 +53,20 @@ current_file_name = __file__.split("/")[-1].split(".")[0]
 sources:
 https://devblogs.nvidia.com/apex-pytorch-easy-mixed-precision-training/
 """
-try:
-    import apex
-except ImportError:
-    raise ImportError("""Please install apex from 
-    https://www.github.com/nvidia/apex to run this code.""")
+args = get_args()
 
-amp_handle = None
-# from apex.parallel import DistributedDataParallel as DDP
-# from apex.fp16_utils import input_to_half
-from apex.fp16_utils import network_to_half
-from apex.fp16_utils import FP16_Optimizer
+if torch.cuda.is_available() and args.use_cuda and args.precision_type is PrecisionType.AMP:
+    try:
+        import apex
+
+        amp_handle = None
+        # from apex.parallel import DistributedDataParallel as DDP
+        # from apex.fp16_utils import input_to_half
+        from apex.fp16_utils import network_to_half
+        from apex.fp16_utils import FP16_Optimizer
+    except ImportError:
+        raise ImportError("""Please install apex from 
+        https://www.github.com/nvidia/apex to run this code.""")
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 # print("current working directory: ", dir_path)
@@ -352,7 +355,7 @@ def main(args):
     elif dataset_name == "svhn":
         train_loader, test_loader, _, _ = get_svhn(args)
     elif dataset_name.startswith("WIFI") or dataset_name.startswith(
-            '2_classes_WiFi'):
+            '2_classes_WiFi') or dataset_name.startswith('Case'):
         # train_loader, test_loader, dev_loader = get_ucr(args)
         test_loader, train_loader, dev_loader = get_ucr(args)
     elif dataset_name in os.listdir(ucr_path):  # dataset from UCR archive
@@ -575,8 +578,6 @@ if __name__ == '__main__':
     print("start learning!")
     start_time = time.time()
 
-    args = get_args()
-
     hostname = socket.gethostname()
     try:
         cuda_visible_devices = os.environ['CUDA_VISIBLE_DEVICES']
@@ -633,7 +634,7 @@ if __name__ == '__main__':
     elif args.dataset == "deeprl":
         flist = ["deeprl"]
     elif args.dataset.startswith("WIFI") or args.dataset.startswith(
-            '2_classes_WiFi'):
+            '2_classes_WiFi') or args.dataset.startswith('Case'):
         flist = [args.dataset]
         # flist = ["50words"]
         # flist = ["Adiac"]
@@ -1215,6 +1216,7 @@ if __name__ == '__main__':
     # flist = flist[3:]  # start from Beef
     # reversed(flist)
     print("flist: ", flist)
+    print('ucr path: ', args.ucr_path)
     compress_rate = 0
     for compress_rate in args.compress_rates:
         # for noise_epsilon in args.noise_epsilons:

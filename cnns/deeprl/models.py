@@ -65,7 +65,7 @@ def create_model(mean, std, input_size=1, output_size=1, hidden_units=100):
     return input_ph, output_ph, output_pred
 
 
-def run_model(args, policy_fn, expert_policy_fn=None):
+def run_model(args, policy_fn, expert_policy_fn=None, env=None):
     print('number of rollouts: ', args.rollouts)
 
     returns = []
@@ -76,8 +76,9 @@ def run_model(args, policy_fn, expert_policy_fn=None):
     with tf.Session():
         tf_util.initialize()
 
-        import gym
-        env = gym.make(args.env_name)
+        if env is None:
+            import gym
+            env = gym.make(args.env_name)
         max_steps = args.max_timesteps or env.spec.timestep_limit
         print("max steps: ", max_steps)
 
@@ -108,17 +109,24 @@ def run_model(args, policy_fn, expert_policy_fn=None):
             returns.append(totalr)
 
         # print('returns; ', returns)
-        print('mean return; ', np.mean(returns))
-        print('std of return; ', np.std(returns))
+        mean_return = np.mean(returns)
+        std_return = np.std(returns)
+        print('mean return; ', mean_return)
+        print('std of return; ', std_return)
 
         expert_data = {'observations': np.array(observations),
                        'actions': np.array(actions)}
 
         if args.policy_type == PolicyType.EXPERT:
-            with open(os.path.join(
-                    args.expert_data_dir,
-                    args.envname + '-' + str(args.num_rollouts) + '.pkl'),
-                    'wb') as f:
-                pickle.dump(expert_data, f, pickle.HIGHEST_PROTOCOL)
+            output_chunks = [args.env_name,
+                             'rollouts', args.rollouts,
+                             'mean-return', str(mean_return),
+                             'std-return', str(std_return),
+                             '.pkl']
+            output_name = "_".join([str(x) for x in output_chunks])
+            output_file = os.path.join(args.expert_data_dir, output_name)
+            # rint('output file: ', output_file)
+            with open(output_file, 'wb') as file:
+                pickle.dump(expert_data, file, pickle.HIGHEST_PROTOCOL)
 
     return returns, observations, actions, expert_actions

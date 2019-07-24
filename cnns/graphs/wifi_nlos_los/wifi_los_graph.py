@@ -34,9 +34,9 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 print("dir path: ", dir_path)
 
 labels = ['ED:LOS', 'ED:NLOS', 'AC:LOS', 'AC:NLOS', 'ML:LOS', 'ML:NLOS']
-v6F = [98.0, 84.0, 99.0, 95.0, 99.91, 99.98]
-v10F = [96.0, 76.0, 98.3, 94.0, 99.99, 99.99]
-v15F = [84.0, 71.0, 98.0, 91.0, 98.95, 99.99]
+v6F = [98.0, 84.0, 99.0, 95.0, 99.70, 99.12]
+v10F = [96.0, 76.0, 98.3, 94.0, 99.84, 99.57]
+v15F = [84.0, 71.0, 98.0, 91.0, 99.98, 97.76]
 
 x = np.arange(len(labels))  # the label locations
 width = 0.3  # the width of the bars
@@ -84,7 +84,7 @@ plt.legend(loc="upper center", ncol=3, frameon=False,
 
 fig.tight_layout()
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "wifi-n-los3." + format
+destination = dir_path + "/" + "wifi-n-los-one-model." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',

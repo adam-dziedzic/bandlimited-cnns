@@ -11,6 +11,23 @@ from cnns.deeprl.load_policy import load_policy
 from torch.utils.data import DataLoader
 from cnns.nnlib.datasets.deeprl.rollouts import set_kwargs
 import time
+import numpy as np
+import torch
+import os
+from cnns.nnlib.utils.general_utils import get_log_time
+
+
+def save_model(model, returns, train_loss, test_loss):
+    mean_return = np.mean(returns)
+    models_dir = 'dagger_models'
+    file_parts = [get_log_time(),
+                  'return', mean_return,
+                  'train_loss', train_loss,
+                  'test_loss', test_loss,
+                  '.model']
+    file_name = '_'.join([str(x) for x in file_parts])
+    model_path = os.path.join(models_dir, file_name)
+    torch.save(model.state_dict(), model_path)
 
 
 def run(args):
@@ -28,7 +45,14 @@ def run(args):
         file.write(header_str + '\n')
         print(header_str)
 
+    import gym
+    env = gym.make(args.env_name)
+
     for dagger_iter in range(args.dagger_iterations):
+
+        train_loss = float('Inf')
+        test_loss = float('Inf')
+
         # 1. train the policy model on the initial data.
         for epoch in range(args.epochs):
             start_train = time.time()
@@ -63,13 +87,23 @@ def run(args):
         # next state / observation.
         learn_policy_fn = pytorch_policy_fn(args=args, model=model)
         expert_policy_fn = load_policy(filename=args.expert_policy_file)
-        _, observations, _, expert_actions = run_model(
+        returns, observations, _, expert_actions = run_model(
             args=args, policy_fn=learn_policy_fn,
-            expert_policy_fn=expert_policy_fn)
+            expert_policy_fn=expert_policy_fn,
+            env=env)
+
+        save_model(model=model, returns=returns, train_loss=train_loss,
+                   test_loss=test_loss)
 
         # 4. Aggregate the new data.
         train_dataset.add_data(observations=observations,
                                actions=expert_actions)
+
+        dagger_rollouts = dagger_iter * args.rollouts
+        output_name = args.env_name + '-' + str(dagger_rollouts) + '.pkl'
+        output_file = os.path.join(args.dagger_data_dir, output_name)
+        train_dataset.save_data(output_file=output_file)
+
         kwargs = set_kwargs(args=args)
         train_loader = DataLoader(dataset=train_dataset,
                                   batch_size=args.min_batch_size,

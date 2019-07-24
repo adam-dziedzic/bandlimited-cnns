@@ -64,7 +64,7 @@ class UCRDataset(Dataset):
         else:
             suffix = "_TEST"
         if dataset_name.startswith('2_classes_WiFi') or dataset_name.startswith(
-                'WIFI_AllCases'):
+                'WIFI_AllCases') or dataset_name.startswith('Case'):
             csv_path = os.path.join(ucr_path, dataset_name + suffix)
         else:
             csv_path = os.path.join(ucr_path, dataset_name,

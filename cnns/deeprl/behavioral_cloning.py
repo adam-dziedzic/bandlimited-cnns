@@ -4,7 +4,8 @@ from cnns.deeprl import tf_util
 import time
 from cnns.deeprl.utils import get_mean_std, read_data
 from cnns.deeprl.models import create_model
-from cnns.deeprl.params import Arguments
+from cnns.nnlib.utils.exec_args import get_args
+from cnns.nnlib.utils.general_utils import PolicyType
 
 
 def train_model(inputs, outputs, output_pred, input_ph, output_ph, env_name,
@@ -99,9 +100,9 @@ def load_policy(args):
 
 
 if __name__ == "__main__":
-    args = Arguments()
-    args.train_steps = 10
-    args.model_type = 'student_behave'
+    args = get_args()
+    args.train_steps = 10000
+    args.policy_type = PolicyType.PYTORCH_BEHAVE
 
     start = time.time()
     input_size, output_size = train_policy(args=args)

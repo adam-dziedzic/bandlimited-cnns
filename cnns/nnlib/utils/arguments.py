@@ -43,18 +43,19 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # dataset = "WIFI5-192"
     # dataset = "WIFI"
     # dataset = "WIFI_class_3_sample_512"
-    dataset = '2_classes_WiFi'
-    # dataset = 'deeprl'
+    # dataset = '2_classes_WiFi'
+    # dataset = 'CaseC_los'
+    dataset = 'deeprl'
     # network_type = NetworkType.FCNN_STANDARD
     # network_type = NetworkType.Linear3
     # network_type = NetworkType.VGG1D_7
     # network_type = NetworkType.VGG1D_6
     # network_type = NetworkType.FCNN_VERY_TINY
-    network_type = NetworkType.FCNN_MICRO
-    # network_type = NetworkType.Linear4
+    # network_type = NetworkType.FCNN_MICRO
+    network_type = NetworkType.Linear4
     preserved_energy = 100  # for unit tests
     # learning_rate = 0.0005
-    learning_rate = 0.0001
+    learning_rate = 0.001
     batch_size = 32
     test_batch_size = batch_size
     # test_batch_size = 256
@@ -70,14 +71,15 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     next_power2 = True
     schedule_patience = 50
     schedule_factor = 0.5
-    epochs = 2000
+    epochs = 10
     optimizer_type = OptimizerType.ADAM
     momentum = 0.9
-    loss_type = LossType.CROSS_ENTROPY
-    # loss_type = LossType.MSE
+    # loss_type = LossType.CROSS_ENTROPY
+    loss_type = LossType.MSE
     loss_reduction = LossReduction.MEAN
-    model_path = "no_model"
-    # model_path = 'pytorch_behave1.model'
+    # model_path = "no_model"
+    # model_path = 'wifi-all-accuracy-99-25.model'
+    model_path = 'pytorch_behave1.model'
     in_channels = 1
 else:
     # dataset = "mnist"
@@ -185,7 +187,7 @@ class Arguments(object):
                  # precision_type=PrecisionType.AMP,  # use AMP for fp16 - reduced precision training
                  precision_type=PrecisionType.FP32,
                  # precision_type=PrecisionType.FP16,
-                 use_cuda=True,
+                 use_cuda=False,
                  compress_type=CompressType.STANDARD,
                  compress_rate=compress_rate,
                  compress_rates=[compress_rate],
@@ -290,7 +292,7 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=100,  # 0 means run on full data
+                 sample_count_limit=0,  # 0 means run on full data
                  # sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
@@ -337,7 +339,8 @@ class Arguments(object):
                  in_channels=in_channels,
                  values_per_channel=0,
                  many_values_per_channel=[0],
-                 ucr_path="../sathya/ML_LOS/6F_LOS/",
+                 # ucr_path="../sathya/ML_NLOS/15F_NLOS/",
+                 ucr_path="../sathya/CaseC/",
                  # ucr_path="../../TimeSeriesDatasets",
                  start_epsilon=0,
                  # attack_type=AttackType.BAND_ONLY,
@@ -379,7 +382,8 @@ class Arguments(object):
                  svd_compress=0.0,
                  many_svd_compress=[0.0],
                  adv_type=AdversarialType.BEFORE,
-                 prediction_type=PredictionType.CLASSIFICATION,
+                 prediction_type=PredictionType.REGRESSION,
+                 # prediction_type=PredictionType.CLASSIFICATION,
                  # 'regression' or 'classification'
                  ):
         """
@@ -521,28 +525,35 @@ class Arguments(object):
 
         # deeprl
         self.env_name = "Reacher-v2"
+        # self.env_name = "Ant-v2"
         self.expert_data_dir = 'expert_data/'
+        self.dagger_data_dir = 'dagger_data/'
         self.behave_model_prefix = 'behave_models/'
         self.dagger_model_prefix = 'dagger_models/'
         self.input_output_size = {}
         self.hidden_units = 64
         # train_steps = 1000000
-        self.train_steps = 100000
-        self.rollouts = 10
+        self.train_steps = 0
+        self.rollouts = 100
         self.verbose = False
         self.max_timesteps = None
-        self.render = True
+        self.render = False
         # self.policy_type = PolicyType.PYTORCH_BEHAVE
-        self.policy_type = PolicyType.PYTORCH_DAGGER
-        # self.policy_type = PolicyType.EXPERT
+        # self.policy_type = PolicyType.PYTORCH_DAGGER
+        self.policy_type = PolicyType.EXPERT
         # self.policy_type = PolicyType.TENSORFLOW_BEHAVE
-        # self.learn_policy_file = self.get_model_file()
-        self.learn_poicy_file = 'no_policy_file'
+        self.learn_policy_file = self.get_model_file()
+        # self.learn_poicy_file = 'no_policy_file'
+        # self.learn_policy_file = 'models/pytorch_behave.model'
+        # self.learn_policy_file = 'dagger_models/2019-07-22-15-02-02-783627_return_-8.853555681674216_train_loss_1.1837590678164633e-05_test_loss_6.563135706418314e-06_.model'
+        # self.learn_policy_file = 'dagger_modes/2019-07-22-16-52-59-627577_return_-8.284563905838292_train_loss_1.4905159095937342e-05_test_loss_6.925928364106574e-06_.model'
+        # self.learn_policy_file = 'dagger_models/2019-07-23-12-03-47-000774_return_-7.953395893599401_train_loss_5.9503303005835296e-05_test_loss_8.228212310429874e-06_.model'
         self.expert_policy_file = "experts/" + self.env_name + ".pkl"
-        self.rollout_file = '../nnlib/datasets/deeprl/data/' + self.env_name + '-10000.pkl'
-        self.dagger_iterations = 10
+        # self.rollout_file = '../nnlib/datasets/deeprl/data/' + self.env_name + '-10000.pkl'
+        self.rollout_file = 'dagger_data/' + self.env_name + '600.pkl'
+        self.dagger_iterations = 100
 
-        self.log_file = get_log_time() + '-log' + '.txt'
+        self.log_file = 'logs/' + get_log_time() + '-log' + '.txt'
         self.delimiter = ";"
 
         self.set_dtype()
