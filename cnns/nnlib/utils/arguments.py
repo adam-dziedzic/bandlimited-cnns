@@ -77,9 +77,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # loss_type = LossType.CROSS_ENTROPY
     loss_type = LossType.MSE
     loss_reduction = LossReduction.MEAN
-    # model_path = "no_model"
+    model_path = "no_model"
     # model_path = 'wifi-all-accuracy-99-25.model'
-    model_path = 'pytorch_behave1.model'
+    # model_path = 'pytorch_behave1.model'
     in_channels = 1
 else:
     # dataset = "mnist"
@@ -526,6 +526,7 @@ class Arguments(object):
         # deeprl
         self.env_name = "Reacher-v2"
         # self.env_name = "Ant-v2"
+        # self.env_name = "Hopper-v2"
         self.expert_data_dir = 'expert_data/'
         self.dagger_data_dir = 'dagger_data/'
         self.behave_model_prefix = 'behave_models/'
@@ -543,14 +544,25 @@ class Arguments(object):
         self.policy_type = PolicyType.EXPERT
         # self.policy_type = PolicyType.TENSORFLOW_BEHAVE
         self.learn_policy_file = self.get_model_file()
+        # self.learn_policy_file = 'behave_models/reacher-v2-test-loss-3.05.model'
+        # self.learn_policy_file = 'behave_models/reacher-v2-test-loss-1.96.model'
+        # self.learn_policy_file = 'behave_models/reacher-v2-test-loss-2.6-100rolls.model'
+        # self.learn_policy_file = 'behave_models/reacher-v2-test-loss-0.00015-100.model'
+        # self.learn_policy_file = 'behave_models/reacher-v2-test-loss-0.00024-10rolls.model'
+        # self.learn_policy_file = 'behave_models/reacher-v2-test-loss-0.0014-1-roll.model'
+        # self.learn_policy_file = 'behave_models/hopper-test-loss-5.023237937094757e-05.model'
+        # self.learn_policy_file = 'behave_models/hopper-test-loss-5.02-05.model'
+        # self.learn_policy_file = 'behave_models/hopper-test-loss-2.45-05.model'
         # self.learn_poicy_file = 'no_policy_file'
         # self.learn_policy_file = 'models/pytorch_behave.model'
         # self.learn_policy_file = 'dagger_models/2019-07-22-15-02-02-783627_return_-8.853555681674216_train_loss_1.1837590678164633e-05_test_loss_6.563135706418314e-06_.model'
         # self.learn_policy_file = 'dagger_modes/2019-07-22-16-52-59-627577_return_-8.284563905838292_train_loss_1.4905159095937342e-05_test_loss_6.925928364106574e-06_.model'
         # self.learn_policy_file = 'dagger_models/2019-07-23-12-03-47-000774_return_-7.953395893599401_train_loss_5.9503303005835296e-05_test_loss_8.228212310429874e-06_.model'
         self.expert_policy_file = "experts/" + self.env_name + ".pkl"
-        # self.rollout_file = '../nnlib/datasets/deeprl/data/' + self.env_name + '-10000.pkl'
-        self.rollout_file = 'dagger_data/' + self.env_name + '600.pkl'
+        # self.rollout_file = '../nnlib/datasets/deeprl/data/' + self.env_name + '-1000.pkl'
+        # self.rollout_file = '../../deeprl/expert_data/' + self.env_name + '-1000.pkl'
+        self.rollout_file = 'expert_data/' + self.env_name + '-1000.pkl'
+        # self.rollout_file = 'dagger_data/' + self.env_name + '-600.pkl'
         self.dagger_iterations = 100
 
         self.log_file = 'logs/' + get_log_time() + '-log' + '.txt'

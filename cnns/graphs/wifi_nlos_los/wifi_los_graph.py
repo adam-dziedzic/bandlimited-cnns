@@ -22,7 +22,7 @@ def get_color(COLOR_TUPLE_255):
 
 
 # fontsize=20
-size=18
+size=16
 fontsize = size
 legend_size = size
 label_size = 10
@@ -33,10 +33,10 @@ matplotlib.rc('font', **font)
 dir_path = os.path.dirname(os.path.realpath(__file__))
 print("dir path: ", dir_path)
 
-labels = ['ED:LOS', 'ED:NLOS', 'AC:LOS', 'AC:NLOS', 'ML:LOS', 'ML:NLOS']
-v6F = [98.0, 84.0, 99.0, 95.0, 99.70, 99.12]
-v10F = [96.0, 76.0, 98.3, 94.0, 99.84, 99.57]
-v15F = [84.0, 71.0, 98.0, 91.0, 99.98, 97.76]
+labels = ['ED:LOS', 'ED:NLOS', 'AC:LOS', 'AC:NLOS', 'ML:LOS', 'ML:NLOS', 'RI:LOS', 'RI:NLOS']
+v6F = [98.0, 84.0, 99.0, 95.0, 99.70, 99.12, 99.6, 99.02]
+v10F = [96.0, 76.0, 98.3, 94.0, 99.84, 99.57, 99.52, 99.4]
+v15F = [84.0, 71.0, 98.0, 91.0, 99.98, 97.76, 99.75, 97.31]
 
 x = np.arange(len(labels))  # the label locations
 width = 0.3  # the width of the bars
@@ -73,9 +73,9 @@ def autolabel(rects):
                     ha='center', va='bottom', fontsize=label_size)
 
 
-autolabel(rects1)
-autolabel(rects2)
-autolabel(rects3)
+# autolabel(rects1)
+# autolabel(rects2)
+# autolabel(rects3)
 
 plt.legend(loc="upper center", ncol=3, frameon=False,
                prop={'size': legend_size},
@@ -84,7 +84,7 @@ plt.legend(loc="upper center", ncol=3, frameon=False,
 
 fig.tight_layout()
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "wifi-n-los-one-model." + format
+destination = dir_path + "/" + "wifi-n-los-one-model-ri." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',

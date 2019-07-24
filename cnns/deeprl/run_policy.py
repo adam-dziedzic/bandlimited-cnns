@@ -22,13 +22,20 @@ if __name__ == '__main__':
     else:
         raise Exception(f'Unknown policy type: {args.policy_type.name}')
     print('loaded and built')
-    # args.rollouts = 100
-    for rollouts in [1, 10, 100, 1000, 2000, 5000, 10000, 20000, 40000, 80000, 100000, 200000]:
+
+    for rollouts in [200, 500]:
         args.rollouts = rollouts
-        for env_name in ['Ant-v2', 'HalfCheetah-v2', 'Hopper-v2', 'Humanoid-v2', 'Reacher-v2']:
-            args.env_name = env_name
-            if args.policy_type == PolicyType.EXPERT:
-                args.expert_policy_file = "experts/" + args.env_name + ".pkl"
-                policy_fn = load_policy(args.expert_policy_file)
-            args.rollout_file = 'expert_data/' + args.env_name + '-' + str(rollouts) + '.pkl'
-            run_model(args=args, policy_fn=policy_fn)
+        run_model(args=args, policy_fn=policy_fn)
+
+    # args.rollouts = 100
+    # run_model(args=args, policy_fn=policy_fn)
+
+    # for rollouts in [1, 10, 100, 1000, 2000, 5000, 10000, 20000, 40000, 80000, 100000, 200000]:
+    #     args.rollouts = rollouts
+    #     for env_name in ['Ant-v2', 'HalfCheetah-v2', 'Hopper-v2', 'Humanoid-v2', 'Reacher-v2']:
+    #         args.env_name = env_name
+    #         if args.policy_type == PolicyType.EXPERT:
+    #             args.expert_policy_file = "experts/" + args.env_name + ".pkl"
+    #             policy_fn = load_policy(args.expert_policy_file)
+    #         args.rollout_file = 'expert_data/' + args.env_name + '-' + str(rollouts) + '.pkl'
+    #         run_model(args=args, policy_fn=policy_fn)

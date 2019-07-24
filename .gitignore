@@ -119,3 +119,13 @@ cnns/pytorch_tutorials/graphs/
 *.xlsx
 *.sh~
 *.xlsm
+
+cnns/deeprl/behave_models
+cnns/deeprl/dagger_models
+cnns/deeprl/dagger_data
+cnns/deeprl/expert_data
+cnns/deeprl/experts
+
+*.pkl
+*.model
+

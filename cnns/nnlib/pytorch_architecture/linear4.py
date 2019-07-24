@@ -10,6 +10,7 @@ class Linear4(nn.Module):
         self.input_size = args.input_size
         # num_classes: number of output classes.
         # self.num_classes = args.num_classes
+        print("Linear4 model, output size: ", args.output_size)
         self.output_size = args.output_size
         # in_channels: number of channels in the input data.
         self.in_channels = args.in_channels
