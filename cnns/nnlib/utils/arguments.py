@@ -592,8 +592,9 @@ class Arguments(object):
             model_file = "experts/" + self.env_name + ".pkl"
         elif self.policy_type == PolicyType.PYTORCH_BEHAVE:
             model_number = 1
-            model_file = '../nnlib/pytorch_experiments/models/pytorch_behave' + str(
-                model_number) + '.model'
+            # model_file = '../nnlib/pytorch_experiments/models/pytorch_behave' + str(
+            #     model_number) + '.model'
+            model_file = 'no_policy_file'
         elif self.policy_type == PolicyType.PYTORCH_DAGGER:
             model_file = 'no_policy_file'
         else:
