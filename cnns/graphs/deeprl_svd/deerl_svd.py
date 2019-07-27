@@ -69,7 +69,8 @@ bbox = "bbox"
 file_name = "file_name"
 layer_nr = 'layer_nr'
 
-return_values = [-12.7, -10.5, -9.6, -8.7, -7.4, -6.2, -4.8]
+# return_values = [-12.7, -10.5, -9.6, -8.7, -7.4, -6.2, -4.8]
+return_values = [1, 100, 200, 500, 1000, 10000]
 columns = len(return_values)
 
 layer_0 = {ylabel: "Singular value (absolute)",
@@ -118,20 +119,22 @@ for j, dataset in enumerate(datasets):
 
     cols = []
     for col in range(columns):
-        file_name = '../../deeprl/svd/return_' + str(
-            dataset[returns][col]) + '.model-' + str(dataset[layer_nr])
+        # file_name = '../../deeprl/svd/return_' + str(
+        #     dataset[returns][col]) + '.model-' + str(dataset[layer_nr])
+        file_name = '../../deeprl/svd/saved-model-reacher-v2-' + str(dataset[returns][col]) + '-rolls.model-' + str(dataset[layer_nr])
         column = read_columns(dataset=file_name, columns=1)[0]
         # square_col = np.square(column)
         # sum_col = np.sum(square_col)
         # cols.append(square_col / sum_col)
         cols.append(column / np.sum(column))
+        # cols.append(column)
 
     for col_i in range(columns):
         print("return value ", return_values[col_i], ": ", sum(cols[col_i]))
 
     for i in range(columns):
         plt.plot(range(len(cols[i])), cols[i],
-                 label=f"return={dataset[returns][i]}",
+                 label=f"episodes={dataset[returns][i]}",
                  lw=lw, color=colors[i], linestyle=linestyles[i])
 
     plt.grid()
@@ -151,12 +154,12 @@ for j, dataset in enumerate(datasets):
 # plt.imshow()
 plt.subplots_adjust(hspace=0.5)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "deeprl_svd_Reacher-v2_abs_norm." + format
+destination = dir_path + "/" + "deeprl_svd_Reacher-v2-behavior-clonning_abs_norm." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
             # transparent=True
             )
 plt.show(block=True)
-# plt.interactive(False)
+plt.interactive(True)
 plt.close()

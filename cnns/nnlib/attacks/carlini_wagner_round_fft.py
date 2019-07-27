@@ -355,7 +355,11 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
         reconstructed_original, _ = to_model_space(att_original)
 
         # the binary search finds the smallest const for which we
-        # find an adversarial
+        # find an adversarial, the const is a coefficient / a hyperparameter
+        # that adjusts the relative weighting between distortion and
+        # misclassification. The parameter is set as follows:
+        # loss(x') = ||x' - x||^2 + c*J(F(x'), y)
+        # total_loss = squared_l2_distance + const * is_adv_loss
         const = initial_const
         lower_bound = 0
         upper_bound = np.inf
@@ -365,6 +369,8 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
                     binary_search_steps >= 10:
                 # in the last binary search step, use the upper_bound instead
                 # TODO: find out why... it's not obvious why this is useful
+                # Probably it is useful if we have not found an adversarial
+                # example yet. Otherwise, this deteriorates the distortion.
                 const = upper_bound
 
             logging.info('starting optimization with const = {}'.format(const))
@@ -482,6 +488,8 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
 
             if upper_bound == np.inf:
                 # exponential search
+                # The exponential search is done until we find the first
+                # adversarial example.
                 const *= 10
             else:
                 # binary search

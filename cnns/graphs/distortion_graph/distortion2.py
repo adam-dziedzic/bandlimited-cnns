@@ -25,7 +25,7 @@ def get_color(COLOR_TUPLE_255):
 
 # fontsize=20
 fontsize = 30
-legend_size = 26
+legend_size = 22
 title_size = 30
 font = {'size': fontsize}
 matplotlib.rc('font', **font)
@@ -65,46 +65,70 @@ legend_cols = "legend_cols"
 xlim = "xlim"
 ylim = "ylim"
 
-many_trials_cifar10 = {ylabel: "Accuracy (%)",
-                       file_name: "distortion",
-                       title: "CIFAR-10",
-                       legend_pos: "upper right",
-                       # bbox: (0.0, 0.0),
-                       column_nr: 12,
-                       legend_cols: 2,
-                       labels: ['FC', 'CD', 'Unif', 'Gauss', 'Laplace', 'SVD'],
-                       xlim: (0, 12),
-                       ylim: (0, 100)}
+carlini_cifar10 = {ylabel: "Accuracy (%)",
+                   file_name: "distortionCarliniCifar",
+                   title: "C&W L$_2$ CIFAR-10",
+                   legend_pos: "upper right",
+                   # bbox: (0.0, 0.0),
+                   column_nr: 12,
+                   legend_cols: 2,
+                   labels: ['FC', 'CD', 'Unif', 'Gauss', 'Laplace', 'SVD'],
+                   xlim: (0, 12),
+                   ylim: (0, 100)}
 
-many_trials_imagenet = {ylabel: "Accuracy (%)",
-                        file_name: "distortionImageNet",
-                        title: "ImageNet",
-                        # legend_pos: "lower left",
-                        legend_pos: "upper right",
-                        # bbox: (0.0, 0.0),
-                        column_nr: 12,
-                        legend_cols: 2,
-                        labels: ['FC', 'CD', 'Unif', 'Gauss', 'Laplace', 'SVD'],
-                        xlim: (0, 100),
-                        ylim: (0, 100)}
+carlini_imagenet = {ylabel: "Accuracy (%)",
+                    file_name: "distortionCarliniImageNet",
+                    title: "C&W L$_2$ ImageNet",
+                    # legend_pos: "lower left",
+                    legend_pos: "upper right",
+                    # bbox: (0.0, 0.0),
+                    column_nr: 12,
+                    legend_cols: 2,
+                    labels: ['FC', 'CD', 'Unif', 'Gauss', 'Laplace', 'SVD'],
+                    xlim: (0, 100),
+                    ylim: (0, 100)}
+
+pgd_cifar10 = {ylabel: "Accuracy (%)",
+               file_name: "distortionPGDCifar",
+               title: "PGD L$_{\infty}$ CIFAR-10",
+               # legend_pos: "lower left",
+               legend_pos: "upper right",
+               # bbox: (0.0, 0.0),
+               column_nr: 8,
+               legend_cols: 2,
+               labels: ['FC', 'CD', 'Unif', 'Gauss'],
+               xlim: (0, 12),
+               ylim: (0, 100)}
+
+pgd_imagenet = {ylabel: "Accuracy (%)",
+                file_name: "distortionPGDImageNet",
+                title: "PGD L$_{\infty}$ ImageNet",
+                # legend_pos: "lower left",
+                legend_pos: "upper right",
+                # bbox: (0.0, 0.0),
+                column_nr: 8,
+                legend_cols: 2,
+                labels: ['FC', 'CD', 'Unif', 'Gauss'],
+                xlim: (0, 100),
+                ylim: (0, 100)}
 
 colors = [get_color(color) for color in
           [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
 markers = ["+", "o", "v", "s", "D", "^", "+"]
 linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 
-datasets = [many_trials_cifar10, many_trials_imagenet]
+datasets = [carlini_cifar10, carlini_imagenet, pgd_cifar10, pgd_imagenet]
 
 # width = 12
 # height = 5
 # lw = 3
-
-width = 30
-height = 5
+fig_size = 10
+width = 10
+height = 10
 line_width = 4
 layout = "horizontal"  # "horizontal" or "vertical"
 
-fig = plt.figure(figsize=(width, len(datasets) * height))
+fig = plt.figure(figsize=(len(datasets) * width, height))
 
 for j, dataset in enumerate(datasets):
     if layout == "vertical":
@@ -121,7 +145,8 @@ for j, dataset in enumerate(datasets):
     i = -1
     for col in range(0, columns, 2):
         i += 1
-        plt.plot(cols[col], cols[col + 1], label=f"{dataset[labels][i]}", lw=line_width,
+        plt.plot(cols[col], cols[col + 1], label=f"{dataset[labels][i]}",
+                 lw=line_width,
                  color=colors[i], linestyle=linestyles[i])
 
     plt.grid()
@@ -132,7 +157,8 @@ for j, dataset in enumerate(datasets):
                )
     plt.xlabel('L2 distortion')
     plt.title(dataset[title], fontsize=title_size)
-    plt.ylabel(dataset[ylabel])
+    if j == 0:
+        plt.ylabel(dataset[ylabel])
     plt.ylim(dataset[ylim])
     plt.xlim(dataset[xlim])
 
@@ -142,7 +168,7 @@ for j, dataset in enumerate(datasets):
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "distortion2." + format
+destination = dir_path + "/" + "distortionCarliniPgd." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',

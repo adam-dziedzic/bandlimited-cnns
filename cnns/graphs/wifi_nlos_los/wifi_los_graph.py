@@ -48,9 +48,9 @@ lw = 4
 # plt.figure(figsize=(width, height))
 
 fig, ax = plt.subplots(figsize=(fig_width, fig_height))
-rects1 = ax.bar(x - width, v6F, width, label='6F', color=get_color(MY_BLUE))
-rects2 = ax.bar(x, v10F, width, label='10F', color=get_color(MY_RED), hatch='/')
-rects3 = ax.bar(x + width, v15F, width, label='15F',
+rects1 = ax.bar(x - width, v6F, width, label='6 ft', color=get_color(MY_BLUE))
+rects2 = ax.bar(x, v10F, width, label='10 ft', color=get_color(MY_RED), hatch='/')
+rects3 = ax.bar(x + width, v15F, width, label='15 ft',
                 color=get_color(MY_GREEN), hatch='*')
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
