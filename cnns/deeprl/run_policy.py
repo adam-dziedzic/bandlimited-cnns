@@ -30,9 +30,10 @@ if __name__ == '__main__':
     # args.rollouts = 100
     # run_model(args=args, policy_fn=policy_fn)
 
-    for rollouts in [10000]:
+    for rollouts in [1500, 2500, 3000, 3500, 4000, 4500, 5000]:
         args.rollouts = rollouts
-        for env_name in ['Ant-v2', 'HalfCheetah-v2', 'Hopper-v2', 'Humanoid-v2', 'Reacher-v2']:
+        # for env_name in ['Ant-v2', 'HalfCheetah-v2', 'Hopper-v2', 'Humanoid-v2', 'Reacher-v2']:
+        for env_name in ['Ant-v2', 'HalfCheetah-v2', 'Hopper-v2', 'Reacher-v2']:
             args.env_name = env_name
             if args.policy_type == PolicyType.EXPERT:
                 args.expert_policy_file = "experts/" + args.env_name + ".pkl"
