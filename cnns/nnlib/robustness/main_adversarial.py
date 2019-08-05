@@ -65,7 +65,7 @@ results_folder = "results/"
 delimiter = ";"
 
 font = {'family': 'normal',
-        'size': 20}
+        'size': 18}
 
 matplotlib.rc('font', **font)
 
@@ -319,7 +319,7 @@ def classify_image(image, original_image, args, title="",
         else:
             args.plot_index += 1
             plt.subplot(args.rows, args.cols, args.plot_index)
-            title_str = "Spatial domain"
+            # title_str = "Spatial domain"
             plt.title(title_str)
             plt.imshow(
                 np.moveaxis(image_show, 0, -1),
@@ -537,13 +537,14 @@ def run(args):
             col_diff2nd = 3
             cols += col_diff2nd
 
-        # args.rows = rows
-        # args.cols = cols
-        args.rows = 1
-        args.cols = 2
-        # plt.figure(figsize=(cols * 10, rows * 10))
+        args.rows = rows
+        args.cols = cols
+
+        # args.rows = 1
+        # args.cols = 2
+        plt.figure(figsize=(cols * 10, rows * 12))
         # This returns the fig object.
-        plt.figure()
+        # plt.figure()
 
         # index for each subplot
         args.plot_index = 0
@@ -1134,7 +1135,8 @@ if __name__ == "__main__":
     # args.index = 13  # index of the image (out of 20) to be used
     # args.compress_rate = 0
     # args.interpolate = "exp"
-    index_range = range(args.start_epoch, args.epochs, args.step_size)
+    # index_range = range(args.start_epoch, args.epochs, args.step_size)
+    index_range = range(11, 12)
     if args.is_debug:
         args.use_foolbox_data = True
         # args.recover_type = "gauss"

@@ -29,10 +29,10 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 
 # 1D
 # conv_type = ConvType.FFT1D
-conv_type = ConvType.STANDARD
+# conv_type = ConvType.STANDARD
 
 # 2D
-# conv_type = ConvType.STANDARD2D
+conv_type = ConvType.STANDARD2D
 # conv_type = ConvType.FFT2D
 compress_rate = 0.0
 
@@ -83,9 +83,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     in_channels = 1
 else:
     # dataset = "mnist"
-    dataset = "cifar10"
+    # dataset = "cifar10"
     # dataset = "cifar100"
-    # dataset = "imagenet"
+    dataset = "imagenet"
     # dataset = "svhn"
 
     batch_size = 32
@@ -102,9 +102,9 @@ else:
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
     precision_type = PrecisionType.FP32
-    # conv_exec_type = ConvExecType.CUDA
-    conv_exec_type = ConvExecType.SGEMM
-    visualize = True  # test model for different compress rates
+    conv_exec_type = ConvExecType.CUDA
+    # conv_exec_type = ConvExecType.SGEMM
+    visualize = False  # test model for different compress rates
     next_power2 = False
     schedule_patience = 10
     schedule_factor = 0.1
@@ -171,7 +171,7 @@ class Arguments(object):
         return self.__counter__
 
     def __init__(self,
-                 is_debug=False,
+                 is_debug=True,
                  # network_type=NetworkType.ResNet18,
                  # network_type=NetworkType.DenseNetCifar,
                  network_type=network_type,
@@ -292,7 +292,7 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=10,  # 0 means run on full data
+                 sample_count_limit=1,  # 0 means run on full data
                  # sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
@@ -354,9 +354,9 @@ class Arguments(object):
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
                  compress_fft_layer=0,
-                 # attack_name="CarliniWagnerL2AttackRoundFFT",
+                 attack_name="CarliniWagnerL2AttackRoundFFT",
                  # attack_name="CarliniWagnerL2Attack",
-                 attack_name=None,
+                 # attack_name=None,
                  # attack_name="FGSM",
                  interpolate="const",
                  # recover_type="rounding",
@@ -365,25 +365,25 @@ class Arguments(object):
                  # recover_type="laplace",
                  # recover_type="debug",
                  # recover_type="gauss",
-                 recover_type="roundfft",
+                 recover_type="noise",
                  noise_epsilon=0.0,
-                 noise_epsilons=[0.0],
+                 noise_epsilons=[0.03],
                  step_size=1,
-                 noise_iterations=0,
-                 many_noise_iterations=[0],
-                 recover_iterations=0,
-                 many_recover_iterations=[1],
-                 attack_max_iterations=100,
-                 many_attack_iterations=[100],
+                 noise_iterations=256,
+                 many_noise_iterations=[256],
+                 recover_iterations=10,
+                 many_recover_iterations=[10],
+                 attack_max_iterations=1000,
+                 many_attack_iterations=[1000],
                  laplace_epsilon=0.0,
                  laplace_epsilons=[0.0],
                  is_DC_shift=False,
-                 use_foolbox_data=False,
+                 use_foolbox_data=True,
                  svd_compress=0.0,
                  many_svd_compress=[0.0],
                  adv_type=AdversarialType.BEFORE,
-                 prediction_type=PredictionType.REGRESSION,
-                 # prediction_type=PredictionType.CLASSIFICATION,
+                 # prediction_type=PredictionType.REGRESSION,
+                 prediction_type=PredictionType.CLASSIFICATION,
                  # 'regression' or 'classification'
                  ):
         """

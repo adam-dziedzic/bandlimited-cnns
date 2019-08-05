@@ -319,9 +319,9 @@ class CarliniWagnerL2AttackRoundFFT(CarliniWagnerL2Attack):
 
         def to_attack_space(x):
             # map from [min_, max_] to [-1, +1]
-            a = (min_ + max_) / 2
-            b = (max_ - min_) / 2
-            x = (x - a) / b
+            avg = (min_ + max_) / 2
+            dist = (max_ - min_) / 2
+            x = (x - avg) / dist
 
             # from [-1, +1] to approx. (-1, +1)
             x = x * 0.999999

@@ -100,6 +100,18 @@ pgd_cifar10 = {ylabel: "Accuracy (%)",
                xlim: (0, 12),
                ylim: (0, 100)}
 
+random_pgd_cifar10 = {ylabel: "Accuracy (%)",
+               file_name: "distortionRandomPGDCifar",
+               title: "PGD (random start) L$_{\infty}$ CIFAR-10",
+               # legend_pos: "lower left",
+               legend_pos: "upper right",
+               # bbox: (0.0, 0.0),
+               column_nr: 12,
+               legend_cols: 2,
+               labels: ['FC', 'CD', 'Unif', 'Gauss', 'Laplace', 'SVD'],
+               xlim: (0, 12),
+               ylim: (0, 100)}
+
 pgd_imagenet = {ylabel: "Accuracy (%)",
                 file_name: "distortionPGDImageNet",
                 title: "PGD L$_{\infty}$ ImageNet",
@@ -113,12 +125,12 @@ pgd_imagenet = {ylabel: "Accuracy (%)",
                 ylim: (0, 100)}
 
 fgsm_imagenet = {ylabel: "Accuracy (%)",
-                 file_name: "distortionFGSMImageNet",
+                 file_name: "distortionFGSMImageNet2",
                  title: "FGSM L$_{\infty}$ ImageNet",
                  # legend_pos: "lower left",
                  legend_pos: "upper right",
                  # bbox: (0.0, 0.0),
-                 column_nr: 8,
+                 column_nr: 12,
                  legend_cols: 2,
                  labels: ['FC', 'CD', 'Unif', 'Gauss', 'Laplace', 'SVD'],
                  xlim: (0, 100),
@@ -129,7 +141,11 @@ colors = [get_color(color) for color in
 markers = ["+", "o", "v", "s", "D", "^", "+"]
 linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 
-datasets = [carlini_cifar10, carlini_imagenet, pgd_cifar10, pgd_imagenet,
+datasets = [carlini_cifar10,
+            carlini_imagenet,
+            # pgd_cifar10,
+            random_pgd_cifar10,
+            pgd_imagenet,
             fgsm_imagenet]
 
 # width = 12
@@ -155,9 +171,10 @@ for j, dataset in enumerate(datasets):
     print("col 0: ", cols[0])
     print("col 1: ", cols[1])
 
-    i = -1
     for col in range(0, columns, 2):
-        i += 1
+        if col == 8:  # skip Laplace
+            continue
+        i = col // 2
         plt.plot(cols[col], cols[col + 1], label=f"{dataset[labels][i]}",
                  lw=line_width,
                  color=colors[i], linestyle=linestyles[i])
@@ -181,7 +198,7 @@ for j, dataset in enumerate(datasets):
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "distortionCarliniPgdFgsm." + format
+destination = dir_path + "/" + "distortionCarliniPgdFgsm2." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
