@@ -73,8 +73,8 @@ class FFTBandFunctionComplexMask2D(torch.autograd.Function):
             if args.is_DC_shift:
                 ctx.xfft = shift_DC(xfft, onesided=onesided)
 
-        xfft = shift_DC(xfft, onesided=onesided, shift_to="center")
-        xfft = shift_DC(xfft, onesided=onesided, shift_to="corner")
+        # xfft = shift_DC(xfft, onesided=onesided, shift_to="center")
+        # xfft = shift_DC(xfft, onesided=onesided, shift_to="corner")
         out = torch.irfft(input=xfft,
                           signal_ndim=FFTBandFunctionComplexMask2D.signal_ndim,
                           signal_sizes=(H_fft, W_fft),

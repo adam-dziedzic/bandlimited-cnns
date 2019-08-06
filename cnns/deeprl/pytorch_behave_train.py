@@ -5,29 +5,33 @@ from cnns.nnlib.pytorch_experiments.main import get_loss_function
 from cnns.nnlib.utils.exec_args import get_args
 from cnns.nnlib.datasets.deeprl.rollouts import get_rollouts_dataset
 from cnns.deeprl.pytorch_model import load_model
-from cnns.deeprl.models import run_model
-from cnns.deeprl.pytorch_model import pytorch_policy_fn
-from cnns.deeprl.load_policy import load_policy
-from torch.utils.data import DataLoader
-from cnns.nnlib.datasets.deeprl.rollouts import set_kwargs
 import time
 import numpy as np
 import torch
 import os
 from cnns.nnlib.utils.general_utils import get_log_time
 
+name = 'behave'
 
-def save_model(model, returns, train_loss, test_loss, env_name):
-    mean_return = np.mean(returns)
-    models_dir = 'dagger_models'
+
+def save_model(model, train_loss, test_loss, args, epoch, returns=None):
     file_parts = [get_log_time(),
-                  'env_name', env_name,
-                  'return', mean_return,
+                  'env_name', args.env_name,
+                  'rollouts', args.rollouts,
+                  'epoch', epoch,
                   'train_loss', train_loss,
                   'test_loss', test_loss,
-                  '.model']
+                  ]
+    if returns is not None:
+        mean_return = np.mean(returns)
+        std_return = np.std(returns)
+        file_parts.append('mean_return')
+        file_parts.append(mean_return)
+        file_parts.append('std_return')
+        file_parts.append(std_return)
+    models_dir = name + '_models'
     file_name = '_'.join([str(x) for x in file_parts])
-    model_path = os.path.join(models_dir, file_name)
+    model_path = os.path.join(models_dir, file_name + '.model')
     torch.save(model.state_dict(), model_path)
 
 
@@ -40,21 +44,17 @@ def run(args):
     loss_function = get_loss_function(args)
 
     with open(args.log_file, 'a') as file:
-        header = ['dagger_iter', 'epoch', 'train_loss', 'test_loss',
+        header = ['epoch', 'train_loss', 'test_loss',
                   'train_time', 'test_time']
         header_str = args.delimiter.join(header)
+        file.write(args.get_str() + '\n')
+        print(args.get_str())
         file.write(header_str + '\n')
         print(header_str)
 
-    import gym
-    env = gym.make(args.env_name)
+        best_train_loss = float('inf')
 
-    for dagger_iter in range(args.dagger_iterations):
-
-        train_loss = float('Inf')
-        test_loss = float('Inf')
-
-        # 1. train the policy model on the initial data.
+        # Train the policy model on the initial data using behavioral cloning.
         for epoch in range(args.epochs):
             start_train = time.time()
             train_loss, _ = train(model=model,
@@ -76,41 +76,19 @@ def run(args):
             test_time = time.time() - start_test
 
             with open(args.log_file, mode='a') as file:
-                data = [dagger_iter, epoch, train_loss, test_loss, train_time,
+                data = [epoch, train_loss, test_loss, train_time,
                         test_time]
                 data_str = args.delimiter.join([str(x) for x in data])
                 file.write(data_str + '\n')
                 print(data_str)
 
-        # 2. Run the learned model to get new observations.
-        # 3. At the same time, run the expert for a given new observation to record
-        # its actions, but use the action from the learned model to move to the
-        # next state / observation.
-        learn_policy_fn = pytorch_policy_fn(args=args, model=model)
-        expert_policy_fn = load_policy(filename=args.expert_policy_file)
-        returns, observations, _, expert_actions = run_model(
-            args=args, policy_fn=learn_policy_fn,
-            expert_policy_fn=expert_policy_fn,
-            env=env)
-
-        save_model(model=model, returns=returns, train_loss=train_loss,
-                   test_loss=test_loss, env_name=args.env_name)
-
-        # 4. Aggregate the new data.
-        train_dataset.add_data(observations=observations,
-                               actions=expert_actions)
-
-        dagger_rollouts = dagger_iter * args.rollouts
-        output_name = args.env_name + '-' + str(dagger_rollouts) + '.pkl'
-        output_file = os.path.join(args.dagger_data_dir, output_name)
-        train_dataset.save_data(output_file=output_file,
-                                pickle_protocol=args.pickle_protocol)
-
-        kwargs = set_kwargs(args=args)
-        train_loader = DataLoader(dataset=train_dataset,
-                                  batch_size=args.min_batch_size,
-                                  shuffle=True,
-                                  **kwargs)
+            if train_loss < best_train_loss:
+                best_train_loss = train_loss
+                save_model(model=model,
+                           train_loss=train_loss,
+                           test_loss=test_loss,
+                           epoch=epoch,
+                           args=args)
 
 
 if __name__ == "__main__":

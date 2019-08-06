@@ -127,6 +127,9 @@ def run_model(args, policy_fn, expert_policy_fn=None, env=None):
             output_file = os.path.join(args.expert_data_dir, output_name)
             # rint('output file: ', output_file)
             with open(output_file, 'wb') as file:
-                pickle.dump(expert_data, file, pickle.HIGHEST_PROTOCOL)
+                # protocol = pickle.DEFAULT_PROTOCOL
+                # protocol = pickle.HIGHEST_PROTOCOL
+                protocol = 2
+                pickle.dump(expert_data, file, protocol)
 
     return returns, observations, actions, expert_actions

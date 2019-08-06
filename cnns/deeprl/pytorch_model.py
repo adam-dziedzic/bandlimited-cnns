@@ -29,6 +29,6 @@ def pytorch_policy_fn(args, model=None):
     def infer(ndarray):
         input_tensor = torch.from_numpy(ndarray).to(args.dtype).to(args.device)
         output_tensor = model(input_tensor)
-        return output_tensor.to('cpu').detach().numpy()
+        return output_tensor.cpu().detach().numpy()
 
     return infer

@@ -29,10 +29,10 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 
 # 1D
 # conv_type = ConvType.FFT1D
-# conv_type = ConvType.STANDARD
+conv_type = ConvType.STANDARD
 
 # 2D
-conv_type = ConvType.STANDARD2D
+# conv_type = ConvType.STANDARD2D
 # conv_type = ConvType.FFT2D
 compress_rate = 0.0
 
@@ -71,7 +71,7 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     next_power2 = True
     schedule_patience = 50
     schedule_factor = 0.5
-    epochs = 2
+    epochs = 100
     optimizer_type = OptimizerType.ADAM
     momentum = 0.9
     # loss_type = LossType.CROSS_ENTROPY
@@ -187,7 +187,7 @@ class Arguments(object):
                  # precision_type=PrecisionType.AMP,  # use AMP for fp16 - reduced precision training
                  precision_type=PrecisionType.FP32,
                  # precision_type=PrecisionType.FP16,
-                 use_cuda=False,
+                 use_cuda=True,
                  compress_type=CompressType.STANDARD,
                  compress_rate=compress_rate,
                  compress_rates=[compress_rate],
@@ -292,7 +292,7 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=1,  # 0 means run on full data
+                 sample_count_limit=0,  # 0 means run on full data
                  # sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
@@ -382,8 +382,8 @@ class Arguments(object):
                  svd_compress=0.0,
                  many_svd_compress=[0.0],
                  adv_type=AdversarialType.BEFORE,
-                 # prediction_type=PredictionType.REGRESSION,
-                 prediction_type=PredictionType.CLASSIFICATION,
+                 prediction_type=PredictionType.REGRESSION,
+                 # prediction_type=PredictionType.CLASSIFICATION,
                  # 'regression' or 'classification'
                  ):
         """
@@ -524,8 +524,8 @@ class Arguments(object):
         self.prediction_type = prediction_type
 
         # deeprl
-        self.env_name = "Reacher-v2"
-        # self.env_name = "Ant-v2"
+        # self.env_name = "Reacher-v2"
+        self.env_name = "Ant-v2"
         # self.env_name = "Hopper-v2"
         self.expert_data_dir = 'expert_data/'
         self.dagger_data_dir = 'dagger_data/'
@@ -534,13 +534,13 @@ class Arguments(object):
         self.hidden_units = 64
         # train_steps = 1000000
         self.train_steps = 0
-        self.rollouts = 10000
+        self.rollouts = 1500
         self.verbose = False
         self.max_timesteps = None
         self.render = False
-        # self.policy_type = PolicyType.PYTORCH_BEHAVE
+        self.policy_type = PolicyType.PYTORCH_BEHAVE
         # self.policy_type = PolicyType.PYTORCH_DAGGER
-        self.policy_type = PolicyType.EXPERT
+        # self.policy_type = PolicyType.EXPERT
         # self.policy_type = PolicyType.TENSORFLOW_BEHAVE
         self.learn_policy_file = self.get_model_file()
         # self.learn_policy_file = 'behave_models/saved-model-reacher-v2-10000-rolls-loss-1.99.model'
@@ -562,12 +562,14 @@ class Arguments(object):
         self.expert_policy_file = "experts/" + self.env_name + ".pkl"
         # self.rollout_file = '../nnlib/datasets/deeprl/data/' + self.env_name + '-1000.pkl'
         # self.rollout_file = '../../deeprl/expert_data/' + self.env_name + '-1000.pkl'
-        self.rollout_file = 'expert_data/' + self.env_name + '-1000.pkl'
+        self.rollout_file = 'expert_data/' + self.env_name + '-1500.pkl'
         # self.rollout_file = 'dagger_data/' + self.env_name + '-600.pkl'
         self.dagger_iterations = 100
+        self.behave_iterations = 100
 
         self.log_file = 'logs/' + get_log_time() + '-log' + '.txt'
         self.delimiter = ";"
+        self.pickle_protocol=2
 
         self.set_dtype()
         self.set_device()

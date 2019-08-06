@@ -29,11 +29,11 @@ class RolloutsDataset(Dataset):
         self.observations = torch.cat((self.observations, observations), dim=0)
         self.actions = torch.cat((self.actions, actions), dim=0)
 
-    def save_data(self, output_file):
+    def save_data(self, output_file, pickle_protocol=2):
         expert_data = {'observations': np.array(self.observations),
                        'actions': np.array(self.actions)}
         with open(output_file, 'wb') as file:
-            pickle.dump(expert_data, file, pickle.HIGHEST_PROTOCOL)
+            pickle.dump(expert_data, file, pickle_protocol)
 
     def __len__(self):
         return len(self.observations)
@@ -52,6 +52,7 @@ class RolloutsDataset(Dataset):
 def read_data(filename):
     import os
     print('current dir: ', os.getcwd())
+    print('filename: ', filename)
     with open(file=filename, mode="rb") as f:
         data = pickle.load(file=f)
     observations = data['observations']

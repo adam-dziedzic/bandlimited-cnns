@@ -451,6 +451,16 @@ def get_args():
                         default=args.dagger_iterations,
                         help='Number of iterations for the dagger algorithm.'
                         )
+    parser.add_argument('--behave_iterations',
+                        type=int,
+                        default=args.behave_iterations,
+                        help='Number of iterations for the behaviorac clonning algorithm.'
+                        )
+    parser.add_argument('--pickle_protocol',
+                        type=int,
+                        default=args.pickle_protocol,
+                        help='The number of the pickle protocol (from 1 to 4)',
+                        )
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)
