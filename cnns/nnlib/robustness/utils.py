@@ -345,6 +345,16 @@ class Rounder():
         return self.sum_diff / self.count_diffs
 
 
+def show_image(image):
+    # assumes a numpy array with values from 0 to 1 and channel in the 1st dim.
+    show_image = np.rollaxis(image, 0, 3)
+    show_image *= 255
+    import matplotlib.pyplot as plt
+    plt.imshow(show_image.astype(np.uint8))
+    plt.show()
+    plt.close()
+
+
 if __name__ == "__main__":
     print("run utils examples")
     # min, max, counter = get_min_max_counter_cifar10()

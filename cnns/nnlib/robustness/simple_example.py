@@ -16,6 +16,9 @@ import torch
 import torchvision.models as models
 import numpy as np
 import foolbox
+#%pylab inline
+from cnns.nnlib.robustness.utils import show_image
+
 
 # Settings for the PyTorch model.
 imagenet_mean = [0.485, 0.456, 0.406]
@@ -35,12 +38,11 @@ if torch.cuda.is_available():
     device = torch.device("cuda")
 
 # Instantiate the model.
-resnet18 = models.resnet18(
-    pretrained=True)
-resnet18.to(device)
-resnet18.eval()
+resnet = models.resnet50(pretrained=True)
+resnet.to(device)
+resnet.eval()
 
-model = foolbox.models.PyTorchModel(resnet18, bounds=(0, 1), num_classes=1000,
+model = foolbox.models.PyTorchModel(resnet, bounds=(0, 1), num_classes=1000,
                                     preprocessing=(imagenet_mean_array,
                                                    imagenet_std_array))
 original_count = 0
@@ -53,9 +55,13 @@ images, labels = foolbox.utils.samples("imagenet", data_format="channels_first",
 images = images / 255  # map from [0,255] to [0,1] range
 
 for index, (label, image) in enumerate(zip(labels, images)):
+    if index < 11:
+        continue
     print("\nimage index: ", index)
 
     print("true prediction: ", label)
+
+    # show_image(image)
 
     # Original prediction of the model (without any adversarial changes or noise).
     original_predictions = model.predictions(image)
