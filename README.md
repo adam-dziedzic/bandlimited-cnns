@@ -3,7 +3,9 @@
 The convolutional layers are core building blocks of neural network architectures. In general, a convolutional filter applies to the entire frequency spectrum of an input signal. We explore artificially constraining the frequency spectra of these filters, called band-limiting, during Convolutional Neural Networks (CNN) training. The band-limiting applies to both the feedforward and backpropagation steps. Through an extensive evaluation over time-series and image datasets, we observe that CNNs are resilient to this compression scheme and results suggest that CNNs learn to leverage lower-frequency components. An extensive experimental evaluation across 1D and 2D CNN training tasks illustrates: (1) band-limited training can effectively control the resource usage (GPU and memory); (2) models trained with band-limited layers retain high prediction accuracy; and (3) requires no modification to existing training algorithms or neural network architectures to use unlike other compression schemes.
 
 Please, read more in our ICML 2019 paper: https://adam-dziedzic.github.io/static/assets/papers/band-limit.pdf
+
 Slides: https://adam-dziedzic.github.io/static/assets/slides/band-limit.pdf
+
 Talk: https://youtu.be/X7fHaXLCKeE?t=1044
 
 Citation:
