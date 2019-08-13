@@ -322,7 +322,7 @@ def resnet18(pretrained=False, **kwargs):
     """Constructs a ResNet-18 model.
 
     Arguments:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
+        pretrained (bool): If True, returns a model pre-trained on ImageNet.
     """
     model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
     if pretrained:

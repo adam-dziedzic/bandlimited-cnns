@@ -29,10 +29,10 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 
 # 1D
 # conv_type = ConvType.FFT1D
-conv_type = ConvType.STANDARD
+# conv_type = ConvType.STANDARD
 
 # 2D
-# conv_type = ConvType.STANDARD2D
+conv_type = ConvType.STANDARD2D
 # conv_type = ConvType.FFT2D
 compress_rate = 0.0
 
@@ -83,9 +83,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     in_channels = 1
 else:
     # dataset = "mnist"
-    # dataset = "cifar10"
+    dataset = "cifar10"
     # dataset = "cifar100"
-    dataset = "imagenet"
+    # dataset = "imagenet"
     # dataset = "svhn"
 
     batch_size = 32
@@ -93,10 +93,10 @@ else:
     # test_batch_size = 256
     test_batch_size = batch_size
     learning_rate = 0.01
-    weight_decay = 0.0005
+    weight_decay = 0.0001
     momentum = 0.9
     # epochs=50
-    epochs = 100
+    epochs = 350
     # epochs = 100
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
@@ -105,9 +105,9 @@ else:
     conv_exec_type = ConvExecType.CUDA
     # conv_exec_type = ConvExecType.SGEMM
     visualize = False  # test model for different compress rates
-    next_power2 = False
+    next_power2 = True
     schedule_patience = 10
-    schedule_factor = 0.1
+    schedule_factor = 0.5
     optimizer_type = OptimizerType.MOMENTUM
     loss_type = LossType.CROSS_ENTROPY
     loss_reduction = LossReduction.MEAN
@@ -126,7 +126,8 @@ else:
     elif dataset == "cifar10":
         network_type = NetworkType.ResNet18
         # model_path = "saved_model_2019-04-08-16-51-16-845688-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.22-channel-vals-0.model"
-        model_path = "saved_model_2019-05-16-11-37-45-415722-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.56-channel-vals-0.model"
+        # model_path = "saved_model_2019-05-16-11-37-45-415722-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.56-channel-vals-0.model"
+        model_path = "no_model"
     elif dataset == "cifar100":
         network_type = NetworkType.DenseNetCifar
         weight_decay = 0.0001
@@ -187,7 +188,7 @@ class Arguments(object):
                  # precision_type=PrecisionType.AMP,  # use AMP for fp16 - reduced precision training
                  precision_type=PrecisionType.FP32,
                  # precision_type=PrecisionType.FP16,
-                 use_cuda=False,
+                 use_cuda=True,
                  compress_type=CompressType.STANDARD,
                  compress_rate=compress_rate,
                  compress_rates=[compress_rate],
@@ -343,17 +344,17 @@ class Arguments(object):
                  ucr_path="../sathya/CaseC/",
                  # ucr_path="../../TimeSeriesDatasets",
                  start_epsilon=0,
-                 # attack_type=AttackType.BAND_ONLY,
+                 attack_type=AttackType.BAND_ONLY,
                  # attack_type=AttackType.NOISE_ONLY,
                  # attack_type=AttackType.ROUND_ONLY,
                  # attack_type=AttackType.FFT_RECOVERY,
-                 attack_type=AttackType.RECOVERY,
+                 # attack_type=AttackType.RECOVERY,
                  # attack_type=AttackType.ROUND_RECOVERY,
                  # attack_type=AttackType.LAPLACE_ONLY,
                  # attack_type=AttackType.GAUSS_ONLY,
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
-                 compress_fft_layer=0,
+                 compress_fft_layer=50,
                  attack_name="CarliniWagnerL2AttackRoundFFT",
                  # attack_name="CarliniWagnerL2Attack",
                  # attack_name=None,
@@ -367,23 +368,23 @@ class Arguments(object):
                  # recover_type="gauss",
                  recover_type="noise",
                  noise_epsilon=0.0,
-                 noise_epsilons=[0.03],
+                 noise_epsilons=[0.0],
                  step_size=1,
-                 noise_iterations=256,
-                 many_noise_iterations=[256],
-                 recover_iterations=10,
-                 many_recover_iterations=[10],
-                 attack_max_iterations=1000,
-                 many_attack_iterations=[1000],
+                 noise_iterations=0,
+                 many_noise_iterations=[0],
+                 recover_iterations=0,
+                 many_recover_iterations=[0],
+                 attack_max_iterations=0,
+                 many_attack_iterations=[0],
                  laplace_epsilon=0.0,
                  laplace_epsilons=[0.0],
                  is_DC_shift=False,
-                 use_foolbox_data=True,
+                 use_foolbox_data=False,
                  svd_compress=0.0,
                  many_svd_compress=[0.0],
                  adv_type=AdversarialType.BEFORE,
-                 prediction_type=PredictionType.REGRESSION,
-                 # prediction_type=PredictionType.CLASSIFICATION,
+                 # prediction_type=PredictionType.REGRESSION,
+                 prediction_type=PredictionType.CLASSIFICATION,
                  # 'regression' or 'classification'
                  ):
         """
@@ -538,14 +539,18 @@ class Arguments(object):
         self.verbose = False
         self.max_timesteps = None
         self.render = False
-        # self.policy_type = PolicyType.PYTORCH_BEHAVE
-        self.policy_type = PolicyType.PYTORCH_DAGGER
+        self.policy_type = PolicyType.PYTORCH_BEHAVE
+        # self.policy_type = PolicyType.PYTORCH_DAGGER
         # self.policy_type = PolicyType.EXPERT
         # self.policy_type = PolicyType.TENSORFLOW_BEHAVE
         # self.learn_policy_file = self.get_model_file()
         # self.learn_policy_file = 'dagger_models/2019-08-06-13-13-11-570969_env_name_Ant-v2_return_825.7569984208542_train_loss_3.320436139918985e-05_test_loss_3.113336426401105e-05_.model'
         # self.learn_policy_file = 'dagger_models/2019-08-06-13-46-25-789767_env_name_Ant-v2_return_572.6525353133684_train_loss_4.008859843047313e-05_test_loss_3.9420387411200985e-05_.model'
-        self.learn_policy_file = 'dagger_models/2019-08-06-16-20-07-791337_env_name_Ant-v2_return_338.0155704855727_train_loss_5.063490920386164e-05_test_loss_4.702933799257026e-05_.model'
+        # self.learn_policy_file = 'dagger_models/2019-08-06-16-20-07-791337_env_name_Ant-v2_return_338.0155704855727_train_loss_5.063490920386164e-05_test_loss_4.702933799257026e-05_.model'
+        # self.learn_policy_file = 'dagger_models/2019-08-06-19-22-45-869247_env_name_Ant-v2_return_1629.5950472163659_train_loss_6.733186626618934e-05_test_loss_4.8252221797972436e-05_.model'
+        # self.learn_policy_file = 'behave_models/Ant-v2-2000-epoch-94-return819.72-std-11.51.model'
+        # self.learn_policy_file = 'behave_models/Ant-v2-1500-epoch-94-return-805.67-std-19.45.model'
+        self.learn_policy_file = 'behave_models/Ant-v2-2000-epoch-27-return-809.76-std-15.29.model'
         # self.learn_policy_file = 'behave_models/2019-08-06-12-24-43-113461_env_name_Ant-v2_rollouts_2000_epoch_4_train_loss_3.362916449174726e-05_test_loss_3.3841744545288605e-05.model'
         # self.learn_policy_file = 'behave_models/saved-model-reacher-v2-10000-rolls-loss-1.99.model'
         # self.learn_policy_file = 'behave_models/reacher-v2-test-loss-3.05.model'
@@ -570,7 +575,8 @@ class Arguments(object):
         # self.rollout_file = 'expert_data/Ant-v2_rollouts_2000_mean-return_4770.21597610086_std-return_401.4036761529797_.pkl'
         # self.rollout_file = 'dagger_data/Ant-v2-0-2019-08-06-12-13-20.pkl'
         # self.rollout_file = 'dagger_data/Ant-v2-0-2019-08-06-15-10.pkl'
-        self.rollout_file = 'dagger_data/Ant-v2-20-2019-08-06-17-20.pkl'
+        # self.rollout_file = 'dagger_data/Ant-v2-20-2019-08-06-17-20.pkl'
+        self.rollout_file = 'dagger_data/Ant-v2-70.pkl'
         # self.rollout_file = 'dagger_data/' + self.env_name + '-600.pkl'
         self.dagger_iterations = 100
         self.behave_iterations = 100

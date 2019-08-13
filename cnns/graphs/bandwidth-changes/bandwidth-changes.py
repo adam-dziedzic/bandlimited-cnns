@@ -70,6 +70,7 @@ colors = [get_color(color) for color in
           ["", MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK]]
 markers = ["+", "o", "v", "s", "D", "^"]
 linestyles = ["", "-", "--", ":"]
+markers = ['+', 'o', 'v']
 
 datasets = [compression]
 
@@ -94,7 +95,8 @@ for j, dataset in enumerate(datasets):
     for i in range(columns):
         if i > 0:  # skip first column with the epoch number
             plt.plot(cols[0], cols[i], label=f"E={labels[i]}%", lw=lw,
-                     color=colors[i], linestyle=linestyles[i])
+                     color=colors[i], linestyle=linestyles[i],
+                     )
 
     plt.grid()
     plt.legend(loc=dataset[legend_pos], ncol=ncols[j], frameon=False,

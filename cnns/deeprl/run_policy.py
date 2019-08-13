@@ -4,7 +4,7 @@ from cnns.deeprl.pytorch_model import pytorch_policy_fn
 from cnns.deeprl import behavioral_cloning
 from cnns.deeprl.models import run_model
 from cnns.nnlib.utils.general_utils import PolicyType
-
+from cnns.nnlib.utils.general_utils import get_log_time
 
 if __name__ == '__main__':
     args = get_args()
@@ -30,13 +30,23 @@ if __name__ == '__main__':
     # args.rollouts = 100
     # run_model(args=args, policy_fn=policy_fn)
 
-    for rollouts in [1500, 2500, 3000, 3500, 4000, 4500, 5000]:
+    # for rollouts in [1500, 2500, 3000, 3500, 4000, 4500, 5000]:
+    for rollouts in [100]:
         args.rollouts = rollouts
         # for env_name in ['Ant-v2', 'HalfCheetah-v2', 'Hopper-v2', 'Humanoid-v2', 'Reacher-v2']:
-        for env_name in ['Ant-v2', 'HalfCheetah-v2', 'Hopper-v2', 'Reacher-v2']:
+        # for env_name in ['Ant-v2', 'HalfCheetah-v2', 'Hopper-v2', 'Reacher-v2']:
+        for env_name in ['Ant-v2']:
             args.env_name = env_name
             if args.policy_type == PolicyType.EXPERT:
                 args.expert_policy_file = "experts/" + args.env_name + ".pkl"
                 policy_fn = load_policy(args.expert_policy_file)
-            args.rollout_file = 'expert_data/' + args.env_name + '-' + str(rollouts) + '.pkl'
-            run_model(args=args, policy_fn=policy_fn)
+            for learn_policy_file in ['Ant-v2-10.model',
+                                      'Ant-v2-100.model',
+                                      'Ant-v2-1000-epoch-64.model',
+                                      'Ant-v2-1000-epoch-90.model',
+                                      'Ant-v2-1500-epoch-34.model']:
+                args.learn_policy_vile = 'behave_models/' + learn_policy_file
+                args.rollout_file = 'expert_data/' + args.learn_policy_file.replace(
+                    '/', '-') + '-' + str(rollouts) + '.pkl'
+                print(args.learn_policy_file)
+                run_model(args=args, policy_fn=policy_fn)

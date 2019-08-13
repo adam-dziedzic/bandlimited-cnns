@@ -101,11 +101,11 @@ def run_model(args, policy_fn, expert_policy_fn=None, env=None):
                 steps += 1
                 if args.render:
                     env.render()
-                if steps % 100 == 0: print("%i/%i" % (steps, max_steps))
+                # if steps % 100 == 0: print("%i/%i" % (steps, max_steps))
                 if steps >= max_steps:
                     break
 
-            print('Episode {} finished after {} timesteps'.format(i, steps + 1))
+            # print('Episode {} finished after {} timesteps'.format(i, steps + 1))
             returns.append(totalr)
 
         # print('returns; ', returns)
