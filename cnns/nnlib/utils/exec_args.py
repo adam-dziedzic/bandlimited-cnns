@@ -461,6 +461,13 @@ def get_args():
                         default=args.pickle_protocol,
                         help='The number of the pickle protocol (from 1 to 4)',
                         )
+    parser.add_argument("--attack_strengths", default=args.attack_strengths,
+                        nargs="+",
+                        type=float,
+                        help=f"how strong the attack should be: "
+                        f"{args.attack_strengths}")
+    parser.add_argument("--targeted_attack", action='store_true',
+                        help=f"Is it targeted attack? (by default: not)")
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)

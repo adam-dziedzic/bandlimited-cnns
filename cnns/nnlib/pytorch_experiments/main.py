@@ -222,7 +222,7 @@ def test(model, test_loader, loss_function, args, epoch=None):
     :param test_loader: the input data.
     :param dataset_type: test or train.
     :param dtype: the data type of the tensor.
-    :param epoch: current epoch of themodel training/testing.
+    :param epoch: current epoch of the model training/testing.
     :return: test loss and accuracy.
     """
     model.eval()

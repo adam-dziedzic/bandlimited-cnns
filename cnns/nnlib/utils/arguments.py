@@ -20,7 +20,6 @@ from cnns.nnlib.utils.general_utils import PolicyType
 
 from cnns.nnlib.utils.general_utils import get_log_time
 
-
 """
 cFFT cuda_multiply: total elapsed time (sec):  15.602577447891235
 
@@ -34,7 +33,7 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 # 2D
 conv_type = ConvType.STANDARD2D
 # conv_type = ConvType.FFT2D
-compress_rate = 0.0
+compress_rate = 40.0
 
 if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # dataset = "ucr"
@@ -83,9 +82,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     in_channels = 1
 else:
     # dataset = "mnist"
-    dataset = "cifar10"
+    # dataset = "cifar10"
     # dataset = "cifar100"
-    # dataset = "imagenet"
+    dataset = "imagenet"
     # dataset = "svhn"
 
     batch_size = 32
@@ -96,7 +95,7 @@ else:
     weight_decay = 0.0001
     momentum = 0.9
     # epochs=50
-    epochs = 350
+    epochs = 100
     # epochs = 100
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
@@ -126,8 +125,10 @@ else:
     elif dataset == "cifar10":
         network_type = NetworkType.ResNet18
         # model_path = "saved_model_2019-04-08-16-51-16-845688-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.22-channel-vals-0.model"
-        # model_path = "saved_model_2019-05-16-11-37-45-415722-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.56-channel-vals-0.model"
-        model_path = "no_model"
+        model_path = "saved_model_2019-05-16-11-37-45-415722-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.56-channel-vals-0.model"
+        # model_path = "no_model"
+        # model_path = 'saved-model-2019-08-13-23-06-55-540595-dataset-cifar10-preserve-energy-100-compress-rate-0.0-test-loss-0.01350257922783494-test-accuracy-91.83-channel-vals-0-fft-channel-50-percent.model'
+        # model_path = 'saved_model_2019-08-13-21-50-15-942405-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-loss-0.023045711521059276-test-accuracy-86.73-channel-vals-0-fft-layer-85-percent.model'
     elif dataset == "cifar100":
         network_type = NetworkType.DenseNetCifar
         weight_decay = 0.0001
@@ -344,21 +345,27 @@ class Arguments(object):
                  ucr_path="../sathya/CaseC/",
                  # ucr_path="../../TimeSeriesDatasets",
                  start_epsilon=0,
-                 attack_type=AttackType.BAND_ONLY,
+                 # attack_type=AttackType.BAND_ONLY,
                  # attack_type=AttackType.NOISE_ONLY,
                  # attack_type=AttackType.ROUND_ONLY,
                  # attack_type=AttackType.FFT_RECOVERY,
-                 # attack_type=AttackType.RECOVERY,
+                 attack_type=AttackType.RECOVERY,
                  # attack_type=AttackType.ROUND_RECOVERY,
                  # attack_type=AttackType.LAPLACE_ONLY,
                  # attack_type=AttackType.GAUSS_ONLY,
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
-                 compress_fft_layer=50,
-                 attack_name="CarliniWagnerL2AttackRoundFFT",
+                 compress_fft_layer=0,
+                 # attack_name="CarliniWagnerL2AttackRoundFFT",
                  # attack_name="CarliniWagnerL2Attack",
                  # attack_name=None,
                  # attack_name="FGSM",
+                 # attack_name="GaussAttack",
+                 # attack_name="FFTHighFrequencyAttack",
+                 # attack_name="FFTHighFrequencyAttackAdversary",
+                 # attack_name="FFTLimitFrequencyAttack",
+                 # attack_name="FFTLimitFrequencyAttackAdversary",
+                 attack_name="FFTReplaceFrequencyAttack",
                  interpolate="const",
                  # recover_type="rounding",
                  # recover_type="fft",
@@ -366,7 +373,7 @@ class Arguments(object):
                  # recover_type="laplace",
                  # recover_type="debug",
                  # recover_type="gauss",
-                 recover_type="noise",
+                 recover_type="empty",
                  noise_epsilon=0.0,
                  noise_epsilons=[0.0],
                  step_size=1,
@@ -375,7 +382,7 @@ class Arguments(object):
                  recover_iterations=0,
                  many_recover_iterations=[0],
                  attack_max_iterations=0,
-                 many_attack_iterations=[0],
+                 many_attack_iterations=[1000],
                  laplace_epsilon=0.0,
                  laplace_epsilons=[0.0],
                  is_DC_shift=False,
@@ -386,6 +393,10 @@ class Arguments(object):
                  # prediction_type=PredictionType.REGRESSION,
                  prediction_type=PredictionType.CLASSIFICATION,
                  # 'regression' or 'classification'
+                 # attack_strengths=[0.01, 0.03, 0.04, 0.05, 0.07, 0.1, 0.5, 1.0],
+                 # attack_strengths=[0.08, 0.09, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9],
+                 # attack_strengths=(0.01, 0.03, 0.04, 0.05, 0.07, 0.08, 0.09, 0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9, 1.0,),
+                 attack_strengths=(0.0,),
                  ):
         """
         The default parameters for the execution of the program.
@@ -523,8 +534,10 @@ class Arguments(object):
         self.many_svd_compress = many_svd_compress
         self.adv_type = adv_type
         self.prediction_type = prediction_type
+        self.attack_strengths = attack_strengths
+        self.targeted_attack = False
 
-        # deeprl
+       # deeprl
         # self.env_name = "Reacher-v2"
         self.env_name = "Ant-v2"
         # self.env_name = "Hopper-v2"
@@ -583,7 +596,7 @@ class Arguments(object):
 
         self.log_file = 'logs/' + get_log_time() + '-log' + '.txt'
         self.delimiter = ";"
-        self.pickle_protocol=2
+        self.pickle_protocol = 2
 
         self.set_dtype()
         self.set_device()

@@ -25,23 +25,23 @@ import foolbox
 from cnns.nnlib.robustness.utils import get_foolbox_model
 # %pylab inline
 from cnns.nnlib.robustness.utils import show_image
-from cnns.nnlib.robustness.channel_histograms.histogram_matplotlib import \
+from cnns.nnlib.robustness.channels.histogram_matplotlib import \
     plot_hist
-from cnns.nnlib.robustness.channel_histograms.channels_definition import \
+from cnns.nnlib.robustness.channels.channels_definition import \
     uniform_noise_numpy as unif
-from cnns.nnlib.robustness.channel_histograms.channels_definition import \
+from cnns.nnlib.robustness.channels.channels_definition import \
     gauss_noise_numpy as gauss
-from cnns.nnlib.robustness.channel_histograms.channels_definition import \
+from cnns.nnlib.robustness.channels.channels_definition import \
     laplace_noise_numpy as laplace
-from cnns.nnlib.robustness.channel_histograms.channels_definition import \
+from cnns.nnlib.robustness.channels.channels_definition import \
     logistic_noise_numpy as logistic
-from cnns.nnlib.robustness.channel_histograms.channels_definition import \
+from cnns.nnlib.robustness.channels.channels_definition import \
     round_numpy as round
-from cnns.nnlib.robustness.channel_histograms.channels_definition import \
+from cnns.nnlib.robustness.channels.channels_definition import \
     fft_numpy as fft
-from cnns.nnlib.robustness.channel_histograms.channels_definition import \
+from cnns.nnlib.robustness.channels.channels_definition import \
     compress_svd_numpy as svd
-from cnns.nnlib.robustness.channel_histograms.channels_definition import \
+from cnns.nnlib.robustness.channels.channels_definition import \
     subtract_rgb_numpy as sub
 
 # plt.interactive(True)
