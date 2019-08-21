@@ -70,6 +70,8 @@ from cnns.nnlib.attacks.fft_attack import FFTHighFrequencyAttack
 from cnns.nnlib.attacks.fft_attack import FFTLimitFrequencyAttack
 from cnns.nnlib.attacks.fft_attack import FFTLimitFrequencyAttackAdversary
 from cnns.nnlib.attacks.fft_attack import FFTReplaceFrequencyAttack
+from cnns.nnlib.attacks.fft_attack import FFTSingleFrequencyAttack
+from cnns.nnlib.attacks.fft_attack import FFTMultipleFrequencyAttack
 
 results_folder = "results/"
 delimiter = ";"
@@ -282,7 +284,8 @@ def get_L2_dist(input1, input2):
     return np.sqrt(np.sum(diff * diff))
 
 
-def replace_frequency(original_image, images, labels, attack_fn, args):
+def replace_frequency(original_image, images, labels, attack_fn, args,
+                      high=True):
     true_label = args.True_class_id
     net = args.fmodel.predictions
     last_adv_image = None
@@ -291,9 +294,18 @@ def replace_frequency(original_image, images, labels, attack_fn, args):
     # original image to make it adversarial such that the adversarial image has
     # the smallest L2 distance to the original image.
     adv_min_L2_dist = float('inf')
-    size = len(images)
-    for idx in range(size):
-        target_label_id = labels[idx]
+    # size = len(images)
+    # indexer = range(10000, 40000, 1)
+    indexer = range(200, 250, 1)
+    for idx in indexer:
+        begin = time.time()
+        if labels is None:
+            image, target_label_id = images.__getitem__(idx)
+            image = image.numpy()
+        else:
+            # For the dataset from the foolbox library.
+            image = images[idx]
+            target_label_id = labels[idx]
         # If targeted attack, select only images with target label.
         if args.targeted_attack and target_label_id != args.target_lagel_id:
             continue
@@ -302,24 +314,23 @@ def replace_frequency(original_image, images, labels, attack_fn, args):
         if (not args.targeted_attack) and target_label_id == true_label:
             continue
         # Accept only the target image that is classified correctly.
-        image = images[idx]
         label_id = np.argmax(net(image))
         if target_label_id == label_id:
             # check:
             # cnns.nnlib.robustness.attacks.fft_attack.FFTReplaceFrequencyAttack
             adv_image = attack_fn(
                 original_image, input2=image, label=true_label,
-                target_label=target_label_id, net=net)
+                target_label=target_label_id, net=net, high=high)
             if adv_image is not None:
                 l2_dist = get_L2_dist(input1=original_image, input2=image)
                 if l2_dist < adv_min_L2_dist:
                     adv_min_L2_dist = l2_dist
                     original_image2 = image
                     last_adv_image = adv_image
-
-    original_image2 = original_image2.astype(np.float32)
+        print('index: ', idx, ' elapsed time: ', time.time() - begin)
+    # original_image2 = original_image2.astype(np.float32)
     # Normalize the data for the pytorch models.
-    original_image2 = args.normalizer.normalize(original_image2)
+    # original_image2 = args.normalizer.normalize(original_image2)
 
     return last_adv_image, original_image2
 
@@ -584,6 +595,11 @@ def run(args):
         attack = FFTLimitFrequencyAttackAdversary()
     elif args.attack_name == "FFTReplaceFrequencyAttack":
         attack = FFTReplaceFrequencyAttack()
+    elif args.attack_name == "FFTSingleFrequencyAttack":
+        attack = FFTSingleFrequencyAttack(fmodel)
+    elif args.attack_name == "FFTMultipleFrequencyAttack":
+        attack = FFTMultipleFrequencyAttack(
+            args=args, model=fmodel)
     elif args.attack_name is None or args.attack_name == 'None':
         print("No attack set!")
         attack = None
@@ -613,7 +629,7 @@ def run(args):
         if show_diff:
             col_diff = 2
             cols += col_diff
-        show_2nd = True  # show 2nd image
+        show_2nd = False  # show 2nd image
         if show_2nd:
             # Should we show the diffs?
             show_2nd_col_diff = False
@@ -652,13 +668,16 @@ def run(args):
 
     if args.use_foolbox_data:
         images, labels = foolbox.utils.samples(dataset=args.dataset, index=0,
-                                               # batchsize=20,
-                                               batchsize=3,
+                                               batchsize=20,
+                                               # batchsize=3,
                                                shape=(args.init_y, args.init_x),
                                                data_format='channels_first')
         print("max value in images pixels: ", np.max(images))
         images = images / 255
         print("max value in images after 255 division: ", np.max(images))
+    else:
+        images = train_dataset
+        labels = None
 
     # for attack_strength in args.attack_strengths:
     for attack in attacks:
@@ -676,6 +695,7 @@ def run(args):
             original_image, args.True_class_id = test_dataset.__getitem__(
                 args.image_index)
             original_image = original_image.numpy()
+        original_image2 = None
 
         if args.dataset == "mnist":
             args.True_class_id = args.True_class_id.item()
@@ -729,16 +749,20 @@ def run(args):
             print("full name of stored adversarial example: ", full_name)
             if os.path.exists(full_name + ".npy") and (
                     attack_name != "CarliniWagnerL2AttackRoundFFT") and (
-                    attack_name != "GaussAttack") and not (
-                    attack_name.startswith('FFT')):
+                    attack_name != "GaussAttack") and (
+                    attack_name != "CarliniWagnerL2Attack"):
+                    # and not (attack_name.startswith('FFT')):
                 adv_image = np.load(file=full_name + ".npy")
                 result.adv_timing = -1
             else:
                 start_adv = time.time()
                 if attack_name.startswith("Carlini"):
-                    adv_image = attack(original_image,
-                                       args.True_class_id,
-                                       max_iterations=args.attack_max_iterations)
+                    adv_image = attack(
+                        original_image, args.True_class_id,
+                        # max_iterations=args.attack_max_iterations,
+                        # max_iterations=10, binary_search_steps=1, initial_const=10000.0,
+                        max_iterations=1000, binary_search_steps=5, initial_const=0.01,
+                    )
                 elif attack_name == "GaussAttack":
                     adv_image = GaussAttack(original_image,
                                             bounds=(args.min, args.max),
@@ -766,14 +790,20 @@ def run(args):
                 elif attack_name == "FFTReplaceFrequencyAttack":
                     adv_image, original_image2 = replace_frequency(
                         original_image=original_image, images=images,
-                        labels=labels, attack_fn=attack, args=args)
+                        labels=labels, attack_fn=attack, args=args, high=False)
                 else:
                     adv_image = attack(input_or_adv=original_image,
                                        label=args.True_class_id)
                 result.adv_timing = time.time() - start_adv
                 created_new_adversarial = True
 
-            if show_2nd:
+            l2_dist_adv_original = args.meter.measure(original_image, adv_image)
+            print(
+                "l2 distance between adversarial image and the original image: ",
+                l2_dist_adv_original)
+
+
+            if show_2nd and original_image2 is not None:
                 result_original2 = classify_image(
                     image=original_image2,
                     original_image=original_image2,
@@ -852,6 +882,12 @@ def run(args):
                 epsilon=args.noise_sigma, image=image,
                 bounds=(args.min, args.max))
             gauss_image = image + noise
+
+            l2_dist_gauss_original = args.meter.measure(gauss_image, image)
+            print(
+                "l2 distance between gauss image and the original image: ",
+                l2_dist_gauss_original)
+
             # title = "level of gaussian-noise: " + str(args.noise_sigma)
             title = "gauss (" + str(args.noise_sigma) + ")"
             result_gauss = classify_image(
@@ -1002,12 +1038,11 @@ def run(args):
             result.adv_label = None
             adv_image = None
 
-        if adv_image is not None and (created_new_adversarial) and (
-                attack_name != "CarliniWagnerL2AttackRoundFFT") and (
-                attack_name != "GaussAttack") and (
-                attack_name.startswith('FFT')):
-            np.save(file=full_name + ".npy", arr=adv_image)
-
+        if adv_image is not None and (created_new_adversarial):
+            if (attack_name != "CarliniWagnerL2AttackRoundFFT") and (
+                attack_name != "GaussAttack"):
+                # not attack_name.startswith('FFT')):
+                np.save(file=full_name + ".npy", arr=adv_image)
         if show_diff:
             # omit the diff image in the spatial domain.
             args.plot_index += col_diff
@@ -1038,7 +1073,7 @@ def run(args):
                                           # title="original",
                                           is_log=is_log)
 
-                if show_2nd:
+                if show_2nd and original_image2 is not None:
                     image2_fft = print_fft(image=original_image2,
                                            channel=channel,
                                            args=args,
@@ -1255,33 +1290,27 @@ if __name__ == "__main__":
     # args.interpolate = "exp"
     # index_range = range(args.start_epoch, args.epochs, args.step_size)
     # index_range = range(11, 12)
-    index_range = range(2, 3)
+    index_range = range(249, 250)
+    # index_range = [10000]
+    # index_range = range(60, 100)
     if args.is_debug:
-        args.use_foolbox_data = True
-        # args.recover_type = "gauss"
-        # args.recover_type = "noise"
-        # args.recover_type = "fft"
-
-        if args.recover_type == "noise":
-            pass
-            # args.noise_iterations = 16
-        # index_range = range(1, 1000, 1)
-
+        args.use_foolbox_data = False
+    if args.use_foolbox_data:
+        pass
+    elif args.dataset == "imagenet":
+        train_loader, test_loader, train_dataset, test_dataset = load_imagenet(
+            args)
+        limit = 50000
+    elif args.dataset == "cifar10":
+        train_loader, test_loader, train_dataset, test_dataset = get_cifar(
+            args, args.dataset)
+        limit = 10000
+    elif args.dataset == "mnist":
+        train_loader, test_loader, train_dataset, test_dataset = get_mnist(
+            args)
+        limit = 10000
     else:
-        if args.dataset == "imagenet":
-            train_loader, test_loader, train_dataset, test_dataset = load_imagenet(
-                args)
-            limit = 50000
-        elif args.dataset == "cifar10":
-            train_loader, test_loader, train_dataset, test_dataset = get_cifar(
-                args, args.dataset)
-            limit = 10000
-        elif args.dataset == "mnist":
-            train_loader, test_loader, train_dataset, test_dataset = get_mnist(
-                args)
-            limit = 10000
-        else:
-            raise Exception(f"Unknown dataset: {args.dataset}")
+        raise Exception(f"Unknown dataset: {args.dataset}")
 
     # args.compress_fft_layer = 5
     # args.values_per_channel = 8
@@ -1321,8 +1350,8 @@ if __name__ == "__main__":
         # val_range = [0.001, 0.009, 0.03, 0.07, 0.1, 0.2, 0.3, 0.4, 0.5]
         val_range = args.noise_sigmas
         # val_range = [0.03]
-        if args.is_debug:
-            val_range = [0.009]
+        # if args.is_debug:
+        #     val_range = [0.009]
         # val_range = [x / 1000 for x in range(10)]
         # val_range += [x / 100 for x in range(1, 51)]
         # val_range += [x / 100 for x in range(1, 11)]

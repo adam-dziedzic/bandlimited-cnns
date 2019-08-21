@@ -11,6 +11,8 @@ from cnns.nnlib.datasets.transformations.flat_transformation import \
 from cnns.nnlib.datasets.transformations.gaussian_noise import \
     AddGaussianNoiseTransformation
 from cnns.nnlib.datasets.transformations.rounding import RoundingTransformation
+from cnns.nnlib.datasets.imagenet.imagenet_from_class_idx_to_label import \
+    imagenet_from_class_idx_to_label as map
 
 imagenet_mean = [0.485, 0.456, 0.406]
 imagenet_mean_mean = 0.449
@@ -124,7 +126,11 @@ if __name__ == "__main__":
     args.dataset = "imagenet"
     train_loader, test_loader, train_dataset, test_dataset = load_imagenet(args)
     counter = 0
+    for batch_idx, (data, target) in enumerate(test_loader):
+        for label in target:
+            print('idx, label: ', args.test_batch_size * batch_idx,
+                  map[label.item()])
     while True:
         test_dataset.__getitem__(counter)
-        counter +=1
+        counter += 1
         print("counter: ", counter)

@@ -18,7 +18,7 @@ import logging
 import math
 import torch_dct
 import sys
-
+from torch.nn.functional import pad as torch_pad
 
 if torch.cuda.is_available() and sys.platform != 'win32':
     # from complex_mul_cpp import complex_mul as complex_mul_cpp
@@ -998,6 +998,80 @@ def get_spectrum(xfft):
                         torch.pow(xfft.narrow(-1, 1, 1), 2))
     spectrum = torch.sqrt(squared).squeeze(dim=-1)
     return spectrum
+
+
+def get_xfft_hw(input, is_next_power2=False, signal_ndim=2, onesided=True):
+    """
+    Transform input to the frequency domain.
+
+    :param input: the input image
+    :param is_next_power2: should we use the nearest power of 2 sizes?
+    :return: the input in the FFT domain
+    """
+    N, C, H, W = input.size()
+
+    if H != W:
+        raise Exception("We support only squared input.")
+
+    if is_next_power2:
+        H_fft = next_power2(H)
+        W_fft = next_power2(W)
+        pad_H = H_fft - H
+        pad_W = W_fft - W
+        input = torch_pad(input, (0, pad_W, 0, pad_H), 'constant', 0)
+    else:
+        H_fft = H
+        W_fft = W
+
+    xfft = torch.rfft(input,
+                      signal_ndim=signal_ndim,
+                      onesided=onesided)
+    return xfft, H_fft, W_fft
+
+
+def get_ifft_hw(xfft, H_fft, W_fft, H, W, onesided=True, signal_ndim=2):
+    """
+    Inverse fft: from xfft in the frequency domain to its
+    representation in the spatial domain.
+
+    :param xfft: the input in the freuqency domain
+    :param H_fft: the higheht in the frequency domain
+    :param W_fft: the width in the frequency domain
+    :param H: the height of the original image
+    :param W: the width of the original image
+    :param onesided: optimized to the single side of FFT
+    (conjugate symmetry).
+    :return: the image in the spatial domain with H, W sizes
+    """
+    out = torch.irfft(input=xfft,
+                      signal_ndim=signal_ndim,
+                      signal_sizes=(H_fft, W_fft),
+                      onesided=onesided)
+    out = out[..., :H, :W]
+    return out
+
+
+def get_max_min_complex(xfft):
+    """
+    Get max complex number in terms of its absolute value.
+
+    :param xfft: the input in fft domain
+    :return: the real and imaginary part of the complex number
+    >>> a = torch.tensor([[[1.0,2], [10.0,4]], [[-1,0], [4,5]]])
+    >>> max_re, max_im, min_re, min_im = get_max_min_complex(xfft=a)
+    >>> # print(f'max_re = {max_re} and max_im = {max_im}')
+    >>> # print(f'min_re = {min_re} and min_im = {min_im}')
+    >>> assert max_re == 10 and max_im == 4 and min_re == -1 and min_im == 0
+    """
+    xfft_flat = xfft.view(-1, 2)
+    spectrum = get_spectrum(xfft_flat)
+
+    max_index = torch.argmax(spectrum)
+    max = xfft_flat[max_index]
+
+    min_index = torch.argmin(spectrum)
+    min = xfft_flat[min_index]
+    return max, min
 
 
 def get_full_energy_simple(x):

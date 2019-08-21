@@ -33,7 +33,7 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 # 2D
 conv_type = ConvType.STANDARD2D
 # conv_type = ConvType.FFT2D
-compress_rate = 40.0
+compress_rate = 0.0
 
 if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # dataset = "ucr"
@@ -333,7 +333,11 @@ class Arguments(object):
                  only_train=False,
                  test_compress_rates=False,
                  noise_sigma=0.0,
-                 noise_sigmas=[0.0],
+                 # noise_sigmas=[0.0],
+                 # noise_sigmas=[x/1000 for x in range(1, 10)] + [x/100 for x in range(1, 10)] + [x/10 for x in range(1, 11)],
+                 noise_sigmas=[0.007],
+                 # noise_sigmas=[0.05, 0.06, 0.07, 0.08, 0.09],
+                 # noise_sigmas=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
                  # noise_epsilons=[0.1, 0.07, 0.03, 0.009, 0.007, 0.04, 0.02, 0.3],
                  fft_type="real_fft",  # real_fft or complex_fft
                  imagenet_path="/home/" + str(USER) + "/imagenet",
@@ -357,7 +361,7 @@ class Arguments(object):
                  schedule_factor=schedule_factor,
                  compress_fft_layer=0,
                  # attack_name="CarliniWagnerL2AttackRoundFFT",
-                 # attack_name="CarliniWagnerL2Attack",
+                 attack_name="CarliniWagnerL2Attack",
                  # attack_name=None,
                  # attack_name="FGSM",
                  # attack_name="GaussAttack",
@@ -365,15 +369,17 @@ class Arguments(object):
                  # attack_name="FFTHighFrequencyAttackAdversary",
                  # attack_name="FFTLimitFrequencyAttack",
                  # attack_name="FFTLimitFrequencyAttackAdversary",
-                 attack_name="FFTReplaceFrequencyAttack",
+                 # attack_name="FFTReplaceFrequencyAttack",
+                 # attack_name="FFTSingleFrequencyAttack",
+                 # attack_name="FFTMultipleFrequencyAttack",
                  interpolate="const",
                  # recover_type="rounding",
                  # recover_type="fft",
                  # recover_type="all",
                  # recover_type="laplace",
                  # recover_type="debug",
-                 # recover_type="gauss",
-                 recover_type="empty",
+                 recover_type="gauss",
+                 # recover_type="empty",
                  noise_epsilon=0.0,
                  noise_epsilons=[0.0],
                  step_size=1,
@@ -390,6 +396,7 @@ class Arguments(object):
                  svd_compress=0.0,
                  many_svd_compress=[0.0],
                  adv_type=AdversarialType.BEFORE,
+                 # adv_type=AdversarialType.NONE,
                  # prediction_type=PredictionType.REGRESSION,
                  prediction_type=PredictionType.CLASSIFICATION,
                  # 'regression' or 'classification'
@@ -537,7 +544,7 @@ class Arguments(object):
         self.attack_strengths = attack_strengths
         self.targeted_attack = False
 
-       # deeprl
+        # deeprl
         # self.env_name = "Reacher-v2"
         self.env_name = "Ant-v2"
         # self.env_name = "Hopper-v2"
