@@ -53,7 +53,6 @@ from cnns.nnlib.utils.complex_mask import get_hyper_mask
 from foolbox.attacks.additive_noise import AdditiveUniformNoiseAttack
 from foolbox.attacks.additive_noise import AdditiveGaussianNoiseAttack
 from cnns.nnlib.utils.object import Object
-from cnns.nnlib.robustness.utils import softmax
 from cnns.nnlib.robustness.utils import to_fft
 from cnns.nnlib.robustness.utils import laplace_noise
 from cnns.nnlib.robustness.randomized_defense import defend
@@ -72,6 +71,7 @@ from cnns.nnlib.attacks.fft_attack import FFTLimitFrequencyAttackAdversary
 from cnns.nnlib.attacks.fft_attack import FFTReplaceFrequencyAttack
 from cnns.nnlib.attacks.fft_attack import FFTSingleFrequencyAttack
 from cnns.nnlib.attacks.fft_attack import FFTMultipleFrequencyAttack
+from cnns.nnlib.utils.general_utils import softmax
 
 results_folder = "results/"
 delimiter = ";"
@@ -599,7 +599,11 @@ def run(args):
         attack = FFTSingleFrequencyAttack(fmodel)
     elif args.attack_name == "FFTMultipleFrequencyAttack":
         attack = FFTMultipleFrequencyAttack(
-            args=args, model=fmodel)
+            args=args,
+            model=fmodel,
+            max_frequencies_percent=4,
+            iterations=10,
+        )
     elif args.attack_name is None or args.attack_name == 'None':
         print("No attack set!")
         attack = None
@@ -750,8 +754,8 @@ def run(args):
             if os.path.exists(full_name + ".npy") and (
                     attack_name != "CarliniWagnerL2AttackRoundFFT") and (
                     attack_name != "GaussAttack") and (
-                    attack_name != "CarliniWagnerL2Attack"):
-                    # and not (attack_name.startswith('FFT')):
+                    attack_name != "CarliniWagnerL2Attack") and not (
+                    attack_name.startswith('FFT')):
                 adv_image = np.load(file=full_name + ".npy")
                 result.adv_timing = -1
             else:
@@ -760,8 +764,9 @@ def run(args):
                     adv_image = attack(
                         original_image, args.True_class_id,
                         # max_iterations=args.attack_max_iterations,
-                        # max_iterations=10, binary_search_steps=1, initial_const=10000.0,
-                        max_iterations=1000, binary_search_steps=5, initial_const=0.01,
+                        max_iterations=2, binary_search_steps=1,
+                        initial_const=1e+12,
+                        # max_iterations=1000, binary_search_steps=5, initial_const=0.01,
                     )
                 elif attack_name == "GaussAttack":
                     adv_image = GaussAttack(original_image,
@@ -791,17 +796,16 @@ def run(args):
                     adv_image, original_image2 = replace_frequency(
                         original_image=original_image, images=images,
                         labels=labels, attack_fn=attack, args=args, high=False)
+                elif attack_name == 'FFTMultipleFrequencyAttack':
+                    # full_name = "saved-FFT-imagenet-rounded=-fft-img-idx-249-graph-recover-AttackType.RECOVERY-gauss-FFTMultipleFrequencyAttack.npy"
+                    # adv_image = np.load(file=full_name)
+                    adv_image = attack(input_or_adv=original_image,
+                                       label=args.True_class_id)
                 else:
                     adv_image = attack(input_or_adv=original_image,
                                        label=args.True_class_id)
                 result.adv_timing = time.time() - start_adv
                 created_new_adversarial = True
-
-            l2_dist_adv_original = args.meter.measure(original_image, adv_image)
-            print(
-                "l2 distance between adversarial image and the original image: ",
-                l2_dist_adv_original)
-
 
             if show_2nd and original_image2 is not None:
                 result_original2 = classify_image(
@@ -814,6 +818,11 @@ def run(args):
                 result.add(result_original2, prefix="original2_")
 
             if adv_image is not None:
+                l2_dist_adv_original = args.meter.measure(original_image,
+                                                          adv_image)
+                print(
+                    "l2 distance between adversarial image and the original image: ",
+                    l2_dist_adv_original)
                 image = adv_image
                 result_adv = classify_image(
                     image=adv_image,
@@ -1040,7 +1049,7 @@ def run(args):
 
         if adv_image is not None and (created_new_adversarial):
             if (attack_name != "CarliniWagnerL2AttackRoundFFT") and (
-                attack_name != "GaussAttack"):
+                    attack_name != "GaussAttack"):
                 # not attack_name.startswith('FFT')):
                 np.save(file=full_name + ".npy", arr=adv_image)
         if show_diff:
@@ -1290,9 +1299,10 @@ if __name__ == "__main__":
     # args.interpolate = "exp"
     # index_range = range(args.start_epoch, args.epochs, args.step_size)
     # index_range = range(11, 12)
-    index_range = range(249, 250)
+    # index_range = range(249, 250)
     # index_range = [10000]
     # index_range = range(60, 100)
+    index_range = range(0, 1000)
     if args.is_debug:
         args.use_foolbox_data = False
     if args.use_foolbox_data:

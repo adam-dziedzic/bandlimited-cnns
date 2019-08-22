@@ -18,10 +18,15 @@ print(matplotlib.get_backend())
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
 import matplotlib.pyplot as plt
+import os
 import torch
 import torchvision.models as models
 import numpy as np
 import foolbox
+from foolbox.attacks import CarliniWagnerL2Attack
+from foolbox.attacks import FGSM
+from foolbox.attacks import L1BasicIterativeAttack
+from foolbox.attacks import RandomStartProjectedGradientDescentAttack
 from cnns.nnlib.robustness.utils import get_foolbox_model
 # %pylab inline
 from cnns.nnlib.robustness.utils import show_image
@@ -54,6 +59,13 @@ from cnns.nnlib.datasets.cifar import cifar_mean_array, cifar_std_array
 from cnns.nnlib.utils.general_utils import get_log_time
 from cnns.nnlib.datasets.transformations.denorm_distance import DenormDistance
 import time
+from cnns.nnlib.utils.general_utils import softmax
+from cnns.nnlib.utils.general_utils import topk
+from foolbox.criteria import TargetClass, Misclassification
+from cnns.nnlib.datasets.imagenet.imagenet_from_class_idx_to_label import \
+    imagenet_from_class_idx_to_label
+from cnns.nnlib.datasets.cifar10_from_class_idx_to_label import \
+    cifar10_from_class_idx_to_label
 
 beg = time.time()
 # plt.interactive(True)
@@ -106,6 +118,7 @@ if args.use_foolbox_data:
         net = resnet
         bounds = (0, 1)
         args.num_classes = 1000
+        from_class_idx_to_label = imagenet_from_class_idx_to_label
         preprocessing = (imagenet_mean_array, imagenet_std_array)
         images, labels = foolbox.utils.samples("imagenet",
                                                data_format="channels_first",
@@ -115,6 +128,7 @@ if args.use_foolbox_data:
         get_cifar(args, args.dataset)
         model_path = 'saved_model_2019-05-16-11-37-45-415722-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.56-channel-vals-0.model'
         net = load_model(args)
+        from_class_idx_to_label = cifar10_from_class_idx_to_label
         preprocessing = (cifar_mean_array, cifar_std_array)
         images, labels = foolbox.utils.samples("cifar10",
                                                data_format="channels_first",
@@ -151,7 +165,7 @@ print("\nimage index: ", image_index)
 print("true label: ", label)
 
 fontsize = 25
-legend_size = 25
+legend_size = 20
 title_size = 25
 font = {'size': fontsize}
 import matplotlib
@@ -169,11 +183,22 @@ class EmptyAttack(foolbox.attacks.Attack):
     def __call__(self, input_or_adv, label=None, unpack=True, **kwargs):
         return input_or_adv
 
+# target_class = 22
+target_class = 282
+criterion = TargetClass(target_class=target_class)
+# criterion = Misclassification()
 
-fgsm_attack = foolbox.attacks.FGSM(model)
-bl1_attack = foolbox.attacks.L1BasicIterativeAttack(model)
-cw_attack = foolbox.attacks.CarliniWagnerL2Attack(model)
-pgd_attack = foolbox.attacks.RandomStartProjectedGradientDescentAttack(model)
+if criterion.name() == "TargetClass":
+    print(f'target class id: {target_class}')
+    print(f'target class name: {from_class_idx_to_label[target_class]}')
+else:
+    target_class = ''
+
+
+fgsm_attack = FGSM(model, criterion=criterion)
+bl1_attack = L1BasicIterativeAttack(model, criterion=criterion)
+cw_attack = CarliniWagnerL2Attack(model, criterion=criterion)
+pgd_attack = RandomStartProjectedGradientDescentAttack(model, criterion=criterion)
 empty_attack = EmptyAttack()
 fft_attack = FFTMultipleFrequencyAttack(args=args, )
 
@@ -188,9 +213,10 @@ noise_func = gauss
 #                    1.9, 2.0]
 noise_strengths = [0.0]
 noise_strengths += [x / 1000 for x in range(1, 10)]
-# noise_strengths += [x / 100 for x in range(1, 10)]
-# noise_strengths += [x / 10 for x in range(1, 10)]
-# noise_strengths += [x for x in range(1, 11)]
+noise_strengths += [x / 100 for x in range(1, 10)]
+noise_strengths += [x / 10 for x in range(1, 10)]
+noise_strengths += [x for x in range(1, 10)]
+noise_strengths += [10.0]
 # noise_strengths = []
 # index = 11
 
@@ -222,17 +248,41 @@ colors = [get_color(color) for color in
 markers = ["+", "o", "v", "s", "D", "^", "+"]
 linestyles = ["-", "-", "--", ":", ":", '--', '--']
 markers = ['o', 'v', 's']
+graph_type = 'counts'  # 'counts' or 'softs'
 
 for attack_iter, attack in enumerate(attacks):
     if attack.name() == 'CarliniWagnerL2Attack':
-        adversarial_image = attack(
-            image, label,
-            # max_iterations=10, binary_search_steps=1, initial_const=10000,
-            max_iterations=1000, binary_search_steps=5, initial_const=0.01,
-        )
+        small_dist = True
+        if small_dist:
+            max_iterations = 1000
+            binary_search_steps = 6
+            initial_const = 0.01
+        else:
+            max_iterations = 1000
+            binary_search_steps = 6
+            initial_const = 0.01
+            # initial_const = 1e+6
+
+        full_name = [attack.name(), max_iterations, binary_search_steps,
+                     initial_const, original_prediction, target_class]
+        full_name = '-'.join([str(x) for x in full_name])
+
+        if os.path.exists(full_name):
+            adversarial_image = np.load(full_name)
+        else:
+            adversarial_image = attack(
+                image, label,
+                max_iterations=max_iterations,
+                binary_search_steps=binary_search_steps,
+                initial_const=initial_const,
+            )
+            if adversarial_image is not None:
+                np.save(file=full_name, arr=adversarial_image)
     elif attack.name() == 'FFTMultipleFrequencyAttack':
-        full_name = "../saved-FFT-imagenet-rounded-fft-img-idx-249-graph-recover-AttackType.RECOVERY-gauss-FFTMultipleFrequencyAttack"
-        adversarial_image = np.load(file=full_name + ".npy")
+        full_name = "../saved-FFT-imagenet-rounded-fft-img-idx-249-graph-recover-AttackType.RECOVERY-gauss-FFTMultipleFrequencyAttack.npy"
+        # full_name = "../2019-08-21-17-20-imagenet-rounded-fft-img-idx-249-graph-recover-AttackType.RECOVERY-gauss-FFTMultipleFrequencyAttack.npy" # dist: 0.943
+        # full_name = "../dist-0.48-imagenet-rounded-fft-img-idx-249-graph-recover-AttackType.RECOVERY-gauss-FFTMultipleFrequencyAttack.npy" # dist: 0.469
+        adversarial_image = np.load(file=full_name)
     else:
         adversarial_image = attack(image, label)
 
@@ -241,13 +291,13 @@ for attack_iter, attack in enumerate(attacks):
 
     measure = DenormDistance(mean_array=args.mean_array,
                              std_array=args.std_array)
-    l2_dist = measure.measure(image, adversarial_image)
-    print(f'distance from adversarial to original image: {l2_dist}')
+    adv_l2_dist = measure.measure(image, adversarial_image)
+    print(f'distance from adversarial to original image: {adv_l2_dist}')
 
     adversarial_predictions = model.predictions(adversarial_image)
-    adversarial_prediciton = np.argmax(adversarial_predictions)
-    print("adversarial prediction: ", adversarial_prediciton)
-    if adversarial_prediciton == label:
+    adversarial_prediction = np.argmax(adversarial_predictions)
+    print("adversarial prediction: ", adversarial_prediction)
+    if adversarial_prediction == label:
         adversarial_count += 1
 
     distances = []
@@ -255,38 +305,73 @@ for attack_iter, attack in enumerate(attacks):
     adv_class_counts = []
     other_class_counts = []
 
+    org_class_softs = []
+    adv_class_softs = []
+    other_class_softs = []
+
     for noise_strength in noise_strengths:
         local_distances = []
+
         org_class_count = 0
         adv_class_count = 0
         other_class_count = 0
+
+        org_class_soft = []
+        adv_class_soft = []
+        other_class_soft = []
 
         for repeat in range(repeats):
             noised_image = noise_func(adversarial_image, noise_strength)
             noised_image = noised_image.astype(np.float32)
 
             noise_predictions = model.predictions(noised_image)
-            noise_prediction = np.argmax(noise_predictions)
-            if noise_prediction == original_prediction:
-                org_class_count += 1
-            elif noise_prediction == adversarial_prediciton:
-                adv_class_count += 1
-            else:
-                other_class_count += 1
+            soft_preds = softmax(noise_predictions)
+            top3 = topk(soft_preds, k=3)
+            noise_prediction = top3[0]
 
-            deltas = noised_image - image
-            l2_dist = np.sqrt(np.sum(deltas * deltas))
+            if graph_type == 'counts':
+                if noise_prediction == original_prediction:
+                    org_class_count += 1
+                elif noise_prediction == adversarial_prediction:
+                    adv_class_count += 1
+                else:
+                    other_class_count += 1
+            elif graph_type == 'softs':
+                org_class_soft.append(soft_preds[original_prediction])
+                adv_class_soft.append(soft_preds[adversarial_prediction])
+                for k in top3:
+                    if k not in (adversarial_prediction, original_prediction):
+                        other_class_soft.append(soft_preds[k])
+                        break
+            else:
+                raise Exception(f"Unknown graph_type: {graph_type}")
+
+            # deltas = noised_image - image
+            # l2_dist = np.sqrt(np.sum(deltas * deltas))
+            l2_dist = measure.measure(image, noised_image)
             local_distances.append(l2_dist)
 
         distances.append(np.mean(local_distances))
-        org_class_counts.append(org_class_count)
-        adv_class_counts.append(adv_class_count)
-        other_class_counts.append(other_class_count)
+        if graph_type == 'counts':
+            org_class_counts.append(org_class_count)
+            adv_class_counts.append(adv_class_count)
+            other_class_counts.append(other_class_count)
+        elif graph_type == 'softs':
+            org_class_softs.append(np.mean(org_class_soft))
+            adv_class_softs.append(np.mean(adv_class_soft))
+            other_class_softs.append(np.mean(other_class_soft))
+        else:
+            raise Exception(f"Unknown graph_type: {graph_type}")
 
     plt.subplot(nrows, ncols, attack_iter + 1)
 
-    values = [org_class_counts, adv_class_counts, other_class_counts]
-    values_names = ['original class', 'adversarial class', 'other class']
+    if graph_type == 'counts':
+        values = [org_class_counts, adv_class_counts, other_class_counts]
+    elif graph_type == 'softs':
+        values = [org_class_softs, adv_class_softs, other_class_softs]
+    else:
+        raise Exception(f"Unknown graph_type: {graph_type}")
+    values_names = ['original', 'adversarial', 'other']
     print('distances: ', distances)
     for i in range(len(values)):
         if attack.name() == 'EmptyAttack' and i == 1:
@@ -295,20 +380,36 @@ for attack_iter, attack in enumerate(attacks):
                  label=values_names[i], marker=markers[i], markersize=15,
                  lw=lw, color=colors[i], linestyle=linestyles[i])
 
+    plt.axvline(x=adv_l2_dist,
+                # label='adv. dist.',
+                color=get_color(MY_BLACK),
+                linestyle='-')
     plt.grid()
-    plt.legend(loc='center left', ncol=ncols_legend, frameon=False,
-               prop={'size': legend_size},
-               # bbox_to_anchor=dataset[bbox]
-               )
 
     plt.xlabel('L2 distance')
-    plt.ylabel('Frequency count')
-    plt.title(attack.name(), fontsize=title_size)
+    plt.xscale('log')
+    if graph_type == 'counts':
+        plt.ylabel('Frequency count')
+        plt.legend(loc='center right', ncol=ncols_legend, frameon=False,
+                   prop={'size': legend_size},
+                   # title='class:',
+                   # bbox_to_anchor=dataset[bbox]
+                   )
+    else:
+        plt.ylim(0.0, 1.0)
+        plt.ylabel('$F_y(x + \epsilon\eta)$')
+        plt.legend(loc='upper center', ncol=3, frameon=False,
+                   prop={'size': legend_size},
+                   # title='class:',
+                   # bbox_to_anchor=dataset[bbox]
+                   )
+    plt.title(attack.name() + ' (adv. dist.: {:.3f})'.format(adv_l2_dist),
+              fontsize=title_size)
 
 plt.subplots_adjust(hspace=0.5)
 plt.subplots_adjust(wspace=0.2)
 plt.savefig(
-    get_log_time() + '-' + attack.name() + '-channel_robustness_histograms.pdf',
+    'graphs/' + get_log_time() + '-' + attack.name() + '-channel_robustness_histograms.pdf',
     bbox_inches='tight')
 plt.show()
 plt.close()

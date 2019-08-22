@@ -8,12 +8,36 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 from enum import Enum
+import torch
 
 counter = 0
 
 plots_folder_name = "fft_visualize"
 plots_dir = os.path.join(os.curdir, plots_folder_name)
 pathlib.Path(plots_dir).mkdir(parents=True, exist_ok=True)
+
+
+def softmax(logits):
+    s = np.exp(logits - np.max(logits))
+    s /= np.sum(s)
+    return s
+
+
+def softmax_from_torch(x):
+    s = torch.nn.functional.softmax(torch.tensor(x, dtype=torch.float))
+    return s.numpy()
+
+
+def topk(x, k, largest=True):
+    """
+    Top k.
+
+    :param x: the input numpy array
+    :param k: number of top k elements
+    :param largest: return largest or the smallest elements
+    :return: the indices of top k elements.
+    """
+    return torch.topk(torch.from_numpy(x), k=k, largest=largest)[1].numpy()
 
 
 def get_log_time():

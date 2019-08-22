@@ -87,76 +87,6 @@ def fft_channel(input, compress_rate, val=0, get_mask=get_hyper_mask,
     return out
 
 
-def replace_frequencies():
-    """
-    In the forward pass we receive a Tensor containing the input
-    and return a Tensor containing the output. ctx is a context
-    object that can be used to stash information for backward
-    computation. You can cache arbitrary objects for use in the
-    backward pass using the ctx.save_for_backward method.
-
-    :param input: the input image
-    :param args: arguments that define: compress_rate - the compression
-    ratio, interpolate - the interpolation within mask: const, linear, exp,
-    log, etc.
-    :param val: the value (to change coefficients to) for the mask
-    :onesided: should use the onesided FFT thanks to the conjugate symmetry
-    or want to preserve all the coefficients
-    :is_next_power2: should we bring the FFT size to the power of 2
-    :inverse_compress_rate:
-    """
-    # ctx.save_for_backward(input)
-    # print("round forward")
-
-    N, C, H, W = input.size()
-
-    if H != W:
-        raise Exception("We support only squared input.")
-
-    if is_next_power2:
-        H_fft = next_power2(H)
-        W_fft = next_power2(W)
-        pad_H = H_fft - H
-        pad_W = W_fft - W
-        input = torch_pad(input, (0, pad_W, 0, pad_H), 'constant', 0)
-    else:
-        H_fft = H
-        W_fft = W
-
-    onesided=True
-    xfft = torch.rfft(input,
-                      signal_ndim=2,
-                      onesided=onesided)
-    del input
-
-    _, _, H_xfft, W_xfft, _ = xfft.size()
-    # assert H_fft == W_xfft, "The input tensor has to be squared."
-
-    mask, _ = get_mask(H=H_xfft, W=W_xfft,
-                       compress_rate=compress_rate,
-                       val=val, interpolate='const',
-                       onesided=onesided)
-
-    if inverse_compress_rate > 0 and get_inv_mask is not None:
-        inv_mask, _ = get_inv_mask(H=H_xfft, W=W_xfft,
-                                   compress_rate=inverse_compress_rate,
-                                   val=val, interpolate='const',
-                                   onesided=onesided)
-        mask = mask + inv_mask
-
-    mask = mask[:, 0:W_xfft, :]
-    # print(mask)
-    mask = mask.to(xfft.dtype).to(xfft.device)
-    xfft = xfft * mask
-
-    out = torch.irfft(input=xfft,
-                      signal_ndim=2,
-                      signal_sizes=(H_fft, W_fft),
-                      onesided=onesided)
-    out = out[..., :H, :W]
-    return out
-
-
 def replace_frequencies_numpy(input_to, input_from, compress_rate, val=0,
                               get_mask=get_hyper_mask, high=True,
                               onesided=True, is_next_power2=True):
@@ -258,6 +188,8 @@ def replace_frequencies(input_to, input_from, compress_rate, val=0,
 
 
 def gauss_noise_numpy(images, epsilon, bounds=(0, 1)):
+    # if epsilon == 0:
+    #     return images.copy()
     min_, max_ = bounds
     std = epsilon / np.sqrt(3) * (max_ - min_)
     noise = nprng.normal(scale=std, size=images.shape)

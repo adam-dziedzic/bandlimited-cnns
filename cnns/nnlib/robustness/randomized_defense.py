@@ -1,5 +1,5 @@
 from cnns.nnlib.utils.object import Object
-from cnns.nnlib.robustness.utils import softmax
+from cnns.nnlib.utils.general_utils import softmax
 from cnns.nnlib.robustness.utils import uniform_noise
 from cnns.nnlib.robustness.utils import laplace_noise
 from cnns.nnlib.robustness.utils import gauss_noise

@@ -270,12 +270,13 @@ class FFTSingleFrequencyAttack(Attack):
         xfft, H_fft, W_fft = get_xfft_hw(
             input=image_torch, is_next_power2=is_next_power2, onesided=onesided)
         maxf, minf = get_max_min_complex(xfft=xfft)
-
-        freqs = nprng.permutation(H_fft * W_fft)
+        W_xfft = xfft.shape[-2]
+        total_freqs = H_fft * W_xfft
+        freqs = nprng.permutation(total_freqs)
         # freqs = freqs[:max_frequencies]
         for i, freq in enumerate(freqs):
-            w = freq % W_fft
-            h = freq // W_fft
+            w = freq % W_xfft
+            h = freq // W_xfft
 
             location = [h, w]
             # Add the channel dimension.
@@ -422,15 +423,15 @@ def check_real_vals(H_fft, W_fft, h, w, value):
     # Even sizes.
     if H_fft % 2 == 0:
         assert W_fft % 2 == 0
-        if h == H_fft // 2:
+        if h == H_fft // 2 + 1:
             # Middle-left element.
             if w == 0:
                 is_real = True
             # Middle-right element.
-            elif w == W_fft // 2:
+            elif w == W_fft // 2 + 1:
                 is_real = True
         # Top-right element.
-        elif h == 0 and w == W_fft // 2:
+        elif h == 0 and w == W_fft // 2 + 1:
             is_real = True
     if is_real:
         value[0] += value[1]

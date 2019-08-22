@@ -21,12 +21,6 @@ from foolbox.attacks.additive_noise import AdditiveNoiseAttack
 nprng = np.random.RandomState()
 
 
-def softmax(logits):
-    s = np.exp(logits - np.max(logits))
-    s /= np.sum(s)
-    return s
-
-
 def most_frequent_class(predictions):
     # 1. Get the max prediction from each random noise (row).
     max_each_row = np.argmax(predictions, axis=1)
