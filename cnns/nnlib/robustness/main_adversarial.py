@@ -71,7 +71,12 @@ from cnns.nnlib.attacks.fft_attack import FFTLimitFrequencyAttackAdversary
 from cnns.nnlib.attacks.fft_attack import FFTReplaceFrequencyAttack
 from cnns.nnlib.attacks.fft_attack import FFTSingleFrequencyAttack
 from cnns.nnlib.attacks.fft_attack import FFTMultipleFrequencyAttack
+from cnns.nnlib.attacks.fft_attack import FFTSmallestFrequencyAttack
+from cnns.nnlib.attacks.fft_attack import FFTLimitValuesAttack
+from cnns.nnlib.attacks.empty import EmptyAttack
 from cnns.nnlib.utils.general_utils import softmax
+from cnns.nnlib.robustness.channels.channels_definition import \
+    gauss_noise_fft_torch
 
 results_folder = "results/"
 delimiter = ";"
@@ -604,6 +609,12 @@ def run(args):
             max_frequencies_percent=4,
             iterations=10,
         )
+    elif args.attack_name == "FFTSmallestFrequencyAttack":
+        attack = FFTSmallestFrequencyAttack(fmodel)
+    elif args.attack_name == "FFTLimitValuesAttack":
+        attack = FFTLimitValuesAttack(fmodel)
+    elif args.attack_name == "EmptyAttack":
+        attack = EmptyAttack(fmodel)
     elif args.attack_name is None or args.attack_name == 'None':
         print("No attack set!")
         attack = None
@@ -764,9 +775,8 @@ def run(args):
                     adv_image = attack(
                         original_image, args.True_class_id,
                         # max_iterations=args.attack_max_iterations,
-                        max_iterations=2, binary_search_steps=1,
-                        initial_const=1e+12,
-                        # max_iterations=1000, binary_search_steps=5, initial_const=0.01,
+                        # max_iterations=, binary_search_steps=1, initial_const=1e+12,
+                        max_iterations=1000, binary_search_steps=5, initial_const=0.01,
                     )
                 elif attack_name == "GaussAttack":
                     adv_image = GaussAttack(original_image,
@@ -887,10 +897,17 @@ def run(args):
 
         if args.noise_sigma > 0 and image is not None:
             # gauss_image = gauss(image_numpy=image, sigma=args.noise_sigma)
-            noise = AdditiveGaussianNoiseAttack()._sample_noise(
-                epsilon=args.noise_sigma, image=image,
-                bounds=(args.min, args.max))
-            gauss_image = image + noise
+            is_fft = False
+            if is_fft:
+                input = torch.tensor(image).unsqueeze(0)
+                gauss_image = gauss_noise_fft_torch(std=args.noise_sigma,
+                                                    input=input)
+                gauss_image = gauss_image.detach().cpu().squeeze().numpy()
+            else:
+                noise = AdditiveGaussianNoiseAttack()._sample_noise(
+                    epsilon=args.noise_sigma, image=image,
+                    bounds=(args.min, args.max))
+                gauss_image = image + noise
 
             l2_dist_gauss_original = args.meter.measure(gauss_image, image)
             print(
@@ -1188,7 +1205,7 @@ def run(args):
     attack_name = "None"
     if attack != None:
         attack_name = attack.name()
-    file_name = "images/" + attack_name + "-" + str(
+    file_name = "images2/" + attack_name + "-" + str(
         args.attack_type) + "-round-fft-" + str(
         args.compress_fft_layer) + "-" + args.dataset + "-channel-" + str(
         channels_nr) + "-" + "val-per-channel-" + str(
@@ -1203,7 +1220,7 @@ def run(args):
         pass
         print("file name: ", file_name)
         plt.savefig(fname=file_name + "." + format, format=format)
-        plt.show(block=True)
+        plt.show()
     plt.close()
     return result
 
@@ -1299,10 +1316,15 @@ if __name__ == "__main__":
     # args.interpolate = "exp"
     # index_range = range(args.start_epoch, args.epochs, args.step_size)
     # index_range = range(11, 12)
-    # index_range = range(249, 250)
+    index_range = range(249, 250)
+    # index_range = range(0, 1)
     # index_range = [10000]
     # index_range = range(60, 100)
-    index_range = range(0, 1000)
+    # index_range = range(0, 1000)
+    # index_range = range(82, 83)
+    # index_range = range(263, 264)
+    # index_range = range(296, 297)
+    # index_range = range(0, 1000)
     if args.is_debug:
         args.use_foolbox_data = False
     if args.use_foolbox_data:

@@ -1,12 +1,14 @@
 from foolbox.attacks.base import Attack, call_decorator
 import numpy as np
 from cnns.nnlib.robustness.channels.channels_definition import fft_numpy
+from cnns.nnlib.robustness.channels.channels_definition import fft_zero_values
 from cnns.nnlib.robustness.channels.channels_definition import \
     replace_frequencies_numpy
 import torch
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_xfft_hw
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_ifft_hw
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_max_min_complex
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_sorted_spectrum_indices
 from foolbox.criteria import Misclassification
 from foolbox.distances import MSE
 
@@ -14,8 +16,20 @@ nprng = np.random.RandomState()
 nprng.seed(37)
 
 
+def pytorch_net(net):
+    """
+    :param net: a Pytorch model
+    :return: Pytorch network model whose predictions are returned as numpy array
+    """
+    def net_wrapper(input):
+        predictions = net(input)
+        return predictions.detach().cpu().numpy()
+
+    return net_wrapper
+
+
 def bisearch_to_decrease_rate(input, label, func, net, low=0, high=100,
-                              compress_resolution=1.0):
+                              resolution=1.0):
     last_adv_image = None
     last_compression_rate = None
 
@@ -29,14 +43,14 @@ def bisearch_to_decrease_rate(input, label, func, net, low=0, high=100,
             last_adv_image = adv_image
             last_compression_rate = mid
             # binary search
-            high = mid - compress_resolution
+            high = mid - resolution
         else:
-            low = mid + compress_resolution
+            low = mid + resolution
     return last_adv_image, last_compression_rate
 
 
 def bisearch_to_increase_rate(input, label, func, net, low=0, high=100,
-                              compress_resolution=1.0):
+                              resolution=1.0):
     last_adv_image = None
     last_compression_rate = None
 
@@ -50,9 +64,9 @@ def bisearch_to_increase_rate(input, label, func, net, low=0, high=100,
             last_adv_image = adv_image
             last_compression_rate = mid
             # binary search
-            low = mid + compress_resolution
+            low = mid + resolution
         else:
-            high = mid - compress_resolution
+            high = mid - resolution
     return last_adv_image, last_compression_rate
 
 
@@ -438,3 +452,138 @@ def check_real_vals(H_fft, W_fft, h, w, value):
         value[1] = 0.0  # set the imaginary part to 0
 
     return value
+
+
+class FFTSmallestFrequencyAttack(Attack):
+    """Starts from the smallest frequency magnitudes and set the frequency
+    coefficients to 0."""
+
+    @call_decorator
+    def __call__(self, input_or_adv, label=None, unpack=True,
+                 max_frequencies=100000, debug=True):
+
+        """Sets the smallest frequency coefficients in their magnitudes to 0.
+
+        Parameters
+        ----------
+        input_or_adv : `numpy.ndarray` or :class:`Adversarial`
+            The original, correctly classified image. If image is a
+            numpy array, label must be passed as well. If image is
+            an :class:`Adversarial` instance, label must not be passed.
+        label : int
+            The reference label of the original image. Must be passed
+            if image is a numpy array, must not be passed if image is
+            an :class:`Adversarial` instance.
+        unpack : bool
+            If true, returns the adversarial image, otherwise returns
+            the Adversarial object.
+        max_pixels : int
+            Maximum number of pixels to try.
+
+        """
+        a = input_or_adv
+        del input_or_adv
+        del label
+        del unpack
+
+        # Give the axis for the color channel.
+        channel_axis = a.channel_axis(batch=False)
+        assert channel_axis == 0
+        image = a.original_image
+        axes = [i for i in range(image.ndim) if i != channel_axis]
+        assert len(axes) == 2
+        H = image.shape[axes[0]]
+        W = image.shape[axes[1]]
+
+        image_torch = torch.from_numpy(image).unsqueeze(
+            0)  # we need the batch dim
+        is_next_power2 = False
+        onesided = True
+        xfft, H_fft, W_fft = get_xfft_hw(
+            input=image_torch, is_next_power2=is_next_power2, onesided=onesided)
+        freqs = get_sorted_spectrum_indices(xfft=xfft)
+        W_xfft = xfft.shape[-2]
+        perturbed_xfft = xfft.clone()
+        channel_size = H_fft * W_xfft
+        zero_value = torch.tensor([0.0, 0.0])
+        last_magnitude = 0.0
+        # freqs = freqs[:max_frequencies]
+        for i, freq in enumerate(freqs):
+            c = freq // channel_size
+            w = freq % W_xfft
+            h = (freq - c * channel_size) // W_xfft
+
+            location = [c, h, w]
+            # Add the batch dim.
+            location.insert(0, 0)
+            location = tuple(location)
+            if debug:
+                elem = perturbed_xfft[location]
+                re = elem[0]
+                im = elem[1]
+                magnitude = np.sqrt(re ** 2 + im ** 2)
+                assert magnitude >= last_magnitude
+                last_magnitude = magnitude
+            perturbed_xfft[location] = zero_value
+            perturbed = get_ifft_hw(
+                xfft=perturbed_xfft, H_fft=H_fft, W_fft=W_fft, H=H, W=W)
+            perturbed = perturbed.detach().cpu().numpy().squeeze()
+            _, is_adv = a.predictions(perturbed)
+            if is_adv:
+                if debug:
+                    print('# of frequencies zeroed out: ', i + 1)
+                return
+
+
+class FFTLimitValuesAttack(Attack):
+
+    def __call__(self, input_or_adv, label=None, unpack=True, net=None):
+        """
+        Binary search for magnitudes to zero out.
+
+        :param input_or_adv: the adversarial image
+        :param label: the correct label
+        :param unpack: not used
+        :param net: the ml model
+        :return: an adversarial image
+        """
+        onesided = True
+        is_next_power2 = False
+        net = self._default_model._model  # we operate directly in Pytorch
+        if torch.cuda.is_available():
+            device = torch.device('cuda')
+        else:
+            device = torch.device('cpu')
+        net.to(device)
+        net = pytorch_net(net)
+        input = torch.tensor(input_or_adv).unsqueeze(dim=0).to(device)
+        xfft, _, _ = get_xfft_hw(input=input, onesided=onesided,
+                                 is_next_power2=is_next_power2)
+        xfft_abs = torch.abs(xfft)
+        min = xfft_abs.min()
+        max = xfft_abs.max()
+
+        def decrease_func(image, high):
+            return fft_zero_values(
+                input=image, high=high, low=min, is_next_power2=is_next_power2,
+                onesided=onesided)
+
+        _, high = bisearch_to_decrease_rate(input=input,
+                                            label=label,
+                                            net=net,
+                                            low=min,
+                                            high=max,
+                                            func=decrease_func)
+
+        def increase_func(image, low):
+            return fft_zero_values(
+                input=image, high=high, low=low, is_next_power2=is_next_power2,
+                onesided=onesided)
+
+        adv_image, _ = bisearch_to_increase_rate(input=input,
+                                                 label=label,
+                                                 net=net,
+                                                 low=min,
+                                                 high=high,
+                                                 func=increase_func)
+        return adv_image.detach().squeeze().cpu().numpy()

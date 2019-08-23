@@ -66,6 +66,7 @@ from cnns.nnlib.datasets.imagenet.imagenet_from_class_idx_to_label import \
     imagenet_from_class_idx_to_label
 from cnns.nnlib.datasets.cifar10_from_class_idx_to_label import \
     cifar10_from_class_idx_to_label
+from cnns.nnlib.attacks.empty import EmptyAttack
 
 beg = time.time()
 # plt.interactive(True)
@@ -107,7 +108,9 @@ recover_count = 20
 # dataset = 'cifar10'
 args = get_args()
 args.dataset = 'imagenet'
-image_index = 249
+# image_index = 235
+# image_index = 249
+image_index = 11754
 
 args.use_foolbox_data = False
 if args.use_foolbox_data:
@@ -176,13 +179,6 @@ width = 50
 height = 100
 fig = plt.figure(figsize=(width, height))
 
-
-# Attack the image.
-class EmptyAttack(foolbox.attacks.Attack):
-
-    def __call__(self, input_or_adv, label=None, unpack=True, **kwargs):
-        return input_or_adv
-
 # target_class = 22
 target_class = 282
 criterion = TargetClass(target_class=target_class)
@@ -194,11 +190,11 @@ if criterion.name() == "TargetClass":
 else:
     target_class = ''
 
-
 fgsm_attack = FGSM(model, criterion=criterion)
 bl1_attack = L1BasicIterativeAttack(model, criterion=criterion)
 cw_attack = CarliniWagnerL2Attack(model, criterion=criterion)
-pgd_attack = RandomStartProjectedGradientDescentAttack(model, criterion=criterion)
+pgd_attack = RandomStartProjectedGradientDescentAttack(model,
+                                                       criterion=criterion)
 empty_attack = EmptyAttack()
 fft_attack = FFTMultipleFrequencyAttack(args=args, )
 
@@ -231,9 +227,10 @@ if original_prediction == label:
     original_count += 1
 
 # attacks = [fgsm_attack, bl1_attack]
-attacks = [cw_attack]
+# attacks = [cw_attack]
 # attacks = [pgd_attack]
 # attacks = [fft_attack]
+attacks = [empty_attack]
 
 ncols = 1
 nrows = max(1, len(attacks) // 2)
@@ -252,15 +249,15 @@ graph_type = 'counts'  # 'counts' or 'softs'
 
 for attack_iter, attack in enumerate(attacks):
     if attack.name() == 'CarliniWagnerL2Attack':
-        small_dist = True
+        small_dist = False
         if small_dist:
             max_iterations = 1000
             binary_search_steps = 6
             initial_const = 0.01
         else:
-            max_iterations = 1000
-            binary_search_steps = 6
-            initial_const = 0.01
+            max_iterations = 100
+            binary_search_steps = 2
+            initial_const = 1e+6
             # initial_const = 1e+6
 
         full_name = [attack.name(), max_iterations, binary_search_steps,
@@ -328,6 +325,8 @@ for attack_iter, attack in enumerate(attacks):
             soft_preds = softmax(noise_predictions)
             top3 = topk(soft_preds, k=3)
             noise_prediction = top3[0]
+            print('noise prediction: ', noise_prediction,
+                  from_class_idx_to_label[noise_prediction])
 
             if graph_type == 'counts':
                 if noise_prediction == original_prediction:

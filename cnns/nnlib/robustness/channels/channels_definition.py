@@ -5,15 +5,37 @@ from cnns.nnlib.utils.complex_mask import get_inverse_hyper_mask
 from cnns.nnlib.utils.general_utils import next_power2
 from torch.nn.functional import pad as torch_pad
 from torch.distributions.laplace import Laplace
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_xfft_hw
+import functools
 
 nprng = np.random.RandomState()
 nprng.seed(31)
+
+
+def numpy_decorator(call_fn):
+    @functools.wraps(call_fn)
+    def wrapper(numpy_array, **kwargs):
+        # Unsqueeze for batch processing.
+        torch_tensor = torch.from_numpy(numpy_array).unsqueeze(dim=0)
+        torch_result = call_fn(torch_tensor, **kwargs)
+        return torch_result.squeeze().detach().cpu().numpy()
+
+    return wrapper
 
 
 def fft_numpy(numpy_array, compress_rate, inverse_compress_rate=0):
     torch_image = torch.from_numpy(numpy_array).unsqueeze(dim=0)
     torch_image = fft_channel(input=torch_image, compress_rate=compress_rate,
                               inverse_compress_rate=inverse_compress_rate)
+    return torch_image.squeeze().cpu().numpy()
+
+
+def fft_zero_values_numpy(numpy_array, high, low=0, onesided=True,
+                          is_next_power2=True):
+    torch_image = torch.from_numpy(numpy_array).unsqueeze(dim=0)
+    torch_image = fft_zero_values(
+        input=torch_image, high=high, low=low, onesided=onesided,
+        is_next_power2=is_next_power2)
     return torch_image.squeeze().cpu().numpy()
 
 
@@ -78,6 +100,75 @@ def fft_channel(input, compress_rate, val=0, get_mask=get_hyper_mask,
     # print(mask)
     mask = mask.to(xfft.dtype).to(xfft.device)
     xfft = xfft * mask
+
+    out = torch.irfft(input=xfft,
+                      signal_ndim=2,
+                      signal_sizes=(H_fft, W_fft),
+                      onesided=onesided)
+    out = out[..., :H, :W]
+    return out
+
+
+def fft_zero_values(input, high, low=0, onesided=True, is_next_power2=True):
+    """
+    :param input: the input image
+    :param high: the highest value to be zeroed out (up to)
+    :param low: the lowest value to be zeroed out (down to)
+    :param val: the value (to change coefficients to) for the mask
+    :onesided: should use the onesided FFT thanks to the conjugate symmetry
+    or want to preserve all the coefficients
+    :is_next_power2: should we bring the FFT size to the power of 2
+    :inverse_compress_rate:
+    :return the zero out specific values
+    """
+    _, _, H, W = input.size()
+    xfft, H_fft, W_fft = get_xfft_hw(input=input, signal_ndim=2,
+                                     onesided=onesided,
+                                     is_next_power2=is_next_power2)
+    del input
+
+    _, _, H_xfft, W_xfft, _ = xfft.size()
+    # assert H_fft == W_xfft, "The input tensor has to be squared."
+    mask = torch.zeros_like(xfft)
+    xfft_abs = torch.abs(xfft)
+    mask[xfft_abs < low] = 1.0
+    mask[xfft_abs > high] = 1.0
+    xfft *= mask
+
+    out = torch.irfft(input=xfft,
+                      signal_ndim=2,
+                      signal_sizes=(H_fft, W_fft),
+                      onesided=onesided)
+    out = out[..., :H, :W]
+    return out
+
+
+def fft_zero_low_magnitudes(input, high, low=0, onesided=True,
+                            is_next_power2=True):
+    """
+    :param input: the input image
+    :param high: the highest value to be zeroed out (up to)
+    :param low: the lowest value to be zeroed out (down to)
+    :param val: the value (to change coefficients to) for the mask
+    :onesided: should use the onesided FFT thanks to the conjugate symmetry
+    or want to preserve all the coefficients
+    :is_next_power2: should we bring the FFT size to the power of 2
+    :inverse_compress_rate:
+    :return the zero out specific values corresponding to low magnitudes
+    """
+    _, _, H, W = input.size()
+    xfft, H_fft, W_fft = get_xfft_hw(input=input, signal_ndim=2,
+                                     onesided=onesided,
+                                     is_next_power2=is_next_power2)
+    del input
+
+    _, _, H_xfft, W_xfft, _ = xfft.size()
+    # assert H_fft == W_xfft, "The input tensor has to be squared."
+    mask = torch.zeros_like(xfft)
+    xfft_abs = torch.abs(xfft)
+    mask[xfft_abs < low] = 1.0
+    mask[xfft_abs > high] = 1.0
+    xfft *= mask
 
     out = torch.irfft(input=xfft,
                       signal_ndim=2,
@@ -202,6 +293,40 @@ def gauss_noise_torch(epsilon, images, bounds=(0, 1)):
     noise = torch.zeros_like(images, requires_grad=False).normal_(0, std).to(
         images.device)
     return noise
+
+
+def gauss_noise_fft_torch(std, input, is_next_power2=False, onesided=True):
+    N, C, H, W = input.size()
+
+    if H != W:
+        raise Exception("We support only squared input.")
+
+    if is_next_power2:
+        H_fft = next_power2(H)
+        W_fft = next_power2(W)
+        pad_H = H_fft - H
+        pad_W = W_fft - W
+        input = torch_pad(input, (0, pad_W, 0, pad_H), 'constant', 0)
+    else:
+        H_fft = H
+        W_fft = W
+    xfft = torch.rfft(input,
+                      signal_ndim=2,
+                      onesided=onesided)
+    del input
+
+    noise = torch.zeros_like(xfft, requires_grad=False).normal_(0, std).to(
+        xfft.device)
+
+    # xfft += xfft * noise
+    xfft += noise
+
+    out = torch.irfft(input=xfft,
+                      signal_ndim=2,
+                      signal_sizes=(H_fft, W_fft),
+                      onesided=onesided)
+    out = out[..., :H, :W]
+    return out
 
 
 def uniform_noise_numpy(images, epsilon, bounds=(0, 1)):

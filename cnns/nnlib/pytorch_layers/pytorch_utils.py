@@ -1074,6 +1074,25 @@ def get_max_min_complex(xfft):
     return max, min
 
 
+def get_sorted_spectrum_indices(xfft, descending=False):
+    """
+    Get sorted spectrum indices in terms of the absolute values of the spectrum.
+
+    :param xfft: the input in fft domain
+    :param descending: should we sort in descending or ascending order.
+    :return: sorted spectrum indices
+    >>> a = torch.tensor([[[1.0,2], [10.0,4]], [[-1,0], [4,5]]])
+    >>> indices = get_sorted_spectrum_indices(a, descending=True)
+    >>> assert indices[0] == 1 and indices[1] == 3 and indices[2] == 0 and indices[3] == 2
+    >>> # print('indices: ', indices)
+    """
+    xfft_flat = xfft.view(-1, 2)
+    spectrum = get_spectrum(xfft_flat)
+
+    indices = torch.argsort(spectrum, descending=descending)
+    return indices
+
+
 def get_full_energy_simple(x):
     """
     Return the full energy of the signal. The energy E(xfft) of a

@@ -4,6 +4,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import flip
 from cnns.nnlib.pytorch_layers.pytorch_utils import preserve_energy2D
 from cnns.nnlib.pytorch_layers.pytorch_utils import complex_mul
 from cnns.nnlib.pytorch_layers.pytorch_utils import correlate_dct_1D
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_sorted_spectrum_indices
 import numpy as np
 from torch import tensor
 import time
@@ -405,8 +406,10 @@ class TestPytorchUtils(unittest.TestCase):
         if torch.cuda.is_available():
             device = torch.device("cuda")
             dtype = torch.float
-            x = torch.tensor([[[[[3, -2], [2, 5]]]]], device=device, dtype=dtype)
-            y = torch.tensor([[[[[5, 4], [-1, 3]]]]], device=device, dtype=dtype)
+            x = torch.tensor([[[[[3, -2], [2, 5]]]]], device=device,
+                             dtype=dtype)
+            y = torch.tensor([[[[[5, 4], [-1, 3]]]]], device=device,
+                             dtype=dtype)
             expect = torch.tensor([[[[[23, 2], [-17, 1]]]]])
             out = torch.zeros_like(expect, device=device, dtype=dtype)
             complex_mul_cuda(x, y, out)
@@ -440,9 +443,9 @@ class TestPytorchUtils(unittest.TestCase):
         device = torch.device("cuda")
         dtype = torch.float
 
-        x = torch.tensor([[[[[-2, 3]],[[3,-2]]]]], device=device, dtype=dtype)
-        y = torch.tensor([[[[[4, 3]],[[5,4]]]]], device=device, dtype=dtype)
-        expect = torch.tensor([[[[[-17, 6]],[[23, 2]]]]])
+        x = torch.tensor([[[[[-2, 3]], [[3, -2]]]]], device=device, dtype=dtype)
+        y = torch.tensor([[[[[4, 3]], [[5, 4]]]]], device=device, dtype=dtype)
+        expect = torch.tensor([[[[[-17, 6]], [[23, 2]]]]])
         out = torch.zeros_like(expect, device=device, dtype=dtype)
         complex_mul_stride_no_permute_cuda(x, y, out, 5)
         np.testing.assert_allclose(
@@ -663,7 +666,8 @@ class TestPytorchUtils(unittest.TestCase):
             expect = expect.sum(dim=2)
 
             np.testing.assert_allclose(
-                actual=out.cpu().numpy(), desired=expect.cpu().numpy(), rtol=1e-4,
+                actual=out.cpu().numpy(), desired=expect.cpu().numpy(),
+                rtol=1e-4,
                 err_msg="actual out different from desired expected")
         else:
             print("CUDA device is not available.")
@@ -735,7 +739,6 @@ class TestPytorchUtils(unittest.TestCase):
         y = torch.randn(F, C, H, W, I, device=device, dtype=dtype)
         out = torch.zeros(N, F, H, W, I, device=device, dtype=dtype)
 
-
         # Move the channels to the last but one dimension.
         # We want for xfft: N, H, W, C, I.
         x_clone = x.permute(0, 2, 3, 1, 4).contiguous()
@@ -779,6 +782,19 @@ class TestPytorchUtils(unittest.TestCase):
         result = correlate_dct_1D(x, y)
         print("result: ", result)
         np.testing.assert_allclose(actual=result, desired=expected_result)
+
+    def test_get_sorted_spectrum_indices(self):
+        xfft = torch.tensor([[[1.0, 2.0], [2.0, 4.0]],
+                             [[9.0, 9.0], [0.1, 0.7]],
+                             ])
+        indices = get_sorted_spectrum_indices(xfft, descending=False)
+        min_index = indices[0]
+        assert min_index == 3
+        H_xfft, W_xfft, _ = xfft.shape
+        assert H_xfft == 2 and W_xfft == 2
+        assert xfft[min_index // W_xfft, min_index % W_xfft, 0] == 0.1
+        assert xfft[min_index // W_xfft, min_index % W_xfft, 1] == 0.7
+
 
 if __name__ == '__main__':
     unittest.main()
