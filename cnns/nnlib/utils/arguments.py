@@ -173,7 +173,7 @@ class Arguments(object):
         return self.__counter__
 
     def __init__(self,
-                 is_debug=True,
+                 is_debug=False,
                  # network_type=NetworkType.ResNet18,
                  # network_type=NetworkType.DenseNetCifar,
                  network_type=network_type,
@@ -373,7 +373,8 @@ class Arguments(object):
                  # attack_name="FFTSingleFrequencyAttack",
                  # attack_name="FFTSmallestFrequencyAttack",
                  # attack_name="FFTMultipleFrequencyAttack",
-                 attack_name="FFTLimitValuesAttack",
+                 # attack_name="FFTLimitValuesAttack",
+                 attack_name="FFTLimitMagnitudesAttack",
                  # attack_name="EmptyAttack",
                  interpolate="const",
                  # recover_type="rounding",

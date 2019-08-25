@@ -73,6 +73,7 @@ from cnns.nnlib.attacks.fft_attack import FFTSingleFrequencyAttack
 from cnns.nnlib.attacks.fft_attack import FFTMultipleFrequencyAttack
 from cnns.nnlib.attacks.fft_attack import FFTSmallestFrequencyAttack
 from cnns.nnlib.attacks.fft_attack import FFTLimitValuesAttack
+from cnns.nnlib.attacks.fft_attack import FFTLimitMagnitudesAttack
 from cnns.nnlib.attacks.empty import EmptyAttack
 from cnns.nnlib.utils.general_utils import softmax
 from cnns.nnlib.robustness.channels.channels_definition import \
@@ -613,6 +614,8 @@ def run(args):
         attack = FFTSmallestFrequencyAttack(fmodel)
     elif args.attack_name == "FFTLimitValuesAttack":
         attack = FFTLimitValuesAttack(fmodel)
+    elif args.attack_name == "FFTLimitMagnitudesAttack":
+        attack = FFTLimitMagnitudesAttack(fmodel)
     elif args.attack_name == "EmptyAttack":
         attack = EmptyAttack(fmodel)
     elif args.attack_name is None or args.attack_name == 'None':
@@ -1316,8 +1319,8 @@ if __name__ == "__main__":
     # args.interpolate = "exp"
     # index_range = range(args.start_epoch, args.epochs, args.step_size)
     # index_range = range(11, 12)
-    index_range = range(249, 250)
-    # index_range = range(0, 1)
+    # index_range = range(249, 250)
+    index_range = range(10)
     # index_range = [10000]
     # index_range = range(60, 100)
     # index_range = range(0, 1000)

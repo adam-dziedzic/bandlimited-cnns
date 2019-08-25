@@ -2,6 +2,7 @@ from foolbox.attacks.base import Attack, call_decorator
 import numpy as np
 from cnns.nnlib.robustness.channels.channels_definition import fft_numpy
 from cnns.nnlib.robustness.channels.channels_definition import fft_zero_values
+from cnns.nnlib.robustness.channels.channels_definition import fft_zero_low_magnitudes
 from cnns.nnlib.robustness.channels.channels_definition import \
     replace_frequencies_numpy
 import torch
@@ -9,6 +10,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import get_xfft_hw
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_ifft_hw
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_max_min_complex
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_sorted_spectrum_indices
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
 from foolbox.criteria import Misclassification
 from foolbox.distances import MSE
 
@@ -559,9 +561,9 @@ class FFTLimitValuesAttack(Attack):
         input = torch.tensor(input_or_adv).unsqueeze(dim=0).to(device)
         xfft, _, _ = get_xfft_hw(input=input, onesided=onesided,
                                  is_next_power2=is_next_power2)
-        xfft_abs = torch.abs(xfft)
-        min = xfft_abs.min()
-        max = xfft_abs.max()
+        spectrum = get_spectrum(xfft, squeeze=False)
+        min = spectrum.min()
+        max = spectrum.max()
 
         def decrease_func(image, high):
             return fft_zero_values(
@@ -587,3 +589,60 @@ class FFTLimitValuesAttack(Attack):
                                                  high=high,
                                                  func=increase_func)
         return adv_image.detach().squeeze().cpu().numpy()
+
+
+class FFTLimitMagnitudesAttack(Attack):
+
+    def __call__(self, input_or_adv, label=None, unpack=True, net=None):
+        """
+        Binary search for magnitudes to zero out.
+
+        :param input_or_adv: the adversarial image
+        :param label: the correct label
+        :param unpack: not used
+        :param net: the ml model
+        :return: an adversarial image
+        """
+        onesided = True
+        is_next_power2 = False
+        net = self._default_model._model  # we operate directly in Pytorch
+        if torch.cuda.is_available():
+            device = torch.device('cuda')
+        else:
+            device = torch.device('cpu')
+        net.to(device)
+        net = pytorch_net(net)
+        input = torch.tensor(input_or_adv).unsqueeze(dim=0).to(device)
+        xfft, _, _ = get_xfft_hw(input=input, onesided=onesided,
+                                 is_next_power2=is_next_power2)
+        spectrum = get_spectrum(xfft, squeeze=False)
+        min = spectrum.min()
+        max = spectrum.max()
+
+        def decrease_func(image, high):
+            return fft_zero_low_magnitudes(
+                input=image, high=high, low=min, is_next_power2=is_next_power2,
+                onesided=onesided)
+
+        _, high = bisearch_to_decrease_rate(input=input,
+                                            label=label,
+                                            net=net,
+                                            low=min,
+                                            high=max,
+                                            func=decrease_func)
+
+        def increase_func(image, low):
+            return fft_zero_low_magnitudes(
+                input=image, high=high, low=low, is_next_power2=is_next_power2,
+                onesided=onesided)
+
+        adv_image, _ = bisearch_to_increase_rate(input=input,
+                                                 label=label,
+                                                 net=net,
+                                                 low=min,
+                                                 high=high,
+                                                 func=increase_func)
+        return adv_image.detach().squeeze().cpu().numpy()
+
+
+

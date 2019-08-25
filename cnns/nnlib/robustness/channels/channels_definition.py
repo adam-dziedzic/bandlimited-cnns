@@ -6,6 +6,7 @@ from cnns.nnlib.utils.general_utils import next_power2
 from torch.nn.functional import pad as torch_pad
 from torch.distributions.laplace import Laplace
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_xfft_hw
+from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
 import functools
 
 nprng = np.random.RandomState()
@@ -164,12 +165,13 @@ def fft_zero_low_magnitudes(input, high, low=0, onesided=True,
 
     _, _, H_xfft, W_xfft, _ = xfft.size()
     # assert H_fft == W_xfft, "The input tensor has to be squared."
-    mask = torch.zeros_like(xfft)
-    xfft_abs = torch.abs(xfft)
-    mask[xfft_abs < low] = 1.0
-    mask[xfft_abs > high] = 1.0
+    spectrum = get_spectrum(xfft, squeeze=False)
+    mask = torch.zeros_like(spectrum)
+    mask[spectrum < low] = 1.0
+    mask[spectrum > high] = 1.0
+    # Extend the mask to cover two parts of the complex numbers in the last dim.
+    mask = torch.cat(tensors=(mask, mask), dim=-1)
     xfft *= mask
-
     out = torch.irfft(input=xfft,
                       signal_ndim=2,
                       signal_sizes=(H_fft, W_fft),

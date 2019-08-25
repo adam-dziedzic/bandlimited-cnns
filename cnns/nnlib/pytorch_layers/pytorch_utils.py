@@ -980,7 +980,7 @@ def get_full_energy_only(x):
                                torch.pow(x.narrow(-1, 1, 1), 2))).item()
 
 
-def get_spectrum(xfft):
+def get_spectrum(xfft, squeeze=True):
     """
 
     :param xfft: input signal in the frequency domain with complex numbers
@@ -996,7 +996,9 @@ def get_spectrum(xfft):
     """
     squared = torch.add(torch.pow(xfft.narrow(-1, 0, 1), 2),
                         torch.pow(xfft.narrow(-1, 1, 1), 2))
-    spectrum = torch.sqrt(squared).squeeze(dim=-1)
+    spectrum = torch.sqrt(squared)
+    if squeeze:
+        spectrum = spectrum.squeeze(dim=-1)
     return spectrum
 
 
