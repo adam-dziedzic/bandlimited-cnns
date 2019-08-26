@@ -74,6 +74,7 @@ from cnns.nnlib.attacks.fft_attack import FFTMultipleFrequencyAttack
 from cnns.nnlib.attacks.fft_attack import FFTSmallestFrequencyAttack
 from cnns.nnlib.attacks.fft_attack import FFTLimitValuesAttack
 from cnns.nnlib.attacks.fft_attack import FFTLimitMagnitudesAttack
+from cnns.nnlib.attacks.nattack import Nattack
 from cnns.nnlib.attacks.empty import EmptyAttack
 from cnns.nnlib.utils.general_utils import softmax
 from cnns.nnlib.robustness.channels.channels_definition import \
@@ -302,7 +303,7 @@ def replace_frequency(original_image, images, labels, attack_fn, args,
     adv_min_L2_dist = float('inf')
     # size = len(images)
     # indexer = range(10000, 40000, 1)
-    indexer = range(200, 250, 1)
+    indexer = range(150, 250, 1)
     for idx in indexer:
         begin = time.time()
         if labels is None:
@@ -607,7 +608,7 @@ def run(args):
         attack = FFTMultipleFrequencyAttack(
             args=args,
             model=fmodel,
-            max_frequencies_percent=4,
+            max_frequencies_percent=5,
             iterations=10,
         )
     elif args.attack_name == "FFTSmallestFrequencyAttack":
@@ -616,6 +617,8 @@ def run(args):
         attack = FFTLimitValuesAttack(fmodel)
     elif args.attack_name == "FFTLimitMagnitudesAttack":
         attack = FFTLimitMagnitudesAttack(fmodel)
+    elif args.attack_name == "Nattack":
+        attack = Nattack(model=fmodel)
     elif args.attack_name == "EmptyAttack":
         attack = EmptyAttack(fmodel)
     elif args.attack_name is None or args.attack_name == 'None':
@@ -694,7 +697,7 @@ def run(args):
         images = images / 255
         print("max value in images after 255 division: ", np.max(images))
     else:
-        images = train_dataset
+        images = test_dataset
         labels = None
 
     # for attack_strength in args.attack_strengths:
@@ -768,8 +771,8 @@ def run(args):
             if os.path.exists(full_name + ".npy") and (
                     attack_name != "CarliniWagnerL2AttackRoundFFT") and (
                     attack_name != "GaussAttack") and (
-                    attack_name != "CarliniWagnerL2Attack") and not (
-                    attack_name.startswith('FFT')):
+                    attack_name != "CarliniWagnerL2Attack"):
+                # and not (attack_name.startswith('FFT')):
                 adv_image = np.load(file=full_name + ".npy")
                 result.adv_timing = -1
             else:
@@ -779,7 +782,8 @@ def run(args):
                         original_image, args.True_class_id,
                         # max_iterations=args.attack_max_iterations,
                         # max_iterations=, binary_search_steps=1, initial_const=1e+12,
-                        max_iterations=1000, binary_search_steps=5, initial_const=0.01,
+                        max_iterations=1000, binary_search_steps=5,
+                        initial_const=0.01,
                     )
                 elif attack_name == "GaussAttack":
                     adv_image = GaussAttack(original_image,
@@ -912,10 +916,16 @@ def run(args):
                     bounds=(args.min, args.max))
                 gauss_image = image + noise
 
-            l2_dist_gauss_original = args.meter.measure(gauss_image, image)
+            l2_dist_gauss_original = args.meter.measure(gauss_image,
+                                                        original_image)
             print(
                 "l2 distance between gauss image and the original image: ",
                 l2_dist_gauss_original)
+
+            if adv_image is not None:
+                l2_dist_gauss_adv = args.meter.measure(gauss_image, adv_image)
+                print("l2 distance between gauss image and the adv image: ",
+                      l2_dist_gauss_adv)
 
             # title = "level of gaussian-noise: " + str(args.noise_sigma)
             title = "gauss (" + str(args.noise_sigma) + ")"
@@ -1320,7 +1330,7 @@ if __name__ == "__main__":
     # index_range = range(args.start_epoch, args.epochs, args.step_size)
     # index_range = range(11, 12)
     # index_range = range(249, 250)
-    index_range = range(10)
+    index_range = range(0, 10)
     # index_range = [10000]
     # index_range = range(60, 100)
     # index_range = range(0, 1000)

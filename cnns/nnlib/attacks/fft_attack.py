@@ -319,8 +319,8 @@ class FFTMultipleFrequencyAttack(Attack):
     max frequency coefficient."""
 
     def __init__(self, args, model=None, criterion=Misclassification(),
-                 distance=MSE, threshold=None, max_frequencies_percent=5,
-                 iterations=1, is_strict=True, is_debug=True, is_fast=False):
+                 distance=MSE, threshold=None, max_frequencies_percent=30,
+                 iterations=100, is_strict=True, is_debug=True, is_fast=False):
         super(FFTMultipleFrequencyAttack, self).__init__(
             model=model, criterion=criterion, distance=distance,
             threshold=threshold)
@@ -642,7 +642,10 @@ class FFTLimitMagnitudesAttack(Attack):
                                                  low=min,
                                                  high=high,
                                                  func=increase_func)
-        return adv_image.detach().squeeze().cpu().numpy()
+        if adv_image is None:
+            return None
+        else:
+            return adv_image.detach().squeeze().cpu().numpy()
 
 
 
