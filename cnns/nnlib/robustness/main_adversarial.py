@@ -8,8 +8,7 @@ such transformations.
 
 # Use the import below to run the code remotely on a server.
 
-# from cnns import matplotlib_backend
-# print("Using:", matplotlib_backend.backend)
+from cnns import matplotlib_backend
 
 import matplotlib
 print('Using: ', matplotlib.get_backend())
@@ -557,8 +556,8 @@ def run(args):
     # Choose how many channels should be plotted.
     channels_nr = 1
 
-    # criterion_name = 'Misclassifiction'  # 'TargetClass' or 'Misclassification'
-    criterion_name = 'TargetClass'
+    criterion_name = 'Misclassifiction'  # 'TargetClass' or 'Misclassification'
+    # criterion_name = 'TargetClass'
 
     if criterion_name == "TargetClass":
         target_class = 282
