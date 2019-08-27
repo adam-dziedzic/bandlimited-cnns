@@ -484,9 +484,10 @@ class FFTMultipleFrequencyBinarySearchAttack(Attack):
         value = torch.tensor([0.0, 0.0])
         W_xfft = xfft.shape[-2]
         total_freqs = H_fft * W_xfft
-        low = 0
-        high = total_freqs
+
         for iter in range(self.iterations):
+            low = 0
+            high = total_freqs
             freqs = nprng.permutation(total_freqs)
             while low <= high:
                 # What is the percentage of modified frequencies?
