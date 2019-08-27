@@ -79,6 +79,7 @@ from cnns.nnlib.attacks.fft_attack import FFTMultipleFrequencyAttack
 from cnns.nnlib.attacks.fft_attack import FFTSmallestFrequencyAttack
 from cnns.nnlib.attacks.fft_attack import FFTLimitValuesAttack
 from cnns.nnlib.attacks.fft_attack import FFTLimitMagnitudesAttack
+from cnns.nnlib.attacks.fft_attack import FFTMultipleFrequencyBinarySearchAttack
 from cnns.nnlib.attacks.nattack import Nattack
 from cnns.nnlib.attacks.empty import EmptyAttack
 from cnns.nnlib.utils.general_utils import softmax
@@ -634,6 +635,8 @@ def run(args):
             max_frequencies_percent=10,
             iterations=100,
         )
+    elif args.attack_name == "FFTMultipleFrequencyBinarySearchAttack":
+        attack = FFTMultipleFrequencyBinarySearchAttack(model=fmodel, args=args)
     elif args.attack_name == "FFTSmallestFrequencyAttack":
         attack = FFTSmallestFrequencyAttack(fmodel)
     elif args.attack_name == "FFTLimitValuesAttack":

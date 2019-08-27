@@ -134,9 +134,9 @@ class FFTLimitFrequencyAttackAdversary(Attack):
         :return: an adversarial image
         """
         adv_image, compress_rate = bisearch_to_decrease_rate(input=input_or_adv,
-                                                     label=label,
-                                                     net=net,
-                                                     func=fft_numpy)
+                                                             label=label,
+                                                             net=net,
+                                                             func=fft_numpy)
 
         if adv_image is None:
             return None
@@ -147,10 +147,10 @@ class FFTLimitFrequencyAttackAdversary(Attack):
                              inverse_compress_rate=rate)
 
         adv_image2, _ = bisearch_to_increase_rate(input_or_adv,
-                                                 label=label,
-                                                 func=func,
-                                                 net=net,
-                                                 high=compress_rate)
+                                                  label=label,
+                                                  func=func,
+                                                  net=net,
+                                                  high=compress_rate)
         if adv_image2 is not None:
             adv_image = adv_image2
 
@@ -426,6 +426,96 @@ class FFTMultipleFrequencyAttack(Attack):
                     break
 
 
+class FFTMultipleFrequencyBinarySearchAttack(Attack):
+    """Perturbs multiple frequency coefficients and sets them to the min or
+    max frequency coefficient. In each iteration of the algorithm, we binary
+    search what is the minimum number of coefficients to be changed."""
+
+    def __init__(self, args, model=None, criterion=Misclassification(),
+                 distance=MSE, threshold=None, iterations=10, is_strict=True,
+                 is_debug=True, is_fast=False, resolution=1):
+        super(FFTMultipleFrequencyBinarySearchAttack, self).__init__(
+            model=model, criterion=criterion, distance=distance,
+            threshold=threshold)
+        self.args = args
+        self.iterations = iterations
+        self.is_strict = is_strict
+        self.is_debug = is_debug
+        self.is_fast = is_fast
+        self.resolution = resolution
+
+    @call_decorator
+    def __call__(self, input_or_adv, label=None, unpack=True):
+        """Perturbs just a single frequency and sets it to the min or max.
+
+        Parameters
+        ----------
+        input_or_adv : `numpy.ndarray` or :class:`Adversarial`
+            The original, correctly classified image. If image is a
+            numpy array, label must be passed as well. If image is
+            an :class:`Adversarial` instance, label must not be passed.
+        label : int
+            The reference label of the original image. Must be passed
+            if image is a numpy array, must not be passed if image is
+            an :class:`Adversarial` instance.
+        unpack : bool
+            to preserve the inheritance requirement.
+        """
+        a = input_or_adv
+        del input_or_adv
+        del label
+        del unpack
+
+        # Give the axis for the color channel.
+        channel_axis = a.channel_axis(batch=False)
+        assert channel_axis == 0
+        image = a.original_image
+        axes = [i for i in range(image.ndim) if i != channel_axis]
+        assert len(axes) == 2
+        H = image.shape[axes[0]]
+        W = image.shape[axes[1]]
+        # We need the batch dim.
+        image_torch = torch.from_numpy(image).unsqueeze(0)
+        is_next_power2 = False
+        onesided = True
+        xfft, H_fft, W_fft = get_xfft_hw(
+            input=image_torch, is_next_power2=is_next_power2, onesided=onesided)
+        # maxf, minf = get_max_min_complex(xfft=xfft)
+        value = torch.tensor([0.0, 0.0])
+        W_xfft = xfft.shape[-2]
+        total_freqs = H_fft * W_xfft
+        low = 0
+        high = total_freqs
+        for iter in range(self.iterations):
+            freqs = nprng.permutation(total_freqs)
+            while low <= high:
+                # What is the percentage of modified frequencies?
+                mid = (low + high) // 2
+                freqs = freqs[:mid]
+                perturbed_xfft = xfft.clone()
+                for num_freqs, freq in enumerate(freqs):
+                    w = freq % W_xfft
+                    h = freq // W_xfft
+                    perturbed_xfft[:, :, h, w] = value
+                perturbed = get_ifft_hw(
+                    xfft=perturbed_xfft, H_fft=H_fft, W_fft=W_fft, H=H, W=W)
+                perturbed = perturbed.detach().cpu().numpy().squeeze()
+                if self.is_strict:
+                    perturbed = np.clip(perturbed, a_min=self.args.min,
+                                        a_max=self.args.max)
+                _, is_adv, _, dist = a.predictions(
+                    perturbed, return_details=True)
+                if is_adv:
+                    high = mid - self.resolution
+                    if self.is_debug:
+                        dist = np.sqrt(dist.value)
+                        print(f'iterations: {iter}, '
+                              f'number of modified frequencies: {num_freqs}, '
+                              f'dist: {dist}')
+                else:
+                    low = mid + self.resolution
+
+
 def check_real_vals(H_fft, W_fft, h, w, value):
     """
     Check if x,y coordinates are subject to the real value constraint. If so,
@@ -581,11 +671,11 @@ class FFTLimitValuesAttack(Attack):
                 onesided=onesided)
 
         adv_image, high = bisearch_to_decrease_rate(input=input,
-                                            label=label,
-                                            net=net,
-                                            low=min,
-                                            high=max,
-                                            func=decrease_func)
+                                                    label=label,
+                                                    net=net,
+                                                    low=min,
+                                                    high=max,
+                                                    func=decrease_func)
 
         if adv_image is None:
             return None
@@ -596,11 +686,11 @@ class FFTLimitValuesAttack(Attack):
                 onesided=onesided)
 
         adv_image2, _ = bisearch_to_increase_rate(input=input,
-                                                 label=label,
-                                                 net=net,
-                                                 low=min,
-                                                 high=high,
-                                                 func=increase_func)
+                                                  label=label,
+                                                  net=net,
+                                                  low=min,
+                                                  high=high,
+                                                  func=increase_func)
         if adv_image2 is not None:
             adv_image = adv_image2
 

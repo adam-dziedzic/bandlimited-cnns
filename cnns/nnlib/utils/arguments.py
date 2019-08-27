@@ -95,7 +95,7 @@ else:
     weight_decay = 0.0001
     momentum = 0.9
     # epochs=50
-    epochs = 100
+    epochs = 10
     # epochs = 100
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
@@ -361,7 +361,7 @@ class Arguments(object):
                  schedule_factor=schedule_factor,
                  compress_fft_layer=0,
                  # attack_name="CarliniWagnerL2AttackRoundFFT",
-                 attack_name="CarliniWagnerL2Attack",
+                 # attack_name="CarliniWagnerL2Attack",
                  # attack_name=None,
                  # attack_name="FGSM",
                  # attack_name="GaussAttack",
@@ -375,6 +375,7 @@ class Arguments(object):
                  # attack_name="FFTSmallestFrequencyAttack",
                  # attack_name="FFTLimitValuesAttack",
                  # attack_name="FFTLimitMagnitudesAttack",
+                 attack_name="FFTMultipleFrequencyBinarySearchAttack",
                  # attack_name="EmptyAttack",
                  # attack_name="Nattack",
                  interpolate="const",
