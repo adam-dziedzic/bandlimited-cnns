@@ -133,24 +133,27 @@ class FFTLimitFrequencyAttackAdversary(Attack):
         :param compress_rate: how much to compress
         :return: an adversarial image
         """
-        _, compress_rate = bisearch_to_decrease_rate(input=input_or_adv,
+        adv_image, compress_rate = bisearch_to_decrease_rate(input=input_or_adv,
                                                      label=label,
                                                      net=net,
                                                      func=fft_numpy)
+
+        if adv_image is None:
+            return None
 
         def func(image, rate):
             return fft_numpy(numpy_array=image,
                              compress_rate=compress_rate,
                              inverse_compress_rate=rate)
 
-        if compress_rate is None:
-            return None
-
-        adv_image, _ = bisearch_to_increase_rate(input_or_adv,
+        adv_image2, _ = bisearch_to_increase_rate(input_or_adv,
                                                  label=label,
                                                  func=func,
                                                  net=net,
                                                  high=compress_rate)
+        if adv_image2 is not None:
+            adv_image = adv_image2
+
         return adv_image
 
 
