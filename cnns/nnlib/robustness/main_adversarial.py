@@ -631,8 +631,8 @@ def run(args):
         attack = FFTMultipleFrequencyAttack(
             args=args,
             model=fmodel,
-            max_frequencies_percent=5,
-            iterations=10,
+            max_frequencies_percent=10,
+            iterations=100,
         )
     elif args.attack_name == "FFTSmallestFrequencyAttack":
         attack = FFTSmallestFrequencyAttack(fmodel)
