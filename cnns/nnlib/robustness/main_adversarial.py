@@ -1079,163 +1079,167 @@ def run(args):
 
         if adv_image is not None and (created_new_adversarial):
             if (attack_name != "CarliniWagnerL2AttackRoundFFT") and (
-                    attack_name != "GaussAttack"):
-                # not attack_name.startswith('FFT')):
+                    attack_name != "GaussAttack") and not attack_name.startswith(
+                'FFT'):
                 np.save(file=full_name + ".npy", arr=adv_image)
-        if show_diff:
-            # omit the diff image in the spatial domain.
-            args.plot_index += col_diff
+            if show_diff:
+                # omit the diff image in the spatial domain.
+                args.plot_index += col_diff
 
-        if show_2nd:
-            pass
+            if show_2nd:
+                pass
             # omit the diff image in the spatial domain.
             # args.plot_index += 2
 
-        result.image_index = args.image_index
-        # write labels to the log file.
-        with open(args.file_name_labels, "a") as f:
-            if args.total_count == 0:
-                header = result.get_attrs_sorted(delimiter=delimiter)
-                f.write(header + "\n")
+            result.image_index = args.image_index
+            # write labels to the log file.
+            with open(args.file_name_labels, "a") as f:
+                if
+            args.total_count == 0:
+            header = result.get_attrs_sorted(delimiter=delimiter)
+            f.write(header + "\n")
             values = result.get_vals_sorted(delimiter=delimiter)
             f.write(values + "\n")
 
-        for fft_type in fft_types:
-            args.fft_type = fft_type
+            for fft_type in fft_types:
+                args.fft_type = fft_type
             for channel in channels:
                 is_log = True
-                if args.show_original:
-                    image_fft = print_fft(image=original_image,
-                                          channel=channel,
-                                          args=args,
-                                          title="frequency domain",
-                                          # title="original",
-                                          is_log=is_log)
+            if args.show_original:
+                image_fft = print_fft(image=original_image,
+                                      channel=channel,
+                                      args=args,
+                                      title="frequency domain",
+                                      # title="original",
+                                      is_log=is_log)
 
-                if show_2nd and original_image2 is not None:
-                    image2_fft = print_fft(image=original_image2,
-                                           channel=channel,
-                                           args=args,
-                                           # title="original 2nd",
-                                           title="target",
-                                           is_log=is_log)
+            if show_2nd and original_image2 is not None:
+                image2_fft = print_fft(image=original_image2,
+                                       channel=channel,
+                                       args=args,
+                                       # title="original 2nd",
+                                       title="target",
+                                       is_log=is_log)
 
-                if adv_image is not None and args.adv_type == AdversarialType.BEFORE:
-                    adversarial_fft = print_fft(image=adv_image,
-                                                channel=channel,
-                                                args=args,
-                                                title="adversarial",
-                                                is_log=is_log)
-
-                if args.values_per_channel > 0:
-                    rounded_fft = print_fft(image=rounded_image,
+            if adv_image is not None and args.adv_type == AdversarialType.BEFORE:
+                adversarial_fft = print_fft(image=adv_image,
                                             channel=channel,
                                             args=args,
-                                            title="cd (color depth)",
+                                            title="adversarial",
                                             is_log=is_log)
 
-                if args.compress_fft_layer > 0:
-                    compressed_fft = print_fft(image=compress_image,
-                                               channel=channel,
-                                               args=args,
-                                               title="fc (fft compression)",
-                                               is_log=is_log)
-                if args.noise_sigma > 0:
-                    gauss_fft = print_fft(image=gauss_image,
-                                          channel=channel,
-                                          args=args,
-                                          title="gaussian noise",
-                                          is_log=is_log)
-
-                if args.noise_epsilon > 0:
-                    noise_fft = print_fft(image=noise_image,
-                                          channel=channel,
-                                          args=args,
-                                          title="uniform noise",
-                                          is_log=is_log)
-
-                if args.laplace_epsilon > 0:
-                    laplace_fft = print_fft(image=noise_image,
-                                            channel=channel,
-                                            args=args,
-                                            title="laplace noise",
-                                            is_log=is_log)
-
-                if args.svd_compress > 0:
-                    svd_fft = print_fft(image=svd_image,
+            if args.values_per_channel > 0:
+                rounded_fft = print_fft(image=rounded_image,
                                         channel=channel,
                                         args=args,
-                                        title="svd",
+                                        title="cd (color depth)",
                                         is_log=is_log)
 
-                if adv_image is not None and args.attack_type == "after":
-                    adversarial_fft = print_fft(image=adv_image,
-                                                channel=channel,
-                                                args=args,
-                                                title="adversarial",
-                                                is_log=is_log)
+        if args.compress_fft_layer > 0:
+            compressed_fft = print_fft(image=compress_image,
+                                       channel=channel,
+                                       args=args,
+                                       title="fc (fft compression)",
+                                       is_log=is_log)
+        if args.noise_sigma > 0:
+            gauss_fft = print_fft(image=gauss_image,
 
-                if show_diff:
-                    diff_fft = adversarial_fft / image_fft
-                    ylabel = "fft-ed channel " + str(channel) + ":\n" + fft_type
-                    diff_fft_avg = np.average(diff_fft)
-                    print_heat_map(diff_fft, args=args,
-                                   title="fft(adv) / fft(original)\n"
-                                   f"(avg: {diff_fft_avg})",
-                                   ylabel=ylabel)
+                                  channel=channel,
+                                  args=args,
+                                  title="gaussian noise",
+                                  is_log=is_log)
 
-                    diff_fft = adversarial_fft - image_fft
-                    diff_fft_avg = np.average(diff_fft)
-                    ylabel = "fft-ed channel " + str(channel) + ":\n" + fft_type
-                    print_heat_map(diff_fft, args=args,
-                                   title="fft(adv) - fft(original)\n"
-                                   f"(avg: {diff_fft_avg})",
-                                   ylabel=ylabel)
 
-                if show_2nd:
-                    if show_2nd_col_diff:
-                        diff_fft = image2_fft / image_fft
-                        ylabel = "fft-ed channel " + str(
-                            channel) + ":\n" + fft_type
-                        diff_fft_avg = np.average(diff_fft)
-                        print_heat_map(diff_fft, args=args,
-                                       title="fft(original2) / fft(original)\n"
-                                       f"(avg: {diff_fft_avg})",
-                                       ylabel=ylabel)
+if args.noise_epsilon > 0:
+    noise_fft = print_fft(image=noise_image,
+                          channel=channel,
+                          args=args,
+                          title="uniform noise",
+                          is_log=is_log)
 
-                        diff_fft = image2_fft - image_fft
-                        diff_fft_avg = np.average(diff_fft)
-                        ylabel = "fft-ed channel " + str(
-                            channel) + ":\n" + fft_type
-                        print_heat_map(diff_fft, args=args,
-                                       title="fft(original2) - fft(original)\n"
-                                       f"(avg: {diff_fft_avg})",
-                                       ylabel=ylabel)
+if args.laplace_epsilon > 0:
+    laplace_fft = print_fft(image=noise_image,
+                            channel=channel,
+                            args=args,
+                            title="laplace noise",
+                            is_log=is_log)
 
-        plt.subplots_adjust(hspace=0.0, left=0.075, right=0.9)
+if args.svd_compress > 0:
+    svd_fft = print_fft(image=svd_image,
+                        channel=channel,
+                        args=args,
+                        title="svd",
+                        is_log=is_log)
 
-    format = 'png'  # "pdf" or "png" file_name
-    attack_name = "None"
-    if attack != None:
-        attack_name = attack.name()
-    file_name = "images2/" + attack_name + "-" + str(
-        args.attack_type) + "-round-fft-" + str(
-        args.compress_fft_layer) + "-" + args.dataset + "-channel-" + str(
-        channels_nr) + "-" + "val-per-channel-" + str(
-        args.values_per_channel) + "-noise-epsilon-" + str(
-        args.noise_epsilon) + "-noise-sigma-" + str(
-        args.noise_sigma) + "-laplace-epsilon-" + str(
-        args.compress_rate) + "-compress-rate-" + str(
-        args.laplace_epsilon) + "-img-idx-" + str(
-        args.image_index) + "-" + get_log_time()
+if adv_image is not None and args.attack_type == "after":
+    adversarial_fft = print_fft(image=adv_image,
+                                channel=channel,
+                                args=args,
+                                title="adversarial",
+                                is_log=is_log)
 
-    if args.is_debug:
-        pass
-        print("file name: ", file_name)
-        plt.savefig(fname=file_name + "." + format, format=format)
-        plt.show()
-    plt.close()
-    return result
+if show_diff:
+    diff_fft = adversarial_fft / image_fft
+ylabel = "fft-ed channel " + str(channel) + ":\n" + fft_type
+diff_fft_avg = np.average(diff_fft)
+print_heat_map(diff_fft, args=args,
+               title="fft(adv) / fft(original)\n"
+               f"(avg: {diff_fft_avg})",
+               ylabel=ylabel)
+
+diff_fft = adversarial_fft - image_fft
+diff_fft_avg = np.average(diff_fft)
+ylabel = "fft-ed channel " + str(channel) + ":\n" + fft_type
+print_heat_map(diff_fft, args=args,
+               title="fft(adv) - fft(original)\n"
+               f"(avg: {diff_fft_avg})",
+               ylabel=ylabel)
+
+if show_2nd:
+    if
+show_2nd_col_diff:
+diff_fft = image2_fft / image_fft
+ylabel = "fft-ed channel " + str(
+    channel) + ":\n" + fft_type
+diff_fft_avg = np.average(diff_fft)
+print_heat_map(diff_fft, args=args,
+               title="fft(original2) / fft(original)\n"
+               f"(avg: {diff_fft_avg})",
+               ylabel=ylabel)
+
+diff_fft = image2_fft - image_fft
+diff_fft_avg = np.average(diff_fft)
+ylabel = "fft-ed channel " + str(
+    channel) + ":\n" + fft_type
+print_heat_map(diff_fft, args=args,
+               title="fft(original2) - fft(original)\n"
+               f"(avg: {diff_fft_avg})",
+               ylabel=ylabel)
+
+plt.subplots_adjust(hspace=0.0, left=0.075, right=0.9)
+
+format = 'png'  # "pdf" or "png" file_name
+attack_name = "None"
+if attack != None:
+    attack_name = attack.name()
+file_name = "images2/" + attack_name + "-" + str(
+    args.attack_type) + "-round-fft-" + str(
+    args.compress_fft_layer) + "-" + args.dataset + "-channel-" + str(
+    channels_nr) + "-" + "val-per-channel-" + str(
+    args.values_per_channel) + "-noise-epsilon-" + str(
+    args.noise_epsilon) + "-noise-sigma-" + str(
+    args.noise_sigma) + "-laplace-epsilon-" + str(
+    args.compress_rate) + "-compress-rate-" + str(
+    args.laplace_epsilon) + "-img-idx-" + str(
+    args.image_index) + "-" + get_log_time()
+
+if args.is_debug:
+    pass
+print("file name: ", file_name)
+plt.savefig(fname=file_name + "." + format, format=format)
+plt.show()
+plt.close()
+return result
 
 
 def randomized_defense(image, fmodel, original_image=None, defense_name=""):
