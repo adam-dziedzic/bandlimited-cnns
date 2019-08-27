@@ -463,7 +463,9 @@ def check_real_vals(H_fft, W_fft, h, w, value):
 
 class FFTSmallestFrequencyAttack(Attack):
     """Starts from the smallest frequency magnitudes and set the frequency
-    coefficients to 0."""
+    coefficients to 0.
+    This is a slower version of FFTLimitMagnitudesAttack.
+    """
 
     @call_decorator
     def __call__(self, input_or_adv, label=None, unpack=True,
@@ -575,14 +577,14 @@ class FFTLimitValuesAttack(Attack):
                 input=image, high=high, low=min, is_next_power2=is_next_power2,
                 onesided=onesided)
 
-        _, high = bisearch_to_decrease_rate(input=input,
+        adv_image, high = bisearch_to_decrease_rate(input=input,
                                             label=label,
                                             net=net,
                                             low=min,
                                             high=max,
                                             func=decrease_func)
 
-        if high is None:
+        if adv_image is None:
             return None
 
         def increase_func(image, low):
@@ -590,14 +592,15 @@ class FFTLimitValuesAttack(Attack):
                 input=image, high=high, low=low, is_next_power2=is_next_power2,
                 onesided=onesided)
 
-        adv_image, _ = bisearch_to_increase_rate(input=input,
+        adv_image2, _ = bisearch_to_increase_rate(input=input,
                                                  label=label,
                                                  net=net,
                                                  low=min,
                                                  high=high,
                                                  func=increase_func)
-        if adv_image is None:
-            return None
+        if adv_image2 is not None:
+            adv_image = adv_image2
+
         return adv_image.detach().squeeze().cpu().numpy()
 
 
