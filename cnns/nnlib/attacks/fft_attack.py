@@ -427,8 +427,8 @@ class FFTMultipleFrequencyAttack(Attack):
 
 
 class FFTMultipleFrequencyBinarySearchAttack(Attack):
-    """Perturbs multiple frequency coefficients and sets them to the min or
-    max frequency coefficient. In each iteration of the algorithm, we binary
+    """Perturbs multiple frequency coefficients and sets them to zero.
+    In each iteration of the algorithm, we binary
     search what is the minimum number of coefficients to be changed."""
 
     def __init__(self, args, model=None, criterion=Misclassification(),
@@ -446,7 +446,7 @@ class FFTMultipleFrequencyBinarySearchAttack(Attack):
 
     @call_decorator
     def __call__(self, input_or_adv, label=None, unpack=True):
-        """Perturbs just a single frequency and sets it to the min or max.
+        """Perturbs multiple frequencies and sets them to zero.
 
         Parameters
         ----------
