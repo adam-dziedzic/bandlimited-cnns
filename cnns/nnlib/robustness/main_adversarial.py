@@ -609,7 +609,7 @@ def run(args):
             args=args,
             model=fmodel,
             max_frequencies_percent=5,
-            iterations=10,
+            iterations=100,
         )
     elif args.attack_name == "FFTSmallestFrequencyAttack":
         attack = FFTSmallestFrequencyAttack(fmodel)
@@ -1327,13 +1327,13 @@ if __name__ == "__main__":
     # args.index = 13  # index of the image (out of 20) to be used
     # args.compress_rate = 0
     # args.interpolate = "exp"
-    # index_range = range(args.start_epoch, args.epochs, args.step_size)
+    index_range = range(args.start_epoch, args.epochs, args.step_size)
     # index_range = range(11, 12)
     # index_range = range(249, 250)
-    index_range = range(0, 10)
+    # index_range = range(0, 1000)
     # index_range = [10000]
     # index_range = range(60, 100)
-    # index_range = range(0, 1000)
+    # index_range = range(0, 100, 100)
     # index_range = range(82, 83)
     # index_range = range(263, 264)
     # index_range = range(296, 297)
