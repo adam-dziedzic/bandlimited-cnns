@@ -7,12 +7,18 @@ such transformations.
 # %matplotlib inline
 
 # Use the import below to run the code remotely on a server.
-from cnns import matplotlib_backend
 
-print("Using:", matplotlib_backend.backend)
+# from cnns import matplotlib_backend
+# print("Using:", matplotlib_backend.backend)
+
+import matplotlib
+print('Using: ', matplotlib.get_backend())
+
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
+import matplotlib.pyplot as plt
 
 import time
-import matplotlib.pyplot as plt
 import os
 import foolbox
 import numpy as np
@@ -79,6 +85,7 @@ from cnns.nnlib.attacks.empty import EmptyAttack
 from cnns.nnlib.utils.general_utils import softmax
 from cnns.nnlib.robustness.channels.channels_definition import \
     gauss_noise_fft_torch
+from foolbox.criteria import TargetClass, Misclassification
 
 results_folder = "results/"
 delimiter = ";"
@@ -549,6 +556,20 @@ def run(args):
 
     # Choose how many channels should be plotted.
     channels_nr = 1
+
+    # criterion_name = 'Misclassifiction'  # 'TargetClass' or 'Misclassification'
+    criterion_name = 'TargetClass'
+
+    if criterion_name == "TargetClass":
+        target_class = 282
+        criterion = TargetClass(target_class=target_class)
+        print(f'target class id: {target_class}')
+        print(f'target class name: {from_class_idx_to_label[target_class]}')
+    else:
+        criterion = Misclassification()
+        target_class = ''
+        print('No target class specified')
+
     # Choose what fft types should be plotted.
     # fft_types = ["magnitude"]
     # fft_types = ["magnitude", "phase"]
@@ -569,27 +590,30 @@ def run(args):
     #     # foolbox.attacks.AdditiveUniformNoiseAttack(fmodel)
     # ]
     if args.attack_name == "CarliniWagnerL2Attack":
-        attack = foolbox.attacks.CarliniWagnerL2Attack(fmodel)
+        attack = foolbox.attacks.CarliniWagnerL2Attack(
+            fmodel, criterion=criterion)
     elif args.attack_name == "CarliniWagnerL2AttackRoundFFT":
         # L2 norm
         attack = CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
                                                get_mask=get_hyper_mask)
     elif args.attack_name == "ProjectedGradientDescentAttack":
         # L infinity norm
-        attack = foolbox.attacks.ProjectedGradientDescentAttack(fmodel)
+        attack = foolbox.attacks.ProjectedGradientDescentAttack(
+            fmodel, criterion=criterion)
     elif args.attack_name == "FGSM":
         # L infinity norm
-        attack = foolbox.attacks.FGSM(fmodel)
+        attack = foolbox.attacks.FGSM(fmodel, criterion=criterion)
     elif args.attack_name == "RandomStartProjectedGradientDescentAttack":
         attack = foolbox.attacks.RandomStartProjectedGradientDescentAttack(
-            fmodel)
+            fmodel, criterion=criterion)
     elif args.attack_name == "DeepFoolAttack":
         # L2 attack by default, can also be L infinity
-        attack = foolbox.attacks.DeepFoolAttack(fmodel)
+        attack = foolbox.attacks.DeepFoolAttack(fmodel, criterion=criterion)
     elif args.attack_name == "LBFGSAttack":
-        attack = foolbox.attacks.LBFGSAttack(fmodel)
+        attack = foolbox.attacks.LBFGSAttack(fmodel, criterion=criterion)
     elif args.attack_name == "L1BasicIterativeAttack":
-        attack = foolbox.attacks.L1BasicIterativeAttack(fmodel)
+        attack = foolbox.attacks.L1BasicIterativeAttack(
+            fmodel, criterion=criterion)
     elif args.attack_name == "GaussAttack":
         attack = GaussAttack()
     elif args.attack_name == "FFTHighFrequencyAttack":
@@ -781,9 +805,9 @@ def run(args):
                     adv_image = attack(
                         original_image, args.True_class_id,
                         # max_iterations=args.attack_max_iterations,
-                        # max_iterations=, binary_search_steps=1, initial_const=1e+12,
-                        max_iterations=1000, binary_search_steps=5,
-                        initial_const=0.01,
+                        max_iterations=2, binary_search_steps=1, initial_const=1e+12,
+                        # max_iterations=1000, binary_search_steps=5,
+                        # initial_const=0.01,
                     )
                 elif attack_name == "GaussAttack":
                     adv_image = GaussAttack(original_image,
@@ -1233,7 +1257,7 @@ def run(args):
         pass
         print("file name: ", file_name)
         plt.savefig(fname=file_name + "." + format, format=format)
-        plt.show()
+        plt.show(block=True)
     plt.close()
     return result
 
@@ -1327,7 +1351,7 @@ if __name__ == "__main__":
     # args.index = 13  # index of the image (out of 20) to be used
     # args.compress_rate = 0
     # args.interpolate = "exp"
-    index_range = range(args.start_epoch, args.epochs, args.step_size)
+    # index_range = range(args.start_epoch, args.epochs, args.step_size)
     # index_range = range(11, 12)
     # index_range = range(249, 250)
     # index_range = range(0, 1000)
@@ -1338,6 +1362,7 @@ if __name__ == "__main__":
     # index_range = range(263, 264)
     # index_range = range(296, 297)
     # index_range = range(0, 1000)
+    index_range = [1000]
     if args.is_debug:
         args.use_foolbox_data = False
     if args.use_foolbox_data:

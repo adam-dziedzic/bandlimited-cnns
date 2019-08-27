@@ -110,7 +110,8 @@ args = get_args()
 args.dataset = 'imagenet'
 # image_index = 235
 # image_index = 249
-image_index = 11754
+# image_index = 11754
+image_index=1000
 
 args.use_foolbox_data = False
 if args.use_foolbox_data:
@@ -180,15 +181,19 @@ height = 100
 fig = plt.figure(figsize=(width, height))
 
 # target_class = 22
-target_class = 282
-criterion = TargetClass(target_class=target_class)
-# criterion = Misclassification()
+# target_class = 282
+# criterion = TargetClass(target_class=target_class)
+criterion='Misclassifiction' # 'TargetClass' or 'Misclassification'
 
-if criterion.name() == "TargetClass":
+if criterion == "TargetClass":
+    target_class = 282
+    criterion = TargetClass(target_class=target_class)
     print(f'target class id: {target_class}')
     print(f'target class name: {from_class_idx_to_label[target_class]}')
 else:
+    criterion = Misclassification()
     target_class = ''
+    print('No target class specified')
 
 fgsm_attack = FGSM(model, criterion=criterion)
 bl1_attack = L1BasicIterativeAttack(model, criterion=criterion)
@@ -227,10 +232,10 @@ if original_prediction == label:
     original_count += 1
 
 # attacks = [fgsm_attack, bl1_attack]
-# attacks = [cw_attack]
+attacks = [cw_attack]
 # attacks = [pgd_attack]
 # attacks = [fft_attack]
-attacks = [empty_attack]
+# attacks = [empty_attack]
 
 ncols = 1
 nrows = max(1, len(attacks) // 2)
@@ -255,9 +260,9 @@ for attack_iter, attack in enumerate(attacks):
             binary_search_steps = 6
             initial_const = 0.01
         else:
-            max_iterations = 100
-            binary_search_steps = 2
-            initial_const = 1e+6
+            max_iterations = 2
+            binary_search_steps = 1
+            initial_const = 1e+12
             # initial_const = 1e+6
 
         full_name = [attack.name(), max_iterations, binary_search_steps,

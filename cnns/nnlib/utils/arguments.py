@@ -173,7 +173,7 @@ class Arguments(object):
         return self.__counter__
 
     def __init__(self,
-                 is_debug=False,
+                 is_debug=True,
                  # network_type=NetworkType.ResNet18,
                  # network_type=NetworkType.DenseNetCifar,
                  network_type=network_type,
@@ -361,7 +361,7 @@ class Arguments(object):
                  schedule_factor=schedule_factor,
                  compress_fft_layer=0,
                  # attack_name="CarliniWagnerL2AttackRoundFFT",
-                 # attack_name="CarliniWagnerL2Attack",
+                 attack_name="CarliniWagnerL2Attack",
                  # attack_name=None,
                  # attack_name="FGSM",
                  # attack_name="GaussAttack",
@@ -369,7 +369,7 @@ class Arguments(object):
                  # attack_name="FFTHighFrequencyAttackAdversary",
                  # attack_name="FFTLimitFrequencyAttack",
                  # attack_name="FFTLimitFrequencyAttackAdversary",
-                 attack_name="FFTReplaceFrequencyAttack",
+                 # attack_name="FFTReplaceFrequencyAttack",
                  # attack_name="FFTSingleFrequencyAttack",
                  # attack_name="FFTMultipleFrequencyAttack",
                  # attack_name="FFTSmallestFrequencyAttack",

@@ -2,7 +2,8 @@ from foolbox.attacks.base import Attack, call_decorator
 import numpy as np
 from cnns.nnlib.robustness.channels.channels_definition import fft_numpy
 from cnns.nnlib.robustness.channels.channels_definition import fft_zero_values
-from cnns.nnlib.robustness.channels.channels_definition import fft_zero_low_magnitudes
+from cnns.nnlib.robustness.channels.channels_definition import \
+    fft_zero_low_magnitudes
 from cnns.nnlib.robustness.channels.channels_definition import \
     replace_frequencies_numpy
 import torch
@@ -23,6 +24,7 @@ def pytorch_net(net):
     :param net: a Pytorch model
     :return: Pytorch network model whose predictions are returned as numpy array
     """
+
     def net_wrapper(input):
         predictions = net(input)
         return predictions.detach().cpu().numpy()
@@ -51,10 +53,10 @@ def bisearch_to_decrease_rate(input, label, func, net, low=0, high=100,
     return last_adv_image, last_compression_rate
 
 
-def bisearch_to_increase_rate(input, label, func, net, low=0, high=100,
+def bisearch_to_increase_rate(input, label, func, net, low=0, high=100.0,
                               resolution=1.0):
-    last_adv_image = None
     last_compression_rate = None
+    last_adv_image = None
 
     while low <= high:
         mid = (high + low) / 2
@@ -594,6 +596,8 @@ class FFTLimitValuesAttack(Attack):
                                                  low=min,
                                                  high=high,
                                                  func=increase_func)
+        if adv_image is None:
+            return None
         return adv_image.detach().squeeze().cpu().numpy()
 
 
@@ -655,6 +659,3 @@ class FFTLimitMagnitudesAttack(Attack):
             return None
         else:
             return adv_image.detach().squeeze().cpu().numpy()
-
-
-
