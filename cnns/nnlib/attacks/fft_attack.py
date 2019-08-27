@@ -141,6 +141,9 @@ class FFTLimitFrequencyAttackAdversary(Attack):
                              compress_rate=compress_rate,
                              inverse_compress_rate=rate)
 
+        if compress_rate is None:
+            return None
+
         adv_image, _ = bisearch_to_increase_rate(input_or_adv,
                                                  label=label,
                                                  func=func,
@@ -577,6 +580,9 @@ class FFTLimitValuesAttack(Attack):
                                             high=max,
                                             func=decrease_func)
 
+        if high is None:
+            return None
+
         def increase_func(image, low):
             return fft_zero_values(
                 input=image, high=high, low=low, is_next_power2=is_next_power2,
@@ -630,6 +636,9 @@ class FFTLimitMagnitudesAttack(Attack):
                                             low=min,
                                             high=max,
                                             func=decrease_func)
+
+        if high is None:
+            return None
 
         def increase_func(image, low):
             return fft_zero_low_magnitudes(
