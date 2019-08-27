@@ -432,7 +432,7 @@ class FFTMultipleFrequencyBinarySearchAttack(Attack):
     search what is the minimum number of coefficients to be changed."""
 
     def __init__(self, args, model=None, criterion=Misclassification(),
-                 distance=MSE, threshold=None, iterations=100, is_strict=True,
+                 distance=MSE, threshold=None, iterations=10, is_strict=True,
                  is_debug=True, is_fast=False, resolution=1):
         super(FFTMultipleFrequencyBinarySearchAttack, self).__init__(
             model=model, criterion=criterion, distance=distance,
