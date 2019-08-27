@@ -1350,7 +1350,7 @@ if __name__ == "__main__":
     # args.index = 13  # index of the image (out of 20) to be used
     # args.compress_rate = 0
     # args.interpolate = "exp"
-    # index_range = range(args.start_epoch, args.epochs, args.step_size)
+    index_range = range(args.start_epoch, args.epochs, args.step_size)
     # index_range = range(11, 12)
     # index_range = range(249, 250)
     # index_range = range(0, 1000)
@@ -1361,7 +1361,7 @@ if __name__ == "__main__":
     # index_range = range(263, 264)
     # index_range = range(296, 297)
     # index_range = range(0, 1000)
-    index_range = [1000]
+    # index_range = [1000]
     if args.is_debug:
         args.use_foolbox_data = False
     if args.use_foolbox_data:
