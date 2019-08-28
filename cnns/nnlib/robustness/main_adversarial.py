@@ -117,7 +117,7 @@ def get_fmodel(args):
             args.target_label_id = imagenet_from_class_label_to_idx[
                 args.target_label]
 
-        network_model = models.resnet50(pretrained=True).eval().to(
+        pytorch_model = models.resnet50(pretrained=True).eval().to(
             device=args.device)
         # network_model = load_model(args=args, pretrained=True)
 
@@ -151,7 +151,7 @@ def get_fmodel(args):
         args.mean_array = cifar_mean_array
         args.mean_mean = cifar_mean_mean
         args.std_array = cifar_std_array
-        network_model = load_model(args=args)
+        pytorch_model = load_model(args=args)
         from_class_idx_to_label = cifar10_from_class_idx_to_label
 
     elif args.dataset == "mnist":
@@ -171,16 +171,16 @@ def get_fmodel(args):
         args.mean_mean = mnist_mean_mean
         args.std_array = mnist_std_array
         # args.network_type = NetworkType.Net
-        network_model = load_model(args=args)
+        pytorch_model = load_model(args=args)
         from_class_idx_to_label = mnist_from_class_idx_to_label
 
     else:
         raise Exception(f"Unknown dataset type: {args.dataset}")
 
-    fmodel = foolbox.models.PyTorchModel(network_model, bounds=(min, max),
+    fmodel = foolbox.models.PyTorchModel(pytorch_model, bounds=(min, max),
                                          num_classes=args.num_classes)
 
-    return fmodel, from_class_idx_to_label
+    return fmodel, pytorch_model, from_class_idx_to_label
 
 
 def print_heat_map(input_map, args, title="", ylabel=""):
@@ -552,7 +552,7 @@ def rounduniform_recover(result, image, original_image):
 
 def run(args):
     result = Object()
-    fmodel, from_class_idx_to_label = get_fmodel(args=args)
+    fmodel, pytorch_model, from_class_idx_to_label = get_fmodel(args=args)
 
     args.fmodel = fmodel
     args.from_class_idx_to_label = from_class_idx_to_label
@@ -648,7 +648,8 @@ def run(args):
     elif args.attack_name == "FFTLimitMagnitudesAttack":
         attack = FFTLimitMagnitudesAttack(fmodel)
     elif args.attack_name == "Nattack":
-        attack = Nattack(model=fmodel)
+        # We operate directly in PyTorch.
+        attack = Nattack(model=pytorch_model, args=args)
     elif args.attack_name == "EmptyAttack":
         attack = EmptyAttack(fmodel)
     elif args.attack_name is None or args.attack_name == 'None':

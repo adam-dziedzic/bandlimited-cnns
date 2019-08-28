@@ -24,43 +24,42 @@ def torch_arctanh(x, eps=1e-6):
     return (np.log((1 + x) / (1 - x))) * 0.5
 
 
-means = torch.from_numpy(
-    np.array([0.4914, 0.4822, 0.4465]).reshape([1, 3, 1, 1]).astype(
-        'float32'))
-
-stds = torch.from_numpy(
-    np.array([0.2023, 0.1994, 0.2010]).reshape([1, 3, 1, 1]).astype(
-        'float32'))
-
-
 class Nattack(Attack):
 
-    def __init__(self, model=None, means=means, stds=stds, iterations=500):
+    def __init__(self, args, model, iterations=500):
         super(Nattack, self).__init__()
         self.model = model
-        self.means = means
-        self.stds = stds
+        self.means = args.mean_array
+        self.stds = args.std_array
         self.iterations = iterations
+        self.is_debug = args.is_debug
 
     def __call__(self, input_or_adv, label=None, unpack=True,
                  is_channel_last=False):
         return nattack(input=input_or_adv, target=label, model=self.model,
                        means=self.means, stds=self.stds,
                        is_channel_last=is_channel_last,
-                       iterations=self.iterations)
+                       iterations=self.iterations,
+                       is_debug=self.is_debug)
 
 
-def nattack(input, target, model, means=means, stds=stds, is_channel_last=False,
-            iterations=500):
-    device = input.device
-    means = means.to(device)
-    stds = stds.to(device)
-    input = (input - means) / stds
+default_mean_array = np.array([0.0, 0.0, 0.0], dtype=np.float32).reshape((3, 1, 1))
+default_std_array = np.array([1.0, 1.0, 1.0], dtype=np.float32).reshape((3, 1, 1))
 
+def nattack(input, target, model, means=default_mean_array,
+            stds=default_std_array, is_channel_last=False, iterations=500,
+            is_debug=True):
+    # Nattack as input receives images with value range: [0, 1].
+    input = input * stds + means
     if is_channel_last:
         H, W, C = input.shape
     else:
-        C, H, W = input
+        C, H, W = input.shape
+
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
 
     modify = np.random.randn(1, C, H, W) * 0.001
     for runstep in range(iterations):
@@ -85,25 +84,30 @@ def nattack(input, target, model, means=means, stds=stds, is_channel_last=False,
             l2real = np.sum((realclipinput - (
                     np.tanh(newimg) * boxmul + boxplus)) ** 2) ** 0.5
             # l2real =  np.abs(realclipinput - inputs.numpy())
-            print('inputs shape: ', input.shape)
+            # print('inputs shape: ', input.shape)
             # outputsreal = model(realclipinput.transpose(0,2,3,1)).data.cpu().numpy()
-            input_var = torch.from_numpy(realclipinput.astype('float32')).to(
-                device)
+
+            # Adjust the input to the PyTorch model.
+            realclipinput = (realclipinput - means) / stds
+            realclipinput = realclipinput.astype('float32')
+            input_var = torch.from_numpy(realclipinput).to(device)
 
             # (input_var - means) / stds)
             # outputsreal = model((input_var - means) / stds).data.cpu().numpy()[0]
             outputsreal = model(input_var).data.cpu().numpy()[0]
             outputsreal = softmax(outputsreal)
             # print(outputsreal)
-            print('probs ', np.sort(outputsreal)[-1:-6:-1])
-            print('target label ', np.argsort(outputsreal)[-1:-6:-1])
-            print('negative_probs ', np.sort(outputsreal)[0:3:1])
+            if is_debug:
+                print('probs ', np.sort(outputsreal)[-1:-6:-1])
+                print('target label ', np.argsort(outputsreal)[-1:-6:-1])
+                print('negative_probs ', np.sort(outputsreal)[0:3:1])
 
             if (np.argmax(outputsreal) != target) and (
                     np.abs(realclipdist).max() <= epsi):
-                success = True
+                # success = True
+                # break
+                return realclipinput.squeeze()
                 # imsave(folder+classes[targets[0]]+'_'+str("%06d" % batch_idx)+'.jpg',inputs.transpose(1,2,0))
-                break
         dist = inputimg - (np.tanh(newimg) * boxmul + boxplus)
         clipdist = np.clip(dist, -epsi, epsi)
         clipinput = (clipdist + (
@@ -113,6 +117,9 @@ def nattack(input, target, model, means=means, stds=stds, is_channel_last=False,
         target_onehot[0][target] = 1.
         clipinput = np.squeeze(clipinput)
         clipinput = np.asarray(clipinput, dtype='float32')
+
+        # Adjust the input to the PyTorch model.
+        clipinput = (clipinput - means) / stds
         input_var = torch.from_numpy(clipinput).to(device)
         # outputs = model(clipinput.transpose(0,2,3,1)).data.cpu().numpy()
         # outputs = model((input_var - means) / stds).data.cpu().numpy()

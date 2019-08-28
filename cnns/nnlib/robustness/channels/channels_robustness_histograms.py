@@ -163,7 +163,7 @@ else:
     image, label = test_dataset.__getitem__(image_index)
     image = image.numpy()
 
-    model, from_class_idx_to_label = get_fmodel(args=args)
+    model, pytorch_model, from_class_idx_to_label = get_fmodel(args=args)
 
 print("\nimage index: ", image_index)
 print("true label: ", label)
