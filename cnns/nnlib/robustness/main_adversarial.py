@@ -24,6 +24,7 @@ import os
 import foolbox
 import numpy as np
 import torch
+from random import sample
 from cnns.nnlib.datasets.imagenet.imagenet_from_class_idx_to_label import \
     imagenet_from_class_idx_to_label
 from cnns.nnlib.datasets.imagenet.imagenet_from_class_label_to_idx import \
@@ -312,7 +313,8 @@ def replace_frequency(original_image, images, labels, attack_fn, args,
     adv_min_L2_dist = float('inf')
     # size = len(images)
     # indexer = range(10000, 40000, 1)
-    indexer = range(150, 250, 1)
+    # indexer = range(150, 250, 1)
+    indexer = sample(range(0, 10000), 10)
     for idx in indexer:
         begin = time.time()
         if labels is None:
