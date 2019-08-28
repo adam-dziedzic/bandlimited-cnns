@@ -9,8 +9,10 @@ such transformations.
 # Use the import below to run the code remotely on a server.
 
 from cnns import matplotlib_backend
+
 print('Using: ', matplotlib_backend.backend)
 import matplotlib
+
 print('Using: ', matplotlib.get_backend())
 
 matplotlib.rcParams['pdf.fonttype'] = 42
@@ -811,7 +813,8 @@ def run(args):
                     adv_image = attack(
                         original_image, args.True_class_id,
                         # max_iterations=args.attack_max_iterations,
-                        max_iterations=2, binary_search_steps=1, initial_const=1e+12,
+                        max_iterations=2, binary_search_steps=1,
+                        initial_const=1e+12,
                         # max_iterations=1000, binary_search_steps=5,
                         # initial_const=0.01,
                     )
@@ -1606,9 +1609,11 @@ if __name__ == "__main__":
                             print("single run elapsed time: ", single_run_time)
                             run_time += single_run_time
 
-                            if args.show_original and result_run.original_label is not None:
-                                if result_run.true_label == result_run.original_label:
-                                    count_original += 1
+                            if result_run.original_label is not None and (
+                                    result_run.true_label == result_run.original_label):
+                                count_original += 1
+                            else:
+                                continue
 
                             if args.recover_type == "rounding":
                                 if result_run.round_label is not None:
