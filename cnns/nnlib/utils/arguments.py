@@ -82,9 +82,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     in_channels = 1
 else:
     # dataset = "mnist"
-    # dataset = "cifar10"
+    dataset = "cifar10"
     # dataset = "cifar100"
-    dataset = "imagenet"
+    # dataset = "imagenet"
     # dataset = "svhn"
 
     batch_size = 32
@@ -373,11 +373,11 @@ class Arguments(object):
                  # attack_name="FFTSingleFrequencyAttack",
                  # attack_name="FFTMultipleFrequencyAttack",
                  # attack_name="FFTSmallestFrequencyAttack",
-                 attack_name="FFTLimitValuesAttack",
+                 # attack_name="FFTLimitValuesAttack",
                  # attack_name="FFTLimitMagnitudesAttack",
                  # attack_name="FFTMultipleFrequencyBinarySearchAttack",
                  # attack_name="EmptyAttack",
-                 # attack_name="Nattack",
+                 attack_name="Nattack",
                  interpolate="const",
                  # recover_type="rounding",
                  # recover_type="fft",

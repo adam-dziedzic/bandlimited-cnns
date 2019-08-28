@@ -9,7 +9,7 @@ such transformations.
 # Use the import below to run the code remotely on a server.
 
 from cnns import matplotlib_backend
-
+print('Using: ', matplotlib_backend.backend)
 import matplotlib
 print('Using: ', matplotlib.get_backend())
 
@@ -763,6 +763,10 @@ def run(args):
                 title=original_title)
             result.add(original_result, prefix="original_")
             print("label for the original image: ", original_result.label)
+
+        if original_result.class_id != args.True_class_id:
+            # The image was mis-classified in the first place.
+            continue
 
         image = original_image
 
@@ -1745,8 +1749,11 @@ if __name__ == "__main__":
                                     f"Unknown recover type: {args.recover_type}")
 
                             if result_run.adv_label is not None:
-                                if result_run.original_label != result_run.adv_label:
-                                    count_adv += 1
+                                if result_run.true_label == result_run.original_label:
+                                    # The classifier was correct.
+                                    if result_run.original_label != result_run.adv_label:
+                                        # The classifier was fooled.
+                                        count_adv += 1
                                 if result_run.true_label != result_run.adv_label:
                                     count_incorrect += 1
                                 total_adv += 1
