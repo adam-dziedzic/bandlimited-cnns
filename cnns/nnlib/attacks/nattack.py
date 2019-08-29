@@ -4,7 +4,7 @@ from foolbox.attacks.base import Attack
 import cv2
 
 # npop = 300  # population size
-npop = 250  # population size
+npop = 100  # population size
 sigma = 0.1  # noise standard deviation
 alpha = 0.02  # learning rate
 # alpha = 0.001  # learning rate
