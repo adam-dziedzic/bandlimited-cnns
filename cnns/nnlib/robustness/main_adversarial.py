@@ -769,10 +769,6 @@ def run(args):
             result.add(original_result, prefix="original_")
             print("label for the original image: ", original_result.label)
 
-        if original_result.class_id != args.True_class_id:
-            # The image was mis-classified in the first place.
-            continue
-
         image = original_image
 
         # from_file = False
@@ -795,7 +791,10 @@ def run(args):
 
         adv_image = None
         created_new_adversarial = False
-        if args.adv_type == AdversarialType.BEFORE:
+        # The image has to be correctly classified in the first place to then
+        # create an adversarial example for it.
+        if args.adv_type == AdversarialType.BEFORE and (
+                original_result.class_id == args.True_class_id):
             attack_name = attack.name()
             print("attack name: ", attack_name)
             # if attack_name != "carliniwagnerl2attack":
@@ -1482,10 +1481,12 @@ if __name__ == "__main__":
                   "svd compress",
                   "attack max iterations",
                   "% base accuracy",
-                  "% accuracy after attack",
+                  "% total accuracy after attack",
                   "% of adversarials",
-                  "% recovered accuracy",
-                  "% recovered many accuracy",
+                  "% total accuracy after recovery",
+                  "% of recovered from adversarial",
+                  "% total accuracy after many recovery",
+                  "% of many recovered from adversarial",
                   "avg. L2 distance defense",
                   "avg. L1 distance defense",
                   "avg. Linf distance defense",
@@ -1501,7 +1502,6 @@ if __name__ == "__main__":
                   "# of recovered",
                   "# of recovered many",
                   "count adv",
-                  "total adv",
                   "adv time (sec)",
                   "defend time (sec)",
                   "run time (sec)\n"]
@@ -1615,8 +1615,6 @@ if __name__ == "__main__":
                             if result_run.original_label is not None and (
                                     result_run.true_label == result_run.original_label):
                                 count_original += 1
-                            else:
-                                continue
 
                             if args.recover_type == "rounding":
                                 if result_run.round_label is not None:
@@ -1756,41 +1754,52 @@ if __name__ == "__main__":
                                 raise Exception(
                                     f"Unknown recover type: {args.recover_type}")
 
-                            if result_run.adv_label is not None:
-                                if result_run.true_label == result_run.original_label:
-                                    # The classifier was correct.
+                            if result_run.original_label is not None and (
+                                    result_run.true_label == result_run.original_label):
+                                # The classifier was correct.
+                                if result_run.adv_label is not None:
                                     if result_run.original_label != result_run.adv_label:
                                         # The classifier was fooled.
                                         count_adv += 1
-                                if result_run.true_label != result_run.adv_label:
-                                    count_incorrect += 1
-                                total_adv += 1
-                                # Aggregate the statistics about the attack.
-                                sum_L2_distance_adv += result_run.adv_L2_distance
-                                sum_L1_distance_adv += result_run.adv_L1_distance
-                                sum_Linf_distance_adv += result_run.adv_Linf_distance
-                                sum_confidence_adv += result_run.adv_confidence
-                                sum_adv_timing += result_run.adv_timing
+                                        # Aggregate the statistics about the attack.
+                                        sum_L2_distance_adv += result_run.adv_L2_distance
+                                        sum_L1_distance_adv += result_run.adv_L1_distance
+                                        sum_Linf_distance_adv += result_run.adv_Linf_distance
+                                        sum_confidence_adv += result_run.adv_confidence
+                                        sum_adv_timing += result_run.adv_timing
+
+
+                            if result_run.true_label != result_run.original_label or (
+                                    result_run.adv_label is not None and result_run.original_label != result_run.adv_label):
+                                count_incorrect += 1
 
                         total_count = args.total_count
 
                         print("total_count: ", total_count)
-                        print("total adv: ", total_adv)
                         print("classified correctly (base model): ",
                               count_original)
                         print("adversarials found: ", count_adv)
                         print("recovered correctly: ", count_recovered)
 
-                        if total_adv > 0:
-                            avg_L2_distance_adv = sum_L2_distance_adv / total_adv
-                            avg_L1_distance_adv = sum_L1_distance_adv / total_adv
-                            avg_Linf_distance_adv = sum_Linf_distance_adv / total_adv
-                            avg_confidence_adv = sum_confidence_adv / total_adv
+                        if count_adv > 0:
+                            avg_L2_distance_adv = sum_L2_distance_adv / count_adv
+                            avg_L1_distance_adv = sum_L1_distance_adv / count_adv
+                            avg_Linf_distance_adv = sum_Linf_distance_adv / count_adv
+                            avg_confidence_adv = sum_confidence_adv / count_adv
                         else:
                             avg_L2_distance_adv = 0.0
                             avg_L1_distance_adv = 0.0
                             avg_Linf_distance_adv = 0.0
                             avg_confidence_adv = 0.0
+
+                        base_accuracy = count_original / total_count * 100
+                        accuracy_after_attack = (1 - count_incorrect / total_count) * 100
+                        percent_of_adversarial_from_correctly_classified = count_adv / count_original * 100
+                        recovered_accuracy = count_recovered / total_count * 100
+                        percent_of_recovered_from_adversarials = count_recovered / count_adv * 100
+                        recovered_many_accuracy = count_many_recovered / total_count * 100
+                        percent_of_many_recovered_from_adversarials = count_many_recovered / count_adv * 100
+
 
                         with open(out_recovered_file, "a") as f:
                             f.write(delimiter.join([str(x) for x in
@@ -1803,12 +1812,13 @@ if __name__ == "__main__":
                                                      args.laplace_epsilon,
                                                      args.svd_compress,
                                                      args.attack_max_iterations,
-                                                     count_original / total_count * 100,
-                                                     (
-                                                             1 - count_incorrect / total_count) * 100,
-                                                     count_adv / total_count * 100,
-                                                     count_recovered / total_count * 100,
-                                                     count_many_recovered / total_count * 100,
+                                                     base_accuracy,
+                                                     accuracy_after_attack,
+                                                     percent_of_adversarial_from_correctly_classified,
+                                                     recovered_accuracy,
+                                                     percent_of_recovered_from_adversarials,
+                                                     recovered_many_accuracy,
+                                                     percent_of_many_recovered_from_adversarials,
                                                      sum_L2_distance_defense / total_count,
                                                      sum_L1_distance_defense / total_count,
                                                      sum_Linf_distance_defense / total_count,
@@ -1824,7 +1834,6 @@ if __name__ == "__main__":
                                                      count_recovered,
                                                      count_many_recovered,
                                                      count_adv,
-                                                     total_adv,
                                                      sum_adv_timing,
                                                      sum_defend_timing,
                                                      run_time]]) + "\n")

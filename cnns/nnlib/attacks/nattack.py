@@ -1,8 +1,10 @@
 import numpy as np
 import torch
 from foolbox.attacks.base import Attack
+import cv2
 
-npop = 300  # population size
+# npop = 300  # population size
+npop = 250  # population size
 sigma = 0.1  # noise standard deviation
 alpha = 0.02  # learning rate
 # alpha = 0.001  # learning rate
@@ -33,6 +35,7 @@ class Nattack(Attack):
         self.stds = args.std_array
         self.iterations = iterations
         self.is_debug = args.is_debug
+        self.dataset = args.dataset
 
     def __call__(self, input_or_adv, label=None, unpack=True,
                  is_channel_last=False):
@@ -40,7 +43,8 @@ class Nattack(Attack):
                        means=self.means, stds=self.stds,
                        is_channel_last=is_channel_last,
                        iterations=self.iterations,
-                       is_debug=self.is_debug)
+                       is_debug=self.is_debug,
+                       dataset=self.dataset)
 
 
 default_mean_array = np.array([0.0, 0.0, 0.0], dtype=np.float32).reshape((3, 1, 1))
@@ -48,7 +52,7 @@ default_std_array = np.array([1.0, 1.0, 1.0], dtype=np.float32).reshape((3, 1, 1
 
 def nattack(input, target, model, means=default_mean_array,
             stds=default_std_array, is_channel_last=False, iterations=500,
-            is_debug=True):
+            is_debug=True, dataset='cifar10'):
     # Nattack as input receives images with value range: [0, 1].
     input = input * stds + means
     if is_channel_last:
@@ -60,12 +64,26 @@ def nattack(input, target, model, means=default_mean_array,
         device = torch.device('cuda')
     else:
         device = torch.device('cpu')
-
+    # Distribution of mean 0 and variance 1 , then multiplied by 0.001.
     modify = np.random.randn(1, C, H, W) * 0.001
     for runstep in range(iterations):
         Nsample = np.random.randn(npop, C, H, W)
 
+        # Step 1: draws a 'seed' z and then maps it by g_0(z) to the space of
+        # the same dimension as the input x. For cifar-10 z lies in the space of
+        # images and g_0(x) is an identity function.
+        # For ImageNet, it is a bi-linear interpolation.
         modify_try = modify.repeat(npop, 0) + sigma * Nsample
+
+        num_classes = 10
+        if dataset == 'imagenet':
+            num_classes = 1000
+            temp = []
+            for x in modify_try:
+                temp.append(cv2.resize(x.transpose(1, 2, 0), dsize=(H, W),
+                                       interpolation=cv2.INTER_LINEAR).transpose(
+                    2, 0, 1))
+            modify_try = np.array(temp)
 
         newimg = torch_arctanh((input - boxplus) / boxmul)
 
@@ -73,9 +91,22 @@ def nattack(input, target, model, means=default_mean_array,
             newimg = newimg.transpose(2, 0, 1)
         # print('newimg', newimg,flush=True)
 
+        # tanh(x) in [-1, +1]
+        # g(z) = tanh(g_0(z)) * 0.5 + 0.5
         inputimg = np.tanh(newimg + modify_try) * boxmul + boxplus
         if runstep % 10 == 0:
-            realinputimg = np.tanh(newimg + modify) * boxmul + boxplus
+            if dataset == 'imagenet':
+                temp = []
+                for x in modify:
+                    temp.append(
+                        cv2.resize(x.transpose(1, 2, 0), dsize=(H, W),
+                                   interpolation=cv2.INTER_LINEAR).transpose(2,
+                                                                             0,
+                                                                             1))
+                modify_test = np.array(temp)
+            else:
+                modify_test = modify
+            realinputimg = np.tanh(newimg + modify_test) * boxmul + boxplus
             realdist = realinputimg - (np.tanh(newimg) * boxmul + boxplus)
             realclipdist = np.clip(realdist, -epsi, epsi)
             # print('realclipdist :', realclipdist, flush=True)
@@ -112,7 +143,7 @@ def nattack(input, target, model, means=default_mean_array,
         clipdist = np.clip(dist, -epsi, epsi)
         clipinput = (clipdist + (
                 np.tanh(newimg) * boxmul + boxplus)).reshape(npop, C, H, W)
-        target_onehot = np.zeros((1, 10))
+        target_onehot = np.zeros((1, num_classes))
 
         target_onehot[0][target] = 1.
         clipinput = np.squeeze(clipinput)

@@ -82,9 +82,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     in_channels = 1
 else:
     # dataset = "mnist"
-    dataset = "cifar10"
+    # dataset = "cifar10"
     # dataset = "cifar100"
-    # dataset = "imagenet"
+    dataset = "imagenet"
     # dataset = "svhn"
 
     batch_size = 32
@@ -95,7 +95,7 @@ else:
     weight_decay = 0.0001
     momentum = 0.9
     # epochs=50
-    epochs = 100
+    epochs = 250
     # epochs = 100
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
@@ -329,13 +329,13 @@ class Arguments(object):
                  # resume="cifar100-0.0-84-checkpoint.tar",
                  resume="",
                  gpu=0,
-                 start_epoch=0,
+                 start_epoch=249,
                  only_train=False,
                  test_compress_rates=False,
                  noise_sigma=0.0,
                  # noise_sigmas=[0.0],
                  # noise_sigmas=[x/1000 for x in range(1, 10)] + [x/100 for x in range(1, 10)] + [x/10 for x in range(1, 11)],
-                 noise_sigmas=[0.009],
+                 noise_sigmas=[0.03],
                  # noise_sigmas=[0.05, 0.06, 0.07, 0.08, 0.09],
                  # noise_sigmas=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
                  # noise_epsilons=[0.1, 0.07, 0.03, 0.009, 0.007, 0.04, 0.02, 0.3],
