@@ -8,9 +8,9 @@ such transformations.
 
 # Use the import below to run the code remotely on a server.
 
-from cnns import matplotlib_backend
+# from cnns import matplotlib_backend
+# print('Using: ', matplotlib_backend.backend)
 
-print('Using: ', matplotlib_backend.backend)
 import matplotlib
 
 print('Using: ', matplotlib.get_backend())
@@ -89,6 +89,7 @@ from cnns.nnlib.utils.general_utils import softmax
 from cnns.nnlib.robustness.channels.channels_definition import \
     gauss_noise_fft_torch
 from foolbox.criteria import TargetClass, Misclassification
+from cnns.nnlib.attacks.simple_blackbox import SimbaSingle
 
 results_folder = "results/"
 delimiter = ";"
@@ -650,6 +651,8 @@ def run(args):
     elif args.attack_name == "Nattack":
         # We operate directly in PyTorch.
         attack = Nattack(model=pytorch_model, args=args)
+    elif args.attack_name == 'SimbaSingle':
+        attack = SimbaSingle(model=pytorch_model, args=args)
     elif args.attack_name == "EmptyAttack":
         attack = EmptyAttack(fmodel)
     elif args.attack_name is None or args.attack_name == 'None':
@@ -724,12 +727,13 @@ def run(args):
                                                # batchsize=3,
                                                shape=(args.init_y, args.init_x),
                                                data_format='channels_first')
-        print("max value in images pixels: ", np.max(images))
+        # print("max value in images pixels: ", np.max(images))
         images = images / 255
-        print("max value in images after 255 division: ", np.max(images))
+        # print("max value in images after 255 division: ", np.max(images))
     else:
         images = test_dataset
         labels = None
+
 
     # for attack_strength in args.attack_strengths:
     for attack in attacks:
@@ -747,6 +751,10 @@ def run(args):
             original_image, args.True_class_id = test_dataset.__getitem__(
                 args.image_index)
             original_image = original_image.numpy()
+
+        print('min : max value in image pixels: ', np.min(original_image), ',',
+              np.max(original_image))
+
         original_image2 = None
 
         if args.dataset == "mnist":
@@ -802,7 +810,8 @@ def run(args):
             if attack_name == "CarliniWagnerL2AttackRoundFFT":
                 full_name += "-" + str(args.recover_type)
             print("full name of stored adversarial example: ", full_name)
-            if os.path.exists(full_name + ".npy") and (
+            is_load_image = False
+            if is_load_image and os.path.exists(full_name + ".npy") and (
                     attack_name != "CarliniWagnerL2AttackRoundFFT") and (
                     attack_name != "GaussAttack") and (
                     attack_name != "CarliniWagnerL2Attack") and (
@@ -1789,20 +1798,22 @@ if __name__ == "__main__":
                             avg_L1_distance_adv = sum_L1_distance_adv / count_adv
                             avg_Linf_distance_adv = sum_Linf_distance_adv / count_adv
                             avg_confidence_adv = sum_confidence_adv / count_adv
+                            percent_of_recovered_from_adversarials = count_recovered / count_adv * 100
+                            percent_of_many_recovered_from_adversarials = count_many_recovered / count_adv * 100
                         else:
                             avg_L2_distance_adv = 0.0
                             avg_L1_distance_adv = 0.0
                             avg_Linf_distance_adv = 0.0
                             avg_confidence_adv = 0.0
+                            percent_of_recovered_from_adversarials = 0.0
+                            percent_of_many_recovered_from_adversarials = 0.0
 
                         base_accuracy = count_original / total_count * 100
                         accuracy_after_attack = (
-                                                            1 - count_incorrect / total_count) * 100
+                                                        1 - count_incorrect / total_count) * 100
                         percent_of_adversarial_from_correctly_classified = count_adv / count_original * 100
                         recovered_accuracy = count_recovered / total_count * 100
-                        percent_of_recovered_from_adversarials = count_recovered / count_adv * 100
                         recovered_many_accuracy = count_many_recovered / total_count * 100
-                        percent_of_many_recovered_from_adversarials = count_many_recovered / count_adv * 100
 
                         with open(out_recovered_file, "a") as f:
                             f.write(delimiter.join([str(x) for x in
