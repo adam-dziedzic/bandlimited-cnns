@@ -13,7 +13,8 @@ boxmax = 1
 boxplus = (boxmin + boxmax) / 2.
 boxmul = (boxmax - boxmin) / 2.
 
-epsi = 0.031
+epsi_inf = 0.031
+epsi_l2 = 0.009
 epsilon = 1e-30
 
 
@@ -47,12 +48,36 @@ class Nattack(Attack):
                        dataset=self.dataset)
 
 
-default_mean_array = np.array([0.0, 0.0, 0.0], dtype=np.float32).reshape((3, 1, 1))
-default_std_array = np.array([1.0, 1.0, 1.0], dtype=np.float32).reshape((3, 1, 1))
+default_mean_array = np.array([0.0, 0.0, 0.0], dtype=np.float32).reshape(
+    (3, 1, 1))
+default_std_array = np.array([1.0, 1.0, 1.0], dtype=np.float32).reshape(
+    (3, 1, 1))
 
-def nattack(input, target, model, means=default_mean_array,
-            stds=default_std_array, is_channel_last=False, iterations=500,
-            is_debug=True, dataset='cifar10'):
+
+def clipping(realdist, dist_type):
+    if dist_type == "Linf":
+        realclipdist = np.clip(realdist, -epsi_inf, epsi_inf)
+    elif dist_type == "L2":
+        l2_realdist = np.sqrt(np.sum(np.square(realdist)))
+        if l2_realdist > epsi_l2:
+            realclipdist = realdist * epsi_l2 / l2_realdist
+        else:
+            realclipdist = realdist.copy()
+    else:
+        raise Exception(f'Unknown dist_type: {dist_type}')
+    return realclipdist
+
+
+def nattack(input, target, model,
+            means=default_mean_array,
+            stds=default_std_array,
+            is_channel_last=False,
+            iterations=500,
+            is_debug=True,
+            dataset='cifar10',
+            dist_type='L2',
+            # dist_type='Linf',
+            ):
     # Nattack as input receives images with value range: [0, 1].
     input = input * stds + means
     if is_channel_last:
@@ -108,12 +133,13 @@ def nattack(input, target, model, means=default_mean_array,
                 modify_test = modify
             realinputimg = np.tanh(newimg + modify_test) * boxmul + boxplus
             realdist = realinputimg - (np.tanh(newimg) * boxmul + boxplus)
-            realclipdist = np.clip(realdist, -epsi, epsi)
+            # realclipdist = np.clip(realdist, -epsi_inf, epsi_inf)
+            realclipdist = clipping(realdist, dist_type)
             # print('realclipdist :', realclipdist, flush=True)
             realclipinput = realclipdist + (
                     np.tanh(newimg) * boxmul + boxplus)
-            l2real = np.sum((realclipinput - (
-                    np.tanh(newimg) * boxmul + boxplus)) ** 2) ** 0.5
+            # l2real = np.sum((realclipinput - (
+            #         np.tanh(newimg) * boxmul + boxplus)) ** 2) ** 0.5
             # l2real =  np.abs(realclipinput - inputs.numpy())
             # print('inputs shape: ', input.shape)
             # outputsreal = model(realclipinput.transpose(0,2,3,1)).data.cpu().numpy()
@@ -134,13 +160,13 @@ def nattack(input, target, model, means=default_mean_array,
                 print('negative_probs ', np.sort(outputsreal)[0:3:1])
 
             if (np.argmax(outputsreal) != target) and (
-                    np.abs(realclipdist).max() <= epsi):
+                    np.abs(realclipdist).max() <= epsi_inf):
                 # success = True
                 # break
                 return realclipinput.squeeze()
                 # imsave(folder+classes[targets[0]]+'_'+str("%06d" % batch_idx)+'.jpg',inputs.transpose(1,2,0))
         dist = inputimg - (np.tanh(newimg) * boxmul + boxplus)
-        clipdist = np.clip(dist, -epsi, epsi)
+        clipdist = clipping(realdist=dist, dist_type=dist_type)
         clipinput = (clipdist + (
                 np.tanh(newimg) * boxmul + boxplus)).reshape(npop, C, H, W)
         target_onehot = np.zeros((1, num_classes))

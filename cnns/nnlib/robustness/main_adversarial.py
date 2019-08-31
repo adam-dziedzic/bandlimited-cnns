@@ -805,7 +805,9 @@ def run(args):
             if os.path.exists(full_name + ".npy") and (
                     attack_name != "CarliniWagnerL2AttackRoundFFT") and (
                     attack_name != "GaussAttack") and (
-                    attack_name != "CarliniWagnerL2Attack"):
+                    attack_name != "CarliniWagnerL2Attack") and (
+                    attack_name != "Nattack"
+            ):
                 # and not (attack_name.startswith('FFT')):
                 adv_image = np.load(file=full_name + ".npy")
                 result.adv_timing = -1
@@ -883,6 +885,8 @@ def run(args):
                     title="adv.")
                 print("adversarial label, id: ", result_adv.label,
                       result_adv.class_id)
+                print('adversarial L2 dist: ', result_adv.L2_distance)
+                print('adversarial Linf dist: ', result_adv.Linf_distance)
                 result.add(result_adv, prefix="adv_")
             else:
                 print('the adversarial example has not been found.')
@@ -1768,7 +1772,6 @@ if __name__ == "__main__":
                                         sum_confidence_adv += result_run.adv_confidence
                                         sum_adv_timing += result_run.adv_timing
 
-
                             if result_run.true_label != result_run.original_label or (
                                     result_run.adv_label is not None and result_run.original_label != result_run.adv_label):
                                 count_incorrect += 1
@@ -1793,13 +1796,13 @@ if __name__ == "__main__":
                             avg_confidence_adv = 0.0
 
                         base_accuracy = count_original / total_count * 100
-                        accuracy_after_attack = (1 - count_incorrect / total_count) * 100
+                        accuracy_after_attack = (
+                                                            1 - count_incorrect / total_count) * 100
                         percent_of_adversarial_from_correctly_classified = count_adv / count_original * 100
                         recovered_accuracy = count_recovered / total_count * 100
                         percent_of_recovered_from_adversarials = count_recovered / count_adv * 100
                         recovered_many_accuracy = count_many_recovered / total_count * 100
                         percent_of_many_recovered_from_adversarials = count_many_recovered / count_adv * 100
-
 
                         with open(out_recovered_file, "a") as f:
                             f.write(delimiter.join([str(x) for x in
