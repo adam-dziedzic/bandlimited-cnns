@@ -94,8 +94,9 @@ else:
     learning_rate = 0.01
     weight_decay = 0.0001
     momentum = 0.9
+    epochs = 1
     # epochs=50
-    epochs = 250
+    # epochs = 250
     # epochs = 100
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
@@ -329,7 +330,7 @@ class Arguments(object):
                  # resume="cifar100-0.0-84-checkpoint.tar",
                  resume="",
                  gpu=0,
-                 start_epoch=249,
+                 start_epoch=0,
                  only_train=False,
                  test_compress_rates=False,
                  noise_sigma=0.0,

@@ -355,7 +355,8 @@ def replace_frequency(original_image, images, labels, attack_fn, args,
 
 
 def classify_image(image, original_image, args, title="",
-                   clip_input_image=False, ylabel_text="Original image"):
+                   clip_input_image=False, ylabel_text="Original image",
+                   is_denormalize=True):
     result = Object()
     predictions = args.fmodel.predictions(image=image)
     soft_predictions = softmax(predictions)
@@ -403,7 +404,9 @@ def classify_image(image, original_image, args, title="",
             # image = torch.clamp(image, min = args.min, max=args.max)
             image_show = np.clip(image_show, a_min=args.min,
                                  a_max=args.max)
-        image_show = args.denormalizer.denormalize(image_show)
+        if is_denormalize:
+            # Go to the 0-1 range.
+            image_show = args.denormalizer.denormalize(image_show)
         if clip_input_image:
             image_show = np.clip(image, a_min=0, a_max=1)
         if args.dataset == "mnist":
@@ -580,8 +583,8 @@ def run(args):
     # fft_types = ["magnitude", "phase"]
     fft_types = []
     if args.is_debug:
-        fft_types = ["magnitude"]
-        # fft_types = []
+        # fft_types = ["magnitude"]
+        fft_types = []
 
     # channels = [x for x in range(channels_nr)]
     channels = [0]
@@ -684,6 +687,9 @@ def run(args):
         if show_diff:
             col_diff = 2
             cols += col_diff
+        show_diff_spatial = True
+        if show_diff_spatial:
+            cols += 1
         show_2nd = False  # show 2nd image
         if show_2nd:
             # Should we show the diffs?
@@ -734,7 +740,6 @@ def run(args):
         images = test_dataset
         labels = None
 
-
     # for attack_strength in args.attack_strengths:
     for attack in attacks:
         # get source image and label, args.idx - is the index of the image
@@ -754,6 +759,10 @@ def run(args):
 
         print('min : max value in image pixels: ', np.min(original_image), ',',
               np.max(original_image))
+        # np.set_printoptions(threshold=2**30)
+        # print(original_image)
+        print(args.True_class_id)
+        # np.save(file='imagenet_249' + ".npy", arr=original_image)
 
         original_image2 = None
 
@@ -810,7 +819,7 @@ def run(args):
             if attack_name == "CarliniWagnerL2AttackRoundFFT":
                 full_name += "-" + str(args.recover_type)
             print("full name of stored adversarial example: ", full_name)
-            is_load_image = False
+            is_load_image = True
             if is_load_image and os.path.exists(full_name + ".npy") and (
                     attack_name != "CarliniWagnerL2AttackRoundFFT") and (
                     attack_name != "GaussAttack") and (
@@ -879,6 +888,18 @@ def run(args):
                     title="target",
                 )
                 result.add(result_original2, prefix="original2_")
+
+            if show_diff_spatial:
+                original_01 = args.denormalizer.denormalize(original_image)
+                adv_01 = args.denormalizer.denormalize(adv_image)
+                diff = 10 * (original_01 - adv_01)
+                classify_image(
+                    image=diff,
+                    original_image=original_image,
+                    args=args,
+                    title="difference",
+                    is_denormalize=False,
+                )
 
             if adv_image is not None:
                 l2_dist_adv_original = args.meter.measure(original_image,
@@ -1388,7 +1409,7 @@ if __name__ == "__main__":
     # index_range = range(0, 1000)
     # index_range = [1000]
     if args.is_debug:
-        args.use_foolbox_data = False
+        args.use_foolbox_data = True
     if args.use_foolbox_data:
         pass
     elif args.dataset == "imagenet":
