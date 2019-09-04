@@ -94,7 +94,7 @@ else:
     learning_rate = 0.01
     weight_decay = 0.0001
     momentum = 0.9
-    epochs = 1
+    epochs = 14101
     # epochs=50
     # epochs = 250
     # epochs = 100
@@ -330,7 +330,7 @@ class Arguments(object):
                  # resume="cifar100-0.0-84-checkpoint.tar",
                  resume="",
                  gpu=0,
-                 start_epoch=0,
+                 start_epoch=14100,
                  only_train=False,
                  test_compress_rates=False,
                  noise_sigma=0.0,
@@ -362,7 +362,7 @@ class Arguments(object):
                  schedule_factor=schedule_factor,
                  compress_fft_layer=0,
                  # attack_name="CarliniWagnerL2AttackRoundFFT",
-                 # attack_name="CarliniWagnerL2Attack",
+                 attack_name="CarliniWagnerL2Attack",
                  # attack_name=None,
                  # attack_name="FGSM",
                  # attack_name="GaussAttack",
@@ -379,7 +379,7 @@ class Arguments(object):
                  # attack_name="FFTMultipleFrequencyBinarySearchAttack",
                  # attack_name="EmptyAttack",
                  # attack_name="Nattack",
-                 attack_name="SimbaSingle",
+                 # attack_name="SimbaSingle",
                  interpolate="const",
                  # recover_type="rounding",
                  # recover_type="fft",
@@ -550,7 +550,7 @@ class Arguments(object):
         self.adv_type = adv_type
         self.prediction_type = prediction_type
         self.attack_strengths = attack_strengths
-        self.targeted_attack = False
+        self.targeted_attack = True
 
         # deeprl
         # self.env_name = "Reacher-v2"

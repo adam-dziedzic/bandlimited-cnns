@@ -114,7 +114,7 @@ def get_fmodel(args):
         args.std_array = imagenet_std_array
         args.num_classes = 1000
         if args.targeted_attack:
-            args.target_label = "folding chair"
+            args.target_label = "tiger cat"  # "folding chair"
             args.target_label_id = imagenet_from_class_label_to_idx[
                 args.target_label]
 
@@ -568,7 +568,7 @@ def run(args):
     criterion_name = 'Misclassifiction'  # 'TargetClass' or 'Misclassification'
     # criterion_name = 'TargetClass'
 
-    if criterion_name == "TargetClass":
+    if args.targeted_attack:
         target_class = 282
         criterion = TargetClass(target_class=target_class)
         print(f'target class id: {target_class}')
@@ -819,7 +819,7 @@ def run(args):
             if attack_name == "CarliniWagnerL2AttackRoundFFT":
                 full_name += "-" + str(args.recover_type)
             print("full name of stored adversarial example: ", full_name)
-            is_load_image = True
+            is_load_image = False
             if is_load_image and os.path.exists(full_name + ".npy") and (
                     attack_name != "CarliniWagnerL2AttackRoundFFT") and (
                     attack_name != "GaussAttack") and (
@@ -835,10 +835,8 @@ def run(args):
                     adv_image = attack(
                         original_image, args.True_class_id,
                         # max_iterations=args.attack_max_iterations,
-                        max_iterations=2, binary_search_steps=1,
-                        initial_const=1e+12,
-                        # max_iterations=1000, binary_search_steps=5,
-                        # initial_const=0.01,
+                        # max_iterations=2, binary_search_steps=1, initial_const=1e+12,
+                        max_iterations=1000, binary_search_steps=5, initial_const=0.01,
                     )
                 elif attack_name == "GaussAttack":
                     adv_image = GaussAttack(original_image,
@@ -1409,7 +1407,7 @@ if __name__ == "__main__":
     # index_range = range(0, 1000)
     # index_range = [1000]
     if args.is_debug:
-        args.use_foolbox_data = True
+        args.use_foolbox_data = False
     if args.use_foolbox_data:
         pass
     elif args.dataset == "imagenet":
