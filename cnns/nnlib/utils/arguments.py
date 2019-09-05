@@ -92,12 +92,15 @@ else:
     # test_batch_size = 256
     test_batch_size = batch_size
     learning_rate = 0.01
+    if dataset == 'imagenet':
+        learning_rate = 0.1
     weight_decay = 0.0001
     momentum = 0.9
-    epochs = 14101
+    # epochs = 14101
     # epochs=50
     # epochs = 250
     # epochs = 100
+    epochs = 10000
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
@@ -330,7 +333,9 @@ class Arguments(object):
                  # resume="cifar100-0.0-84-checkpoint.tar",
                  resume="",
                  gpu=0,
-                 start_epoch=14100,
+                 # start_epoch=14100,
+                 # start_epoch=50,
+                 start_epoch=50,
                  only_train=False,
                  test_compress_rates=False,
                  noise_sigma=0.0,
@@ -390,7 +395,7 @@ class Arguments(object):
                  # recover_type="empty",
                  noise_epsilon=0.0,
                  noise_epsilons=[0.0],
-                 step_size=1,
+                 step_size=50,
                  noise_iterations=0,
                  many_noise_iterations=[0],
                  recover_iterations=0,

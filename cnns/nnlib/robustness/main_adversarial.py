@@ -90,6 +90,7 @@ from cnns.nnlib.robustness.channels.channels_definition import \
     gauss_noise_fft_torch
 from foolbox.criteria import TargetClass, Misclassification
 from cnns.nnlib.attacks.simple_blackbox import SimbaSingle
+from cnns.nnlib.robustness.gradients.compute import compute_gradients
 
 results_folder = "results/"
 delimiter = ";"
@@ -823,7 +824,7 @@ def run(args):
             if is_load_image and os.path.exists(full_name + ".npy") and (
                     attack_name != "CarliniWagnerL2AttackRoundFFT") and (
                     attack_name != "GaussAttack") and (
-                    attack_name != "CarliniWagnerL2Attack") and (
+                    # attack_name != "CarliniWagnerL2Attack") and (
                     attack_name != "Nattack"
             ):
                 # and not (attack_name.startswith('FFT')):
@@ -836,7 +837,8 @@ def run(args):
                         original_image, args.True_class_id,
                         # max_iterations=args.attack_max_iterations,
                         # max_iterations=2, binary_search_steps=1, initial_const=1e+12,
-                        max_iterations=1000, binary_search_steps=5, initial_const=0.01,
+                        max_iterations=2000, binary_search_steps=5,
+                        initial_const=0.01, confidence=1000,
                     )
                 elif attack_name == "GaussAttack":
                     adv_image = GaussAttack(original_image,
@@ -1014,6 +1016,15 @@ def run(args):
                   result_gauss.label, result_gauss.class_id)
         else:
             result.gauss_label = None
+
+        if adv_image is not None and original_result.class_id == args.True_class_id:
+            gradients = compute_gradients(args=args, model=pytorch_model,
+                              original_image=original_image,
+                              original_label=original_result.class_id,
+                              adv_image=adv_image,
+                              adv_label=result_adv.class_id,
+                              gauss_image=gauss_image)
+
 
         if args.noise_epsilon > 0 and image is not None:
             print("uniform additive noise defense")
