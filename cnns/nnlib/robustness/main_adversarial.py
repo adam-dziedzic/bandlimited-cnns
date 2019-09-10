@@ -824,7 +824,7 @@ def run(args):
             if is_load_image and os.path.exists(full_name + ".npy") and (
                     attack_name != "CarliniWagnerL2AttackRoundFFT") and (
                     attack_name != "GaussAttack") and (
-                    # attack_name != "CarliniWagnerL2Attack") and (
+                    attack_name != "CarliniWagnerL2Attack") and (
                     attack_name != "Nattack"
             ):
                 # and not (attack_name.startswith('FFT')):
@@ -837,8 +837,8 @@ def run(args):
                         original_image, args.True_class_id,
                         # max_iterations=args.attack_max_iterations,
                         # max_iterations=2, binary_search_steps=1, initial_const=1e+12,
-                        max_iterations=2000, binary_search_steps=5,
-                        initial_const=0.01, confidence=1000,
+                        max_iterations=1000, binary_search_steps=5,
+                        initial_const=attack_strength, confidence=10000,
                     )
                 elif attack_name == "GaussAttack":
                     adv_image = GaussAttack(original_image,
@@ -1018,13 +1018,41 @@ def run(args):
             result.gauss_label = None
 
         if adv_image is not None and original_result.class_id == args.True_class_id:
-            gradients = compute_gradients(args=args, model=pytorch_model,
-                              original_image=original_image,
-                              original_label=original_result.class_id,
-                              adv_image=adv_image,
-                              adv_label=result_adv.class_id,
-                              gauss_image=gauss_image)
+            gradients, grad_stats = compute_gradients(args=args,
+                                                      model=pytorch_model,
+                                                      original_image=original_image,
+                                                      original_label=original_result.class_id,
+                                                      adv_image=adv_image,
+                                                      adv_label=result_adv.class_id,
+                                                      gauss_image=gauss_image)
+            if result_adv:
+                grad_stats['adv_confidence'] = result_adv.confidence
+            if original_result:
+                grad_stats['original_confidence'] = original_result.confidence
+            if result_gauss:
+                is_gauss_recovered = (
+                            result_gauss.class_id == args.True_class_id)
+                grad_stats['is_gauss_recovered'] = is_gauss_recovered
+            else:
+                raise Exception('We need the result of adding Gaussian noise.')
 
+            grad_stats['image_index'] = args.image_index
+            grad_stats['attack_strength'] = args.attack_strength
+
+            # Write with respect to the recovered or not.
+            with open(args.global_log_time + '_grad_stats_' + str(
+                    is_gauss_recovered) + '.csv', 'a') as file:
+                for key in sorted(grad_stats.keys()):
+                    val = grad_stats[key]
+                    file.write(key + ';' + str(val) + ';')
+                file.write('\n')
+
+            # Write everything.
+            with open(args.global_log_time + '_grad_stats.csv', 'a') as file:
+                for key in sorted(grad_stats.keys()):
+                    val = grad_stats[key]
+                    file.write(key + ';' + str(val) + ';')
+                file.write('\n')
 
         if args.noise_epsilon > 0 and image is not None:
             print("uniform additive noise defense")
@@ -1396,6 +1424,7 @@ if __name__ == "__main__":
     # args.diff_type = "source"  # "source" or "fft"
     args.diff_type = "fft"
     args.show_original = True
+    args.global_log_time = get_log_time()
     # args.max_iterations = 1000
     # args.max_iterations = 20
     # args.noise_iterations = 1

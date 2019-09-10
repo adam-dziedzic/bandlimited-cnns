@@ -98,9 +98,10 @@ else:
     momentum = 0.9
     # epochs = 14101
     # epochs=50
-    # epochs = 250
+    # epochs = 101
     # epochs = 100
-    epochs = 10000
+    epochs = 50000
+    # epochs = 250
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
@@ -335,7 +336,8 @@ class Arguments(object):
                  gpu=0,
                  # start_epoch=14100,
                  # start_epoch=50,
-                 start_epoch=50,
+                 start_epoch=10000,
+                 # start_epoch=249,
                  only_train=False,
                  test_compress_rates=False,
                  noise_sigma=0.0,
@@ -415,8 +417,8 @@ class Arguments(object):
                  # 'regression' or 'classification'
                  # attack_strengths=[0.01, 0.03, 0.04, 0.05, 0.07, 0.1, 0.5, 1.0],
                  # attack_strengths=[0.08, 0.09, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9],
-                 # attack_strengths=(0.01, 0.03, 0.04, 0.05, 0.07, 0.08, 0.09, 0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9, 1.0,),
-                 attack_strengths=(0.0,),
+                 attack_strengths=(0.01, 0.03, 0.04, 0.05, 0.07, 0.08, 0.09, 0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9, 1.0,),
+                 # attack_strengths=(0.0,),
                  ):
         """
         The default parameters for the execution of the program.
