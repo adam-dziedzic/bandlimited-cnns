@@ -666,6 +666,7 @@ def run(args):
         raise Exception("Unknown attack name: " + str(args.attack_name))
     attacks = [attack]
 
+    show_diff_spatial = False
     if args.is_debug:
         # 1 is for the first row of images.
         rows = len(attacks) * (1 + len(fft_types) * len(channels))
@@ -889,7 +890,7 @@ def run(args):
                 )
                 result.add(result_original2, prefix="original2_")
 
-            if show_diff_spatial:
+            if args.is_debug and show_diff_spatial:
                 original_01 = args.denormalizer.denormalize(original_image)
                 adv_01 = args.denormalizer.denormalize(adv_image)
                 diff = 10 * (original_01 - adv_01)
@@ -1870,7 +1871,11 @@ if __name__ == "__main__":
                         base_accuracy = count_original / total_count * 100
                         accuracy_after_attack = (
                                                         1 - count_incorrect / total_count) * 100
-                        percent_of_adversarial_from_correctly_classified = count_adv / count_original * 100
+                        if count_original > 0:
+                            percent_of_adversarial_from_correctly_classified = count_adv / count_original * 100
+                        else:
+                            percent_of_adversarial_from_correctly_classified = 0
+                            print('The image was misclassified                            percent_of_adversarial_from_correctly_classified!')
                         recovered_accuracy = count_recovered / total_count * 100
                         recovered_many_accuracy = count_many_recovered / total_count * 100
 
