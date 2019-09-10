@@ -8,8 +8,8 @@ such transformations.
 
 # Use the import below to run the code remotely on a server.
 
-# from cnns import matplotlib_backend
-# print('Using: ', matplotlib_backend.backend)
+from cnns import matplotlib_backend
+print('Using: ', matplotlib_backend.backend)
 
 import matplotlib
 
