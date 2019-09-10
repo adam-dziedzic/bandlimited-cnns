@@ -100,8 +100,9 @@ else:
     # epochs=50
     # epochs = 101
     # epochs = 100
-    epochs = 50000
+    # epochs = 50000
     # epochs = 250
+    epochs = 10001
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
