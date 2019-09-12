@@ -8,7 +8,8 @@ def load_model(args, pretrained=False):
     model = getModelPyTorch(args=args, pretrained=pretrained)
     # load pretrained weights
     models_folder_name = "models"
-    models_dir = os.path.join(os.getcwd(), os.path.pardir,
+    cur_dir = os.path.dirname(os.path.realpath(__file__))
+    models_dir = os.path.join(cur_dir, os.path.pardir,
                               "pytorch_experiments", models_folder_name)
     if args.model_path != "no_model":
         model.load_state_dict(

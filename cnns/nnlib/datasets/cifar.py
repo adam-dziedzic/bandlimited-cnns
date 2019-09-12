@@ -13,6 +13,7 @@ from cnns.nnlib.utils.general_utils import NetworkType
 import numpy as np
 import matplotlib.pyplot as plt
 from six.moves import cPickle
+import os
 
 cifar_mean = (0.4914, 0.4822, 0.4465)
 cifar_mean_mean = 0.47337
@@ -137,8 +138,8 @@ def get_cifar(args, dataset_name):
         args.signal_dimension = 2
     else:
         raise Exception(f"Uknown network type: {args.network_type.name}")
-
-    train_dataset = dataset_loader(root='./data', train=True,
+    cur_dir = os.path.dirname(os.path.realpath(__file__))
+    train_dataset = dataset_loader(root=cur_dir + '/data', train=True,
                                    download=True,
                                    transform=get_transform_train(
                                        args=args,
@@ -158,7 +159,7 @@ def get_cifar(args, dataset_name):
                                                shuffle=True,
                                                **kwargs)
 
-    test_dataset = dataset_loader(root='./data', train=False,
+    test_dataset = dataset_loader(root=cur_dir + '/data', train=False,
                                   download=True,
                                   transform=get_transform_test(
                                       args=args,

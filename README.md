@@ -37,6 +37,9 @@ Install python libraries:
 - py3nvml
 - torch_dct (pip install torch_dct)
 
+Install hessian library for PyTorch:
+pip install --upgrade git+https://github.com/noahgolmant/pytorch-hessian-eigenthings.git@master#egg=hessian-eigenthings
+
 Install CUDA kernel:
 `cnns/nnlib/pytorch_cuda/complex_mul_cuda/clean_install.sh` (adjust your python path inside the bash script).
 

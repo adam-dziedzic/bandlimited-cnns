@@ -128,14 +128,40 @@ yes_100 = {  # ylabel: "L2 adv",
     xlim: (0, 100),
     ylim: (0, 100)}
 
+recovered = {  # ylabel: "L2 adv",
+    # file_name: "2019-09-09-18-28-04-319343_grad_stats_True.csv",
+    file_name: "recovered.csv",
+    title: "recovered",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    # bbox: (0.0, 0.0),
+    column_nr: 56,
+    legend_cols: 2,
+    labels: ['recovered'],
+    xlim: (0, 100),
+    ylim: (0, 100)}
+
+
+not_recovered = {  # ylabel: "L2 adv",
+    # file_name: "2019-09-09-18-28-04-319343_grad_stats_False.csv",
+    file_name: "not_recovered.csv",
+    title: "not recovered",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    # bbox: (0.0, 0.0),
+    column_nr: 56,
+    legend_cols: 2,
+    labels: ['not recovered'],
+    xlim: (0, 100),
+    ylim: (0, 100)}
+
 colors = [get_color(color) for color in
           [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
 markers = ["+", "o", "v", "s", "D", "^", "+"]
 linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 
-datasets = [no_259,
-            no_200,
-            yes_100,
+datasets = [recovered,
+            not_recovered,
             # yes_1070,
             # no_1070,
             # carlini_imagenet,
@@ -166,12 +192,14 @@ for j, dataset in enumerate(datasets):
 
     plt.plot(cols[25], cols[27], label=f"{dataset[labels][0]}",
              # lw=line_width,
-             color=colors[j], linestyle=linestyles[j],
+             color=colors[j],
+             # linestyle=linestyles[j],
+             linestyle='None',
              marker=markers[j % len(markers)])
 
     plt.grid()
     plt.legend(loc=dataset[legend_pos], ncol=dataset[legend_cols],
-               frameon=False,
+               frameon=True,
                prop={'size': legend_size},
                # bbox_to_anchor=dataset[bbox]
                )
@@ -179,8 +207,8 @@ plt.ylabel('grad L2 for adv class')
 plt.xlabel('grad L2 for correct class')
 plt.title('Gradients ratio and recovery', fontsize=title_size)
 
-# plt.ylim(dataset[ylim])
-# plt.xlim(dataset[xlim])
+plt.ylim((0,20))
+plt.xlim((0,20))
 
 # plt.gcf().autofmt_xdate()
 # plt.xticks(rotation=0)
@@ -188,7 +216,7 @@ plt.title('Gradients ratio and recovery', fontsize=title_size)
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "grad_stats_graph." + format
+destination = dir_path + "/" + "grad_stats_graph_only_false_true_many_images2." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',

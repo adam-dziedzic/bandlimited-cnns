@@ -7,8 +7,8 @@ such transformations.
 # %matplotlib inline
 
 # Use the import below to run the code remotely on a server.
-
 from cnns import matplotlib_backend
+
 print('Using: ', matplotlib_backend.backend)
 
 import matplotlib
@@ -20,43 +20,19 @@ matplotlib.rcParams['ps.fonttype'] = 42
 import matplotlib.pyplot as plt
 
 import time
+import pickle
 import os
 import foolbox
 import numpy as np
 import torch
 from random import sample
-from cnns.nnlib.datasets.imagenet.imagenet_from_class_idx_to_label import \
-    imagenet_from_class_idx_to_label
-from cnns.nnlib.datasets.imagenet.imagenet_from_class_label_to_idx import \
-    imagenet_from_class_label_to_idx
-from cnns.nnlib.datasets.cifar10_from_class_idx_to_label import \
-    cifar10_from_class_idx_to_label
-from cnns.nnlib.datasets.cifar10_from_class_label_to_idx import \
-    cifar10_from_class_label_to_idx
 from cnns.nnlib.utils.exec_args import get_args
-from cnns.nnlib.datasets.cifar import get_cifar
-from cnns.nnlib.datasets.mnist.mnist import get_mnist
-from cnns.nnlib.utils.model_utils import load_model
-from cnns.nnlib.datasets.cifar import cifar_max, cifar_min
-from cnns.nnlib.datasets.cifar import cifar_std_array, cifar_mean_array
-from cnns.nnlib.datasets.cifar import cifar_mean_mean
-from cnns.nnlib.datasets.mnist.mnist import mnist_max, mnist_min
-from cnns.nnlib.datasets.mnist.mnist import mnist_mean_mean
-from cnns.nnlib.datasets.mnist.mnist import mnist_std_array, mnist_mean_array
-from cnns.nnlib.datasets.mnist.mnist_from_class_idx_to_label import \
-    mnist_from_class_idx_to_label
-from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_max
-from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_min
-from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_mean_array
-from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_std_array
-from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_mean_mean
 from cnns.nnlib.attacks.carlini_wagner_round_fft import \
     CarliniWagnerL2AttackRoundFFT
 from cnns.nnlib.utils.general_utils import get_log_time
 from cnns.nnlib.datasets.transformations.normalize import Normalize
 from cnns.nnlib.datasets.transformations.denormalize import Denormalize
 from cnns.nnlib.datasets.transformations.denorm_distance import DenormDistance
-from cnns.nnlib.datasets.imagenet.imagenet_pytorch import load_imagenet
 from cnns.nnlib.utils.complex_mask import get_hyper_mask
 from foolbox.attacks.additive_noise import AdditiveUniformNoiseAttack
 from foolbox.attacks.additive_noise import AdditiveGaussianNoiseAttack
@@ -65,7 +41,6 @@ from cnns.nnlib.robustness.utils import to_fft
 from cnns.nnlib.robustness.utils import laplace_noise
 from cnns.nnlib.robustness.randomized_defense import defend
 import matplotlib
-import torchvision.models as models
 from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBandFunction2D
 from cnns.nnlib.datasets.transformations.denorm_round_norm import \
     DenormRoundNorm
@@ -91,6 +66,8 @@ from cnns.nnlib.robustness.channels.channels_definition import \
 from foolbox.criteria import TargetClass, Misclassification
 from cnns.nnlib.attacks.simple_blackbox import SimbaSingle
 from cnns.nnlib.robustness.gradients.compute import compute_gradients
+from cnns.nnlib.robustness.fmodel import get_fmodel
+from cnns.nnlib.datasets.load_data import get_data
 
 results_folder = "results/"
 delimiter = ";"
@@ -100,90 +77,8 @@ font = {'family': 'normal',
 
 matplotlib.rc('font', **font)
 
-
-def get_fmodel(args):
-    if args.dataset == "imagenet":
-        args.cmap = None
-        args.init_y, args.init_x = 224, 224
-
-        min = imagenet_min
-        max = imagenet_max
-        args.min = min
-        args.max = max
-        args.mean_array = imagenet_mean_array
-        args.mean_mean = imagenet_mean_mean
-        args.std_array = imagenet_std_array
-        args.num_classes = 1000
-        if args.targeted_attack:
-            args.target_label = "tiger cat"  # "folding chair"
-            args.target_label_id = imagenet_from_class_label_to_idx[
-                args.target_label]
-
-        pytorch_model = models.resnet50(pretrained=True).eval().to(
-            device=args.device)
-        # network_model = load_model(args=args, pretrained=True)
-
-        from_class_idx_to_label = imagenet_from_class_idx_to_label
-
-    elif args.dataset == "cifar10":
-        args.cmap = None
-        args.init_y, args.init_x = 32, 32
-        args.num_classes = 10
-        if args.targeted_attack:
-            args.target_label = "frog"
-            args.target_label_id = cifar10_from_class_label_to_idx[
-                args.target_label]
-        # args.values_per_channel = 0
-        # args.model_path = "saved_model_2019-04-08-16-51-16-845688-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.22-channel-vals-0.model"
-        # args.model_path = "saved_model_2019-04-08-19-41-48-571492-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.5.model"
-        # args.model_path = "2019-01-14-15-36-20-089354-dataset-cifar10-preserve-energy-100.0-test-accuracy-93.48-compress-rate-0-resnet18.model"
-        # args.model_path = "saved_model_2019-04-13-06-54-15-810999-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-91.64-channel-vals-8.model"
-        # args.compress_rate = 5
-        # args.compress_rates = [args.compress_rate]
-        # if args.model_path == "no_model":
-        # args.model_path = "saved-model-2019-05-11-22-20-59-242197-dataset-cifar10-preserve-energy-100-compress-rate-5.0-test-accuracy-93.43-channel-vals-0.model"
-        # args.attack_type = AttackType.BAND_ONLY
-        # args.model_path = "saved_model_2019-04-13-10-25-49-315784-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.08-channel-vals-32.model"
-        # args.model_path = "saved_model2019-05-11-18-54-18-392325-dataset-cifar10-preserve-energy-100.0-compress-rate-5.0-test-accuracy-91.21-channel-vals-8.model"
-        args.in_channels = 3
-        min = cifar_min
-        max = cifar_max
-        args.min = min
-        args.max = max
-        args.mean_array = cifar_mean_array
-        args.mean_mean = cifar_mean_mean
-        args.std_array = cifar_std_array
-        pytorch_model = load_model(args=args)
-        from_class_idx_to_label = cifar10_from_class_idx_to_label
-
-    elif args.dataset == "mnist":
-        args.cmap = "gray"
-        args.init_y, args.init_x = 28, 28
-        args.num_classes = 10
-        # args.values_per_channel = 2
-        # args.model_path = "2019-05-03-10-08-51-149612-dataset-mnist-preserve-energy-100-compress-rate-0.0-test-accuracy-99.07-channel-vals-0.model"
-        # args.compress_rate = 0
-        # args.compress_rates = [args.compress_rate]
-        args.in_channels = 1
-        min = mnist_min
-        max = mnist_max
-        args.min = min
-        args.max = max
-        args.mean_array = mnist_mean_array
-        args.mean_mean = mnist_mean_mean
-        args.std_array = mnist_std_array
-        # args.network_type = NetworkType.Net
-        pytorch_model = load_model(args=args)
-        from_class_idx_to_label = mnist_from_class_idx_to_label
-
-    else:
-        raise Exception(f"Unknown dataset type: {args.dataset}")
-
-    fmodel = foolbox.models.PyTorchModel(pytorch_model, bounds=(min, max),
-                                         num_classes=args.num_classes)
-
-    return fmodel, pytorch_model, from_class_idx_to_label
-
+adv_images = []
+org_images = []
 
 def print_heat_map(input_map, args, title="", ylabel=""):
     args.plot_index += 1
@@ -839,7 +734,7 @@ def run(args):
                         # max_iterations=args.attack_max_iterations,
                         # max_iterations=2, binary_search_steps=1, initial_const=1e+12,
                         max_iterations=1000, binary_search_steps=5,
-                        initial_const=attack_strength, confidence=10000,
+                        initial_const=args.attack_strength, confidence=10000,
                     )
                 elif attack_name == "GaussAttack":
                     adv_image = GaussAttack(original_image,
@@ -1032,7 +927,7 @@ def run(args):
                 grad_stats['original_confidence'] = original_result.confidence
             if result_gauss:
                 is_gauss_recovered = (
-                            result_gauss.class_id == args.True_class_id)
+                        result_gauss.class_id == args.True_class_id)
                 grad_stats['is_gauss_recovered'] = is_gauss_recovered
             else:
                 raise Exception('We need the result of adding Gaussian noise.')
@@ -1189,6 +1084,8 @@ def run(args):
                     attack_name != "GaussAttack") and not attack_name.startswith(
                 'FFT'):
                 np.save(file=full_name + ".npy", arr=adv_image)
+                if args.save_out:
+                    adv_images.append(adv_image)
         if show_diff:
             # omit the diff image in the spatial domain.
             args.plot_index += col_diff
@@ -1421,7 +1318,7 @@ if __name__ == "__main__":
     # arguments
     args = get_args()
     # save fft representations of the original and adversarial images to files
-    args.save_out = False
+    args.save_out = True
     # args.diff_type = "source"  # "source" or "fft"
     args.diff_type = "fft"
     args.show_original = True
@@ -1449,22 +1346,9 @@ if __name__ == "__main__":
     # index_range = [1000]
     if args.is_debug:
         args.use_foolbox_data = False
-    if args.use_foolbox_data:
-        pass
-    elif args.dataset == "imagenet":
-        train_loader, test_loader, train_dataset, test_dataset = load_imagenet(
-            args)
-        limit = 50000
-    elif args.dataset == "cifar10":
-        train_loader, test_loader, train_dataset, test_dataset = get_cifar(
-            args, args.dataset)
-        limit = 10000
-    elif args.dataset == "mnist":
-        train_loader, test_loader, train_dataset, test_dataset = get_mnist(
-            args)
-        limit = 10000
-    else:
-        raise Exception(f"Unknown dataset: {args.dataset}")
+    if not args.use_foolbox_data:
+        train_loader, test_loader, train_dataset, test_dataset, limit = get_data(
+            args=args)
 
     # args.compress_fft_layer = 5
     # args.values_per_channel = 8
@@ -1875,7 +1759,8 @@ if __name__ == "__main__":
                             percent_of_adversarial_from_correctly_classified = count_adv / count_original * 100
                         else:
                             percent_of_adversarial_from_correctly_classified = 0
-                            print('The image was misclassified                            percent_of_adversarial_from_correctly_classified!')
+                            print(
+                                'The image was misclassified                            percent_of_adversarial_from_correctly_classified!')
                         recovered_accuracy = count_recovered / total_count * 100
                         recovered_many_accuracy = count_many_recovered / total_count * 100
 
@@ -1915,5 +1800,16 @@ if __name__ == "__main__":
                                                      sum_adv_timing,
                                                      sum_defend_timing,
                                                      run_time]]) + "\n")
+
+
+    if args.save_out:
+        save_time = get_log_time()
+        pickle_protocol = 2
+        adv_file = save_time + '-adv-images'
+        with open(adv_file, 'wb') as file:
+            pickle.dump(adv_images, file, pickle_protocol)
+        org_file = save_time + '-org-images'
+        with open(org_file, 'wb') as file:
+            pickle.dump(org_images, file, pickle_protocol)
 
     print("total elapsed time: ", time.time() - start_time)
