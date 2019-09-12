@@ -79,22 +79,46 @@ matplotlib.rc('font', **font)
 
 adv_images = []
 adv_labels = []
+adv_recovered_images = []
+adv_recovered_labels = []
+
 org_images = []
 org_labels = []
+org_recovered_images = []
+org_recovered_labels = []
+
+gauss_images = []
+gauss_labels = []
+gauss_recovered_images = []
+gauss_recovered_labels = []
+gauss_non_recovered_images = []
+guass_non_recovered_images = []
+
+
+def save_file(name, images, labels):
+    save_time = get_log_time() + '-len-' + str(len(labels))
+    pickle_protocol = 2
+    file_name = save_time + '-' + name + '-images'
+    with open(file_name, 'wb') as f:
+        data = {'images': images, 'labels': labels}
+        pickle.dump(data, f, pickle_protocol)
 
 
 def save_adv_org():
     if args.save_out:
-        save_time = get_log_time() + '-len-' + str(len(adv_labels))
-        pickle_protocol = 2
-        adv_file = save_time + '-adv-images'
-        with open(adv_file, 'wb') as file:
-            adv_data = {'images': adv_images, 'labels': adv_labels}
-            pickle.dump(adv_data, file, pickle_protocol)
-        org_file = save_time + '-org-images'
-        with open(org_file, 'wb') as file:
-            org_data = {'images': org_images, 'labels': org_labels}
-            pickle.dump(org_data, file, pickle_protocol)
+        save_data = []
+        save_data.append(['adv', adv_images, adv_labels])
+        save_data.append(['org', org_images, org_labels])
+        save_data.append(['gauss', gauss_images, gauss_labels])
+        save_data.append(
+            ['adv_recovered', adv_recovered_images, adv_recovered_labels])
+        save_data.append(
+            ['org_recovered', org_recovered_images, org_recovered_labels])
+        save_data.append(
+            ['gauss_recovered', gauss_recovered_images, gauss_recovered_labels])
+        for name, images, labels in save_data:
+            save_file(name=name, images=images, labels=labels)
+
 
 def print_heat_map(input_map, args, title="", ylabel=""):
     args.plot_index += 1
@@ -1100,11 +1124,21 @@ def run(args):
                     attack_name != "GaussAttack") and not attack_name.startswith(
                 'FFT'):
                 np.save(file=full_name + ".npy", arr=adv_image)
-                if args.save_out:
+                if args.save_out and result.original_class_id == args.True_class_id:
                     adv_images.append(adv_image)
                     adv_labels.append(result.adv_class_id)
                     org_images.append(original_image)
                     org_labels.append(result.original_class_id)
+                    gauss_images.append(gauss_image)
+                    gauss_labels.append(result.gauss_class_id)
+                    if result.gauss_class_id == result.original_class_id:
+                        adv_recovered_images.append(adv_image)
+                        adv_recovered_labels.append(result.adv_class_id)
+                        org_recovered_images.append(original_image)
+                        org_recovered_labels.append(result.original_class_id)
+                        gauss_recovered_images.append(gauss_image)
+                        gauss_recovered_labels.append(result.gauss_class_id)
+
         if show_diff:
             # omit the diff image in the spatial domain.
             args.plot_index += col_diff
