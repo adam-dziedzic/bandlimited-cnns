@@ -98,7 +98,7 @@ else:
     momentum = 0.9
     # epochs = 14101
     # epochs=50
-    epochs = 32
+    epochs = 1024
     # epochs = 100
     # epochs = 50000
     # epochs = 51
@@ -398,7 +398,7 @@ class Arguments(object):
                  # recover_type="empty",
                  noise_epsilon=0.0,
                  noise_epsilons=[0.0],
-                 step_size=50,
+                 step_size=1,
                  noise_iterations=0,
                  many_noise_iterations=[0],
                  recover_iterations=0,

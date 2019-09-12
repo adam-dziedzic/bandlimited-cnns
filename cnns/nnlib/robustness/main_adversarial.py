@@ -78,7 +78,23 @@ font = {'family': 'normal',
 matplotlib.rc('font', **font)
 
 adv_images = []
+adv_labels = []
 org_images = []
+org_labels = []
+
+
+def save_adv_org():
+    if args.save_out:
+        save_time = get_log_time() + '-len-' + str(len(adv_labels))
+        pickle_protocol = 2
+        adv_file = save_time + '-adv-images'
+        with open(adv_file, 'wb') as file:
+            adv_data = {'images': adv_images, 'labels': adv_labels}
+            pickle.dump(adv_data, file, pickle_protocol)
+        org_file = save_time + '-org-images'
+        with open(org_file, 'wb') as file:
+            org_data = {'images': org_images, 'labels': org_labels}
+            pickle.dump(org_data, file, pickle_protocol)
 
 def print_heat_map(input_map, args, title="", ylabel=""):
     args.plot_index += 1
@@ -1086,6 +1102,9 @@ def run(args):
                 np.save(file=full_name + ".npy", arr=adv_image)
                 if args.save_out:
                     adv_images.append(adv_image)
+                    adv_labels.append(result.adv_class_id)
+                    org_images.append(original_image)
+                    org_labels.append(result.original_class_id)
         if show_diff:
             # omit the diff image in the spatial domain.
             args.plot_index += col_diff
@@ -1729,6 +1748,9 @@ if __name__ == "__main__":
                                     result_run.adv_label is not None and result_run.original_label != result_run.adv_label):
                                 count_incorrect += 1
 
+                            if image_index % 128 == 0:
+                                save_adv_org()
+
                         total_count = args.total_count
 
                         print("total_count: ", total_count)
@@ -1801,15 +1823,6 @@ if __name__ == "__main__":
                                                      sum_defend_timing,
                                                      run_time]]) + "\n")
 
-
-    if args.save_out:
-        save_time = get_log_time()
-        pickle_protocol = 2
-        adv_file = save_time + '-adv-images'
-        with open(adv_file, 'wb') as file:
-            pickle.dump(adv_images, file, pickle_protocol)
-        org_file = save_time + '-org-images'
-        with open(org_file, 'wb') as file:
-            pickle.dump(org_images, file, pickle_protocol)
+    save_adv_org()
 
     print("total elapsed time: ", time.time() - start_time)
