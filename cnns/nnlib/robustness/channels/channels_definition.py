@@ -331,11 +331,11 @@ def gauss_noise_fft_torch(std, input, is_next_power2=False, onesided=True):
     return out
 
 
-def uniform_noise_numpy(images, epsilon, bounds=(0, 1)):
+def uniform_noise_numpy(images, epsilon, bounds=(0, 1), op=np.add):
     min_, max_ = bounds
     w = epsilon * (max_ - min_)
     noise = nprng.uniform(low=-w, high=w, size=images.shape)
-    return images + noise
+    return op(images, noise)
 
 
 def uniform_noise_torch(images, epsilon, bounds=(0, 1)):
@@ -346,11 +346,18 @@ def uniform_noise_torch(images, epsilon, bounds=(0, 1)):
     return noise
 
 
-def laplace_noise_numpy(images, epsilon, bounds=(0, 1)):
+def laplace_noise_numpy(images, epsilon, bounds=(0, 1), op=np.add):
     min_, max_ = bounds
     scale = epsilon / np.sqrt(3) * (max_ - min_)
     noise = nprng.laplace(loc=0, scale=scale, size=images.shape)
-    return images + noise
+    return op(images, noise)
+
+
+def laplace_noise_numpy_subtract(images, epsilon, bounds=(0, 1)):
+    return laplace_noise_numpy(images=images,
+                               epsilon=epsilon,
+                               bounds=bounds,
+                               op=np.subtract)
 
 
 def laplace_noise_torch(epsilon, images, bounds):
@@ -361,18 +368,18 @@ def laplace_noise_torch(epsilon, images, bounds):
     return distribution.sample()
 
 
-def beta_noise_numpy(images, epsilon, bounds=(0, 1)):
+def beta_noise_numpy(images, epsilon, bounds=(0, 1), op=np.add):
     min_, max_ = bounds
     w = epsilon * (max_ - min_)
     noise = nprng.beta(a=-w, b=w, size=images.shape)
-    return images + noise
+    return op(images, noise)
 
 
-def logistic_noise_numpy(images, epsilon, bounds=(0, 1)):
+def logistic_noise_numpy(images, epsilon, bounds=(0, 1), op=np.add):
     min_, max_ = bounds
     scale = epsilon / np.sqrt(3) * (max_ - min_)
     noise = nprng.logistic(loc=0, scale=scale, size=images.shape)
-    return images + noise
+    return op(images, noise)
 
 
 def round(values_per_channel, images):

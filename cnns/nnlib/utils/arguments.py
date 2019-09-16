@@ -98,7 +98,7 @@ else:
     momentum = 0.9
     # epochs = 14101
     # epochs=50
-    epochs = 2
+    epochs = 3
     # epochs = 100
     # epochs = 50000
     # epochs = 51
@@ -338,7 +338,7 @@ class Arguments(object):
                  # start_epoch=14100,
                  # start_epoch=50,
                  # start_epoch=10000,
-                 start_epoch=1,
+                 start_epoch=2,
                  only_train=False,
                  test_compress_rates=False,
                  noise_sigma=0.0,

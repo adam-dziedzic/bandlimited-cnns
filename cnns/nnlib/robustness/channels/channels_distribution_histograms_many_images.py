@@ -26,7 +26,7 @@ from cnns.nnlib.robustness.channels.channels_definition import \
 from cnns.nnlib.robustness.channels.channels_definition import \
     gauss_noise_numpy as gauss
 from cnns.nnlib.robustness.channels.channels_definition import \
-    laplace_noise_numpy as laplace
+    laplace_noise_numpy_subtract as laplace
 from cnns.nnlib.robustness.channels.channels_definition import \
     logistic_noise_numpy as logistic
 from cnns.nnlib.robustness.channels.channels_definition import \
@@ -37,6 +37,8 @@ from cnns.nnlib.robustness.channels.channels_definition import \
     compress_svd_numpy as svd
 from cnns.nnlib.robustness.channels.channels_definition import \
     subtract_rgb_numpy as sub
+from cnns.nnlib.utils.general_utils import get_log_time
+
 
 # Settings for the PyTorch model.
 imagenet_mean = [0.485, 0.456, 0.406]
@@ -72,17 +74,71 @@ images, labels = foolbox.utils.samples("imagenet", data_format="channels_first",
                                        batchsize=recover_count)
 images = images / 255  # map from [0,255] to [0,1] range
 
-single_graph = False
+# string out the params for channels
+func = 'func'
+name = 'name'
+value = 'value'
+deltas = 'deltas'
+l2_dist = 'l2_dist'
+
+single_graph = True
+
+unif = {
+    func: unif,
+    name: 'unif',
+    value: 0.03,
+}
+
+gauss = {
+    func: gauss,
+    name: 'gauss',
+    value: 0.03,
+}
+
+laplace = {
+    func: laplace,
+    name: 'laplace',
+    value: 0.003,
+}
+
+fft = {
+    func: fft,
+    name: 'fft',
+    value: 50,
+}
+
+round = {
+    func: round,
+    name: 'cd',
+    value: 16,
+}
+
+svd = {
+    func: svd,
+    name: 'svd',
+    value: 50,
+}
+
+sub = {
+    func: sub,
+    name: 'RGB subtract',
+    value: 10,
+}
+
 channels = [
-    # [round, 'cd', 16],
-    # [fft, 'fft', 50],
-    # [unif, 'unif', 0.03],
-    # [gauss, 'gauss', 0.03],
-    [laplace, 'laplace', 0.003],
-    # [logistic, 'logistic', 0.03],
-    [svd, 'svd', 50],
-    # [sub, 'RGB subtract', 10]
+    # unif,
+    # gauss,
+    laplace,
+    # fft,
+    # round,
+    svd,
+    # sub,
 ]
+
+# We collect data for each channel.
+for channel in channels:
+    channel[deltas] = []
+    channel[l2_dist] = []
 
 fontsize = 10
 legend_size = 10
@@ -142,17 +198,10 @@ for index, (label, image) in enumerate(zip(labels, images)):
     if adversarial_prediciton == label:
         adversarial_count += 1
 
-    if single_graph:
-        ncols = 1
-        nrows = 1
-    else:
-        ncols = 1 if len(channels) == 1 else 2
-        nrows = max(len(channels) // 2, 1)
-        plt.subplots(nrows=nrows, ncols=ncols)
-    for i, noiser in enumerate(channels):
-        noise_func = noiser[0]
-        noise_name = noiser[1]
-        noise_value = noiser[2]
+    for i, channel in enumerate(channels):
+        noise_func = channel[func]
+        noise_name = channel[name]
+        noise_value = channel[value]
 
         print('noise name: ', noise_name)
         noised_image = noise_func(adversarial_image, noise_value)
@@ -160,46 +209,60 @@ for index, (label, image) in enumerate(zip(labels, images)):
 
         noise_predictions = model.predictions(noised_image)
         noise_prediction = np.argmax(noise_predictions)
-        print("uniform noise prediction: ", noise_prediction)
+        print("noise prediction: ", noise_prediction)
         if noise_prediction == label:
             defended_count += 1
 
-        deltas = noised_image - image
-        l2_dist = np.sqrt(np.sum(deltas * deltas))
-        deltas = deltas.flatten()
-        # plot_hist(deltas)
-        if not single_graph:
-            plt.subplot(nrows, ncols, i + 1)
+        delta = noised_image - image
+        l2_distance = np.sqrt(np.sum(deltas * deltas))
+        delta = delta.flatten()
+        channel[deltas].append(delta)
+        channel[l2_dist].append(l2_distance)
+        # plot_hist(delta)
 
-        if single_graph:
-            label = noise_name + ' ' + str(noise_value)
-        else:
-            label = ''
+if single_graph:
+    ncols = 1
+    nrows = 1
+else:
+    ncols = 1 if len(channels) == 1 else 2
+    nrows = max(len(channels) // 2, 1)
+    plt.subplots(nrows=nrows, ncols=ncols)
 
-        n, bins, patches = plt.hist(
-            x=deltas, bins="auto", color="#0504aa", alpha=0.7, rwidth=0.85,
-            histtype='step',
-            label=label,
-        )
-        plt.grid(axis="y", alpha=0.75)
-        plt.xlabel("Value")
-        plt.ylabel("Frequency")
-        if not single_graph:
-            plt.title(noise_name + ' L2 dist: ' + f'{l2_dist:9.4f}')
-        # plt.text(23, 45, r"$\mu=15, b=3$")
-        maxfreq = n.max()
-        # Set a clean upper y-axis limit.
-        plt.ylim(
-            ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
+for i, channel in enumerate(channels):
+    if not single_graph:
+        plt.subplot(nrows, ncols, i + 1)
 
-    plt.subplots_adjust(hspace=1.5)
-    plt.subplots_adjust(wspace=1.5)
-    plt.savefig(noise_name + '_channel_histogram4.pdf', bbox_inches='tight')
-    plt.show()
+    data = {}
+    for param in [deltas, l2_dist]:
+        data[param] = np.average(channel[param], axis=0)
 
-print(f"\nBase test accuracy of the model: "
-      f"{original_count / recover_count}")
-print(f"\nAccuracy of the model after attack: "
-      f"{adversarial_count / recover_count}")
-print(f"\nAccuracy of the model after noising: "
-      f"{defended_count / recover_count}")
+    if single_graph:
+        label = channel[name] + ' ' + str(channel[value])
+    else:
+        label = ''
+
+    n, bins, patches = plt.hist(
+        x=data[deltas],
+        bins="auto",
+        color="#0504aa",
+        alpha=0.7,
+        rwidth=0.85,
+        histtype='step',
+        label=label,
+    )
+    plt.grid(axis="y", alpha=0.75)
+    plt.xlabel("Value")
+    plt.ylabel("Frequency")
+    if not single_graph:
+        plt.title(channel[name] + ' L2 dist: ' + f'{data[l2_dist]:9.4f}')
+    # plt.text(23, 45, r"$\mu=15, b=3$")
+    maxfreq = n.max()
+    # Set a clean upper y-axis limit.
+    plt.ylim(
+        ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
+
+plt.subplots_adjust(hspace=1.5)
+plt.subplots_adjust(wspace=1.5)
+plt.savefig('graphs/' + get_log_time() + 'channel_histogram5.pdf',
+            bbox_inches='tight')
+plt.show()

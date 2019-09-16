@@ -4,7 +4,8 @@ import numpy as np
 
 def plot_hist(data, title=''):
     n, bins, patches = plt.hist(
-        x=data, bins="auto", color="#0504aa", alpha=0.7, rwidth=0.85
+        x=data, bins="auto", color="#0504aa", alpha=0.7, rwidth=0.85,
+        histtype='step',
     )
     plt.grid(axis="y", alpha=0.75)
     plt.xlabel("Value")
@@ -18,5 +19,5 @@ def plot_hist(data, title=''):
 
 
 if __name__ == "__main__":
-    d = np.random.laplace(loc=15, scale=3, size=500)
+    d = np.random.laplace(loc=0, scale=0.02, size=224*224)
     plot_hist(d)
