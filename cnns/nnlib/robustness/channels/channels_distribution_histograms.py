@@ -74,13 +74,13 @@ images = images / 255  # map from [0,255] to [0,1] range
 
 single_graph = False
 channels = [
-    # [round, 'cd', 16],
-    # [fft, 'fft', 50],
-    # [unif, 'unif', 0.03],
-    # [gauss, 'gauss', 0.03],
-    [laplace, 'laplace', 0.003],
+    [round, 'cd', 16],
+    [fft, 'fft', 1],
+    [unif, 'unif', 0.03],
+    [laplace, 'laplace', 0.01],
     # [logistic, 'logistic', 0.03],
-    [svd, 'svd', 50],
+    [gauss, 'gauss', 0.03],
+    [svd, 'svd', 60],
     # [sub, 'RGB subtract', 10]
 ]
 
@@ -122,7 +122,7 @@ for index, (label, image) in enumerate(zip(labels, images)):
     confidence = 0
     params = [index, max_iters, init_const, confidence]
     params_str = '_'.join([str(x) for x in params])
-    file_name = 'adversarial_image' + params_str + '.npy'
+    file_name = 'cache/adversarial_image' + params_str + '.npy'
     print('file_name: ', file_name)
     if os.path.isfile(file_name):
         adversarial_image = np.load(file_name)
@@ -131,7 +131,7 @@ for index, (label, image) in enumerate(zip(labels, images)):
                                    initial_const=init_const,
                                    confidence=confidence)
     if not os.path.isfile(file_name):
-        np.save(file=file_name + ".npy", arr=adversarial_image)
+        np.save(file=file_name, arr=adversarial_image)
 
     print('adversarial image min, max:', adversarial_image.min(),
           adversarial_image.max())
@@ -189,8 +189,8 @@ for index, (label, image) in enumerate(zip(labels, images)):
         # plt.text(23, 45, r"$\mu=15, b=3$")
         maxfreq = n.max()
         # Set a clean upper y-axis limit.
-        plt.ylim(
-            ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
+        # plt.ylim(
+        #     ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
 
     plt.subplots_adjust(hspace=1.5)
     plt.subplots_adjust(wspace=1.5)

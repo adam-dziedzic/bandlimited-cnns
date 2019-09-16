@@ -44,6 +44,12 @@ from cnns.nnlib.robustness.channels.channels_definition import \
 from cnns.nnlib.robustness.channels.channels_definition import \
     subtract_rgb_numpy as sub
 from cnns.nnlib.utils.general_utils import get_log_time
+from cnns.nnlib.utils.exec_args import get_args
+
+from cnns.nnlib.datasets.cifar import cifar_mean_array
+from cnns.nnlib.datasets.cifar import cifar_std_array
+from cnns.nnlib.datasets.cifar import cifar_min
+from cnns.nnlib.datasets.cifar import cifar_max
 
 # plt.interactive(True)
 # http://ksrowell.com/blog-visualizing-data/2012/02/02/optimal-colors-for-graphs/
@@ -52,10 +58,17 @@ MY_RED = (204, 37, 41)
 MY_ORANGE = (218, 124, 48)
 MY_GREEN = (62, 150, 81)
 MY_BLACK = (83, 81, 84)
+MY_GOLD = (148, 139, 61)
 
 
 def get_color(COLOR_TUPLE_255):
     return [x / 255 for x in COLOR_TUPLE_255]
+
+
+colors = [get_color(color) for color in
+          [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
+markers = ["+", "o", "v", "s", "D", "^", "+"]
+linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 
 
 # Settings for the PyTorch model.
@@ -71,9 +84,11 @@ imagenet_std_array = np.array(imagenet_std, dtype=np.float32).reshape(
 imagenet_min = np.float32(-2.1179039478302)
 imagenet_max = np.float32(2.640000104904175)
 
+
 device = torch.device("cpu")
 if torch.cuda.is_available():
     device = torch.device("cuda")
+
 
 original_count = 0
 adversarial_count = 0
@@ -82,6 +97,8 @@ recover_count = 20
 
 # Instantiate the model.
 dataset = 'imagenet'
+
+args = get_args()
 
 if dataset == 'imagenet':
     resnet = models.resnet50(pretrained=True)
