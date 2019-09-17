@@ -63,11 +63,11 @@ def get_color(COLOR_TUPLE_255):
 
 colors = [get_color(color) for color in
           [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
-markers = ["+", "o", "v", "s", "D", "^", "+"]
+markers = ["+", "o", "v", "", "D", "^", "+"]
 linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 legend_size = 22
-line_width = 2
-markersize = 20
+line_width = 1
+markersize = 10
 
 # Settings for the PyTorch model.
 imagenet_mean = [0.485, 0.456, 0.406]
@@ -122,7 +122,7 @@ single_graph = True
 unif = {
     func: unif,
     name: 'unif',
-    value: 0.03,
+    value: 0.04,
     graph_label: 'unif: $\epsilon=0.03$'
 }
 
@@ -143,22 +143,22 @@ laplace = {
 fft = {
     func: fft,
     name: 'fft',
-    value: 20,
-    graph_label: 'fft: 20% compression'
+    value: 10,
+    graph_label: 'fft: 10% compression'
 }
 
 round = {
     func: round,
     name: 'cd',
-    value: 32,
-    graph_label: 'cd: 5 bits'
+    value: 128,
+    graph_label: 'cd: 7 bits'
 }
 
 svd = {
     func: svd,
     name: 'svd',
-    value: 50,
-    graph_label: 'svd: 50% compression'
+    value: 60,
+    graph_label: 'svd: 60% compression'
 }
 
 sub = {
@@ -310,7 +310,7 @@ for i, channel in enumerate(channels):
         #            )
         plt.xlabel("Value")
         plt.ylabel("Frequency")
-        channel_info = channel[name] + ' L2 dist: ' + f'{data[l2_dist]:9.4f}'
+        channel_info = channel[name] + ' $L_2$ dist: ' + f'{data[l2_dist]:0.4f}'
         plt.title(channel_info)
     else:
         y, bin_edges = np.histogram(data[deltas], bins=1000)

@@ -74,13 +74,13 @@ images = images / 255  # map from [0,255] to [0,1] range
 
 single_graph = False
 channels = [
-    [round, 'cd', 16],
-    [fft, 'fft', 1],
-    [unif, 'unif', 0.03],
-    [laplace, 'laplace', 0.01],
+    [round, 'cd (16 bits)', 16],
+    [fft, 'fft (10%)', 10],
+    [unif, 'unif (0.03)', 0.03],
+    [laplace, 'laplace (0.01)', 0.01],
     # [logistic, 'logistic', 0.03],
-    [gauss, 'gauss', 0.03],
-    [svd, 'svd', 60],
+    [gauss, 'gauss (0.03)', 0.03],
+    [svd, 'svd (60%)', 60],
     # [sub, 'RGB subtract', 10]
 ]
 
@@ -185,7 +185,7 @@ for index, (label, image) in enumerate(zip(labels, images)):
         plt.xlabel("Value")
         plt.ylabel("Frequency")
         if not single_graph:
-            plt.title(noise_name + ' L2 dist: ' + f'{l2_dist:9.4f}')
+            plt.title(noise_name + ' $L_2$ dist: ' + f'{l2_dist:0.4f}')
         # plt.text(23, 45, r"$\mu=15, b=3$")
         maxfreq = n.max()
         # Set a clean upper y-axis limit.
@@ -193,8 +193,8 @@ for index, (label, image) in enumerate(zip(labels, images)):
         #     ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
 
     plt.subplots_adjust(hspace=1.5)
-    plt.subplots_adjust(wspace=1.5)
-    plt.savefig(noise_name + '_channel_histogram4.pdf', bbox_inches='tight')
+    plt.subplots_adjust(wspace=0.5)
+    plt.savefig('channels_pdf_histograms2.pdf', bbox_inches='tight')
     plt.show()
 
 print(f"\nBase test accuracy of the model: "

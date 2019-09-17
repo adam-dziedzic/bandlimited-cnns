@@ -113,6 +113,8 @@ def laplace_noise_torch(epsilon, images, bounds):
 def round(values_per_channel, images):
     round_multiplier = values_per_channel - 1.0
     ext_multiplier = 1.0 / round_multiplier
+    # torch.round returns a new tensor with each of the elements of input
+    # rounded to the closest integer.
     return ext_multiplier * torch.round(round_multiplier * images)
 
 
@@ -189,3 +191,4 @@ def distort_svd_batch(x, distort_rate):
         result[i] = distort_svd(torch_img=torch_img,
                                 distort_rate=distort_rate)
     return result
+
