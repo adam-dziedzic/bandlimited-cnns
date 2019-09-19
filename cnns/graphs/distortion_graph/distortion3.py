@@ -77,6 +77,18 @@ carlini_cifar10 = {ylabel: "Accuracy (%)",
                    ylim: (0, 100)}
 
 carlini_imagenet = {ylabel: "Accuracy (%)",
+                    file_name: "distortionCarliniImageNet",
+                    title: "C&W L$_2$ ImageNet",
+                    # legend_pos: "lower left",
+                    legend_pos: "upper right",
+                    # bbox: (0.0, 0.0),
+                    column_nr: 12,
+                    legend_cols: 2,
+                    labels: ['FC', 'CD', 'Unif', 'Gauss', 'Laplace', 'SVD'],
+                    xlim: (0, 100),
+                    ylim: (0, 100)}
+
+carlini_imagenet_full = {ylabel: "Accuracy (%)",
                     file_name: "distortionCarliniImageNetFull",
                     title: "C&W L$_2$ ImageNet",
                     # legend_pos: "lower left",
@@ -143,10 +155,11 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 
 datasets = [carlini_cifar10,
             carlini_imagenet,
+            # carlini_imagenet_full,
             # pgd_cifar10,
-            # random_pgd_cifar10,
-            # pgd_imagenet,
-            # fgsm_imagenet,
+            random_pgd_cifar10,
+            pgd_imagenet,
+            fgsm_imagenet,
             ]
 
 # width = 12
@@ -173,8 +186,8 @@ for j, dataset in enumerate(datasets):
     print("col 1: ", cols[1])
 
     for col in range(0, columns, 2):
-        # if col == 8:  # skip Laplace
-        #     continue
+        if col == 8:  # skip Laplace
+            continue
         i = col // 2
         plt.plot(cols[col], cols[col + 1], label=f"{dataset[labels][i]}",
                  lw=line_width,
@@ -199,7 +212,7 @@ for j, dataset in enumerate(datasets):
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "distortionFullData." + format
+destination = dir_path + "/" + "distortionFullData5." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',

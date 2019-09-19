@@ -11,6 +11,13 @@ from cnns.nnlib.datasets.pickled import get_pickled_args
 from torch.utils.data import DataLoader
 from torch.nn.functional import softmax
 
+from cnns import matplotlib_backend
+
+print('Using: ', matplotlib_backend.backend)
+
+import matplotlib
+
+print('Using: ', matplotlib.get_backend())
 
 def compute_hessian(args, num_eigens=20, file_pickle=None,
                     hvp_operator_class=HVPOperatorParams):

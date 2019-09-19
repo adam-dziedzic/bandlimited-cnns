@@ -82,9 +82,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     in_channels = 1
 else:
     # dataset = "mnist"
-    dataset = "cifar10"
+    # dataset = "cifar10"
     # dataset = "cifar100"
-    # dataset = "imagenet"
+    dataset = "imagenet"
     # dataset = "svhn"
 
     batch_size = 32
@@ -418,8 +418,8 @@ class Arguments(object):
                  # 'regression' or 'classification'
                  # attack_strengths=[0.01, 0.03, 0.04, 0.05, 0.07, 0.1, 0.5, 1.0],
                  # attack_strengths=[0.08, 0.09, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9],
-                 attack_strengths=(0.001, 0.01, 0.03, 0.04, 0.05, 0.07, 0.08, 0.09, 0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9, 1.0,),
-                 # attack_strengths=(0.01,),
+                 # attack_strengths=(0.001, 0.01, 0.03, 0.04, 0.05, 0.07, 0.08, 0.09, 0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9, 1.0,),
+                 attack_strengths=(0.01,),
                  ):
         """
         The default parameters for the execution of the program.

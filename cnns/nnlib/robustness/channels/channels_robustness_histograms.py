@@ -111,7 +111,7 @@ args.dataset = 'imagenet'
 # image_index = 235
 # image_index = 249
 # image_index = 11754
-image_index=1000
+image_index = 1000
 
 args.use_foolbox_data = False
 if args.use_foolbox_data:
@@ -183,7 +183,7 @@ fig = plt.figure(figsize=(width, height))
 # target_class = 22
 # target_class = 282
 # criterion = TargetClass(target_class=target_class)
-criterion='Misclassifiction' # 'TargetClass' or 'Misclassification'
+criterion = 'Misclassifiction'  # 'TargetClass' or 'Misclassification'
 
 if criterion == "TargetClass":
     target_class = 282
@@ -243,6 +243,7 @@ lw = 4
 ncols_legend = 1
 width = 15
 height = 7
+delimiter = ';'
 fig = plt.figure(figsize=(width * ncols, height * nrows))
 
 colors = [get_color(color) for color in
@@ -253,6 +254,8 @@ markers = ['o', 'v', 's']
 graph_type = 'counts'  # 'counts' or 'softs'
 
 for attack_iter, attack in enumerate(attacks):
+    graph_name = 'graphs/' + get_log_time() + '-' + attack.name() + '-channel_robustness_histograms'
+    print('graph_name for output: ', graph_name)
     if attack.name() == 'CarliniWagnerL2Attack':
         small_dist = False
         if small_dist:
@@ -262,11 +265,13 @@ for attack_iter, attack in enumerate(attacks):
         else:
             max_iterations = 2
             binary_search_steps = 1
-            initial_const = 1e+12
-            # initial_const = 1e+6
+            # initial_const = 1e+12
+            initial_const = 1e+6
 
-        full_name = [attack.name(), max_iterations, binary_search_steps,
-                     initial_const, original_prediction, target_class]
+        full_name = [attack.name(), image_index, max_iterations,
+                     binary_search_steps, initial_const, original_prediction,
+                     target_class,
+                     ]
         full_name = '-'.join([str(x) for x in full_name])
 
         if os.path.exists(full_name):
@@ -278,7 +283,7 @@ for attack_iter, attack in enumerate(attacks):
                 binary_search_steps=binary_search_steps,
                 initial_const=initial_const,
             )
-            if adversarial_image is not None:
+            if adversarial_image is not None and not os.path.exists(full_name):
                 np.save(file=full_name, arr=adversarial_image)
     elif attack.name() == 'FFTMultipleFrequencyAttack':
         full_name = "../saved-FFT-imagenet-rounded-fft-img-idx-249-graph-recover-AttackType.RECOVERY-gauss-FFTMultipleFrequencyAttack.npy"
@@ -311,6 +316,12 @@ for attack_iter, attack in enumerate(attacks):
     adv_class_softs = []
     other_class_softs = []
 
+    with open(graph_name + '.csv', 'a') as f:
+        header = ['original', 'adversarial', 'other']
+        header_str = delimiter.join(header) + '\n'
+        f.write(header_str)
+        print(header_str)
+
     for noise_strength in noise_strengths:
         local_distances = []
 
@@ -330,8 +341,8 @@ for attack_iter, attack in enumerate(attacks):
             soft_preds = softmax(noise_predictions)
             top3 = topk(soft_preds, k=3)
             noise_prediction = top3[0]
-            print('noise prediction: ', noise_prediction,
-                  from_class_idx_to_label[noise_prediction])
+            # print('noise prediction: ', noise_prediction,
+            #       from_class_idx_to_label[noise_prediction])
 
             if graph_type == 'counts':
                 if noise_prediction == original_prediction:
@@ -360,6 +371,9 @@ for attack_iter, attack in enumerate(attacks):
             org_class_counts.append(org_class_count)
             adv_class_counts.append(adv_class_count)
             other_class_counts.append(other_class_count)
+            with open(graph_name + '.csv', 'a') as f:
+                data = [org_class_count, adv_class_count, other_class_count]
+                f.write(delimiter.join([str(item) for item in data]) + '\n')
         elif graph_type == 'softs':
             org_class_softs.append(np.mean(org_class_soft))
             adv_class_softs.append(np.mean(adv_class_soft))
@@ -371,6 +385,7 @@ for attack_iter, attack in enumerate(attacks):
 
     if graph_type == 'counts':
         values = [org_class_counts, adv_class_counts, other_class_counts]
+        print('count values: ', values)
     elif graph_type == 'softs':
         values = [org_class_softs, adv_class_softs, other_class_softs]
     else:
@@ -412,9 +427,7 @@ for attack_iter, attack in enumerate(attacks):
 
 plt.subplots_adjust(hspace=0.5)
 plt.subplots_adjust(wspace=0.2)
-plt.savefig(
-    'graphs/' + get_log_time() + '-' + attack.name() + '-channel_robustness_histograms.pdf',
-    bbox_inches='tight')
+plt.savefig(graph_name + '.pdf', bbox_inches='tight')
 plt.show()
 plt.close()
 

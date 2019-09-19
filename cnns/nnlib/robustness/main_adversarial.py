@@ -117,7 +117,8 @@ def save_adv_org():
         save_data.append(
             ['gauss_recovered', gauss_recovered_images, gauss_recovered_labels])
         for name, images, labels in save_data:
-            save_file(name=name, images=images, labels=labels)
+            save_file(name=name + '-' + args.dataset, images=images,
+                      labels=labels)
 
 
 def print_heat_map(input_map, args, title="", ylabel=""):
@@ -774,7 +775,7 @@ def run(args):
                         # max_iterations=args.attack_max_iterations,
                         # max_iterations=2, binary_search_steps=1, initial_const=1e+12,
                         max_iterations=1000, binary_search_steps=5,
-                        initial_const=args.attack_strength, confidence=10000,
+                        initial_const=args.attack_strength, confidence=0,
                     )
                 elif attack_name == "GaussAttack":
                     adv_image = GaussAttack(original_image,

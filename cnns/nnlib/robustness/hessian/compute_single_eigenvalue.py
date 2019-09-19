@@ -26,12 +26,11 @@ def compute_hessian(args, num_eigens=20, file_pickle=None,
         print('dataloader len: ', len(dataloader.dataset))
     loss = torch.nn.functional.cross_entropy
 
-    num_eigenthings = num_eigens  # compute top 20 eigenvalues/eigenvectors
+    num_eigenthings = num_eigens  # compute top num_eigens eigenvalues/eigenvectors
     model = pytorch_model.eval()
 
     eigenset = []
     confidences = []
-    recovered = []
     for data_batch, target_batch in dataloader:
         for image, label in zip(data_batch, target_batch):
             output = pytorch_model(
@@ -45,11 +44,11 @@ def compute_hessian(args, num_eigens=20, file_pickle=None,
             print(
                 f'predicted: {predicted}, label: {label}, confidence: {confidence}')
             dataloader = DataLoader([(image, label)], batch_size=1)
-            # eigenvals, _ = compute_hessian_eigenthings(
-            #     model=model, dataloader=dataloader, loss=loss,
-            #     num_eigenthings=num_eigenthings,
-            #     hvp_operator_class=hvp_operator_class)
-            eigenvals = [1.0]
+            eigenvals, _ = compute_hessian_eigenthings(
+                model=model, dataloader=dataloader, loss=loss,
+                num_eigenthings=num_eigenthings,
+                hvp_operator_class=hvp_operator_class)
+            # eigenvals = [1.0]
             eigenset.append(eigenvals)
     return eigenset
 
@@ -78,29 +77,33 @@ if __name__ == "__main__":
     # file_pickle = '../2019-09-12-15-52-21-873237-len-5-org-images'
     # file_pickle = '../2019-09-12-10-28-45-352351-len-62-adv-images'
     # file_pickle = '../2019-09-12-10-28-45-366327-len-62-org-images'
-    file_pickle = '../2019-09-12-10-28-45-374723-len-62-gauss-images'
+    # file_pickle = '../2019-09-12-10-28-45-374723-len-62-gauss-images'
+    # file_pickle = '../2019-09-12-00-45-47-940375-len-101-org-images'
 
-    # files = []
-
-    # file_pickle = 'none'
-    print('file_pickle: ', file_pickle)
+    files = ['../2019-09-12-10-40-44-720511-len-740-adv-images',
+             '../2019-09-12-00-45-47-940375-len-101-org-images']
     # arguments
     args = get_args()
     # args.dataset = 'cifar10'
     args.sample_count_limit = 0
-    eigenset = compute_hessian(
-        args=args,
-        num_eigens=1,
-        file_pickle=file_pickle,
-        hvp_operator_class=hvp_operator_class)
-    # eigenset = [[1,2,3,4],[5,6,7,8]]
-    print('eigenset len:', len(eigenset))
-    print('eigenset: ', eigenset)
-    eigenset = np.array(eigenset)
-    eigenset = eigenset.squeeze()
-    deli = ';'
-    with open(file_pickle + '-highest_eigenvalues_mock', 'w') as f:
-        str_vals = deli.join([str(val) for val in eigenset])
-        f.write(str_vals)
+
+    for file_pickle in files:
+        # file_pickle = 'none'
+        print('file_pickle: ', file_pickle)
+
+        eigenset = compute_hessian(
+            args=args,
+            num_eigens=1,
+            file_pickle=file_pickle,
+            hvp_operator_class=hvp_operator_class)
+        # eigenset = [[1,2,3,4],[5,6,7,8]]
+        print('eigenset len:', len(eigenset))
+        print('eigenset: ', eigenset)
+        eigenset = np.array(eigenset)
+        eigenset = eigenset.squeeze()
+        deli = ';'
+        with open(file_pickle + '-highest_eigenvalues', 'w') as f:
+            str_vals = deli.join([str(val) for val in eigenset])
+            f.write(str_vals)
 
     print('total elapsed time: ', time.time() - start_time)

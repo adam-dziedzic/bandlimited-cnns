@@ -35,8 +35,8 @@ print("dir path: ", dir_path)
 
 GPU_MEM_SIZE = 16280
 
-# wrt = 'inputs'
-wrt = 'model_parameters'
+wrt = 'inputs'
+# wrt = 'model_parameters'
 
 def read_columns(dataset, columns=5):
     file_name = dir_path + "/" + dataset
@@ -170,8 +170,8 @@ for j, dataset in enumerate(datasets):
 plt.ylabel('eigenvalue (value)')
 plt.xlabel('i-th eigenvalue')
 plt.xticks(indexing)
-plt.yscale('log', basey=2)
-plt.title(f'Spectrum of Hessians w.r.t. {wrt}', fontsize=title_size)
+plt.yscale('symlog', basey=2)
+# plt.title(f'Spectrum of Hessians w.r.t. {wrt}', fontsize=title_size)
 
 # plt.ylim((0,20))
 # plt.xlim((0, xlen))
@@ -182,7 +182,7 @@ plt.title(f'Spectrum of Hessians w.r.t. {wrt}', fontsize=title_size)
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + f"eigenvals_show_many_wrt_{wrt}7." + format
+destination = dir_path + "/" + f"eigenvals_show_many_wrt_{wrt}10." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',

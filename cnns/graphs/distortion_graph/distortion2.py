@@ -143,10 +143,10 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 
 datasets = [carlini_cifar10,
             carlini_imagenet,
-            # pgd_cifar10,
-            # random_pgd_cifar10,
-            # pgd_imagenet,
-            # fgsm_imagenet,
+            pgd_cifar10,
+            random_pgd_cifar10,
+            pgd_imagenet,
+            fgsm_imagenet,
             ]
 
 # width = 12
@@ -199,7 +199,7 @@ for j, dataset in enumerate(datasets):
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "distortionFullData." + format
+destination = dir_path + "/" + "distortionFullData2." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',

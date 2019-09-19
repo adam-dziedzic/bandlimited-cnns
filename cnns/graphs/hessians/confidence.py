@@ -198,7 +198,7 @@ plt.legend(loc='upper right',
 plt.ylabel('eigenvalue (value)')
 plt.xlabel('i-th eigenvalue')
 plt.xticks(indexing)
-plt.yscale('log', basey=2)
+plt.yscale('symlog', basey=10)
 plt.title(f'Spectrum of Hessians w.r.t. {wrt}', fontsize=title_size)
 
 # plt.ylim((0,20))
@@ -210,7 +210,7 @@ plt.title(f'Spectrum of Hessians w.r.t. {wrt}', fontsize=title_size)
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + f"eigenvals_confidence_adv_{wrt}7_log." + format
+destination = dir_path + "/" + f"eigenvals_confidence_adv_{wrt}9_log." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
