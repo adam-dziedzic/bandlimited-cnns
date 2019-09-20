@@ -88,10 +88,12 @@ if __name__ == "__main__":
     # file_pickle = '../2019-09-12-10-28-45-374723-len-62-gauss-images'
     # file_pickle = '../2019-09-12-00-45-47-940375-len-101-org-images'
 
-    files = ['../2019-09-12-00-45-47-940375-len-101-adv-images',
-             '../2019-09-12-00-45-47-940375-len-101-org-images',
-             '../2019-09-12-10-40-44-720511-len-740-adv-images',
-             '../2019-09-12-10-40-44-720511-len-740-org-images']
+    files = [
+        '../2019-09-12-10-40-44-720511-len-740-org-images',
+        '../2019-09-12-10-40-44-720511-len-740-adv-images',
+        '../2019-09-12-00-45-47-940375-len-101-adv-images',
+        '../2019-09-12-00-45-47-940375-len-101-org-images',
+    ]
     # arguments
     args = get_args()
     # args.dataset = 'cifar10'
