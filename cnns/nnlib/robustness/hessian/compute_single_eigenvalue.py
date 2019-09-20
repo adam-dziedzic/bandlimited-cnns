@@ -1,3 +1,11 @@
+from cnns import matplotlib_backend
+
+print('Using: ', matplotlib_backend.backend)
+
+import matplotlib
+
+print('Using: ', matplotlib.get_backend())
+
 import torch
 import time
 import numpy as np
@@ -57,8 +65,8 @@ if __name__ == "__main__":
     start_time = time.time()
     np.random.seed(31)
 
-    hvp_operator_class = HVPOperatorParams
-    # hvp_operator_class = HVPOperatorInputs
+    # hvp_operator_class = HVPOperatorParams
+    hvp_operator_class = HVPOperatorInputs
 
     # file_pickle = None
     # file_pickle = '../2019-09-11-20-13-15-755242-adv-images'
@@ -80,8 +88,10 @@ if __name__ == "__main__":
     # file_pickle = '../2019-09-12-10-28-45-374723-len-62-gauss-images'
     # file_pickle = '../2019-09-12-00-45-47-940375-len-101-org-images'
 
-    files = ['../2019-09-12-10-40-44-720511-len-740-adv-images',
-             '../2019-09-12-00-45-47-940375-len-101-org-images']
+    files = ['../2019-09-12-00-45-47-940375-len-101-adv-images',
+             '../2019-09-12-00-45-47-940375-len-101-org-images',
+             '../2019-09-12-10-40-44-720511-len-740-adv-images',
+             '../2019-09-12-10-40-44-720511-len-740-org-images']
     # arguments
     args = get_args()
     # args.dataset = 'cifar10'
@@ -90,6 +100,7 @@ if __name__ == "__main__":
     for file_pickle in files:
         # file_pickle = 'none'
         print('file_pickle: ', file_pickle)
+        beg_file = time.time()
 
         eigenset = compute_hessian(
             args=args,
@@ -105,5 +116,6 @@ if __name__ == "__main__":
         with open(file_pickle + '-highest_eigenvalues', 'w') as f:
             str_vals = deli.join([str(val) for val in eigenset])
             f.write(str_vals)
+        print('time file: ', time.time() - beg_file)
 
     print('total elapsed time: ', time.time() - start_time)
