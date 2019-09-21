@@ -48,10 +48,11 @@ def read_columns(dataset, columns=5):
             if i > 0:  # skip header
                 for column in range(columns):
                     try:
-                        print('column: ', column)
+                        # print('column: ', column)
                         cols[column].append(float(row[column]))
                     except ValueError as ex:
-                        print("Exception: ", ex)
+                        pass
+                        # print("Exception: ", ex)
     return cols
 
 
@@ -130,7 +131,9 @@ yes_100 = {  # ylabel: "L2 adv",
 
 recovered = {  # ylabel: "L2 adv",
     # file_name: "2019-09-09-18-28-04-319343_grad_stats_True.csv",
-    file_name: "recovered.csv",
+    # file_name: "recovered.csv",
+    # file_name: "2019-09-19-21-51-01-222075_grad_stats_True.csv",
+    file_name: "2019-09-11-22-09-14-647707_grad_stats_True.csv",
     title: "recovered",
     # legend_pos: "lower left",
     legend_pos: "upper right",
@@ -144,7 +147,9 @@ recovered = {  # ylabel: "L2 adv",
 
 not_recovered = {  # ylabel: "L2 adv",
     # file_name: "2019-09-09-18-28-04-319343_grad_stats_False.csv",
-    file_name: "not_recovered.csv",
+    # file_name: "not_recovered.csv",
+    file_name: "2019-09-11-22-09-14-647707_grad_stats_False.csv",
+
     title: "not recovered",
     # legend_pos: "lower left",
     legend_pos: "upper right",
@@ -189,6 +194,7 @@ for j, dataset in enumerate(datasets):
 
     print("col 27: ", cols[27])
     print("col 25: ", cols[25])
+    print('col length: ', len(cols[27]))
 
     plt.plot(cols[25], cols[27], label=f"{dataset[labels][0]}",
              # lw=line_width,
@@ -216,7 +222,7 @@ plt.xlim((0,20))
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "grad_stats_graph_only_false_true_many_images2." + format
+destination = dir_path + "/" + "grad_ratio_single_c_False_True_many_images_2." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',

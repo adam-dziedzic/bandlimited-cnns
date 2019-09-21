@@ -468,6 +468,17 @@ def get_args():
                         f"{args.attack_strengths}")
     parser.add_argument("--targeted_attack", action='store_true',
                         help=f"Is it targeted attack? (by default: not)")
+    parser.add_argument("--gradient_iters",
+                        type=int,
+                        default=args.gradient_iters,
+                        help='For the CW attack, how many times to accumulate'
+                             'the gradients'
+                        )
+    parser.add_argument("--ensemble",
+                        type=int,
+                        default=args.ensemble,
+                        help='For the RSE defense, how many models in the '
+                             'ensemble.')
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)

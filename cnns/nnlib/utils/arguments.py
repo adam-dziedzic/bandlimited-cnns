@@ -82,9 +82,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     in_channels = 1
 else:
     # dataset = "mnist"
-    # dataset = "cifar10"
+    dataset = "cifar10"
     # dataset = "cifar100"
-    dataset = "imagenet"
+    # dataset = "imagenet"
     # dataset = "svhn"
 
     batch_size = 32
@@ -98,11 +98,11 @@ else:
     momentum = 0.9
     # epochs = 14101
     # epochs=50
-    epochs = 3
+    # epochs = 3
     # epochs = 100
     # epochs = 50000
     # epochs = 51
-    # epochs = 10001
+    epochs = 10000
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
@@ -338,7 +338,7 @@ class Arguments(object):
                  # start_epoch=14100,
                  # start_epoch=50,
                  # start_epoch=10000,
-                 start_epoch=2,
+                 start_epoch=0,
                  only_train=False,
                  test_compress_rates=False,
                  noise_sigma=0.0,
@@ -403,7 +403,7 @@ class Arguments(object):
                  many_noise_iterations=[0],
                  recover_iterations=0,
                  many_recover_iterations=[0],
-                 attack_max_iterations=0,
+                 attack_max_iterations=1000,
                  many_attack_iterations=[1000],
                  laplace_epsilon=0.0,
                  laplace_epsilons=[0.0],
@@ -420,6 +420,8 @@ class Arguments(object):
                  # attack_strengths=[0.08, 0.09, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9],
                  # attack_strengths=(0.001, 0.01, 0.03, 0.04, 0.05, 0.07, 0.08, 0.09, 0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9, 1.0,),
                  attack_strengths=(0.01,),
+                 gradient_iters=1,
+                 ensemble=1,
                  ):
         """
         The default parameters for the execution of the program.
@@ -559,6 +561,8 @@ class Arguments(object):
         self.prediction_type = prediction_type
         self.attack_strengths = attack_strengths
         self.targeted_attack = True
+        self.gradient_iters = gradient_iters
+        self.ensemble = ensemble
 
         # deeprl
         # self.env_name = "Reacher-v2"

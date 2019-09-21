@@ -68,7 +68,6 @@ from cnns.nnlib.attacks.simple_blackbox import SimbaSingle
 from cnns.nnlib.robustness.gradients.compute import compute_gradients
 from cnns.nnlib.robustness.fmodel import get_fmodel
 from cnns.nnlib.datasets.load_data import get_data
-
 results_folder = "results/"
 delimiter = ";"
 
