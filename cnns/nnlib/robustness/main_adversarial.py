@@ -674,8 +674,8 @@ def run(args):
         images = images / 255
         # print("max value in images after 255 division: ", np.max(images))
     else:
-        # images = test_dataset
-        images = train_dataset
+        images = test_dataset
+        # images = train_dataset
         labels = None
 
     # for attack_strength in args.attack_strengths:
@@ -756,12 +756,13 @@ def run(args):
             full_name += "-" + str(attack_name)
             if attack_name == "CarliniWagnerL2AttackRoundFFT":
                 full_name += "-" + str(args.recover_type)
+                full_name += "-c-val-" + str(args.attack_strength)
             print("full name of stored adversarial example: ", full_name)
-            is_load_image = True
+            is_load_image = False
             if is_load_image and os.path.exists(full_name + ".npy") and (
                     attack_name != "CarliniWagnerL2AttackRoundFFT") and (
                     attack_name != "GaussAttack") and (
-                    # attack_name != "CarliniWagnerL2Attack") and (
+                    attack_name != "CarliniWagnerL2Attack") and (
                     attack_name != "Nattack"
             ):
                 # and not (attack_name.startswith('FFT')):
@@ -787,7 +788,7 @@ def run(args):
                         input_or_adv=original_image,
                         label=args.True_class_id,
                         compress_rate=args.compress_rate)
-                elif attack_name == "FFTHighFrequencyAttackAdversary":
+                elif attmack_nae == "FFTHighFrequencyAttackAdversary":
                     adv_image = attack(
                         original_image, label=args.True_class_id,
                         net=fmodel.predictions)

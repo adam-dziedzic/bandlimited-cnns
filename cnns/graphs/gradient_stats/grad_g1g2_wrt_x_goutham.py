@@ -104,6 +104,7 @@ width = 10
 height = 10
 line_width = 4
 layout = "horizontal"  # "horizontal" or "vertical"
+limit = 300
 
 fig = plt.figure(figsize=(len(datasets) * width, height))
 
@@ -118,8 +119,8 @@ for j, dataset in enumerate(datasets):
     print(f'cols[{base_col + 2}][0]: ', cols[base_col + 2][0])
     assert cols[base_col + 2][0] == 'eta_x'
 
-    eta_grad = cols[base_col + 1]
-    eta_x = cols[base_col + 3]
+    eta_grad = cols[base_col + 1][:limit]
+    eta_x = cols[base_col + 3][:limit]
     print("col eta_grad: ", eta_grad)
     print("col eta_x: ", eta_x)
     print('col length: ', len(eta_grad))
@@ -152,7 +153,7 @@ plt.title('Gradient of (max logit - 2nd max logit) w.r.t. input x',
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "grad_g1g2_wrt_x_goutham_2." + format
+destination = dir_path + "/" + "grad_g1g2_wrt_x_goutham_5." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
