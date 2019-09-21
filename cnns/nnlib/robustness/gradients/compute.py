@@ -49,6 +49,43 @@ def get_gradient_for_input(args, model, input: torch.tensor, target,
         gradient), np.mean(gradient), np.max(gradient), confidence
 
 
+def gauss_noise_torch(epsilon, images, bounds):
+    min_, max_ = bounds
+    std = epsilon / np.sqrt(3) * (max_ - min_)
+    noise = torch.zeros_like(images, requires_grad=False).normal_(0, std).to(
+        images.device)
+    return noise
+
+
+def get_gradient_g1g2_wrt_x(args, model, input: torch.tensor):
+    if input is None:
+        return None
+    assert input.ndim == 3
+    input = np.expand_dims(input, axis=0)
+    data = torch.tensor(input, device=args.device, requires_grad=True)
+    model.to(args.device)
+    output = model(data)
+    output = output.squeeze()
+    max_idx = torch.argmax(output).item()
+    min_val = torch.min(output)
+    second_output = output.clone()
+    second_output[max_idx] = min_val
+    second_max_val = torch.max(second_output)
+    max_val = torch.max(output)
+    loss = max_val - second_max_val
+    loss.backward()
+    gradient_g1g2_wrt_x = data.grad
+    noise = gauss_noise_torch(epsilon=0.03, images=data,
+                              bounds=(args.min, args.max))
+    noise_1D = noise.view(-1)
+    data_1D = data.view(-1)
+    grad_1D = gradient_g1g2_wrt_x.view(-1)
+    eta_grad = torch.dot(noise_1D, grad_1D).item()
+    eta_x = torch.dot(noise_1D, data_1D).item()
+    # print('eta_grad: ', eta_grad, ' eta_x: ', eta_x)
+    return eta_grad, eta_x
+
+
 def compute_gradients(args, model, original_image: torch.tensor, original_label,
                       adv_image: torch.tensor, adv_label, gauss_image=None):
     grads = {}
@@ -82,6 +119,10 @@ def compute_gradients(args, model, original_image: torch.tensor, original_label,
                                             input=gauss_image, target=adv_label)
     grad_gauss_zero = get_gradient_for_input(args=args, model=model,
                                              input=gauss_image, target=target)
+
+    eta_grad, eta_x = get_gradient_g1g2_wrt_x(args=args, model=model,
+                                              input=original_image)
+
     grads['original_correct'] = grad_original_correct
     grads['original_adv'] = grad_original_adv
     grads['original_zero'] = grad_original_zero
@@ -123,6 +164,9 @@ def compute_gradients(args, model, original_image: torch.tensor, original_label,
     results['gauss_dot_adv_correct'] = np.sum(grad_gauss_adv[0] * grad_gauss_correct[0])
     results['gauss_dot_adv_zero'] = np.sum(grad_gauss_adv[0] * grad_gauss_zero[0])
     results['gauss_dot_correct_zero'] = np.sum(grad_gauss_correct[0] * grad_gauss_zero[0])
+
+    results['eta_grad'] = eta_grad
+    results['eta_x'] = eta_x
 
     for grad_key in sorted(grads.keys()):
         grad = grads[grad_key]

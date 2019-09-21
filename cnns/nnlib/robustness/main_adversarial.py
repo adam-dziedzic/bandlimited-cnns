@@ -674,7 +674,8 @@ def run(args):
         images = images / 255
         # print("max value in images after 255 division: ", np.max(images))
     else:
-        images = test_dataset
+        # images = test_dataset
+        images = train_dataset
         labels = None
 
     # for attack_strength in args.attack_strengths:
@@ -756,14 +757,15 @@ def run(args):
             if attack_name == "CarliniWagnerL2AttackRoundFFT":
                 full_name += "-" + str(args.recover_type)
             print("full name of stored adversarial example: ", full_name)
-            is_load_image = False
+            is_load_image = True
             if is_load_image and os.path.exists(full_name + ".npy") and (
                     attack_name != "CarliniWagnerL2AttackRoundFFT") and (
                     attack_name != "GaussAttack") and (
-                    attack_name != "CarliniWagnerL2Attack") and (
+                    # attack_name != "CarliniWagnerL2Attack") and (
                     attack_name != "Nattack"
             ):
                 # and not (attack_name.startswith('FFT')):
+                print('found image to load')
                 adv_image = np.load(file=full_name + ".npy")
                 result.adv_timing = -1
             else:
@@ -976,19 +978,22 @@ def run(args):
             grad_stats['attack_strength'] = args.attack_strength
 
             # Write with respect to the recovered or not.
-            with open(args.global_log_time + '_grad_stats_' + str(
-                    is_gauss_recovered) + '.csv', 'a') as file:
+            file_recovered_name = args.global_log_time + '_grad_stats_' + str(
+                    is_gauss_recovered) + '-' + args.dataset + '.csv'
+            with open(file_recovered_name, 'a') as file:
                 for key in sorted(grad_stats.keys()):
                     val = grad_stats[key]
                     file.write(key + ';' + str(val) + ';')
                 file.write('\n')
+                file.flush()
 
             # Write everything.
-            with open(args.global_log_time + '_grad_stats.csv', 'a') as file:
+            with open(args.global_log_time + '_' + args.dataset + '_grad_stats.csv', 'a') as file:
                 for key in sorted(grad_stats.keys()):
                     val = grad_stats[key]
                     file.write(key + ';' + str(val) + ';')
                 file.write('\n')
+                file.flush()
 
         if args.noise_epsilon > 0 and image is not None:
             print("uniform additive noise defense")
