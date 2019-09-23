@@ -52,6 +52,7 @@ def read_columns(dataset, columns=5):
                         cols[column].append(float(row[column]))
                     except ValueError as ex:
                         pass
+                        cols[column].append(row[column])
                         # print("Exception: ", ex)
     return cols
 
@@ -115,8 +116,6 @@ yes_1070 = {  # ylabel: "L2 adv",
     xlim: (0, 100),
     ylim: (0, 100)}
 
-
-
 yes_100 = {  # ylabel: "L2 adv",
     file_name: "2019-09-10-12-00-06-403683_grad_stats_True.csv",
     title: "yes_100",
@@ -134,10 +133,12 @@ recovered = {  # ylabel: "L2 adv",
     # file_name: "recovered.csv",
     # file_name: "2019-09-19-21-51-01-222075_grad_stats_True.csv",
     # file_name: "2019-09-11-22-09-14-647707_grad_stats_True.csv",
-    file_name: "2019-09-19-21-51-01-222075_grad_stats_True.csv",
+    # file_name: "2019-09-21-00-04-48-125028_grad_stats_True-cifar10.csv",
+    # file_name: "2019-09-19-21-51-01-222075_grad_stats_True.csv",
+    file_name: "2019-09-21-00-04-48-125028_grad_stats_True-cifar10.csv",
     title: "recovered",
     # legend_pos: "lower left",
-    legend_pos: "lower right",
+    legend_pos: "upper right",
     # bbox: (0.0, 0.0),
     column_nr: 56,
     legend_cols: 2,
@@ -145,15 +146,16 @@ recovered = {  # ylabel: "L2 adv",
     xlim: (0, 100),
     ylim: (0, 100)}
 
-
 not_recovered = {  # ylabel: "L2 adv",
     # file_name: "2019-09-09-18-28-04-319343_grad_stats_False.csv",
     # file_name: "not_recovered.csv",
     # file_name: "2019-09-11-22-09-14-647707_grad_stats_False.csv",
-    file_name: "2019-09-19-21-51-01-222075_grad_stats_False.csv",
+    # file_name: "2019-09-21-00-04-48-125028_grad_stats_False-cifar10.csv",
+    # file_name: "2019-09-19-21-51-01-222075_grad_stats_True.csv",
+    file_name: "2019-09-21-00-04-48-125028_grad_stats_False-cifar10.csv",
     title: "not recovered",
     # legend_pos: "lower left",
-    legend_pos: "lower right",
+    legend_pos: "upper right",
     # bbox: (0.0, 0.0),
     column_nr: 56,
     legend_cols: 2,
@@ -185,6 +187,7 @@ width = 10
 height = 10
 line_width = 4
 layout = "horizontal"  # "horizontal" or "vertical"
+# limit = 4096
 
 fig = plt.figure(figsize=(len(datasets) * width, height))
 
@@ -193,12 +196,20 @@ for j, dataset in enumerate(datasets):
     columns = dataset[column_nr]
     cols = read_columns(dataset[file_name], columns=columns)
 
-    # print("col 27: ", cols[27])
-    # print("col 25: ", cols[25])
-    print('col length: ', len(cols[27]))
+    org_col = 30
+    adv_col = 28
+    print(f'cols[{org_col}][0]: ', cols[org_col][0])
+    assert cols[org_col][0] == 'l2_norm_adv_correct'
+    print(f'cols[{adv_col}][0]: ', cols[adv_col][0])
+    assert cols[adv_col][0] == 'l2_norm_adv_adv'
 
+    org_grad = cols[org_col + 1]
+    adv_grad = cols[adv_col + 1]
+    print("col org: ", org_grad)
+    print("col adv: ", adv_grad)
+    print('col length: ', len(adv_grad))
 
-    plt.plot(cols[25], cols[27], label=f"{dataset[labels][0]}",
+    plt.plot(adv_grad, org_grad, label=f"{dataset[labels][0]}",
              # lw=line_width,
              color=colors[j],
              # linestyle=linestyles[j],
@@ -211,13 +222,12 @@ for j, dataset in enumerate(datasets):
                prop={'size': legend_size},
                # bbox_to_anchor=dataset[bbox]
                )
-plt.xlabel('$L_2$ of gradient for adv img and adv class')
-plt.ylabel('$L_2$ of gradient for adv img and org class')
+plt.ylabel('$L_2$ of gradient for adv image and org class')
+plt.xlabel('$L_2$ of gradient for adv image and adv class')
 # plt.title('Gradients ratio and recovery', fontsize=title_size)
 
-#plt.ylim((0,20))
-#plt.xlim((0,20))
-
+plt.xlim((1e-5, 1e+2))
+plt.ylim((1e-1, 1e+2))
 plt.xscale('log', basex=10)
 plt.yscale('log', basey=10)
 # plt.gcf().autofmt_xdate()
@@ -226,7 +236,7 @@ plt.yscale('log', basey=10)
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "grads_ratio_single_c_False_True_many_images_13." + format
+destination = dir_path + "/" + "grads_ratio_single_c_False_True_many_images2_c=1_ver7." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',

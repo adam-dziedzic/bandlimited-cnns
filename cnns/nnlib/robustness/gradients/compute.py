@@ -165,6 +165,8 @@ def compute_gradients(args, model, original_image: torch.tensor, original_label,
     results['gauss_dot_adv_zero'] = np.sum(grad_gauss_adv[0] * grad_gauss_zero[0])
     results['gauss_dot_correct_zero'] = np.sum(grad_gauss_correct[0] * grad_gauss_zero[0])
 
+    results['z_l2_dist_adv_org_image'] = args.meter.measure(original_image, adv_image)
+
     results['eta_grad'] = eta_grad
     results['eta_x'] = eta_x
 

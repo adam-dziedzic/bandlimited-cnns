@@ -63,10 +63,11 @@ legend_cols = "legend_cols"  # number of columns in the legend
 bbox = "bbox"
 
 # The datasets for the attacks.
+legend_labels_vals = ["", "LBFGS", "FGSM", "BIM $L_1$", "C&W $L_2$"]
 
 round_channel = {file_name: "round_channel",
                xlabel: "# of bits per channel (CD)",
-               legend_labels: ["", "LBFGS", "L inf FGSM", "L1 BIM", "L2 C&W"],
+               legend_labels: legend_labels_vals,
                nr_cols: 5,
                xlim: (0, 8),
                legend_position: "lower center",
@@ -75,7 +76,7 @@ round_channel = {file_name: "round_channel",
 
 fft_channel = {file_name: "fft_channel",
                xlabel: "Compression (%) in the frequency domain (FC)",
-               legend_labels: ["", "LBFGS", "L inf FGSM", "L1 BIM", "L2 C&W"],
+               legend_labels: legend_labels_vals,
                nr_cols: 5,
                xlim: (0, 80),
                legend_position: "lower left",
@@ -84,7 +85,7 @@ fft_channel = {file_name: "fft_channel",
 
 noise_channel = {file_name: "noise_channel",
                xlabel: "Strength of the Uniform noise (epsilon)",
-               legend_labels: ["", "LBFGS", "L inf FGSM", "L1 BIM", "L2 C&W"],
+               legend_labels: legend_labels_vals,
                nr_cols: 5,
                xlim: (0, 0.5),
                legend_position: "lower left",
@@ -93,7 +94,7 @@ noise_channel = {file_name: "noise_channel",
 
 gauss_channel = {file_name: "gauss_channel",
                xlabel: "Strength of the Gaussian noise (sigma)",
-               legend_labels: ["", "LBFGS", "L inf FGSM", "L1 BIM", "L2 C&W"],
+               legend_labels: legend_labels_vals,
                nr_cols: 5,
                xlim: (0, 0.5),
                legend_position: "lower left",
@@ -109,13 +110,13 @@ gauss_channel = {file_name: "gauss_channel",
 # datasets = [uniform, ]
 # datasets = [uniform, gaussian, ]
 # datasets = [uniform, gaussian, contrast, ]
-datasets = [round_channel, fft_channel, gauss_channel, noise_channel]
+datasets = [fft_channel, round_channel, gauss_channel, noise_channel]
 # datasets = [round_channel]
 # datasets = [translations]
 # datasets = [gradientSign]
 
-ncols = 1
-nrows = int(np.ceil(len(datasets) / ncols))
+nrows = 1
+ncols = int(np.ceil(len(datasets) / nrows))
 
 # figsize: width, height in inches
 fig = plt.figure(figsize=(ncols * 9, nrows * 6))
@@ -162,6 +163,6 @@ for j, data in enumerate(datasets):
 # plt.imshow()
 plt.show(block=True)
 plt.interactive(False)
-fig.savefig(dir_path + "/" + "attacks8.pdf", bbox_inches='tight')
+fig.savefig(dir_path + "/" + "attacks11.pdf", bbox_inches='tight')
 plt.close()
 print("Time (sec): ", time.time() - start)

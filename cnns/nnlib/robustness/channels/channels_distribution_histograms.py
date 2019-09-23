@@ -74,13 +74,13 @@ images = images / 255  # map from [0,255] to [0,1] range
 
 single_graph = False
 channels = [
-    [round, 'cd (16 bits)', 16],
-    [fft, 'fft (10%)', 10],
-    [unif, 'unif (0.03)', 0.03],
-    [laplace, 'laplace (0.01)', 0.01],
+    [round, 'CD (4 bits)', 16],
+    [fft, 'FC (10%)', 10],
+    [unif, 'Uniform (0.03)', 0.03],
+    [laplace, 'Laplace (0.01)', 0.01],
     # [logistic, 'logistic', 0.03],
-    [gauss, 'gauss (0.03)', 0.03],
-    [svd, 'svd (60%)', 60],
+    [gauss, 'Gauss (0.03)', 0.03],
+    [svd, 'SVD (60%)', 60],
     # [sub, 'RGB subtract', 10]
 ]
 
@@ -194,7 +194,7 @@ for index, (label, image) in enumerate(zip(labels, images)):
 
     plt.subplots_adjust(hspace=1.5)
     plt.subplots_adjust(wspace=0.5)
-    plt.savefig('channels_pdf_histograms2.pdf', bbox_inches='tight')
+    plt.savefig('channels_distribution_histograms4.pdf', bbox_inches='tight')
     plt.show()
 
 print(f"\nBase test accuracy of the model: "

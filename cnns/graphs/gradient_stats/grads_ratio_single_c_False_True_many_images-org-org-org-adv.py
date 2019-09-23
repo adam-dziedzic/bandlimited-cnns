@@ -115,8 +115,6 @@ yes_1070 = {  # ylabel: "L2 adv",
     xlim: (0, 100),
     ylim: (0, 100)}
 
-
-
 yes_100 = {  # ylabel: "L2 adv",
     file_name: "2019-09-10-12-00-06-403683_grad_stats_True.csv",
     title: "yes_100",
@@ -145,12 +143,13 @@ recovered = {  # ylabel: "L2 adv",
     xlim: (0, 100),
     ylim: (0, 100)}
 
-
 not_recovered = {  # ylabel: "L2 adv",
     # file_name: "2019-09-09-18-28-04-319343_grad_stats_False.csv",
     # file_name: "not_recovered.csv",
     # file_name: "2019-09-11-22-09-14-647707_grad_stats_False.csv",
+    # file_name: "2019-09-11-22-09-14-647707_grad_stats_False.csv",
     file_name: "2019-09-19-21-51-01-222075_grad_stats_False.csv",
+
     title: "not recovered",
     # legend_pos: "lower left",
     legend_pos: "lower right",
@@ -163,7 +162,7 @@ not_recovered = {  # ylabel: "L2 adv",
 
 colors = [get_color(color) for color in
           [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
-markers = ["+", "o", "v", "s", "D", "^", "+"]
+markers = ["+", "v", "o", "s", "D", "^", "+"]
 linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 
 datasets = [recovered,
@@ -193,12 +192,11 @@ for j, dataset in enumerate(datasets):
     columns = dataset[column_nr]
     cols = read_columns(dataset[file_name], columns=columns)
 
-    # print("col 27: ", cols[27])
-    # print("col 25: ", cols[25])
-    print('col length: ', len(cols[27]))
+    print("col 39: ", cols[39])
+    print("col 37: ", cols[37])
+    print('col length: ', len(cols[37]))
 
-
-    plt.plot(cols[25], cols[27], label=f"{dataset[labels][0]}",
+    plt.plot(cols[39], cols[37], label=f"{dataset[labels][0]}",
              # lw=line_width,
              color=colors[j],
              # linestyle=linestyles[j],
@@ -211,22 +209,23 @@ for j, dataset in enumerate(datasets):
                prop={'size': legend_size},
                # bbox_to_anchor=dataset[bbox]
                )
-plt.xlabel('$L_2$ of gradient for adv img and adv class')
-plt.ylabel('$L_2$ of gradient for adv img and org class')
+plt.ylabel('L2 of the grad for org img and adv class')
+plt.xlabel('L2 of the grad for org img and org class')
 # plt.title('Gradients ratio and recovery', fontsize=title_size)
 
-#plt.ylim((0,20))
-#plt.xlim((0,20))
+# plt.ylim((0,40))
+# plt.xlim((0, 40))
 
 plt.xscale('log', basex=10)
 plt.yscale('log', basey=10)
+
 # plt.gcf().autofmt_xdate()
 # plt.xticks(rotation=0)
 # plt.interactive(False)
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "grads_ratio_single_c_False_True_many_images_13." + format
+destination = dir_path + "/" + "grads_ratio_single_c_False_True_many_images-org-org-org-adv_9." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',

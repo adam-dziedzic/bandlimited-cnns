@@ -126,7 +126,7 @@ random_pgd_cifar10 = {ylabel: "Accuracy (%)",
 
 pgd_imagenet = {ylabel: "Accuracy (%)",
                 file_name: "distortionPGDImageNet",
-                title: "PGD L$_{\infty}$ ImageNet",
+                title: "PGD (random start) L$_{\infty}$ ImageNet",
                 # legend_pos: "lower left",
                 legend_pos: "upper right",
                 # bbox: (0.0, 0.0),
@@ -138,7 +138,7 @@ pgd_imagenet = {ylabel: "Accuracy (%)",
 
 fgsm_imagenet = {ylabel: "Accuracy (%)",
                  file_name: "distortionFGSMImageNet2",
-                 title: "FGSM L$_{\infty}$ ImageNet",
+                 title: "FGSM ImageNet",
                  # legend_pos: "lower left",
                  legend_pos: "upper right",
                  # bbox: (0.0, 0.0),
@@ -212,7 +212,7 @@ for j, dataset in enumerate(datasets):
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "distortionFullData5." + format
+destination = dir_path + "/" + "distortionFullData6." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',

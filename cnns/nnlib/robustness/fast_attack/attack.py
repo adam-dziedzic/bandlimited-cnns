@@ -5,6 +5,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import time
+import numpy as np
+from cnns.nnlib.robustness.fast_attack.data_saver import DataSaver
 from cnns.nnlib.robustness.fast_attack.eot_pgd import EOT_PGD
 from cnns.nnlib.robustness.fast_attack.eot_cw import EOT_CW
 from cnns.nnlib.robustness.fast_attack.channels import fft_channel
@@ -72,6 +74,7 @@ def attack_cw(input, label, net, c, args, untarget=True):
     label_onehot = label_onehot.to(args.device)
     # Below is ~artanh: http://bit.ly/2MAtsMX that is defined on interval (0,1)
     input_01 = args.denormalizer(input)
+    input_01 = torch.clamp(input_01, min=1e-6, max=1.0 - 1e-6)
     w = 0.5 * torch.log((input_01) / (1 - input_01))
     w_v = w.requires_grad_(True)
     optimizer = optim.Adam([w_v], lr=1.0e-3)
@@ -161,65 +164,71 @@ def ensemble_infer(input_v, net, n=50, nclass=10):
     return pred
 
 
+def to_numpy(tensor):
+    return tensor.clone().detach().cpu().numpy()
+
+
 def acc_under_attack(dataloader, net, c, attack_f, args, netAttack=None):
     correct = 0
     tot = 0
     distort_l2 = 0.0
     distort_linf = 0.0
+    data_saver = DataSaver(dataset=args.dataset)
 
-    for k, (input, output) in enumerate(dataloader):
+    for k, (input, labels) in enumerate(dataloader):
         beg = time.time()
-        input, output = input.to(args.device), output.to(args.device)
+        input, labels = input.to(args.device), labels.to(args.device)
         # attack
         if netAttack is None:
             netAttack = net
 
-        adverse = attack_f(input, output, netAttack, c, args)
+        adv = attack_f(input, labels, netAttack, c, args)
         # print('min max adverse: ', adverse.min().item(), adverse.max().item())
         bounds = (args.min, args.max)
         if args.recover_type == 'empty':
             pass
         elif args.recover_type == 'gauss':
-            adverse += gauss_noise_torch(epsilon=args.noise_epsilon,
-                                            images=adverse, bounds=bounds)
+            adv += gauss_noise_torch(epsilon=args.noise_epsilon,
+                                     images=adv, bounds=bounds)
         elif args.recover_type == 'round':
-            adverse = round(values_per_channel=args.noise_epsilon,
-                               images=adverse)
+            adv = round(values_per_channel=args.noise_epsilon,
+                        images=adv)
         elif args.recover_type == 'fft':
-            adverse = fft_channel(input=adverse,
-                                     compress_rate=args.noise_epsilon)
+            adv = fft_channel(input=adv,
+                              compress_rate=args.noise_epsilon)
         elif args.recover_type == 'uniform':
-            adverse += uniform_noise_torch(epsilon=args.noise_epsilon,
-                                              images=adverse,
-                                              bounds=bounds)
+            adv += uniform_noise_torch(epsilon=args.noise_epsilon,
+                                       images=adv,
+                                       bounds=bounds)
         elif args.recover_type == 'laplace':
-            adverse += laplace_noise_torch(epsilon=args.noise_epsilon,
-                                              images=adverse,
-                                              bounds=bounds)
+            adv += laplace_noise_torch(epsilon=args.noise_epsilon,
+                                       images=adv,
+                                       bounds=bounds)
         elif args.recover_type == 'svd':
-            adverse = compress_svd_batch(x=adverse,
-                                            compress_rate=args.noise_epsilon)
+            adv = compress_svd_batch(x=adv,
+                                     compress_rate=args.noise_epsilon)
         elif args.recover_type == 'inv_fft':
-            adverse = fft_channel(input=adverse,
-                                     compress_rate=args.noise_epsilon,
-                                     get_mask=get_inverse_hyper_mask)
+            adv = fft_channel(input=adv,
+                              compress_rate=args.noise_epsilon,
+                              get_mask=get_inverse_hyper_mask)
         elif args.recover_type == 'sub_rgb':
-            adverse = subtract_rgb(images=adverse,
-                                      subtract_value=args.noise_epsilon)
+            adv = subtract_rgb(images=adv,
+                               subtract_value=args.noise_epsilon)
         else:
             raise Exception(f'Unknown recover_type: {args.recover_type}')
         # defense
         net.eval()
-        adverse_torch = args.normalizer(adverse)
+        adverse_torch = args.normalizer(adv)
         if args.ensemble > 1:
             idx = ensemble_infer(adverse_torch, net, n=50)
         else:
-            _, idx = torch.max(net(adverse_torch), 1)
-        correct += torch.sum(output.eq(idx)).item()
-        tot += output.numel()
+            logits = net(adverse_torch)
+            _, idx = torch.max(logits, dim=1)
+        correct += torch.sum(labels.eq(idx)).item()
+        tot += labels.numel()
 
-        distort_l2 += args.meter(input, adverse, norm=2)
-        distort_linf += args.meter(input, adverse, norm=float('inf'))
+        distort_l2 += args.meter(input, adv, norm=2)
+        distort_linf += args.meter(input, adv, norm=float('inf'))
 
         more_info = True
         if more_info:
@@ -230,11 +239,20 @@ def acc_under_attack(dataloader, net, c, attack_f, args, netAttack=None):
                     distort_linf / tot, 'total_count', tot,
                     'elapsed time (sec)', elapsed]
             print(','.join([str(x) for x in info]))
+        data_saver.add_data(adv_images=to_numpy(adverse_torch),
+                            adv_labels=to_numpy(idx),
+                            org_images=to_numpy(input),
+                            org_labels=to_numpy(labels))
+
+        if k * args.test_batch_size % 1024 == 0:
+            data_saver.save_adv_org()
+
+    data_saver.save_adv_org()
 
     return correct / tot, distort_l2 / tot, distort_linf / tot
 
 
-def test_accuracy(dataloader, net):
+def get_test_accuracy(dataloader, net, args):
     net.eval()
     total = 0
     correct = 0
@@ -257,6 +275,10 @@ if __name__ == "__main__":
         args=args)
     _, model, _ = get_fmodel(args=args)
 
+    # We need one more dimension for the batch:
+    args.mean_array = np.expand_dims(args.mean_array, 0)
+    args.std_array = np.expand_dims(args.std_array, 0)
+
     args.normalizer = Normalize(mean_array=args.mean_array,
                                 std_array=args.std_array,
                                 device=args.device)
@@ -267,8 +289,9 @@ if __name__ == "__main__":
                                 std_array=args.std_array,
                                 device=args.device)
 
-    print('Test accuracy {} on clean data for net.'.format(
-        test_accuracy(test_loader, model)))
+    test_accuracy = get_test_accuracy(dataloader=test_loader, net=model,
+                                      args=args)
+    print(f'Test accuracy: {test_accuracy} on clean data for: {args.dataset}')
     # if netAttack is not None:
     #     print(f'Test accuracy on clean data for netAttack: {test_accuracy(dataloader_test, netAttack)}')
 
@@ -287,8 +310,7 @@ if __name__ == "__main__":
             args.noise_epsilon = noise
             beg = time.time()
             acc, avg_L2distort, avg_Linfdistort = acc_under_attack(
-                test_loader, model, c,
-                attack_f, args)
+                test_loader, model, c, attack_f, args)
             timing = time.time() - beg
             print("{}, {}, {}, {}, {}, {}".format(c, noise, acc,
                                                   avg_L2distort,
