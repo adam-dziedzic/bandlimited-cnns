@@ -95,9 +95,10 @@ if __name__ == "__main__":
     #          '../2019-09-12-00-45-47-940375-len-101-org-images',
     #          '../2019-09-12-10-40-44-720511-len-740-adv-images',
     #          '../2019-09-12-10-40-44-720511-len-740-org-images']
-    files = ['../2019-09-12-08-42-57-780912-len-1201-adv-images',
-             '../2019-09-12-08-42-57-780912-len-1201-org-images',
-             ]
+    files = [
+        '../2019-09-12-08-42-57-780912-len-1201-org-images',
+        '../2019-09-12-08-42-57-780912-len-1201-adv-images',
+    ]
 
     for file_pickle in files:
         print('file_pickle: ', file_pickle)
