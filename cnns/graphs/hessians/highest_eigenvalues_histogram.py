@@ -38,8 +38,8 @@ GPU_MEM_SIZE = 16280
 
 wrt = 'inputs'
 # wrt = 'model_parameters'
-dataset_name = 'ImageNet'
-# dataset_name = 'CIFAR-10'
+# dataset_name = 'ImageNet'
+dataset_name = 'CIFAR-10'
 
 def read_columns(dataset, columns=5):
     file_name = dir_path + "/" + dataset
@@ -100,9 +100,9 @@ original = {  # ylabel: "L2 adv",
     # file_name: "../../nnlib/robustness/2019-09-12-16-03-19-884343-len-17-org-images-eigenvals-confidence",
     # file_name: "../../nnlib/robustness/2019-09-12-10-28-45-366327-len-62-org-images-highest_eigenvalues",
     # imagenet
-    file_name: "../../nnlib/robustness/2019-09-12-10-40-44-720511-len-740-org-images-highest_eigenvalues",
+    # file_name: "../../nnlib/robustness/2019-09-12-10-40-44-720511-len-740-org-images-highest_eigenvalues",
     # cifar
-    # file_name: "../../nnlib/robustness/2019-09-12-08-42-57-780912-len-1201-org-images-highest_eigenvalues",
+    file_name: "../../nnlib/robustness/2019-09-12-08-42-57-780912-len-1201-org-images-highest_eigenvalues",
     title: "original",
     # legend_pos: "lower left",
     legend_pos: "upper right",
@@ -121,8 +121,10 @@ adversarial = {  # ylabel: "L2 adv",
     # file_name: "../../nnlib/robustness/2019-09-12-15-52-21-871557-len-5-adv-images-eigenvals-min-avg-max",
     # file_name: "../../nnlib/robustness/2019-09-12-16-03-19-881953-len-17-adv-images-eigenvals-confidence",
     # file_name: "../../nnlib/robustness/2019-09-12-10-28-45-352351-len-62-adv-images-highest_eigenvalues",
+    # ImageNet
     # file_name: "../../nnlib/robustness/2019-09-12-10-40-44-720511-len-740-adv-images-highest_eigenvalues",
-    # file_name: "../../nnlib/robustness/2019-09-12-08-42-57-780912-len-1201-adv-images-highest_eigenvalues",
+    # CIFAR-10
+    file_name: "../../nnlib/robustness/2019-09-12-08-42-57-780912-len-1201-adv-images-highest_eigenvalues",
     title: "adversarial",
     # legend_pos: "lower left",
     legend_pos: "upper right",
@@ -178,8 +180,8 @@ xlen = 20
 indexing = []
 # limit = 740
 # limit = 1201
-# limit = 1024
-limit = 512
+limit = 1024
+# limit = 512
 
 for j, dataset in enumerate(datasets):
     print("dataset: ", dataset)
@@ -217,13 +219,13 @@ plt.legend(  # loc='upper right',
     title='Image type:',
     # bbox_to_anchor=dataset[bbox]
 )
-plt.ylabel('frequency count')
-plt.xlabel('eigenvalue magnitude')
+plt.ylabel('Frequency count')
+plt.xlabel('Eigenvalue magnitude')
 # plt.xticks(indexing)
 plt.yscale('log', basey=10)
 title = f'Highest eigenvalues of Hessians w.r.t. {wrt} for {limit} images'
 title += f' from {dataset_name}'
-plt.title(title, fontsize=title_size)
+# plt.title(title, fontsize=title_size)
 
 # plt.ylim((0,20))
 # plt.xlim((0, xlen))

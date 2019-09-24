@@ -154,13 +154,16 @@ markers = ["+", "o", "v", "s", "D", "^", "+"]
 linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 
 datasets = [carlini_cifar10,
-            carlini_imagenet,
-            # carlini_imagenet_full,
-            # pgd_cifar10,
-            random_pgd_cifar10,
-            pgd_imagenet,
-            fgsm_imagenet,
+            carlini_imagenet_full,
             ]
+# datasets = [carlini_cifar10,
+#             carlini_imagenet,
+#             # carlini_imagenet_full,
+#             # pgd_cifar10,
+#             random_pgd_cifar10,
+#             pgd_imagenet,
+#             fgsm_imagenet,
+#             ]
 
 # width = 12
 # height = 5
@@ -199,7 +202,7 @@ for j, dataset in enumerate(datasets):
                prop={'size': legend_size},
                # bbox_to_anchor=dataset[bbox]
                )
-    plt.xlabel('L2 distortion')
+    plt.xlabel('$L_2$ distortion')
     plt.title(dataset[title], fontsize=title_size)
     if j == 0:
         plt.ylabel(dataset[ylabel])
@@ -212,7 +215,7 @@ for j, dataset in enumerate(datasets):
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "distortionFullData6." + format
+destination = dir_path + "/" + "distortionFullData8." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
