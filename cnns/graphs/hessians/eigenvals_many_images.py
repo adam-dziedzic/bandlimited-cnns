@@ -75,8 +75,8 @@ original = {  # ylabel: "L2 adv",
     # file_name: "../../nnlib/robustness/2019-09-12-09-39-58-229597-len-1-org_recovered-images-eigenvals",
     # file_name: "../../nnlib/robustness/2019-09-12-15-52-21-873237-len-5-org-images-eigenvals-min-avg-max",
     # file_name: "../../nnlib/robustness/2019-09-12-09-15-11-046445-len-32-org-images-eigenvals-min-avg-max",
-    file_name: "../../nnlib/robustness/2019-09-12-09-15-11-046445-len-32-org-images-eigenvals-min-avg-max",
-
+    # file_name: "../../nnlib/robustness/2019-09-12-09-15-11-046445-len-32-org-images-eigenvals-min-avg-max",
+    file_name: "../../nnlib/robustness/2019-09-12-00-45-47-940375-len-101-org-images-eigenvals-min-avg-max",
     title: "original",
     # legend_pos: "lower left",
     legend_pos: "upper right",
@@ -93,8 +93,8 @@ adversarial = {  # ylabel: "L2 adv",
     # file_name: "../../nnlib/robustness/2019-09-12-09-39-58-229330-len-1-adv_recovered-images-eigenvals",
     # file_name: "../../nnlib/robustness/2019-09-12-15-52-21-871557-len-5-adv-images-eigenvals-min-avg-max",
     # file_name: "../../nnlib/robustness/2019-09-12-09-15-11-040897-len-32-adv-images-eigenvals-min-avg-max",
-    file_name: "../../nnlib/robustness/2019-09-12-09-15-11-040897-len-32-adv-images-eigenvals-min-avg-max",
-
+    # file_name: "../../nnlib/robustness/2019-09-12-09-15-11-040897-len-32-adv-images-eigenvals-min-avg-max",
+    file_name: "../../nnlib/robustness/2019-09-12-00-45-47-940375-len-101-adv-images-eigenvals-min-avg-max",
     title: "adversarial",
     # legend_pos: "lower left",
     legend_pos: "upper right",
@@ -184,7 +184,7 @@ plt.yscale('symlog', basey=2)
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + f"eigenvals_show_many_wrt_{wrt}10." + format
+destination = dir_path + "/" + f"eigenvals_show_many_wrt_{wrt}12." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
