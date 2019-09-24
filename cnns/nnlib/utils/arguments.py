@@ -564,7 +564,7 @@ class Arguments(object):
         self.targeted_attack = True
         self.gradient_iters = gradient_iters
         self.ensemble = ensemble
-        self.attack_confidecne = attack_confidence
+        self.attack_confidence = attack_confidence
 
         # deeprl
         # self.env_name = "Reacher-v2"
