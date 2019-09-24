@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import csv
 import os
 
+from cnns.nnlib.utils.general_utils import get_log_time
 print(matplotlib.get_backend())
 
 # plt.interactive(True)
@@ -76,7 +77,10 @@ original = {  # ylabel: "L2 adv",
     # file_name: "../../nnlib/robustness/2019-09-12-15-52-21-873237-len-5-org-images-eigenvals-min-avg-max",
     # file_name: "../../nnlib/robustness/2019-09-12-09-15-11-046445-len-32-org-images-eigenvals-min-avg-max",
     # file_name: "../../nnlib/robustness/2019-09-12-09-15-11-046445-len-32-org-images-eigenvals-min-avg-max",
-    file_name: "../../nnlib/robustness/2019-09-12-00-45-47-940375-len-101-org-images-eigenvals-min-avg-max",
+    # ImageNet 101
+    # file_name: "../../nnlib/robustness/2019-09-12-00-45-47-940375-len-101-org-images-eigenvals-min-avg-max",
+    # CIFAR-10 1201
+    file_name: "2019-09-12-08-42-57-780912-len-1201-org-images-eigenvals-min-avg-max",
     title: "original",
     # legend_pos: "lower left",
     legend_pos: "upper right",
@@ -94,7 +98,10 @@ adversarial = {  # ylabel: "L2 adv",
     # file_name: "../../nnlib/robustness/2019-09-12-15-52-21-871557-len-5-adv-images-eigenvals-min-avg-max",
     # file_name: "../../nnlib/robustness/2019-09-12-09-15-11-040897-len-32-adv-images-eigenvals-min-avg-max",
     # file_name: "../../nnlib/robustness/2019-09-12-09-15-11-040897-len-32-adv-images-eigenvals-min-avg-max",
-    file_name: "../../nnlib/robustness/2019-09-12-00-45-47-940375-len-101-adv-images-eigenvals-min-avg-max",
+    # ImageNet 101
+    # file_name: "../../nnlib/robustness/2019-09-12-00-45-47-940375-len-101-adv-images-eigenvals-min-avg-max",
+    # CIFAR 1201
+    file_name: "2019-09-12-08-42-57-780912-len-1201-adv-images-eigenvals-min-avg-max",
     title: "adversarial",
     # legend_pos: "lower left",
     legend_pos: "upper right",
@@ -184,7 +191,7 @@ plt.yscale('symlog', basey=2)
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + f"eigenvals_show_many_wrt_{wrt}12." + format
+destination = dir_path + "/" + f"eigenvals_many_images_show_many_wrt_{wrt}" + get_log_time() + '.' + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',

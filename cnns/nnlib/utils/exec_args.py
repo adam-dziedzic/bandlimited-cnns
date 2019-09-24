@@ -479,6 +479,10 @@ def get_args():
                         default=args.ensemble,
                         help='For the RSE defense, how many models in the '
                              'ensemble.')
+    parser.add_argument("--attack_confidence",
+                        type=float,
+                        default=args.attack_confidence,
+                        help='Confidence of adversarial examples: a higher value produces adversarials that are further away, but more strongly classified as adversarial.')
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)

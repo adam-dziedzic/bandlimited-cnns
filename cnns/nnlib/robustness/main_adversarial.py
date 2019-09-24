@@ -777,7 +777,8 @@ def run(args):
                         # max_iterations=args.attack_max_iterations,
                         # max_iterations=2, binary_search_steps=1, initial_const=1e+12,
                         max_iterations=1000, binary_search_steps=1,
-                        initial_const=args.attack_strength, confidence=0,
+                        initial_const=args.attack_strength,
+                        confidence=args.attack_confidence,
                     )
                 elif attack_name == "GaussAttack":
                     adv_image = GaussAttack(original_image,

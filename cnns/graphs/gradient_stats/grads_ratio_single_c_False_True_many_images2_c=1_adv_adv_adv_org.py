@@ -68,66 +68,6 @@ legend_cols = "legend_cols"
 xlim = "xlim"
 ylim = "ylim"
 
-no_259 = {  # ylabel: "L2 adv",
-    file_name: "2019-09-09-17-47-48-005485_grad_stats_False.csv",
-    title: "no_259",
-    # legend_pos: "lower left",
-    legend_pos: "upper right",
-    # bbox: (0.0, 0.0),
-    column_nr: 56,
-    legend_cols: 2,
-    labels: ['no_259'],
-    xlim: (0, 100),
-    ylim: (0, 100)}
-
-no_200 = {  # ylabel: "L2 adv",
-    file_name: "2019-09-10-12-01-04-067880_grad_stats_False.csv",
-    title: "no_200",
-    # legend_pos: "lower left",
-    legend_pos: "upper right",
-    # bbox: (0.0, 0.0),
-    column_nr: 56,
-    legend_cols: 2,
-    labels: ['no_200'],
-    xlim: (0, 100),
-    ylim: (0, 100)}
-
-no_1070 = {  # ylabel: "L2 adv",
-    file_name: "2019-09-09-19-00-34-169703_grad_stats_False.csv",
-    title: "no_1070",
-    # legend_pos: "lower left",
-    legend_pos: "upper right",
-    # bbox: (0.0, 0.0),
-    column_nr: 56,
-    legend_cols: 2,
-    labels: ['no_1070'],
-    xlim: (0, 100),
-    ylim: (0, 100)}
-
-yes_1070 = {  # ylabel: "L2 adv",
-    file_name: "2019-09-09-19-00-34-169703_grad_stats_True.csv",
-    title: "yes_1070",
-    # legend_pos: "lower left",
-    legend_pos: "upper right",
-    # bbox: (0.0, 0.0),
-    column_nr: 56,
-    legend_cols: 2,
-    labels: ['yes_1070'],
-    xlim: (0, 100),
-    ylim: (0, 100)}
-
-yes_100 = {  # ylabel: "L2 adv",
-    file_name: "2019-09-10-12-00-06-403683_grad_stats_True.csv",
-    title: "yes_100",
-    # legend_pos: "lower left",
-    legend_pos: "upper right",
-    # bbox: (0.0, 0.0),
-    column_nr: 56,
-    legend_cols: 2,
-    labels: ['yes_100'],
-    xlim: (0, 100),
-    ylim: (0, 100)}
-
 recovered = {  # ylabel: "L2 adv",
     # file_name: "2019-09-09-18-28-04-319343_grad_stats_True.csv",
     # file_name: "recovered.csv",

@@ -422,6 +422,7 @@ class Arguments(object):
                  attack_strengths=(1.0,),
                  gradient_iters=1,
                  ensemble=1,
+                 attack_confidence=1000,
                  ):
         """
         The default parameters for the execution of the program.
@@ -563,6 +564,7 @@ class Arguments(object):
         self.targeted_attack = True
         self.gradient_iters = gradient_iters
         self.ensemble = ensemble
+        self.attack_confidecne = attack_confidence
 
         # deeprl
         # self.env_name = "Reacher-v2"
