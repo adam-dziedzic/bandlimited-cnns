@@ -34,6 +34,20 @@ def softmax_from_torch(x):
     return s.numpy()
 
 
+class AdditiveUniformNoiseAttack(AdditiveNoiseAttack):
+    """Adds uniform noise to the image, gradually increasing
+    the standard deviation until the image is misclassified.
+
+    """
+    def __init__(self, args):
+        super(AdditiveUniformNoiseAttack, self).__init__()
+        self.args = args
+
+    def _sample_noise(self, epsilon, image, bounds):
+        return gauss_noise(epsilon=epsilon, shape=image.shape,
+                           dtype=image.dtype, args=self.args)
+
+
 def uniform_noise(epsilon, shape, dtype, args):
     """
     Similar to foolbox but batched version.
@@ -47,6 +61,20 @@ def uniform_noise(epsilon, shape, dtype, args):
     noise = nprng.uniform(-w, w, size=shape)
     noise = noise.astype(dtype)
     return noise
+
+
+class AdditiveGaussianNoiseAttack(AdditiveNoiseAttack):
+    """Adds Gaussian noise to the image, gradually increasing
+    the standard deviation until the image is misclassified.
+
+    """
+    def __init__(self, args):
+        super(AdditiveGaussianNoiseAttack, self).__init__()
+        self.args = args
+
+    def _sample_noise(self, epsilon, image, bounds):
+        return gauss_noise(epsilon=epsilon, shape=image.shape,
+                             dtype=image.dtype, args=self.args)
 
 
 def gauss_noise(epsilon, shape, dtype, args):
@@ -87,7 +115,7 @@ def laplace_noise(epsilon, shape, dtype, args):
     :return: the noise for images
     """
     scale = epsilon / np.sqrt(3) * (args.max - args.min)
-    noise = nprng.laplace(loc=args.mean_mean, scale=scale, size=shape)
+    noise = nprng.laplace(scale=scale, size=shape)
     noise = noise.astype(dtype)
     return noise
 

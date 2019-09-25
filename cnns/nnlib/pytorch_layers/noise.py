@@ -1,7 +1,7 @@
 import torch
 from torch.nn import Module
-from foolbox.attacks.additive_noise import AdditiveUniformNoiseAttack
-from foolbox.attacks.additive_noise import AdditiveGaussianNoiseAttack
+from cnns.nnlib.robustness.utils import AdditiveUniformNoiseAttack
+from cnns.nnlib.robustness.utils import AdditiveGaussianNoiseAttack
 from cnns.nnlib.robustness.utils import AdditiveLaplaceNoiseAttack
 import numpy as np
 
@@ -63,12 +63,13 @@ class Noise(Module):
 
     def __init__(self, args):
         super(Noise, self).__init__()
+        self.args = args
         if args.noise_sigma > 0:
             # gauss_image = gauss(image_numpy=image, sigma=args.noise_sigma)
-            self.noiser = AdditiveGaussianNoiseAttack()
+            self.noiser = AdditiveGaussianNoiseAttack(args=args)
             self.noise_level = args.noise_sigma
         elif args.noise_epsilon > 0:
-            self.noiser = AdditiveUniformNoiseAttack()
+            self.noiser = AdditiveUniformNoiseAttack(args=args)
             self.noise_level = args.noise_epsilon
         elif args.laplace_epsilon > 0:
             self.noiser = AdditiveLaplaceNoiseAttack(args=args)
