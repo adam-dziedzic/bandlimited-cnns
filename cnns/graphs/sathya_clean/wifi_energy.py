@@ -55,7 +55,7 @@ legend_pos = "center_pos"
 bbox = "bbox"
 file_name = "file_name"
 
-energy = {ylabel: "Energy (dB)",
+energy = {ylabel: "Energy (dBm)",
         file_name: "wifi_energy",
         title: "accuracy",
         legend_pos: "upper left",
@@ -87,11 +87,12 @@ for j, dataset in enumerate(datasets):
     print("dataset: ", dataset)
     cols = read_columns(dataset[file_name], columns=columns)
 
-    print("col 0: ", cols[0])
-    print("col 1: ", cols[1])
+    # print("col 0: ", cols[0])
+    # print("col 1: ", cols[1])
 
     for i in range(columns):
-        if i > 0:  # skip first column with the epoch number
+        print("i: ", i)
+        if i > 1:  # skip first column with the index number
             plt.plot(cols[0], cols[i], label=f"{labels[i]}", lw=lw,
                      color=colors[i], linestyle=linestyles[i])
 
@@ -112,7 +113,7 @@ for j, dataset in enumerate(datasets):
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "wifi-energy." + format
+destination = dir_path + "/" + "wifi-energy4." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
