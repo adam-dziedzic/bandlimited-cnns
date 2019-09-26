@@ -218,7 +218,6 @@ not_recovered_0_01_conf_1 = {  # ylabel: "L2 adv",
     xlim: (0, 100),
     ylim: (0, 100)}
 
-
 recovered_0_01_conf_10 = {
     file_name: "2019-09-25-20-18-48-322123_grad_stats_True-cifar10.csv",
     title: "recovered",
@@ -243,7 +242,6 @@ not_recovered_0_01_conf_10 = {
     xlim: (0, 100),
     ylim: (0, 100)}
 
-
 recovered_0_01_conf_100 = {
     file_name: "2019-09-25-20-19-39-790685_grad_stats_True-cifar10.csv",
     title: "recovered",
@@ -267,7 +265,6 @@ not_recovered_0_01_conf_100 = {
     labels: ['not recovered c=0.01, confidence=100'],
     xlim: (0, 100),
     ylim: (0, 100)}
-
 
 recovered_0_01_conf_200 = {
     file_name: "2019-09-25-20-21-35-669154_grad_stats_True-cifar10.csv",
@@ -447,7 +444,6 @@ not_recovered_1_0 = {  # ylabel: "L2 adv",
     xlim: (0, 100),
     ylim: (0, 100)}
 
-
 not_recovered_1_0_conf_1000 = {  # ylabel: "L2 adv",
     # file_name: "2019-09-09-18-28-04-319343_grad_stats_False.csv",
     # file_name: "not_recovered.csv",
@@ -467,7 +463,6 @@ not_recovered_1_0_conf_1000 = {  # ylabel: "L2 adv",
     labels: ['not recovered c=1.0, confidence=1000'],
     xlim: (0, 100),
     ylim: (0, 100)}
-
 
 recovered_1_0_conf_1000 = {  # ylabel: "L2 adv",
     # file_name: "2019-09-09-18-28-04-319343_grad_stats_False.csv",
@@ -529,7 +524,6 @@ not_recovered_10_0 = {  # ylabel: "L2 adv",
     xlim: (0, 100),
     ylim: (0, 100)}
 
-
 recovered_100_0 = {  # ylabel: "L2 adv",
     file_name: "2019-09-24-18-29-16-691092_grad_stats_True-cifar10.csv",
     title: "recovered",
@@ -561,7 +555,6 @@ not_recovered_100_0 = {  # ylabel: "L2 adv",
     xlim: (0, 100),
     ylim: (0, 100)}
 
-
 recovered_1000_0 = {  # ylabel: "L2 adv",
     file_name: "2019-09-24-18-29-54-114768_grad_stats_True-cifar10.csv",
     title: "recovered",
@@ -585,7 +578,6 @@ not_recovered_1000_0 = {  # ylabel: "L2 adv",
     labels: ['not recovered c=1000.0, confidence=0'],
     xlim: (0, 100),
     ylim: (0, 100)}
-
 
 recovered_10000_0 = {  # ylabel: "L2 adv",
     file_name: "2019-09-24-18-30-30-626095_grad_stats_True-cifar10.csv",
@@ -617,46 +609,51 @@ colors = [get_color(color) for color in
 markers = ["+", "o", "v", "s", "D", "^", "+", 'o', 'v', '+']
 linestyles = [":", "-", "--", ":", "-", "--", "-", "--", ':', ':']
 
-datasets = [recovered_0_001,
-            not_recovered_0_001,
-            recovered_0_001_conf_1000,
-            not_recovered_0_001_conf_1000,
-            recovered_0_01,
-            not_recovered_0_01,
-            recovered_0_01_conf_1,
-            not_recovered_0_01_conf_1,
-            recovered_0_01_conf_10,
-            not_recovered_0_01_conf_10,
-            recovered_0_01_conf_100,
-            not_recovered_0_01_conf_100,
-            recovered_0_01_conf_200,
-            not_recovered_0_01_conf_200,
-            recovered_0_01_conf_1000,
-            not_recovered_0_01_conf_1000,
-            recovered_0_1,
-            not_recovered_0_1,
-            recovered_0_1_conf_1000,
-            not_recovered_0_1_conf_1000,
-            recovered_1_0,
-            not_recovered_1_0,
-            recovered_1_0_conf_1000,
-            not_recovered_1_0_conf_1000,
-            recovered_10_0,
-            not_recovered_10_0,
-            recovered_100_0,
-            not_recovered_100_0,
-            recovered_1000_0,
-            not_recovered_1000_0,
-            recovered_10000_0,
-            not_recovered_10000_0,
-            # yes_1070,
-            # no_1070,
-            # carlini_imagenet,
-            # pgd_cifar10,
-            # random_pgd_cifar10,
-            # pgd_imagenet,
-            # fgsm_imagenet,
-            ]
+datasets = [
+    # recovered_0_001,
+    # not_recovered_0_001,
+    # recovered_0_001_conf_1000,
+    # not_recovered_0_001_conf_1000,
+    recovered_0_01,
+    not_recovered_0_01,
+    recovered_0_01_conf_1000,
+    not_recovered_0_01_conf_1000,
+    # recovered_0_01_conf_200,
+    # not_recovered_0_01_conf_200,
+    # recovered_0_01_conf_100,
+    # not_recovered_0_01_conf_100,
+    recovered_0_01_conf_10,
+    not_recovered_0_01_conf_10,
+    recovered_0_01_conf_1,
+    not_recovered_0_01_conf_1,
+    recovered_0_01,
+    not_recovered_0_01,
+    # recovered_0_01_conf_1,
+    # not_recovered_0_01_conf_1,
+    # recovered_0_1,
+    # not_recovered_0_1,
+    # recovered_0_1_conf_1000,
+    # not_recovered_0_1_conf_1000,
+    # recovered_1_0,
+    # not_recovered_1_0,
+    # recovered_1_0_conf_1000,
+    # not_recovered_1_0_conf_1000,
+    # recovered_10_0,
+    # not_recovered_10_0,
+    # recovered_100_0,
+    # not_recovered_100_0,
+    # recovered_1000_0,
+    # not_recovered_1000_0,
+    # recovered_10000_0,
+    # not_recovered_10000_0,
+    # yes_1070,
+    # no_1070,
+    # carlini_imagenet,
+    # pgd_cifar10,
+    # random_pgd_cifar10,
+    # pgd_imagenet,
+    # fgsm_imagenet,
+]
 
 # width = 12
 # height = 5
@@ -668,9 +665,9 @@ height = 15
 line_width = 4
 layout = "horizontal"  # "horizontal" or "vertical"
 # limit = 4096
-ncols = 2
+nrows = 1
 assert len(datasets) % 2 == 0
-nrows = len(datasets) // 2 // ncols
+ncols = len(datasets) // 2 // nrows
 
 fig = plt.figure(figsize=(ncols * width, nrows * height))
 dist_recovered = None
@@ -680,8 +677,11 @@ for j, dataset in enumerate(datasets):
     print("dataset: ", dataset)
     columns = dataset[column_nr]
     cols = read_columns(dataset[file_name], columns=columns)
+    if j < 2:
+        is_org_image = True
+    else:
+        is_org_image = False
 
-    is_org_image = False
     if is_org_image:
         org_col = 42
         adv_col = 40
@@ -708,7 +708,6 @@ for j, dataset in enumerate(datasets):
     l2_dist_col = 60
     print(f'cols[{l2_dist_col}][0]: ', cols[l2_dist_col][0])
     assert cols[l2_dist_col][0] == 'z_l2_dist_adv_org_image'
-
 
     # print("col org: ", org_grad)
     # print("col adv: ", adv_grad)
@@ -750,12 +749,13 @@ for j, dataset in enumerate(datasets):
         if is_org_image:
             plt.ylabel('$L_2$ of gradient for org image and adv class')
             plt.xlabel('$L_2$ of gradient for org image and org class')
+            plt.title('The original image')
         else:
             plt.ylabel('$L_2$ of gradient for adv image and org class')
             plt.xlabel('$L_2$ of gradient for adv image and adv class')
-        plt.title(
-            f'$L_2$ distance recovered: {dist_recovered}, not recovered: {dist_not_recovered}',
-            fontsize=title_size)
+            plt.title(
+                f'$L_2$ distance recovered: {dist_recovered}, not recovered: {dist_not_recovered}',
+                fontsize=title_size)
 
         plt.xlim((0, 50))
         plt.ylim((0, 50))
@@ -768,7 +768,7 @@ for j, dataset in enumerate(datasets):
 # plt.imshow()
 plt.subplots_adjust(hspace=0.2, wspace=0.2)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "grads_ratio_c_values" + get_log_time() + '.' + format
+destination = dir_path + "/" + "grads_ratio_c_values_confidence_range_" + get_log_time() + '.' + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
