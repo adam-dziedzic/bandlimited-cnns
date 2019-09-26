@@ -957,7 +957,7 @@ def run(args):
         else:
             result.gauss_label = None
 
-        if adv_image is not None and original_result.class_id == args.True_class_id:
+        if adv_image is not None and original_result.class_id == args.True_class_id and gauss_image:
             gradients, grad_stats = compute_gradients(args=args,
                                                       model=pytorch_model,
                                                       original_image=original_image,
