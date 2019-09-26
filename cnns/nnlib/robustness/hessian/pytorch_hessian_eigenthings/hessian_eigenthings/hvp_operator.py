@@ -174,7 +174,7 @@ class HVPOperatorInputs(Operator):
 
     def prepare_grad(self):
         """
-        Compute gradient of loss w.r.t all parameters and vectorize
+        Compute gradient of loss w.r.t inputs and vectorize
         """
         output = self.model(self.image)
         loss = self.criterion(output, self.label)
