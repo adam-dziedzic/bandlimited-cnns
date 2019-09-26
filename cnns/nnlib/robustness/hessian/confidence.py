@@ -1,9 +1,9 @@
 import torch
 import time
 import numpy as np
-from hessian_eigenthings import compute_hessian_eigenthings
-from hessian_eigenthings import HVPOperatorInputs
-from hessian_eigenthings import HVPOperatorParams
+from cnns.nnlib.robustness.hessian.pytorch_hessian_eigenthings.hessian_eigenthings import compute_hessian_eigenthings
+from cnns.nnlib.robustness.hessian.pytorch_hessian_eigenthings.hessian_eigenthings import HVPOperatorInputs
+from cnns.nnlib.robustness.hessian.pytorch_hessian_eigenthings.hessian_eigenthings import HVPOperatorParams
 from cnns.nnlib.robustness.fmodel import get_fmodel
 from cnns.nnlib.utils.exec_args import get_args
 from cnns.nnlib.datasets.load_data import get_data
