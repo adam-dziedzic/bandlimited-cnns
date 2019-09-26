@@ -1,3 +1,0 @@
-[submodule "cnns/nnlib/attacks/simple_blackbox_remote"]
-	path = cnns/nnlib/attacks/simple_blackbox_remote
-	url = https://github.com/adam-dziedzic/simple-blackbox-attack.git

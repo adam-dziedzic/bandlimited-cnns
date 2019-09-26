@@ -1,7 +1,7 @@
-from cnns.nnlib.attacks.simple_blackbox_remote.simba_single import simba_single
+from cnns.nnlib.attacks.simple_blackbox.simba_single import simba_single
 from foolbox.attacks.base import Attack
 import torch
-from cnns.nnlib.attacks.simple_blackbox_remote.torch_01_range import Ranger
+from cnns.nnlib.attacks.simple_blackbox.torch_01_range import Ranger
 
 
 class SimbaSingle(Attack):
