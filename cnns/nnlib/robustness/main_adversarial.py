@@ -64,7 +64,7 @@ from cnns.nnlib.utils.general_utils import softmax
 from cnns.nnlib.robustness.channels.channels_definition import \
     gauss_noise_fft_torch
 from foolbox.criteria import TargetClass, Misclassification
-from cnns.nnlib.attacks.simple_blackbox import SimbaSingle
+from cnns.nnlib.attacks.simple_blackbox_attack import SimbaSingle
 from cnns.nnlib.robustness.gradients.compute import compute_gradients
 from cnns.nnlib.robustness.fmodel import get_fmodel
 from cnns.nnlib.datasets.load_data import get_data
