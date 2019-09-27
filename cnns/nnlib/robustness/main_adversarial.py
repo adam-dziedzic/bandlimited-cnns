@@ -1131,7 +1131,7 @@ def run(args):
                     attack_name != "GaussAttack") and not attack_name.startswith(
                 'FFT'):
                 np.save(file=full_name + ".npy", arr=adv_image)
-                if args.save_out and result.original_class_id == args.True_class_id:
+                if args.save_out and result.original_class_id == args.True_class_id and args.noise_sigma > 0:
                     adv_images.append(adv_image)
                     adv_labels.append(result.adv_class_id)
                     org_images.append(original_image)
