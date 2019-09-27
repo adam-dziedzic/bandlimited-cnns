@@ -758,11 +758,11 @@ def run(args):
                 full_name += "-" + str(args.recover_type)
                 full_name += "-c-val-" + str(args.attack_strength)
             print("full name of stored adversarial example: ", full_name)
-            is_load_image = False
+            is_load_image = True
             if is_load_image and os.path.exists(full_name + ".npy") and (
                     attack_name != "CarliniWagnerL2AttackRoundFFT") and (
                     attack_name != "GaussAttack") and (
-                    attack_name != "CarliniWagnerL2Attack") and (
+                    # attack_name != "CarliniWagnerL2Attack") and (
                     attack_name != "Nattack"
             ):
                 # and not (attack_name.startswith('FFT')):
