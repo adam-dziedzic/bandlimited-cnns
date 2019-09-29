@@ -66,7 +66,7 @@ xlim = "xlim"
 ylim = "ylim"
 
 carlini_cifar10 = {ylabel: "Accuracy (%)",
-                   file_name: "distortionCarliniCifar",
+                   file_name: "distortionCarliniCifar3",
                    title: "C&W L$_2$ CIFAR-10",
                    legend_pos: "upper right",
                    # bbox: (0.0, 0.0),
@@ -89,7 +89,7 @@ carlini_imagenet = {ylabel: "Accuracy (%)",
                     ylim: (0, 100)}
 
 carlini_imagenet_full = {ylabel: "Accuracy (%)",
-                    file_name: "distortionCarliniImageNetFull",
+                    file_name: "distortionCarliniImageNetFull2",
                     title: "C&W L$_2$ ImageNet",
                     # legend_pos: "lower left",
                     legend_pos: "upper right",
@@ -189,8 +189,8 @@ for j, dataset in enumerate(datasets):
     print("col 1: ", cols[1])
 
     for col in range(0, columns, 2):
-        if col == 8:  # skip Laplace
-            continue
+        # if col == 8:  # skip Laplace
+        #     continue
         i = col // 2
         plt.plot(cols[col], cols[col + 1], label=f"{dataset[labels][i]}",
                  lw=line_width,
@@ -215,7 +215,7 @@ for j, dataset in enumerate(datasets):
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "distortionFullData8." + format
+destination = dir_path + "/" + "distortionFullData9." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',

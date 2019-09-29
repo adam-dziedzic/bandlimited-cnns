@@ -766,7 +766,7 @@ def run(args):
                     attack_name != "Nattack"
             ):
                 # and not (attack_name.startswith('FFT')):
-                print('found image to load')
+                print('found image to load: ', full_name + ".npy")
                 adv_image = np.load(file=full_name + ".npy")
                 result.adv_timing = -1
             else:
