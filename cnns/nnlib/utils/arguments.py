@@ -82,9 +82,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     in_channels = 1
 else:
     # dataset = "mnist"
-    dataset = "cifar10"
+    # dataset = "cifar10"
     # dataset = "cifar100"
-    # dataset = "imagenet"
+    dataset = "imagenet"
     # dataset = "svhn"
 
     batch_size = 32
@@ -96,13 +96,7 @@ else:
         learning_rate = 0.1
     weight_decay = 0.0001
     momentum = 0.9
-    # epochs = 14101
-    # epochs=50
-    # epochs = 3
-    # epochs = 100
-    # epochs = 50000
-    # epochs = 51
-    epochs = 10000
+    epochs = 50000
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
@@ -179,7 +173,7 @@ class Arguments(object):
         return self.__counter__
 
     def __init__(self,
-                 is_debug=True,
+                 is_debug=False,
                  # network_type=NetworkType.ResNet18,
                  # network_type=NetworkType.DenseNetCifar,
                  network_type=network_type,
@@ -344,7 +338,7 @@ class Arguments(object):
                  noise_sigma=0.0,
                  # noise_sigmas=[0.0],
                  # noise_sigmas=[x/1000 for x in range(1, 10)] + [x/100 for x in range(1, 10)] + [x/10 for x in range(1, 11)],
-                 noise_sigmas=[0.03],
+                 noise_sigmas=[0.0],
                  # noise_sigmas=[0.05, 0.06, 0.07, 0.08, 0.09],
                  # noise_sigmas=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
                  # noise_epsilons=[0.1, 0.07, 0.03, 0.009, 0.007, 0.04, 0.02, 0.3],
@@ -392,9 +386,9 @@ class Arguments(object):
                  # recover_type="rounding",
                  # recover_type="fft",
                  # recover_type="all",
-                 # recover_type="laplace",
+                 recover_type="laplace",
                  # recover_type="debug",
-                 recover_type="gauss",
+                 # recover_type="gauss",
                  # recover_type="empty",
                  noise_epsilon=0.0,
                  noise_epsilons=[0.0],
@@ -406,7 +400,9 @@ class Arguments(object):
                  attack_max_iterations=1000,
                  many_attack_iterations=[1000],
                  laplace_epsilon=0.0,
-                 laplace_epsilons=[0.0],
+                 laplace_epsilons=[0.001, 0.002, 0.004, 0.005, 0.007, 0.009,
+                                   0.01, 0.02, 0.03, 0.04, 0.05, 0.08, 0.1,
+                                   0.5],
                  is_DC_shift=False,
                  use_foolbox_data=False,
                  svd_compress=0.0,
@@ -419,10 +415,10 @@ class Arguments(object):
                  # attack_strengths=[0.01, 0.03, 0.04, 0.05, 0.07, 0.1, 0.5, 1.0],
                  # attack_strengths=[0.08, 0.09, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9],
                  # attack_strengths=(0.001, 0.01, 0.03, 0.04, 0.05, 0.07, 0.08, 0.09, 0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9, 1.0,),
-                 attack_strengths=(1.0,),
+                 attack_strengths=(0.01,),
                  gradient_iters=1,
                  ensemble=1,
-                 attack_confidence=1000,
+                 attack_confidence=0,
                  ):
         """
         The default parameters for the execution of the program.

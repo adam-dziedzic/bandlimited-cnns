@@ -95,7 +95,7 @@ class NoiseGauss(Noise):
         super(NoiseGauss, self).__init__(args=args)
         # overwrite the noiser
         if args.noise_sigma > 0:
-            self.noiser = AdditiveGaussianNoiseAttack()
+            self.noiser = AdditiveGaussianNoiseAttack(args=args)
             self.noise_level = args.noise_sigma
 
 
@@ -104,7 +104,7 @@ class NoiseUniform(Noise):
     def __init__(self, args):
         super(NoiseUniform, self).__init__(args=args)
         if args.noise_epsilon > 0:
-            self.noiser = AdditiveUniformNoiseAttack()
+            self.noiser = AdditiveUniformNoiseAttack(args=args)
             self.noise_level = args.noise_epsilon
 
 
