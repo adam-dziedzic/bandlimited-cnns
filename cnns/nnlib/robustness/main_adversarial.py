@@ -789,7 +789,7 @@ def run(args):
                         input_or_adv=original_image,
                         label=args.True_class_id,
                         compress_rate=args.compress_rate)
-                elif attmack_name == "FFTHighFrequencyAttackAdversary":
+                elif attack_name == "FFTHighFrequencyAttackAdversary":
                     adv_image = attack(
                         original_image, label=args.True_class_id,
                         net=fmodel.predictions)
