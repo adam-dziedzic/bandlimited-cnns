@@ -362,7 +362,7 @@ class Arguments(object):
                  # attack_type=AttackType.GAUSS_ONLY,
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
-                 compress_fft_layer=1,
+                 compress_fft_layer=0,
                  # attack_name="CarliniWagnerL2AttackRoundFFT",
                  attack_name="CarliniWagnerL2Attack",
                  # attack_name=None,
@@ -420,7 +420,7 @@ class Arguments(object):
                  gradient_iters=1,
                  ensemble=1,
                  attack_confidence=0,
-                 target_class=282,
+                 target_class=-1,
                  ):
         """
         The default parameters for the execution of the program.
