@@ -33,7 +33,7 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 # 2D
 conv_type = ConvType.STANDARD2D
 # conv_type = ConvType.FFT2D
-compress_rate = 0.0
+compress_rate = 1.0
 
 if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # dataset = "ucr"
@@ -70,7 +70,7 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     next_power2 = True
     schedule_patience = 50
     schedule_factor = 0.5
-    epochs = 10
+    epochs = 12
     optimizer_type = OptimizerType.ADAM
     momentum = 0.9
     # loss_type = LossType.CROSS_ENTROPY
@@ -96,7 +96,7 @@ else:
         learning_rate = 0.1
     weight_decay = 0.0001
     momentum = 0.9
-    epochs = 50000
+    epochs = 1
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
@@ -173,7 +173,7 @@ class Arguments(object):
         return self.__counter__
 
     def __init__(self,
-                 is_debug=False,
+                 is_debug=True,
                  # network_type=NetworkType.ResNet18,
                  # network_type=NetworkType.DenseNetCifar,
                  network_type=network_type,
@@ -362,7 +362,7 @@ class Arguments(object):
                  # attack_type=AttackType.GAUSS_ONLY,
                  schedule_patience=schedule_patience,
                  schedule_factor=schedule_factor,
-                 compress_fft_layer=0,
+                 compress_fft_layer=1,
                  # attack_name="CarliniWagnerL2AttackRoundFFT",
                  attack_name="CarliniWagnerL2Attack",
                  # attack_name=None,
@@ -384,9 +384,9 @@ class Arguments(object):
                  # attack_name="SimbaSingle",
                  interpolate="const",
                  # recover_type="rounding",
-                 # recover_type="fft",
+                 recover_type="fft",
                  # recover_type="all",
-                 recover_type="laplace",
+                 # recover_type="laplace",
                  # recover_type="debug",
                  # recover_type="gauss",
                  # recover_type="empty",
@@ -400,9 +400,10 @@ class Arguments(object):
                  attack_max_iterations=1000,
                  many_attack_iterations=[1000],
                  laplace_epsilon=0.0,
-                 laplace_epsilons=[0.001, 0.002, 0.004, 0.005, 0.007, 0.009,
-                                   0.01, 0.02, 0.03, 0.04, 0.05, 0.08, 0.1,
-                                   0.5],
+                 laplace_epsilons=[0.0],
+                 # laplace_epsilons=[0.001, 0.002, 0.004, 0.005, 0.007, 0.009,
+                 #                   0.01, 0.02, 0.03, 0.04, 0.05, 0.08, 0.1,
+                 #                   0.5],
                  is_DC_shift=False,
                  use_foolbox_data=False,
                  svd_compress=0.0,
@@ -419,6 +420,7 @@ class Arguments(object):
                  gradient_iters=1,
                  ensemble=1,
                  attack_confidence=0,
+                 target_class=282,
                  ):
         """
         The default parameters for the execution of the program.
@@ -557,7 +559,7 @@ class Arguments(object):
         self.adv_type = adv_type
         self.prediction_type = prediction_type
         self.attack_strengths = attack_strengths
-        self.targeted_attack = True
+        self.target_class = target_class
         self.gradient_iters = gradient_iters
         self.ensemble = ensemble
         self.attack_confidence = attack_confidence

@@ -466,8 +466,6 @@ def get_args():
                         type=float,
                         help=f"how strong the attack should be: "
                         f"{args.attack_strengths}")
-    parser.add_argument("--targeted_attack", action='store_true',
-                        help=f"Is it targeted attack? (by default: not)")
     parser.add_argument("--gradient_iters",
                         type=int,
                         default=args.gradient_iters,
@@ -483,6 +481,9 @@ def get_args():
                         type=float,
                         default=args.attack_confidence,
                         help='Confidence of adversarial examples: a higher value produces adversarials that are further away, but more strongly classified as adversarial.')
+    parser.add_argument('--target_class',
+                        type=int,
+                        default=args.target_class)
 
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)

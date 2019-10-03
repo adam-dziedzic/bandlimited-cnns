@@ -30,9 +30,9 @@ def get_color(COLOR_TUPLE_255):
 
 
 # fontsize=20
-fontsize = 25
-legend_size = 22
-title_size = 25
+fontsize = 30
+legend_size = fontsize
+title_size = fontsize
 font = {'size': fontsize}
 matplotlib.rc('font', **font)
 
@@ -618,16 +618,18 @@ datasets = [
     not_recovered_0_01,
     recovered_0_01_conf_1000,
     not_recovered_0_01_conf_1000,
+    recovered_0_01,
+    not_recovered_0_01,
     # recovered_0_01_conf_200,
     # not_recovered_0_01_conf_200,
     # recovered_0_01_conf_100,
     # not_recovered_0_01_conf_100,
-    recovered_0_01_conf_10,
-    not_recovered_0_01_conf_10,
-    recovered_0_01_conf_1,
-    not_recovered_0_01_conf_1,
-    recovered_0_01,
-    not_recovered_0_01,
+    # recovered_0_01_conf_10,
+    # not_recovered_0_01_conf_10,
+    # recovered_0_01_conf_1,
+    # not_recovered_0_01_conf_1,
+    # recovered_0_01,
+    # not_recovered_0_01,
     # recovered_0_01_conf_1,
     # not_recovered_0_01_conf_1,
     # recovered_0_1,
@@ -742,7 +744,7 @@ for j, dataset in enumerate(datasets):
         dist_not_recovered = str(np.around(avg_l2_dist, decimals=decimals))
         plt.grid()
         plt.legend(loc=dataset[legend_pos], ncol=dataset[legend_cols],
-                   frameon=True,
+                   # frameon=True,
                    prop={'size': legend_size},
                    # bbox_to_anchor=dataset[bbox]
                    )
@@ -767,12 +769,12 @@ for j, dataset in enumerate(datasets):
 # plt.interactive(False)
 # plt.imshow()
 plt.subplots_adjust(hspace=0.2, wspace=0.2)
-format = "pdf"  # "pdf" or "png"
+format = "png"  # "pdf" or "png"
 destination = dir_path + "/" + "grads_ratio_c_values_confidence_range_" + get_log_time() + '.' + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
-            # transparent=True
+            transparent=True
             )
 # plt.show(block=False)
 # plt.interactive(False)

@@ -72,7 +72,7 @@ results_folder = "results/"
 delimiter = ";"
 
 font = {'family': 'normal',
-        'size': 18}
+        'size': 30}
 
 matplotlib.rc('font', **font)
 
@@ -262,11 +262,11 @@ def replace_frequency(original_image, images, labels, attack_fn, args,
             image = images[idx]
             target_label_id = labels[idx]
         # If targeted attack, select only images with target label.
-        if args.targeted_attack and target_label_id != args.target_lagel_id:
+        if args.target_class > -1 and args.target_class != target_label_id:
             continue
         # If un-targeted attack, select only images with label different than the
         # ground truth label (for the original image).
-        if (not args.targeted_attack) and target_label_id == true_label:
+        if args.target_class < 0 and target_label_id == true_label:
             continue
         # Accept only the target image that is classified correctly.
         label_id = np.argmax(net(image))
@@ -291,7 +291,7 @@ def replace_frequency(original_image, images, labels, attack_fn, args,
 
 
 def classify_image(image, original_image, args, title="",
-                   clip_input_image=False, ylabel_text="Original image",
+                   clip_input_image=False, ylabel_text="",
                    is_denormalize=True):
     result = Object()
     predictions = args.fmodel.predictions(image=image)
@@ -321,9 +321,12 @@ def classify_image(image, original_image, args, title="",
         title_str = title
         # title_str += ' label: ' + str(
         #     predicted_label.replace(",", "\n")) + "\n"
-        title_str += ' label: ' + str(predicted_label) + "\n"
-        confidence_str = str(np.around(confidence, decimals=args.decimals))
-        title_str += "confidence: " + confidence_str + "\n"
+        if not title.startswith("difference"):
+            title_str += ' label: ' + str(predicted_label) + "\n"
+            confidence_str = str(np.around(confidence, decimals=args.decimals))
+            title_str += "confidence: " + confidence_str + "\n"
+            L2 = str(np.around(result.L2_distance, decimals=args.decimals))
+            title_str += "L2 distance: " + str(L2) + "\n"
         if id(image) != id(original_image):
             pass
             # title_str += "L1 distance: " + str(
@@ -332,8 +335,6 @@ def classify_image(image, original_image, args, title="",
             #     result.L2_distance) + "\n"
             # title_str += "Linf distance: " + str(
             #     result.Linf_distance) + "\n"
-        L2 = str(np.around(result.L2_distance, decimals=args.decimals))
-        title_str += "L2 distance: " + str(L2) + "\n"
         # ylabel_text = "spatial domain"
         image_show = image
         if clip_input_image:
@@ -361,7 +362,7 @@ def classify_image(image, original_image, args, title="",
                 # move channels to last dimension
                 cmap=args.cmap)
             # plt.imshow(image / 255)  # division by 255 to convert [0, 255] to [0, 1]
-            # plt.axis('off')
+            plt.axis('off')
             if args.plot_index % args.cols == 1:
                 plt.ylabel(ylabel_text)
 
@@ -504,14 +505,12 @@ def run(args):
     criterion_name = 'Misclassifiction'  # 'TargetClass' or 'Misclassification'
     # criterion_name = 'TargetClass'
 
-    if args.targeted_attack:
-        target_class = 282
-        criterion = TargetClass(target_class=target_class)
-        print(f'target class id: {target_class}')
-        print(f'target class name: {from_class_idx_to_label[target_class]}')
+    if args.target_class > -1:
+        criterion = TargetClass(target_class=args.target_class)
+        print(f'target class id: {args.target_class}')
+        print(f'target class name: {from_class_idx_to_label[args.target_class]}')
     else:
         criterion = Misclassification()
-        target_class = ''
         print('No target class specified')
 
     # Choose what fft types should be plotted.
@@ -601,7 +600,6 @@ def run(args):
         raise Exception("Unknown attack name: " + str(args.attack_name))
     attacks = [attack]
 
-    show_diff_spatial = False
     if args.is_debug:
         # 1 is for the first row of images.
         rows = len(attacks) * (1 + len(fft_types) * len(channels))
@@ -626,7 +624,7 @@ def run(args):
             cols += col_diff
         show_diff_spatial = True
         if show_diff_spatial:
-            cols += 1
+            cols += 2
         show_2nd = False  # show 2nd image
         if show_2nd:
             # Should we show the diffs?
@@ -651,6 +649,7 @@ def run(args):
     else:
         show_2nd = False
         show_diff = False
+        show_diff_spatial = False
 
     if False:
         args.rows = 3
@@ -742,7 +741,7 @@ def run(args):
             # full_name += "-fft-network-layer"
             # full_name += "-fft-only-recovery"
             full_name += "-" + str(args.attack_type) + "-" + str(
-                args.recover_type)  # get_log_time()
+                args.recover_type) # get_log_time()
 
         adv_image = None
         created_new_adversarial = False
@@ -757,6 +756,8 @@ def run(args):
             if attack_name == "CarliniWagnerL2AttackRoundFFT":
                 full_name += "-" + str(args.recover_type)
                 full_name += "-c-val-" + str(args.attack_strength)
+            if args.target_class:
+                full_name += '-target-class-' + str(args.target_class)
             print("full name of stored adversarial example: ", full_name)
             is_load_image = True
             if is_load_image and os.path.exists(full_name + ".npy") and (
@@ -776,7 +777,7 @@ def run(args):
                         original_image, args.True_class_id,
                         # max_iterations=args.attack_max_iterations,
                         # max_iterations=2, binary_search_steps=1, initial_const=1e+12,
-                        max_iterations=1000, binary_search_steps=1,
+                        max_iterations=1000, binary_search_steps=5,
                         initial_const=args.attack_strength,
                         confidence=args.attack_confidence,
                     )
@@ -829,15 +830,16 @@ def run(args):
                 )
                 result.add(result_original2, prefix="original2_")
 
-            if args.is_debug and show_diff_spatial:
+            if args.is_debug and show_diff_spatial and adv_image is not None:
                 original_01 = args.denormalizer.denormalize(original_image)
                 adv_01 = args.denormalizer.denormalize(adv_image)
-                diff = 10 * (original_01 - adv_01)
+                diff_magnitude = 100
+                diff = np.abs(original_01 - adv_01) * diff_magnitude
                 classify_image(
                     image=diff,
                     original_image=original_image,
                     args=args,
-                    title="difference",
+                    title=f"difference {diff_magnitude}x\nbetween images:\noriginal and adversarial\n",
                     is_denormalize=False,
                 )
 
@@ -895,8 +897,23 @@ def run(args):
                 # exact compression.
                 compress_image = attack_round_fft.fft_complex_compression(
                     image=np.copy(image))
+
+            if args.is_debug and show_diff_spatial and adv_image is not None:
+                compress_01 = args.denormalizer.denormalize(compress_image)
+                adv_01 = args.denormalizer.denormalize(adv_image)
+                diff_magnitude = 10
+                diff = np.abs(adv_01 - compress_01)
+                # diff_L2 = np.sqrt(np.sum(diff * diff))
+                diff *= diff_magnitude
+                classify_image(
+                    image=diff,
+                    original_image=original_image,
+                    args=args,
+                    title=f"difference {diff_magnitude}x\nbetween images:\nadversarial and compressed\n",
+                    is_denormalize=False,
+                )
             # title = "fc (" + str(args.compress_fft_layer) + ")"
-            title = "spatial domain"
+            title = "fft"
             # title += "interpolation: " + args.interpolate
             result_fft = classify_image(
                 image=compress_image,
@@ -1276,13 +1293,14 @@ def run(args):
                                        f"(avg: {diff_fft_avg})",
                                        ylabel=ylabel)
 
-        plt.subplots_adjust(hspace=0.0, left=0.075, right=0.9)
+        # plt.subplots_adjust(hspace=0.0, left=0.075, right=0.9)
+        plt.subplots_adjust(wspace=0.05)
 
     format = 'png'  # "pdf" or "png" file_name
     attack_name = "None"
     if attack != None:
         attack_name = attack.name()
-    file_name = "images2/" + attack_name + "-" + str(
+    file_name = "images3/" + attack_name + "-" + str(
         args.attack_type) + "-round-fft-" + str(
         args.compress_fft_layer) + "-" + args.dataset + "-channel-" + str(
         channels_nr) + "-" + "val-per-channel-" + str(
@@ -1296,7 +1314,8 @@ def run(args):
     if args.is_debug:
         pass
         print("file name: ", file_name)
-        plt.savefig(fname=file_name + "." + format, format=format)
+        plt.savefig(fname=file_name + "." + format, format=format,
+                    transparent=True)
         plt.show(block=True)
     plt.close()
     return result
@@ -1405,7 +1424,7 @@ if __name__ == "__main__":
     # index_range = range(0, 1000)
     # index_range = [1000]
     if args.is_debug:
-        args.use_foolbox_data = False
+        args.use_foolbox_data = True
     if not args.use_foolbox_data:
         train_loader, test_loader, train_dataset, test_dataset, limit = get_data(
             args=args)

@@ -89,16 +89,17 @@ carlini_imagenet = {ylabel: "Accuracy (%)",
                     ylim: (0, 100)}
 
 carlini_imagenet_full = {ylabel: "Accuracy (%)",
-                    file_name: "distortionCarliniImageNetFull2",
-                    title: "C&W L$_2$ ImageNet",
-                    # legend_pos: "lower left",
-                    legend_pos: "upper right",
-                    # bbox: (0.0, 0.0),
-                    column_nr: 12,
-                    legend_cols: 2,
-                    labels: ['FC', 'CD', 'Unif', 'Gauss', 'Laplace', 'SVD'],
-                    xlim: (0, 100),
-                    ylim: (0, 100)}
+                         file_name: "distortionCarliniImageNetFull4",
+                         title: "C&W L$_2$ ImageNet",
+                         # legend_pos: "lower left",
+                         legend_pos: "upper right",
+                         # bbox: (0.0, 0.0),
+                         column_nr: 12,
+                         legend_cols: 2,
+                         labels: ['FC', 'CD', 'Unif', 'Gauss', 'Laplace',
+                                  'SVD'],
+                         xlim: (0, 100),
+                         ylim: (0, 100)}
 
 pgd_cifar10 = {ylabel: "Accuracy (%)",
                file_name: "distortionPGDCifar",
@@ -113,16 +114,16 @@ pgd_cifar10 = {ylabel: "Accuracy (%)",
                ylim: (0, 100)}
 
 random_pgd_cifar10 = {ylabel: "Accuracy (%)",
-               file_name: "distortionRandomPGDCifar",
-               title: "PGD (random start) L$_{\infty}$ CIFAR-10",
-               # legend_pos: "lower left",
-               legend_pos: "upper right",
-               # bbox: (0.0, 0.0),
-               column_nr: 12,
-               legend_cols: 2,
-               labels: ['FC', 'CD', 'Unif', 'Gauss', 'Laplace', 'SVD'],
-               xlim: (0, 12),
-               ylim: (0, 100)}
+                      file_name: "distortionRandomPGDCifar",
+                      title: "PGD (random start) L$_{\infty}$ CIFAR-10",
+                      # legend_pos: "lower left",
+                      legend_pos: "upper right",
+                      # bbox: (0.0, 0.0),
+                      column_nr: 12,
+                      legend_cols: 2,
+                      labels: ['FC', 'CD', 'Unif', 'Gauss', 'Laplace', 'SVD'],
+                      xlim: (0, 12),
+                      ylim: (0, 100)}
 
 pgd_imagenet = {ylabel: "Accuracy (%)",
                 file_name: "distortionPGDImageNet",
@@ -153,9 +154,11 @@ colors = [get_color(color) for color in
 markers = ["+", "o", "v", "s", "D", "^", "+"]
 linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 
-datasets = [carlini_cifar10,
-            carlini_imagenet_full,
-            ]
+datasets = [
+    random_pgd_cifar10,
+    carlini_cifar10,
+    carlini_imagenet_full,
+]
 # datasets = [carlini_cifar10,
 #             carlini_imagenet,
 #             # carlini_imagenet_full,
@@ -214,12 +217,12 @@ for j, dataset in enumerate(datasets):
 # plt.interactive(False)
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
-format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "distortionFullData9." + format
+format = "png"  # "pdf" or "png"
+destination = dir_path + "/" + "distortionFullData13." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
-            # transparent=True
+            transparent=True
             )
 # plt.show(block=False)
 # plt.interactive(False)

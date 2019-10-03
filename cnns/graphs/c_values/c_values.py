@@ -190,12 +190,12 @@ plt.xscale('log', basex=10)
 # plt.interactive(False)
 # plt.imshow()
 # plt.subplots_adjust(hspace=0.3)
-format = "pdf"  # "pdf" or "png"
+format = "png"  # "pdf" or "png"
 destination = dir_path + "/" + f"c_values." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
-            # transparent=True
+            transparent=True
             )
 # plt.show(block=False)
 # plt.interactive(False)

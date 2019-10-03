@@ -40,11 +40,6 @@ def get_fmodel(args):
         args.mean_mean = imagenet_mean_mean
         args.std_array = imagenet_std_array
         args.num_classes = 1000
-        if args.targeted_attack:
-            args.target_label = "tiger cat"  # "folding chair"
-            args.target_label_id = imagenet_from_class_label_to_idx[
-                args.target_label]
-
         pytorch_model = models.resnet50(pretrained=True).eval().to(
             device=args.device)
         # network_model = load_model(args=args, pretrained=True)
@@ -55,10 +50,6 @@ def get_fmodel(args):
         args.cmap = None
         args.init_y, args.init_x = 32, 32
         args.num_classes = 10
-        if args.targeted_attack:
-            args.target_label = "frog"
-            args.target_label_id = cifar10_from_class_label_to_idx[
-                args.target_label]
         # args.values_per_channel = 0
         # args.model_path = "saved_model_2019-04-08-16-51-16-845688-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.22-channel-vals-0.model"
         # args.model_path = "saved_model_2019-04-08-19-41-48-571492-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.5.model"
