@@ -39,6 +39,7 @@ from foolbox.attacks.additive_noise import AdditiveGaussianNoiseAttack
 from cnns.nnlib.utils.object import Object
 from cnns.nnlib.robustness.utils import to_fft
 from cnns.nnlib.robustness.utils import laplace_noise
+from cnns.nnlib.robustness.utils import subtract_rgb
 from cnns.nnlib.robustness.randomized_defense import defend
 import matplotlib
 from cnns.nnlib.pytorch_layers.fft_band_2D import FFTBandFunction2D
@@ -68,6 +69,7 @@ from cnns.nnlib.attacks.simple_blackbox_attack import SimbaSingle
 from cnns.nnlib.robustness.gradients.compute import compute_gradients
 from cnns.nnlib.robustness.fmodel import get_fmodel
 from cnns.nnlib.datasets.load_data import get_data
+
 results_folder = "results/"
 delimiter = ";"
 
@@ -508,7 +510,8 @@ def run(args):
     if args.target_class > -1:
         criterion = TargetClass(target_class=args.target_class)
         print(f'target class id: {args.target_class}')
-        print(f'target class name: {from_class_idx_to_label[args.target_class]}')
+        print(
+            f'target class name: {from_class_idx_to_label[args.target_class]}')
     else:
         criterion = Misclassification()
         print('No target class specified')
@@ -741,7 +744,7 @@ def run(args):
             # full_name += "-fft-network-layer"
             # full_name += "-fft-only-recovery"
             full_name += "-" + str(args.attack_type) + "-" + str(
-                args.recover_type) # get_log_time()
+                args.recover_type)  # get_log_time()
 
         adv_image = None
         created_new_adversarial = False
@@ -998,7 +1001,7 @@ def run(args):
 
             # Write with respect to the recovered or not.
             file_recovered_name = args.global_log_time + '_grad_stats_' + str(
-                    is_gauss_recovered) + '-' + args.dataset + '.csv'
+                is_gauss_recovered) + '-' + args.dataset + '.csv'
             with open(file_recovered_name, 'a') as file:
                 for key in sorted(grad_stats.keys()):
                     val = grad_stats[key]
@@ -1007,7 +1010,9 @@ def run(args):
                 file.flush()
 
             # Write everything.
-            with open(args.global_log_time + '_' + args.dataset + '_grad_stats.csv', 'a') as file:
+            with open(
+                    args.global_log_time + '_' + args.dataset + '_grad_stats.csv',
+                    'a') as file:
                 for key in sorted(grad_stats.keys()):
                     val = grad_stats[key]
                     file.write(key + ';' + str(val) + ';')
@@ -1092,6 +1097,29 @@ def run(args):
                   result_svd.label, result_svd.class_id)
         else:
             result.svd_label = None
+
+        if args.rgb_value > 0 and image is not None:
+            print("rgb subtraction defense")
+            title = "rgb (" + str(args.rgb_value) + ")"
+            rgb_image = subtract_rgb(images=image, subtract_value=args.rgb_value,
+                                 rounder=np.around)
+            result_rgb = classify_image(
+                image=rgb_image,
+                original_image=original_image,
+                args=args,
+                title=title)
+            print("label, id found after applying rgb subtraction once: ",
+                  result_rgb.label, result_rgb.class_id)
+            result.add(result_rgb, prefix="rgb_")
+
+            start_time = time.time()
+            result_rgb = randomized_defense(image=rgb_image, fmodel=fmodel,
+                                                original_image=original_image)
+            result.time_rgb_defend = time.time() - start_time
+
+            result.add(result_rgb, prefix="rgb_many_")
+        else:
+            result.rgb_label = None
 
         if args.recover_type == "roundfft":
             roundfft_recover(result=result, image=image,
@@ -1485,6 +1513,8 @@ if __name__ == "__main__":
             val_range = [0.03]
     elif args.recover_type == "svd":
         val_range = args.many_svd_compress
+    elif args.recover_type == "rgb":
+        val_range = args.rgb_values
     elif args.recover_type == "debug":
         val_range = [0.009]
     elif args.recover_type == "all":
@@ -1515,6 +1545,7 @@ if __name__ == "__main__":
                   "noise epsilon",
                   "laplace epsilon",
                   "svd compress",
+                  'rgb value',
                   "attack max iterations",
                   "% base accuracy",
                   "% total accuracy after attack",
@@ -1567,6 +1598,8 @@ if __name__ == "__main__":
             args.laplace_epsilon = compress_value
         elif args.recover_type == "svd":
             args.svd_compress = compress_value
+        elif args.recover_type == "rgb":
+            args.rgb_value = compress_value
         elif args.recover_type == "roundfft":
             pass
         elif args.recover_type == "fftround":
@@ -1782,6 +1815,22 @@ if __name__ == "__main__":
                                     sum_Linf_distance_defense_many += result_run.svd_many_Linf_distance
                                     sum_confidence_defense_many += result_run.svd_many_confidence
                                     sum_defend_timing += result_run.time_svd_defend
+                            elif args.recover_type == "rgb":
+                                if result_run.rgb_label is not None:
+                                    if result_run.true_label == result_run.rgb_label:
+                                        count_recovered += 1
+                                    sum_L2_distance_defense += result_run.rgb_L2_distance
+                                    sum_L1_distance_defense += result_run.rgb_L1_distance
+                                    sum_Linf_distance_defense += result_run.rgb_Linf_distance
+                                    sum_confidence_defense += result_run.rgb_confidence
+                                if args.noise_iterations > 0 or args.recover_iterations > 0:
+                                    if result_run.true_label == result_run.rgb_many_label:
+                                        count_many_recovered += 1
+                                    sum_L2_distance_defense_many += result_run.rgb_many_L2_distance
+                                    sum_L1_distance_defense_many += result_run.rgb_many_L1_distance
+                                    sum_Linf_distance_defense_many += result_run.rgb_many_Linf_distance
+                                    sum_confidence_defense_many += result_run.rgb_many_confidence
+                                    sum_defend_timing += result_run.time_rgb_defend
                             elif args.recover_type == "debug":
                                 exit(0)
                             elif args.recover_type == "all" or args.recover_type == "empty":
@@ -1856,6 +1905,7 @@ if __name__ == "__main__":
                                                      args.noise_epsilon,
                                                      args.laplace_epsilon,
                                                      args.svd_compress,
+                                                     args.rgb_value,
                                                      args.attack_max_iterations,
                                                      base_accuracy,
                                                      accuracy_after_attack,

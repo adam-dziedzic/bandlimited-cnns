@@ -484,7 +484,14 @@ def get_args():
     parser.add_argument('--target_class',
                         type=int,
                         default=args.target_class)
-
+    parser.add_argument('--rgb_value', type=int,
+                        default=args.noise_iterations,
+                        help=f"value to be subtracted from each pixel"
+                        f" (default: {args.rgb_value})")
+    parser.add_argument('--rgb_values', type=int, nargs="+",
+                        default=args.rgb_values,
+                        help=f"values to be subtracted from each pixel"
+                        f"(default: {args.rgb_values})")
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)
     return args

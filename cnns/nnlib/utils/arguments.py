@@ -82,9 +82,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     in_channels = 1
 else:
     # dataset = "mnist"
-    # dataset = "cifar10"
+    dataset = "cifar10"
     # dataset = "cifar100"
-    dataset = "imagenet"
+    # dataset = "imagenet"
     # dataset = "svhn"
 
     batch_size = 32
@@ -96,7 +96,7 @@ else:
         learning_rate = 0.1
     weight_decay = 0.0001
     momentum = 0.9
-    epochs = 1
+    epochs = 2
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
@@ -384,12 +384,13 @@ class Arguments(object):
                  # attack_name="SimbaSingle",
                  interpolate="const",
                  # recover_type="rounding",
-                 recover_type="fft",
+                 # recover_type="fft",
                  # recover_type="all",
                  # recover_type="laplace",
                  # recover_type="debug",
                  # recover_type="gauss",
                  # recover_type="empty",
+                 recover_type='rgb',
                  noise_epsilon=0.0,
                  noise_epsilons=[0.0],
                  step_size=1,
@@ -421,6 +422,8 @@ class Arguments(object):
                  ensemble=1,
                  attack_confidence=0,
                  target_class=-1,
+                 rgb_value=0,
+                 rgb_values=[0],
                  ):
         """
         The default parameters for the execution of the program.
@@ -563,6 +566,8 @@ class Arguments(object):
         self.gradient_iters = gradient_iters
         self.ensemble = ensemble
         self.attack_confidence = attack_confidence
+        self.rgb_value = rgb_value
+        self.rgb_values = rgb_values
 
         # deeprl
         # self.env_name = "Reacher-v2"

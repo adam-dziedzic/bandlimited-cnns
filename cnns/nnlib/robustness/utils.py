@@ -120,6 +120,25 @@ def laplace_noise(epsilon, shape, dtype, args):
     return noise
 
 
+def subtract_rgb(images, subtract_value, rounder=torch.round):
+    """
+    A simple transformation that subtract the same value from each pixel.
+
+    :param images: the set of input images.
+    :param subtract_value: the value to be subtract from each pixel represented
+    as an integer value
+    :param rounder: for numpy arrays use numpy.around
+    :return: the transformed images
+    """
+    values_per_channel = 256
+    round_multiplier = values_per_channel - 1.0
+    # from [0,1] to [0,255]
+    images = rounder(round_multiplier * images)
+    images = images - subtract_value
+    ext_multiplier = 1.0 / round_multiplier
+    return ext_multiplier * images
+
+
 def norm(x, p=2, axis=(1, 2, 3)):
     """
     This is a batch computation of the norms. We calculate the norm along
