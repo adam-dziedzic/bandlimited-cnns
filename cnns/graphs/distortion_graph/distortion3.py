@@ -6,6 +6,7 @@ matplotlib.rcParams['ps.fonttype'] = 42
 import matplotlib.pyplot as plt
 import csv
 import os
+from cnns.nnlib.utils.general_utils import get_log_time
 
 print(matplotlib.get_backend())
 
@@ -125,6 +126,19 @@ random_pgd_cifar10 = {ylabel: "Accuracy (%)",
                       xlim: (0, 12),
                       ylim: (0, 100)}
 
+random_pgd_cifar10_full = {ylabel: "Accuracy (%)",
+                           file_name: "distortionRandomPGDCifarFull",
+                           title: "PGD (random start) L$_{\infty}$ CIFAR-10",
+                           # legend_pos: "lower left",
+                           legend_pos: "upper right",
+                           # bbox: (0.0, 0.0),
+                           column_nr: 12,
+                           legend_cols: 2,
+                           labels: ['FC', 'CD', 'Unif', 'Gauss', 'Laplace',
+                                    'SVD'],
+                           xlim: (0, 12),
+                           ylim: (0, 100)}
+
 pgd_imagenet = {ylabel: "Accuracy (%)",
                 file_name: "distortionPGDImageNet",
                 title: "PGD (random start) L$_{\infty}$ ImageNet",
@@ -155,7 +169,7 @@ markers = ["+", "o", "v", "s", "D", "^", "+"]
 linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 
 datasets = [
-    random_pgd_cifar10,
+    random_pgd_cifar10_full,
     carlini_cifar10,
     carlini_imagenet_full,
 ]
@@ -217,12 +231,12 @@ for j, dataset in enumerate(datasets):
 # plt.interactive(False)
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
-format = "png"  # "pdf" or "png"
-destination = dir_path + "/" + "distortionFullData13." + format
+format = "pdf"  # "pdf" or "png"
+destination = dir_path + "/" + "distortionFullData" + get_log_time() + "." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
-            transparent=True
+            transparent=False
             )
 # plt.show(block=False)
 # plt.interactive(False)

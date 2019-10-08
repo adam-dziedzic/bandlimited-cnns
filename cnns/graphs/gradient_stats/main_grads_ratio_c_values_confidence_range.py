@@ -30,7 +30,7 @@ def get_color(COLOR_TUPLE_255):
 
 
 # fontsize=20
-fontsize = 30
+fontsize = 36
 legend_size = fontsize
 title_size = fontsize
 font = {'size': fontsize}
@@ -731,9 +731,9 @@ for j, dataset in enumerate(datasets):
     if j % 2 == 0:
         plt.subplot(nrows, ncols, j // 2 + 1)
         dist_recovered = str(np.around(avg_l2_dist, decimals=decimals))
-
+    label = dataset[labels][0].replace(', ', '\n')
     plt.plot(x_grad, y_grad,
-             label=f"{dataset[labels][0]}",
+             label=label,
              # lw=line_width,
              color=colors[j % len(colors)],
              # linestyle=linestyles[j],
@@ -744,7 +744,7 @@ for j, dataset in enumerate(datasets):
         dist_not_recovered = str(np.around(avg_l2_dist, decimals=decimals))
         plt.grid()
         plt.legend(loc=dataset[legend_pos], ncol=dataset[legend_cols],
-                   # frameon=True,
+                   frameon=False,
                    prop={'size': legend_size},
                    # bbox_to_anchor=dataset[bbox]
                    )
@@ -756,7 +756,7 @@ for j, dataset in enumerate(datasets):
             plt.ylabel('$L_2$ of gradient for adv image and org class')
             plt.xlabel('$L_2$ of gradient for adv image and adv class')
             plt.title(
-                f'$L_2$ distance recovered: {dist_recovered}, not recovered: {dist_not_recovered}',
+                f'$L_2$ distance\nrecovered: {dist_recovered}, not recovered: {dist_not_recovered}',
                 fontsize=title_size)
 
         plt.xlim((0, 50))
@@ -770,7 +770,7 @@ for j, dataset in enumerate(datasets):
 # plt.imshow()
 plt.subplots_adjust(hspace=0.2, wspace=0.2)
 format = "png"  # "pdf" or "png"
-destination = dir_path + "/" + "grads_ratio_c_values_confidence_range_" + get_log_time() + '.' + format
+destination = dir_path + "/" + "main_grads_ratio_c_values_confidence_range_" + get_log_time() + '.' + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',

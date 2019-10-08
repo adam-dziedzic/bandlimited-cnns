@@ -112,12 +112,12 @@ for j, dataset in enumerate(datasets):
 # plt.interactive(False)
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
-format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "wifi-energy4." + format
+format = "png"  # "pdf" or "png"
+destination = dir_path + "/" + "wifi-energy5." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
-            # transparent=True
+            transparent=True,
             )
 plt.show(block=True)
 # plt.interactive(False)

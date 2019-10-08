@@ -200,7 +200,7 @@ plt.grid()
 plt.legend(  # loc='upper right',
     loc='center left',
     ncol=1,
-    frameon=True,
+    frameon=False,
     prop={'size': legend_size},
     title='Image type:',
     # bbox_to_anchor=dataset[bbox]

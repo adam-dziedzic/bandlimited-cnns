@@ -83,12 +83,12 @@ plt.legend(loc="upper center", ncol=3, frameon=False,
                )
 
 fig.tight_layout()
-format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "wifi-n-los-one-model-ri2." + format
+format = "png"  # "pdf" or "png"
+destination = dir_path + "/" + "wifi-n-los-one-model-ri3." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
-            # transparent=True
+            transparent=True
             )
 # plt.show(block=False)
 # plt.interactive(False)
