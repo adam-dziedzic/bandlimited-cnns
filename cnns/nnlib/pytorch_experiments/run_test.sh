@@ -7573,5 +7573,47 @@ echo ${timestamp}.txt
 
 
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
-CUDA_VISIBLE_DEVICES=0 nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0 --mod '2-1' >> ${timestamp}.txt 2>&1 &
+CUDA_VISIBLE_DEVICES=0 nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0 --c 0.0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.08 0.09 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 10.0 100.0 1000.0 --mod '2-1' >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
+[1] 141748
+cc@icml:~/code/RobustNet$ echo ${timestamp}.txt
+2019-10-08-20-02-33-259085986.txt
+
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'svd' --mod '0-0' --noise_epsilons 50 --c 10.0 100.0 1000.0 0.0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.08 0.09 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 10.0 100.0 1000.0  >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 5061
+cc@icml:~/code/RobustNet$ echo ${timestamp}.txt
+2019-10-08-21-06-23-444227070.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=2 nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'sub_rgb' --mod '0-0' --noise_epsilons 128 --c 0.0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.08 0.09 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 10.0 100.0 1000.0  >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[3] 10917
+cc@icml:~/code/RobustNet$ echo ${timestamp}.txt
+2019-10-08-21-11-37-847685142.txt
+d
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=3 nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'fft' --mod '0-0' --noise_epsilons 50 --c 10.0 100.0 1000.0 0.0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.08 0.09 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 10.0 100.0 1000.0  >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[4] 12549
+cc@icml:~/code/RobustNet$ echo ${timestamp}.txt
+2019-10-08-21-13-02-265955995.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=3 nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'round' --mod '0-0' --noise_epsilons 64 --c 10.0 100.0 1000.0 0.0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.08 0.09 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 10.0 100.0 1000.0  >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[5] 14373
+cc@icml:~/code/RobustNet$ echo ${timestamp}.txt
+2019-10-08-21-14-36-211573413.txt
+
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'svd' --mod '0-0' --noise_epsilons 50 --c 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.08 0.09 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 10.0 100.0 1000.0  >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 45990
+cc@icml:~/code/RobustNet$ echo ${timestamp}.txt
+2019-10-09-02-42-27-367425487.txt
+
