@@ -5,12 +5,13 @@ Reference: V. G. Reju, S. N. Koh and I. Y. Soon, Convolution Using Discrete
 Sine and Cosine Transforms,
 IEEE Signal Processing Letters, VOL. 14, NO. 7, JULY 2007, pp.445-448.
 """
-
+import torch
 import numpy as np
 import os
 import matplotlib
 from matplotlib import pyplot as plt
 from numpy.fft import fft, ifft, rfft, irfft
+from torch_dct import dct, idct
 
 # http://ksrowell.com/blog-visualizing-data/2012/02/02/optimal-colors-for-graphs/
 MY_BLUE = (56, 106, 177)
@@ -250,6 +251,21 @@ def dct_correlation(s, h, pad=None):
     h = np.pad(np.flip(h, axis=0), [0, fft_len - h_len],
                mode="constant")
     result = dct_convolution(s, h)[(h_len - 1):]
+    return result
+
+
+def dct_approximate_correlation(s, h, pad=None):
+    h_len = h.shape[-1]
+    if pad is None:
+        pad = h_len // 2
+    s = np.pad(s, [pad, pad], mode="constant")
+    fft_len = s.shape[-1]
+    h = np.pad(np.flip(h, axis=0), [0, fft_len - h_len],
+               mode="constant")
+    s = torch.tensor(s)
+    h = torch.tensor(h)
+    result = idct(dct(s) * dct(h))
+    result = result.numpy()
     return result
 
 

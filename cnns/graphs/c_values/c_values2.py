@@ -6,6 +6,7 @@ matplotlib.rcParams['ps.fonttype'] = 42
 import matplotlib.pyplot as plt
 import csv
 import os
+from cnns.nnlib.utils.general_utils import get_log_time
 
 print(matplotlib.get_backend())
 
@@ -27,9 +28,9 @@ def get_color(COLOR_TUPLE_255):
 
 
 # fontsize=20
-fontsize = 30
-legend_size = 22
-title_size = 30
+fontsize = 20
+legend_size = 20
+title_size = 20
 font = {'size': fontsize}
 matplotlib.rc('font', **font)
 
@@ -101,26 +102,27 @@ original = {  # ylabel: "L2 adv",
     # file_name: "../../nnlib/robustness/2019-09-12-15-52-21-873237-len-5-org-images-eigenvals-min-avg-max",
     # file_name: "../../nnlib/robustness/2019-09-12-16-03-19-884343-len-17-org-images-eigenvals-confidence",
     # file_name: "../../nnlib/robustness/2019-09-12-10-28-45-366327-len-62-org-images-highest_eigenvalues",
-    file_name: "./c_values.csv",
+    file_name: "./c_values6.csv",
     title: "",
     legend_pos: "lower left",
     # legend_pos: "upper right",
     # bbox: (0.0, 0.0),
-    column_nr: 10,
-    row_nr: 13,
+    column_nr: 13,
+    row_nr: 27,
     legend_cols: 1,
     labels: ['c values',
+             'empty channel',
              'FC 16%',
-             'FC 50%'
+             'FC 50%',
              'CD 4 bits',
              'CD 6 bits',
              'Gauss 0.03',
              'Uniform 0.03',
              'Laplace 0.03',
              'SVD 50%',
-             'empty channel',
              'reduce brightness -43 RGB',
-             'rand self-ensemble'
+             'rand self-ensemble trained 0.2 0.1',
+             'rand self-ensemble not trained 0.2 0.0'
              ],
     xlim: (0, 100),
     ylim: (0, 100)}
@@ -128,8 +130,8 @@ original = {  # ylabel: "L2 adv",
 colors = [get_color(color) for color in
           [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD,
            MY_VIOLET, MY_OWN, MY_BROWN, MY_GREEN]]
-markers = ["+", "o", "v", "s", "D", "^", "+", 'o', 'v', '+']
-linestyles = [":", "-", "--", ":", "-", "--", "-", "--", ':', ':']
+markers = ["+", "o", "v", "s", "D", "^", "+", 'o', 'v', '+', 'v', 'D', '^', '+']
+linestyles = [":", "-", "--", ":", "-", "--", "-", "--", ':', ':', "-", "-", "-"]
 
 datasets = [
     original,
@@ -142,8 +144,8 @@ dataset = original
 fig_size = 10
 width = 18
 height = 10
-line_width = 4
-markersize = 20
+line_width = 3
+markersize = 15
 layout = "horizontal"  # "horizontal" or "vertical"
 
 fig = plt.figure(figsize=(len(datasets) * width, height))
@@ -162,14 +164,14 @@ for j, col in enumerate(cols):
                  values,
                  label=dataset[labels][j],
                  lw=line_width,
-                 color=colors[j],
-                 linestyle=linestyles[j],
+                 color=colors[j % len(colors)],
+                 linestyle=linestyles[j % len(linestyles)],
                  # linestyle='None',
                  marker=markers[j % len(markers)],
                  markersize=markersize)
 
 plt.grid()
-plt.legend(  # loc='upper right',
+leg = plt.legend(  # loc='upper right',
     loc='lower left',
     ncol=1,
     frameon=False,
@@ -177,6 +179,7 @@ plt.legend(  # loc='upper right',
     title='Channel type:',
     # bbox_to_anchor=dataset[bbox]
 )
+leg._legend_box.align = "left"
 plt.ylabel('Test accuracy (%)')
 plt.xlabel('$c$ parameter (in the C&W $L_2$ attack)')
 plt.xticks(indexing)
@@ -192,12 +195,12 @@ plt.xscale('log', basex=10)
 # plt.interactive(False)
 # plt.imshow()
 # plt.subplots_adjust(hspace=0.3)
-format = "png"  # "pdf" or "png"
-destination = dir_path + "/" + f"c_values." + format
+format = "pdf"  # "pdf" or "png"
+destination = dir_path + "/" + f"c_values2_" + get_log_time() + "." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
-            transparent=True
+            # transparent=True
             )
 # plt.show(block=False)
 # plt.interactive(False)

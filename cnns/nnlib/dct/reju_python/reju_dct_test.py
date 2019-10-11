@@ -4,8 +4,12 @@ from cnns.nnlib.utils.log_utils import get_logger
 import logging
 import torch
 import numpy as np
-from cnns.nnlib.dct.reju_python.reju_dct import dC2e, dS2e, dct_convolution, \
-    fft_convolution, rfft_convolution, DST1e, DST2e, dct_correlation
+from cnns.nnlib.dct.reju_python.reju_dct import dC2e, dS2e, dct_convolution
+from cnns.nnlib.dct.reju_python.reju_dct import rfft_convolution
+from cnns.nnlib.dct.reju_python.reju_dct import fft_convolution
+from cnns.nnlib.dct.reju_python.reju_dct import DST1e, DST2e
+from cnns.nnlib.dct.reju_python.reju_dct import dct_correlation
+from cnns.nnlib.dct.reju_python.reju_dct import dct_approximate_correlation
 from numpy.fft import rfft, irfft, fft, ifft
 
 class TestRejuDCT(unittest.TestCase):
@@ -208,6 +212,19 @@ class TestRejuDCT(unittest.TestCase):
         expect2 = np.correlate(s1, h, mode='valid')
         print("expect2: ", expect2)
         result = dct_correlation(s, h, pad=pad)
+        print("result: ", result)
+        np.testing.assert_allclose(actual=result, desired=expect2, rtol=1e-3,
+                                   atol=1e-10)
+
+    def test_approximate_dct(self):
+        s = np.array([11, 1, 2, 3, -4.0, 1.0, 5, 10.0], dtype=float)
+        h = np.array([2, 3, -1], dtype=float)  # -1, 3, 2
+        h_len = h.shape[-1]
+        pad = (h_len - 1) // 2
+        s = np.pad(s, [pad, pad], mode="constant")
+        expect2 = np.correlate(s, h, mode='valid')
+        print("expect2: ", expect2)
+        result = dct_approximate_correlation(s, h, pad=0)
         print("result: ", result)
         np.testing.assert_allclose(actual=result, desired=expect2, rtol=1e-3,
                                    atol=1e-10)

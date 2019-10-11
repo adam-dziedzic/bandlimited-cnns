@@ -1289,9 +1289,6 @@ class Conv2dfft(Module):
         method is to apply spectral pooling as a means to achieving the strided
         convolution.
         """
-
-
-
         self.args = args
 
         if dilation is not None and dilation > 1:

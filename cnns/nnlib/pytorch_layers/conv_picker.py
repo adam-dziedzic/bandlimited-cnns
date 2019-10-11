@@ -8,6 +8,7 @@ from cnns.nnlib.pytorch_layers.conv2D_fft import Conv2dfftAutograd
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftCompressSignalOnly
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftSimple
 from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfftSimpleForLoop
+from cnns.nnlib.pytorch_layers.conv_dct import ConvDCT
 
 CONV_TYPE_ERROR = "Unknown type of convolution."
 
@@ -85,9 +86,18 @@ class Conv(object):
                              padding=self.padding[param_index],
                              bias=self.is_bias,
                              args=self.args)
+        elif self.conv_type is ConvType.DCT:
+            return ConvDCT(in_channels=in_channels,
+                           out_channels=self.out_channels[param_index],
+                           stride=self.strides[param_index],
+                           kernel_size=self.kernel_sizes[param_index],
+                           padding=self.padding[param_index],
+                           bias=self.is_bias,
+                           args=self.args)
         elif self.conv_type is ConvType.AUTOGRAD:
             return Conv1dfftAutograd(in_channels=in_channels,
-                                     out_channels=self.out_channels[param_index],
+                                     out_channels=self.out_channels[
+                                         param_index],
                                      stride=self.strides[param_index],
                                      kernel_size=self.kernel_sizes[param_index],
                                      padding=self.padding[param_index],
@@ -95,7 +105,8 @@ class Conv(object):
                                      bias=self.is_bias)
         elif self.conv_type is ConvType.AUTOGRAD2D:
             return Conv2dfftAutograd(in_channels=in_channels,
-                                     out_channels=self.out_channels[param_index],
+                                     out_channels=self.out_channels[
+                                         param_index],
                                      stride=self.strides[param_index],
                                      kernel_size=self.kernel_sizes[param_index],
                                      padding=self.padding[param_index],
@@ -111,15 +122,18 @@ class Conv(object):
                                    bias=self.is_bias)
         elif self.conv_type is ConvType.SIMPLE_FFT_FOR_LOOP:
             return Conv1dfftSimpleForLoop(in_channels=in_channels,
-                                          out_channels=self.out_channels[param_index],
+                                          out_channels=self.out_channels[
+                                              param_index],
                                           stride=self.strides[param_index],
-                                          kernel_size=self.kernel_sizes[param_index],
+                                          kernel_size=self.kernel_sizes[
+                                              param_index],
                                           padding=self.padding[param_index],
                                           index_back=compress_rate,
                                           bias=self.is_bias)
         elif self.conv_type is ConvType.COMPRESS_INPUT_ONLY:
             return Conv1dfftCompressSignalOnly(
-                in_channels=in_channels, out_channels=self.out_channels[param_index],
+                in_channels=in_channels,
+                out_channels=self.out_channels[param_index],
                 stride=self.strides[param_index],
                 kernel_size=self.kernel_sizes[param_index],
                 padding=self.padding[param_index],

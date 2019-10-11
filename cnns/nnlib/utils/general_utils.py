@@ -154,6 +154,7 @@ class ConvType(EnumWithNames):
     FFT2D = 10
     STANDARD2D = 11
     AUTOGRAD2D = 12
+    DCT = 13
 
 
 class AttackType(EnumWithNames):
