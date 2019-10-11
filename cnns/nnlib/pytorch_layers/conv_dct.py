@@ -161,8 +161,10 @@ class ConvDCT(Module):
         self.stride = stride
         self.stride_type = args.stride_type
 
-        self.stride_H, self.stride_W = get_pair(value=stride, val_1_default=None,
-                                      val2_default=None, name="stride")
+        self.stride_H, self.stride_W = get_pair(value=stride,
+                                                val_1_default=None,
+                                                val2_default=None,
+                                                name="stride")
 
         if self.stride_H != self.stride_W:
             raise Exception(
@@ -173,8 +175,10 @@ class ConvDCT(Module):
         ConvDCT.conv_index_counter += 1
         self.out_size = out_size
 
-        self.out_size_H, self.out_size_W = get_pair(value=out_size, val_1_default=None,
-                                          val2_default=None, name="out_size")
+        self.out_size_H, self.out_size_W = get_pair(value=out_size,
+                                                    val_1_default=None,
+                                                    val2_default=None,
+                                                    name="out_size")
 
         if self.out_size_H != self.out_size_W:
             raise Exception(
@@ -277,4 +281,7 @@ class ConvDCT(Module):
             # the dimension of the out to properly sum up the values).
             unsqueezed_bias = self.bias.unsqueeze(-1).unsqueeze(-1)
             result += unsqueezed_bias
+        if (self.stride_H != 1 or self.stride_W != 1) and (
+                self.stride_type is StrideType.STANDARD):
+            result = result[:, :, ::self.stride_H, ::self.stride_W]
         return result
