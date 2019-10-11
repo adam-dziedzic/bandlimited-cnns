@@ -31,8 +31,9 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 # conv_type = ConvType.STANDARD
 
 # 2D
-conv_type = ConvType.STANDARD2D
+# conv_type = ConvType.STANDARD2D
 # conv_type = ConvType.FFT2D
+conv_type = ConvType.DCT
 compress_rate = 1.0
 
 if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
@@ -125,8 +126,8 @@ else:
     elif dataset == "cifar10":
         network_type = NetworkType.ResNet18
         # model_path = "saved_model_2019-04-08-16-51-16-845688-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.22-channel-vals-0.model"
-        model_path = "saved_model_2019-05-16-11-37-45-415722-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.56-channel-vals-0.model"
-        # model_path = "no_model"
+        # model_path = "saved_model_2019-05-16-11-37-45-415722-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.56-channel-vals-0.model"
+        model_path = "no_model"
         # model_path = 'saved-model-2019-08-13-23-06-55-540595-dataset-cifar10-preserve-energy-100-compress-rate-0.0-test-loss-0.01350257922783494-test-accuracy-91.83-channel-vals-0-fft-channel-50-percent.model'
         # model_path = 'saved_model_2019-08-13-21-50-15-942405-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-loss-0.023045711521059276-test-accuracy-86.73-channel-vals-0-fft-layer-85-percent.model'
     elif dataset == "cifar100":

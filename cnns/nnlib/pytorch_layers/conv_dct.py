@@ -94,6 +94,7 @@ class ConvDCT(Module):
         method is to apply spectral pooling as a means to achieving the strided
         convolution.
         """
+        super(ConvDCT, self).__init__()
         self.args = args
 
         if dilation is not None and dilation > 1:
@@ -158,6 +159,7 @@ class ConvDCT(Module):
                 "We only support a symmetric padding in the frequency domain.")
 
         self.stride = stride
+        self.stride_type = args.stride_type
 
         self.stride_H, self.stride_W = get_pair(value=stride, val_1_default=None,
                                       val2_default=None, name="stride")
@@ -208,6 +210,26 @@ class ConvDCT(Module):
             bound = 1 / math.sqrt(fan_in)
             init.uniform_(self.bias, -bound, bound)
 
+    def out_HW(self, H, W, HH, WW):
+        if self.out_size_H:
+            out_H = self.out_size_H
+        elif self.out_size or self.stride_type is StrideType.SPECTRAL:
+            out_H = (H - HH + 2 * self.pad_H) // self.stride_H + 1
+        else:
+            out_H = H - HH + 1 + 2 * self.pad_H
+
+        if self.out_size_W:
+            out_W = self.out_size_W
+        elif self.out_size or self.stride_type is StrideType.SPECTRAL:
+            out_W = (W - WW + 2 * self.pad_W) // self.stride_W + 1
+        else:
+            out_W = W - WW + 1 + 2 * self.pad_W
+
+        if out_H != out_W:
+            raise Exception(
+                "We only support a symmetric compression in the frequency domain.")
+        return out_H, out_W
+
     def forward(self, input):
         """
         This is the fully manual implementation of the forward and backward
@@ -238,25 +260,17 @@ class ConvDCT(Module):
         filter = torch_pad(
             filter, (0, pad_filter_W, 0, pad_filter_H), 'constant', 0)
 
-        if self.out_size_H:
-            out_H = self.out_size_H
-        elif self.out_size or self.stride_type is StrideType.SPECTRAL:
-            out_H = (H - HH + 2 * self.pad_H) // self.stride_H + 1
-        else:
-            out_H = H - HH + 1 + 2 * self.pad_H
-
-        if self.out_size_W:
-            out_W = self.out_size_W
-        elif self.out_size or self.stride_type is StrideType.SPECTRAL:
-            out_W = (W - WW + 2 * self.pad_W) // self.stride_W + 1
-        else:
-            out_W = W - WW + 1 + 2 * self.pad_W
-
-        if out_H != out_W:
-            raise Exception(
-                "We only support a symmetric compression in the frequency domain.")
-
-        result = idct(dct(input) * dct(filter))
+        input = dct(input)
+        filter = dct(filter)
+        # permute from N, C, H, W to H, W, N, C
+        input = input.permute(2, 3, 0, 1)
+        # permute from F, C, H, W to H, W, C, F
+        filter = filter.permute(2, 3, 1, 0)
+        result = torch.matmul(input, filter)
+        # permute from H, W, N, F to N, F, H, W
+        result = result.permute(2, 3, 0, 1)
+        result = idct(result)
+        out_H, out_W = self.out_HW(H, W, HH, WW)
         result = result[..., :out_H, :out_W]
         if self.bias is not None:
             # Add the bias term for each filter (it has to be unsqueezed to
