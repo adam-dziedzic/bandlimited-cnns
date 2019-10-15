@@ -420,11 +420,12 @@ def compress_svd(torch_img, compress_rate):
     index = int((1 - compress_rate / 100) * H)
     torch_compress_img = torch.zeros_like(torch_img)
     for c in range(C):
-        try:
-            u, s, v = torch.svd(torch_img[c])
-        except RuntimeError as ex:
-            print("SVD compression problem: ", ex)
-            return None
+        for i in range(100):
+            try:
+                u, s, v = torch.svd(torch_img[c])
+                break
+            except RuntimeError as ex:
+                print("SVD compression problem: ", ex, " iteration: ", i)
 
         u_c = u[:, :index]
         s_c = s[:index]
