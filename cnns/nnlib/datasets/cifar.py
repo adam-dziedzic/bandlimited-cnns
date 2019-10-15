@@ -7,6 +7,8 @@ from cnns.nnlib.datasets.transformations.flat_transformation import \
     FlatTransformation
 from cnns.nnlib.datasets.transformations.gaussian_noise import \
     AddGaussianNoiseTransformation
+from cnns.nnlib.datasets.transformations.svd_compression import \
+    SVDCompressionTransformation
 from cnns.nnlib.datasets.transformations.rounding import RoundingTransformation
 from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import NetworkType
@@ -67,6 +69,10 @@ def get_transform_train(args, dtype=torch.float32, signal_dimension=2):
     transformations.append(transforms.Normalize(cifar_mean, cifar_std))
     if signal_dimension == 1:
         transformations.append(FlatTransformation())
+    if args and args.svd_transform > 0.0:
+        transformations.append(
+            SVDCompressionTransformation(compress_rate=args.svd_transform)
+        )
     transformations.append(DtypeTransformation(dtype=dtype))
     transform_train = transforms.Compose(transformations)
     return transform_train
@@ -84,6 +90,10 @@ def get_transform_test(args, dtype=torch.float32, signal_dimension=2,
     if noise_sigma > 0:
         transformations.append(
             AddGaussianNoiseTransformation(sigma=noise_sigma))
+    if args and args.svd_transform > 0.0:
+        transformations.append(
+            SVDCompressionTransformation(compress_rate=args.svd_transform)
+        )
     transformations.append(DtypeTransformation(dtype))
     transform_test = transforms.Compose(transformations)
     return transform_test

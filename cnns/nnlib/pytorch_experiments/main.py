@@ -1250,14 +1250,17 @@ if __name__ == '__main__':
                         args.noise_epsilon = noise_epsilon
                         for laplace_epsilon in args.laplace_epsilons:
                             args.laplace_epsilon = laplace_epsilon
-                            start_training = time.time()
-                            try:
-                                main(args=args)
-                            except RuntimeError as err:
-                                print(f"ERROR: {dataset_name}. "
-                                      "Details: " + str(err))
-                                traceback.print_tb(err.__traceback__)
-                            print("elapsed time (sec): ",
-                                  time.time() - start_training)
+                            for svd_transform in args.svd_compress_transform:
+                                args.svd_transform = svd_transform
+                                print('svd transform: ', svd_transform)
+                                start_training = time.time()
+                                try:
+                                    main(args=args)
+                                except RuntimeError as err:
+                                    print(f"ERROR: {dataset_name}. "
+                                          "Details: " + str(err))
+                                    traceback.print_tb(err.__traceback__)
+                                print("elapsed time (sec): ",
+                                      time.time() - start_training)
 
     print("total elapsed time (sec): ", time.time() - start_time)

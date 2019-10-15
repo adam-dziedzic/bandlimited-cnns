@@ -31,9 +31,9 @@ Pytorch: total elapsed time (sec):  7.639773607254028
 # conv_type = ConvType.STANDARD
 
 # 2D
-# conv_type = ConvType.STANDARD2D
+conv_type = ConvType.STANDARD2D
 # conv_type = ConvType.FFT2D
-conv_type = ConvType.DCT
+# conv_type = ConvType.DCT
 compress_rate = 1.0
 
 if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
@@ -425,6 +425,7 @@ class Arguments(object):
                  target_class=-1,
                  rgb_value=0,
                  rgb_values=[0],
+                 svd_compress_transform=[50.0]
                  ):
         """
         The default parameters for the execution of the program.
@@ -569,6 +570,7 @@ class Arguments(object):
         self.attack_confidence = attack_confidence
         self.rgb_value = rgb_value
         self.rgb_values = rgb_values
+        self.svd_compress_transform = svd_compress_transform
 
         # deeprl
         # self.env_name = "Reacher-v2"
