@@ -8,6 +8,7 @@ from torch.distributions.laplace import Laplace
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_xfft_hw
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
 import functools
+import sys
 
 nprng = np.random.RandomState()
 nprng.seed(31)
@@ -420,19 +421,24 @@ def compress_svd(torch_img, compress_rate):
     index = int((1 - compress_rate / 100) * H)
     torch_compress_img = torch.zeros_like(torch_img)
     for c in range(C):
-        for i in range(100):
+        iters = 10
+        for i in range(iters):
             try:
                 u, s, v = torch.svd(torch_img[c])
+                u_c = u[:, :index]
+                s_c = s[:index]
+                v_c = v[:, :index]
+                torch_compress_img[c] = torch.mm(torch.mm(u_c, torch.diag(s_c)),
+                                                 v_c.t())
                 break
             except RuntimeError as ex:
-                print("SVD compression problem: ", ex, " iteration: ", i)
+                msg = "SVD compression problem: ", ex, " iteration: ", i
+                print(msg)
+                sys.stderr(msg)
 
-        u_c = u[:, :index]
-        s_c = s[:index]
-        v_c = v[:, :index]
+            if i == (iters - 1):
+                torch_compress_img[c] = torch_img[c]
 
-        torch_compress_img[c] = torch.mm(torch.mm(u_c, torch.diag(s_c)),
-                                         v_c.t())
     return torch_compress_img
 
 
