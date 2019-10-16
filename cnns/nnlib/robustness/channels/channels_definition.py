@@ -436,8 +436,8 @@ def compress_svd(torch_img, compress_rate):
                 print(msg)
                 sys.stderr(msg)
 
-            if i == (iters - 1):
-                torch_compress_img[c] = torch_img[c]
+                if i == (iters - 1):
+                    torch_compress_img[c] = torch_img[c]
 
     return torch_compress_img
 
