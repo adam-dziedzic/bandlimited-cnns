@@ -9,6 +9,7 @@ from cnns.nnlib.pytorch_layers.pytorch_utils import get_xfft_hw
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
 import functools
 import sys
+from numpy.linalg import svd
 
 nprng = np.random.RandomState()
 nprng.seed(31)
@@ -417,8 +418,8 @@ def subtract_rgb_numpy(images, subtract_value):
 
 def compress_svd(torch_img, compress_rate):
     C, H, W = torch_img.size()
-    assert H == W
-    index = int((1 - compress_rate / 100) * H)
+    D = min(H, W)
+    index = int((1 - compress_rate / 100) * D)
     torch_compress_img = torch.zeros_like(torch_img)
     for c in range(C):
         iters = 10
@@ -462,3 +463,28 @@ def distort_svd(torch_img, distort_rate):
 
 def distort_svd_batch(x, distort_rate):
     return compress_svd_batch(x=x, compress_rate=distort_rate)
+
+
+def compress_svd_numpy_channel(numpy_array, compress_rate):
+    return compress_svd_batch(np.expand_dims(numpy_array, 0),
+                              compress_rate=compress_rate).squeeze(0)
+
+def compress_svd_numpy_batch(numpy_array, compress_rate):
+    N, C, H, W = numpy_array.shape
+    D = min(H, W)
+    index = int((1 - compress_rate / 100) * D)
+    iters = 10
+    compress_img = numpy_array
+    for i in range(iters):
+        try:
+            u, s, vh = svd(a=numpy_array, full_matrices=False)
+            u_c = u[:, :index]
+            s_c = s[:index]
+            vh_c = vh[:index, :]
+            compress_img = np.matmul(u_c * s_c[..., None, :], vh_c)
+            break
+        except RuntimeError as ex:
+            msg = "SVD compression problem: ", ex, " iteration: ", i
+            print(msg)
+
+    return compress_img
