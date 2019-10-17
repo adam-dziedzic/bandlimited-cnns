@@ -45,7 +45,7 @@ from cnns.nnlib.robustness.channels.channels_definition import \
 from cnns.nnlib.robustness.channels.channels_definition import \
     fft_numpy as fft
 from cnns.nnlib.robustness.channels.channels_definition import \
-    compress_svd_numpy as svd
+    compress_svd_numpy_through_torch as svd
 from cnns.nnlib.robustness.channels.channels_definition import \
     subtract_rgb_numpy as sub
 from cnns.nnlib.attacks.fft_attack import FFTMultipleFrequencyAttack

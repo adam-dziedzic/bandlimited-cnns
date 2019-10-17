@@ -6,6 +6,10 @@ import foolbox
 import numpy as np
 from cnns.nnlib.robustness.channels.channels_definition import \
     compress_svd_numpy_through_torch
+from cnns.nnlib.robustness.channels.channels_definition import \
+    compress_svd_numpy
+from cnns.nnlib.robustness.channels.channels_definition import \
+    compress_svd_resize
 
 # instantiate model
 preprocessing = (np.array([104, 116, 123]), 1)
@@ -14,10 +18,19 @@ preprocessing = (np.array([104, 116, 123]), 1)
 image, label = foolbox.utils.imagenet_example()
 image = image / 255  # # division by 255 to convert [0, 255] to [0, 1]
 print('image dimensions: ', image.shape)
-compress_rate = 90
+compress_rate = 80
 image_CHW = np.moveaxis(image, -1, 0)
-image_svd_CHW = compress_svd_numpy_through_torch(numpy_array=image_CHW,
-                                                 compress_rate=compress_rate)
+svd_type = 'resize'  # 'torch' 'resize'
+
+if svd_type == "torch":
+    image_svd_CHW = compress_svd_numpy_through_torch(numpy_array=image_CHW,
+                                                     compress_rate=compress_rate)
+elif svd_type == "numpy":
+    image_svd_CHW = compress_svd_numpy(numpy_array=image_CHW,
+                                       compress_rate=compress_rate)
+elif svd_type == "resize":
+    image_svd_CHW = compress_svd_resize(numpy_array=image_CHW,
+                                        compress_rate=compress_rate)
 image_svd = np.moveaxis(image_svd_CHW, 0, -1)
 image_svd = np.clip(image_svd, a_min=0.0, a_max=1.0)
 plt.figure()

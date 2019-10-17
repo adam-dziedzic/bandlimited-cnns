@@ -442,7 +442,7 @@ def compress_svd(torch_img, compress_rate):
     return torch_compress_img
 
 
-def compress_svd_numpy(numpy_array, compress_rate):
+def compress_svd_numpy_through_torch(numpy_array, compress_rate):
     torch_image = torch.from_numpy(numpy_array)
     torch_image = compress_svd(torch_img=torch_image,
                                compress_rate=compress_rate)
@@ -465,12 +465,9 @@ def distort_svd_batch(x, distort_rate):
     return compress_svd_batch(x=x, compress_rate=distort_rate)
 
 
-def compress_svd_numpy_channel(numpy_array, compress_rate):
-    return compress_svd_batch(np.expand_dims(numpy_array, 0),
-                              compress_rate=compress_rate).squeeze(0)
-
-def compress_svd_numpy_batch(numpy_array, compress_rate):
-    N, C, H, W = numpy_array.shape
+def compress_svd_numpy(numpy_array, compress_rate):
+    H = numpy_array.shape[-2]
+    W = numpy_array.shape[-1]
     D = min(H, W)
     index = int((1 - compress_rate / 100) * D)
     iters = 10
@@ -478,9 +475,9 @@ def compress_svd_numpy_batch(numpy_array, compress_rate):
     for i in range(iters):
         try:
             u, s, vh = svd(a=numpy_array, full_matrices=False)
-            u_c = u[:, :index]
-            s_c = s[:index]
-            vh_c = vh[:index, :]
+            u_c = u[..., :index]
+            s_c = s[..., :index]
+            vh_c = vh[..., :index, :]
             compress_img = np.matmul(u_c * s_c[..., None, :], vh_c)
             break
         except RuntimeError as ex:
@@ -488,3 +485,34 @@ def compress_svd_numpy_batch(numpy_array, compress_rate):
             print(msg)
 
     return compress_img
+
+
+def compress_svd_resize(numpy_array, compress_rate):
+    H = numpy_array.shape[-2]
+    W = numpy_array.shape[-1]
+    D = min(H, W)
+    index = int((1 - compress_rate / 100) * D)
+    iters = 10
+    compress_img = numpy_array
+    for i in range(iters):
+        try:
+            u, s, vh = svd(a=numpy_array, full_matrices=False)
+            u = u[..., :index]
+            s[..., (index - 1):] = 0
+            vh = vh[..., :index, :]
+            # compress_img = np.matmul(u_c * s_c[..., None, :], vh_c)
+            compress_img = np.matmul(vh * s[..., None, :], u)
+            break
+        except RuntimeError as ex:
+            msg = "SVD compression problem: ", ex, " iteration: ", i
+            print(msg)
+
+    return compress_img
+
+
+def compress_svd_resize_through_numpy(tensor, compress_rate):
+    device = tensor.device
+    numpy_image = tensor.cpu().numpy()
+    numpy_image = compress_svd_resize(numpy_array=numpy_image,
+                                      compress_rate=compress_rate)
+    return torch.from_numpy(numpy_image).to(device)

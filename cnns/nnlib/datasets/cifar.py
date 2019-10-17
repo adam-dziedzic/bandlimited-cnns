@@ -58,11 +58,10 @@ def show_images():
 
 
 def get_transform_train(args, dtype=torch.float32, signal_dimension=2):
-    transformations = [
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-    ]
+    transformations = []
+    transformations.append(transforms.RandomCrop(32, padding=4))
+    transformations.append(transforms.RandomHorizontalFlip())
+    transformations.append(transforms.ToTensor())
     # if args.values_per_channel > 0:
     #     transformations.append(
     #         RoundingTransformation(values_per_channel=args.values_per_channel))
@@ -80,7 +79,8 @@ def get_transform_train(args, dtype=torch.float32, signal_dimension=2):
 
 def get_transform_test(args, dtype=torch.float32, signal_dimension=2,
                        noise_sigma=0):
-    transformations = [transforms.ToTensor()]
+    transformations = []
+    transformations.append(transforms.ToTensor())
     # if args.values_per_channel > 0:
     #     transformations.append(
     #         RoundingTransformation(values_per_channel=args.values_per_channel))
