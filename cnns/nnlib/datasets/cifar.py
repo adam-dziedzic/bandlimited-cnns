@@ -69,10 +69,10 @@ def get_transform_train(args, dtype=torch.float32, signal_dimension=2):
     transformations.append(transforms.Normalize(cifar_mean, cifar_std))
     if signal_dimension == 1:
         transformations.append(FlatTransformation())
-    # if args and args.svd_transform > 0.0:
-    #     transformations.append(
-    #         SVDCompressionTransformation(compress_rate=args.svd_transform)
-    #     )
+    if args and args.svd_transform > 0.0:
+        transformations.append(
+            SVDCompressionTransformation(compress_rate=args.svd_transform)
+        )
     transformations.append(DtypeTransformation(dtype=dtype))
     transform_train = transforms.Compose(transformations)
     return transform_train

@@ -153,8 +153,8 @@ def train(model, train_loader, optimizer, loss_function, args, epoch=None):
         data = data.to(device=args.device, dtype=args.dtype)
         target = target.to(device=args.device)
 
-        if args.svd_transform > 0.0:
-            compress_svd_batch(x=data, compress_rate=args.svd_transform)
+        # if args.svd_transform > 0.0:
+        #     compress_svd_batch(x=data, compress_rate=args.svd_transform)
 
         # print("target: ", target)
         optimizer.zero_grad()
@@ -239,8 +239,8 @@ def test(model, test_loader, loss_function, args, epoch=None):
             data = data.to(device=args.device, dtype=args.dtype)
             target = target.to(args.device)
 
-            if args.svd_transform > 0.0:
-                compress_svd_batch(x=data, compress_rate=args.svd_transform)
+            # if args.svd_transform > 0.0:
+            #     compress_svd_batch(x=data, compress_rate=args.svd_transform)
 
             output = model(data)
             # sum up batch loss
