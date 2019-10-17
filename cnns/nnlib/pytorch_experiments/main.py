@@ -41,6 +41,7 @@ from cnns.nnlib.pytorch_architecture.get_model_architecture import \
 from cnns.nnlib.pytorch_experiments.utils.progress_bar import progress_bar
 # from memory_profiler import profile
 from cnns.nnlib.datasets.deeprl.rollouts import get_rollouts_dataset
+from cnns.nnlib.robustness.channels.channels_definition import compress_svd_batch
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -151,6 +152,10 @@ def train(model, train_loader, optimizer, loss_function, args, epoch=None):
         # fp16 (apex) - the data is cast explicitely to fp16 via data.to() method.
         data = data.to(device=args.device, dtype=args.dtype)
         target = target.to(device=args.device)
+
+        if args.svd_transform > 0.0:
+            compress_svd_batch(x=data, compress_rate=args.svd_transform)
+
         # print("target: ", target)
         optimizer.zero_grad()
         output = model(data)
@@ -233,6 +238,10 @@ def test(model, test_loader, loss_function, args, epoch=None):
         for batch_idx, (data, target) in enumerate(test_loader):
             data = data.to(device=args.device, dtype=args.dtype)
             target = target.to(args.device)
+
+            if args.svd_transform > 0.0:
+                compress_svd_batch(x=data, compress_rate=args.svd_transform)
+
             output = model(data)
             # sum up batch loss
             test_loss += loss_function(output, target.squeeze()).item()
