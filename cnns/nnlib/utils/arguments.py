@@ -425,7 +425,8 @@ class Arguments(object):
                  target_class=-1,
                  rgb_value=0,
                  rgb_values=[0],
-                 svd_compress_transform=[50.0]
+                 svd_compress_transform=[0.0],
+                 fft_compress_transform=[50.0],
                  ):
         """
         The default parameters for the execution of the program.
@@ -571,6 +572,7 @@ class Arguments(object):
         self.rgb_value = rgb_value
         self.rgb_values = rgb_values
         self.svd_compress_transform = svd_compress_transform
+        self.fft_compress_transform = fft_compress_transform
 
         # deeprl
         # self.env_name = "Reacher-v2"

@@ -1262,14 +1262,17 @@ if __name__ == '__main__':
                             for svd_transform in args.svd_compress_transform:
                                 args.svd_transform = svd_transform
                                 print('svd transform: ', svd_transform)
-                                start_training = time.time()
-                                try:
-                                    main(args=args)
-                                except RuntimeError as err:
-                                    print(f"ERROR: {dataset_name}. "
-                                          "Details: " + str(err))
-                                    traceback.print_tb(err.__traceback__)
-                                print("elapsed time (sec): ",
-                                      time.time() - start_training)
+                                for fft_transform in args.fft_compress_transform:
+                                    args.fft_transform = fft_transform
+                                    print('fft transform: ', fft_transform)
+                                    start_training = time.time()
+                                    try:
+                                        main(args=args)
+                                    except RuntimeError as err:
+                                        print(f"ERROR: {dataset_name}. "
+                                              "Details: " + str(err))
+                                        traceback.print_tb(err.__traceback__)
+                                    print("elapsed time (sec): ",
+                                          time.time() - start_training)
 
     print("total elapsed time (sec): ", time.time() - start_time)

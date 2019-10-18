@@ -10,6 +10,8 @@ from cnns.nnlib.datasets.transformations.gaussian_noise import \
 from cnns.nnlib.datasets.transformations.svd_compression import \
     SVDCompressionTransformation
 from cnns.nnlib.datasets.transformations.rounding import RoundingTransformation
+from cnns.nnlib.datasets.transformations.fft_compression import \
+    FFTCompressionTransformation
 from cnns.nnlib.utils.general_utils import MemoryType
 from cnns.nnlib.utils.general_utils import NetworkType
 import numpy as np
@@ -93,6 +95,10 @@ def get_transform_test(args, dtype=torch.float32, signal_dimension=2,
     if args and args.svd_transform > 0.0:
         transformations.append(
             SVDCompressionTransformation(compress_rate=args.svd_transform)
+        )
+    if args and args.fft_transform > 0.0:
+        transformations.append(
+            FFTCompressionTransformation(compress_rate=args.svd_transform)
         )
     transformations.append(DtypeTransformation(dtype))
     transform_test = transforms.Compose(transformations)

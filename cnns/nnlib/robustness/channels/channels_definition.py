@@ -43,28 +43,22 @@ def fft_zero_values_numpy(numpy_array, high, low=0, onesided=True,
 
 
 def fft_channel(input, compress_rate, val=0, get_mask=get_hyper_mask,
-                onesided=True, is_next_power2=True, inverse_compress_rate=0,
+                onesided=True, is_next_power2=False, inverse_compress_rate=0,
                 get_inv_mask=get_inverse_hyper_mask):
     """
-    In the forward pass we receive a Tensor containing the input
-    and return a Tensor containing the output. ctx is a context
-    object that can be used to stash information for backward
-    computation. You can cache arbitrary objects for use in the
-    backward pass using the ctx.save_for_backward method.
-
     :param input: the input image
-    :param args: arguments that define: compress_rate - the compression
-    ratio, interpolate - the interpolation within mask: const, linear, exp,
-    log, etc.
-    :param val: the value (to change coefficients to) for the mask
+    :compress_rate: percentage of high frequency coefficients that should be
+    removed
+    :get_mask: the mask to discard the frequency coefficients (this can be a
+    squared mask that is inexact or a "hyperbolic" one which is exact).
     :onesided: should use the onesided FFT thanks to the conjugate symmetry
     or want to preserve all the coefficients
-    :is_next_power2: should we bring the FFT size to the power of 2
-    :inverse_compress_rate:
+    :is_next_power2: should we bring the FFT size to the power of 2 (usually for
+    faster computation but with higher memory usage).
+    :inverse_compress_rate: compress by removing low frequency coefficients
+    :get_inv_mask: the inverted mask for the removal of low frequency
+    coefficients
     """
-    # ctx.save_for_backward(input)
-    # print("round forward")
-
     N, C, H, W = input.size()
 
     if H != W:
@@ -85,7 +79,6 @@ def fft_channel(input, compress_rate, val=0, get_mask=get_hyper_mask,
     del input
 
     _, _, H_xfft, W_xfft, _ = xfft.size()
-    # assert H_fft == W_xfft, "The input tensor has to be squared."
 
     mask, _ = get_mask(H=H_xfft, W=W_xfft,
                        compress_rate=compress_rate,
@@ -100,7 +93,6 @@ def fft_channel(input, compress_rate, val=0, get_mask=get_hyper_mask,
         mask = mask + inv_mask
 
     mask = mask[:, 0:W_xfft, :]
-    # print(mask)
     mask = mask.to(xfft.dtype).to(xfft.device)
     xfft = xfft * mask
 

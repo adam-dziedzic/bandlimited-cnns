@@ -499,6 +499,13 @@ def get_args():
                         help=f"many svd compression rates for input "
                         f"transformations during training and inference: "
                         f"{args.svd_compress_transform}")
+    parser.add_argument("--fft_compress_transform",
+                        default=args.fft_compress_transform,
+                        type=float,
+                        nargs="+",
+                        help=f"many fft compression rates for input "
+                        f"transformations during training and inference: "
+                        f"{args.fft_compress_transform}")
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)
     return args
