@@ -52,3 +52,5 @@ plt.imshow(image_compressed)
 plt.axis('off')
 
 plt.show()
+
+

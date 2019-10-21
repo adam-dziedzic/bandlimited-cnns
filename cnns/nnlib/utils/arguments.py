@@ -425,7 +425,7 @@ class Arguments(object):
                  target_class=-1,
                  rgb_value=0,
                  rgb_values=[0],
-                 svd_compress_transform=[0.0],
+                 svd_compress_transform=[50.0],
                  fft_compress_transform=[0.0],
                  ):
         """

@@ -18,6 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from six.moves import cPickle
 import os
+from cnns.nnlib.datasets.torchvision_cifar import CIFAR10
 
 cifar_mean = (0.4914, 0.4822, 0.4465)
 cifar_mean_mean = 0.47337
@@ -120,7 +121,7 @@ def get_cifar(args, dataset_name):
     """
     if dataset_name == "cifar10":
         args.num_classes = 10
-        dataset_loader = datasets.CIFAR10
+        dataset_loader = CIFAR10
     elif dataset_name == "cifar100":
         args.num_classes = 100
         dataset_loader = datasets.CIFAR100
