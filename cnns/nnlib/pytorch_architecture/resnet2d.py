@@ -146,13 +146,15 @@ class Bottleneck(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, layers, args=None):
+    def __init__(self, block, layers, args=None, in_channels=None):
         super(ResNet, self).__init__()
+        if in_channels is None:
+            in_channels = args.in_channels
         # self.global_layer1_time = 0.0
         self.inplanes = 64
         self.args = args
         if args.dataset == "cifar10" or args.dataset == "cifar100":
-            self.conv1 = conv3x3(in_planes=args.in_channels, out_planes=64,
+            self.conv1 = conv3x3(in_planes=in_channels, out_planes=64,
                                  stride=1, args=args)
             self.std = cifar_std
             self.mean = cifar_mean
