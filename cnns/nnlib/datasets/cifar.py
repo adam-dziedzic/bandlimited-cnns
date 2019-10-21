@@ -74,6 +74,10 @@ def get_transform_train(args, dtype=torch.float32, signal_dimension=2):
         transformations.append(
             SVDCompressionTransformation(compress_rate=args.svd_transform)
         )
+    if args and args.fft_transform > 0.0:
+        transformations.append(
+            FFTCompressionTransformation(compress_rate=args.fft_transform)
+        )
     transformations.append(DtypeTransformation(dtype=dtype))
     transform_train = transforms.Compose(transformations)
     return transform_train
@@ -98,7 +102,7 @@ def get_transform_test(args, dtype=torch.float32, signal_dimension=2,
         )
     if args and args.fft_transform > 0.0:
         transformations.append(
-            FFTCompressionTransformation(compress_rate=args.svd_transform)
+            FFTCompressionTransformation(compress_rate=args.fft_transform)
         )
     transformations.append(DtypeTransformation(dtype))
     transform_test = transforms.Compose(transformations)
