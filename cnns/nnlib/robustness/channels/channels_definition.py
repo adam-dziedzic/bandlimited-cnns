@@ -104,6 +104,52 @@ def fft_channel(input, compress_rate, val=0, get_mask=get_hyper_mask,
     return out
 
 
+def fft_squared_channel(input, compress_rate, onesided=True, is_next_power2=False):
+    """
+    Simple implementation of the fft channel that removes the coefficients in
+    L-shaped fashion starting from the highest frequency coefficients. This
+    method is aimed at high compressibility.
+
+    :param input: the input image
+    :compress_rate: percentage of high frequency coefficients that should be
+    removed
+    :onesided: should use the onesided FFT thanks to the conjugate symmetry
+    or want to preserve all the coefficients
+    :is_next_power2: should we bring the FFT size to the power of 2 (usually for
+    faster computation but with higher memory usage).
+    """
+    N, C, H, W = input.size()
+
+    if H != W:
+        raise Exception("We support only squared input.")
+
+    if is_next_power2:
+        H_fft = next_power2(H)
+        W_fft = next_power2(W)
+        pad_H = H_fft - H
+        pad_W = W_fft - W
+        input = torch_pad(input, (0, pad_W, 0, pad_H), 'constant', 0)
+    else:
+        H_fft = H
+        W_fft = W
+    xfft = torch.rfft(input,
+                      signal_ndim=2,
+                      onesided=onesided)
+    del input
+
+    _, _, H_xfft, W_xfft, _ = xfft.size()
+
+    # Remove the coefficients in the L-shaped fashion.
+
+
+    out = torch.irfft(input=xfft,
+                      signal_ndim=2,
+                      signal_sizes=(H_fft, W_fft),
+                      onesided=onesided)
+    out = out[..., :H, :W]
+    return out
+
+
 def fft_zero_values(input, high, low=0, onesided=True, is_next_power2=True):
     """
     :param input: the input image
@@ -477,6 +523,14 @@ def compress_svd_numpy(numpy_array, compress_rate):
             print(msg)
 
     return compress_img
+
+
+def compress_svd_through_numpy(tensor, compress_rate):
+    device = tensor.device
+    numpy_image = tensor.cpu().numpy()
+    numpy_image = compress_svd_numpy(numpy_array=numpy_image,
+                                     compress_rate=compress_rate)
+    return torch.from_numpy(numpy_image).to(device)
 
 
 def compress_svd_resize(numpy_array, compress_rate):

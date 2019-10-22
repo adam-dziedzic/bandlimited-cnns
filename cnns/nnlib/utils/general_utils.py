@@ -202,6 +202,13 @@ class TensorType(EnumWithNames):
     INT = 4
 
 
+class SVDTransformType(EnumWithNames):
+    TO_SVD_DOMAIN = 1
+    STANDARD_TORCH = 2
+    STANDARD_NUMPY = 3
+    COMPRESS_RESIZE = 4
+
+
 class NetworkType(EnumWithNames):
     FCNN_STANDARD = 1
     FCNN_SMALL = 2

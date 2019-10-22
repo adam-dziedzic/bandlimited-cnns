@@ -15,7 +15,7 @@ from cnns.nnlib.utils.general_utils import PrecisionType
 from cnns.nnlib.utils.general_utils import PredictionType
 from cnns.nnlib.utils.general_utils import Bool
 from cnns.nnlib.utils.general_utils import PolicyType
-
+from cnns.nnlib.utils.general_utils import SVDTransformType
 from cnns.nnlib.utils.arguments import Arguments
 import argparse
 
@@ -506,6 +506,12 @@ def get_args():
                         help=f"many fft compression rates for input "
                         f"transformations during training and inference: "
                         f"{args.fft_compress_transform}")
+    parser.add_argument("--svd_transform_type",
+                        default=args.svd_transform_type.name,
+                        help="The type of SVD transformation / compression "
+                             "that should be applied for data pre-processing"
+                             " (transformation). " + ",".join(
+                            SVDTransformType.get_names()))
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)
     return args

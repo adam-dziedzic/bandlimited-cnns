@@ -3,6 +3,9 @@ from cnns.nnlib.robustness.channels.channels_definition import \
     compress_svd_resize_through_numpy
 from cnns.nnlib.robustness.channels.channels_definition import \
     to_svd_through_numpy
+from cnns.nnlib.robustness.channels.channels_definition import \
+    compress_svd_through_numpy
+from cnns.nnlib.utils.general_utils import SVDTransformType
 
 
 class SVDCompressionTransformation(object):
@@ -15,16 +18,18 @@ class SVDCompressionTransformation(object):
     def __init__(self, args=None, compress_rate=0.0):
         self.args = args
         self.compress_rate = compress_rate
-        svd_type = 'to_svd_domain'
-        if svd_type == 'standard_torch':
+        if args.svd_transform_type == SVDTransformType.STANDARD_TORCH:
             self.compress_f = compress_svd
-        elif svd_type == 'compress_resize':
+        elif args.svd_transform_type == SVDTransformType.STANDARD_NUMPY:
+            self.compress_f = compress_svd_through_numpy
+        elif args.svd_transform_type == SVDTransformType.COMPRESS_RESIZE:
             self.compress_f = compress_svd_resize_through_numpy
-        elif svd_type == 'to_svd_domain':
+        elif args.svd_transform_type == SVDTransformType.TO_SVD_DOMAIN:
             self.args.in_channels = 6
             self.compress_f = to_svd_through_numpy
         else:
-            raise Exception(f'Unknown svd_type: {svd_type}')
+            raise Exception(
+                f'Unknown svd_type: {args.svd_transform_type.name}')
 
     def __call__(self, data_item):
         """

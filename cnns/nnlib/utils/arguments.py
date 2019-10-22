@@ -16,6 +16,7 @@ from cnns.nnlib.utils.general_utils import Bool
 from cnns.nnlib.utils.general_utils import StrideType
 from cnns.nnlib.utils.general_utils import PrecisionType
 from cnns.nnlib.utils.general_utils import PredictionType
+from cnns.nnlib.utils.general_utils import SVDTransformType
 from cnns.nnlib.utils.general_utils import PolicyType
 
 from cnns.nnlib.utils.general_utils import get_log_time
@@ -97,7 +98,7 @@ else:
         learning_rate = 0.1
     weight_decay = 0.0001
     momentum = 0.9
-    epochs = 2
+    epochs = 350
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
@@ -426,6 +427,7 @@ class Arguments(object):
                  rgb_value=0,
                  rgb_values=[0],
                  svd_compress_transform=[50.0],
+                 svd_transform_type=SVDTransformType.TO_SVD_DOMAIN,
                  fft_compress_transform=[0.0],
                  ):
         """
@@ -572,6 +574,7 @@ class Arguments(object):
         self.rgb_value = rgb_value
         self.rgb_values = rgb_values
         self.svd_compress_transform = svd_compress_transform
+        self.svd_transform_type = svd_transform_type
         self.fft_compress_transform = fft_compress_transform
 
         # deeprl
@@ -696,6 +699,8 @@ class Arguments(object):
         self.adv_type = AdversarialType[parsed_args.adv_type]
         self.prediction_type = PredictionType[parsed_args.prediction_type]
         self.policy_type = PolicyType[parsed_args.policy_type]
+        self.svd_transform_type = SVDTransformType[
+            parsed_args.svd_transform_type]
 
         # Bools:
         self.is_debug = self.get_bool(parsed_args.is_debug)
