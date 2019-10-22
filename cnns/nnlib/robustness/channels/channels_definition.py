@@ -8,8 +8,8 @@ from torch.distributions.laplace import Laplace
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_xfft_hw
 from cnns.nnlib.pytorch_layers.pytorch_utils import get_spectrum
 import functools
-import sys
 from numpy.linalg import svd
+import math
 
 nprng = np.random.RandomState()
 nprng.seed(31)
@@ -104,7 +104,8 @@ def fft_channel(input, compress_rate, val=0, get_mask=get_hyper_mask,
     return out
 
 
-def fft_squared_channel(input, compress_rate, onesided=True, is_next_power2=False):
+def fft_squared_channel(input, compress_rate, onesided=True,
+                        is_next_power2=False):
     """
     Simple implementation of the fft channel that removes the coefficients in
     L-shaped fashion starting from the highest frequency coefficients. This
@@ -140,7 +141,14 @@ def fft_squared_channel(input, compress_rate, onesided=True, is_next_power2=Fals
     _, _, H_xfft, W_xfft, _ = xfft.size()
 
     # Remove the coefficients in the L-shaped fashion.
-
+    if onesided:
+        retain_rate = 1 - compress_rate / 100
+        n = math.sqrt(retain_rate * H_xfft * W_xfft / 2)
+    else:
+        raise Exception(
+            'Compression not supported for full FFT representation.')
+    xfft[..., n + 1:-n, :, :] = 0  # zero out center
+    xfft[..., :, n + 1:, :] = 0  # zero out right stripe
 
     out = torch.irfft(input=xfft,
                       signal_ndim=2,
