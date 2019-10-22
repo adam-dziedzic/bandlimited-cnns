@@ -52,8 +52,6 @@ def getModelPyTorch(args, pretrained=False):
         return FCNNPytorch(args=args, out_channels=args.out_channels)
     elif network_type == NetworkType.ResNet18:
         return resnet18(args=args, pretrained=pretrained)
-    elif network_type == NetworkType.ResNet18SVD:
-        return resnet18(args=args, pretrained=pretrained, in)
     elif network_type == NetworkType.DenseNetCifar:
         return densenet_cifar(args=args)
     elif network_type == NetworkType.ResNet50:

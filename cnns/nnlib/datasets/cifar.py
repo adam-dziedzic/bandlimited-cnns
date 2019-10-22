@@ -73,7 +73,8 @@ def get_transform_train(args, dtype=torch.float32, signal_dimension=2):
         transformations.append(FlatTransformation())
     if args and args.svd_transform > 0.0:
         transformations.append(
-            SVDCompressionTransformation(compress_rate=args.svd_transform)
+            SVDCompressionTransformation(args=args,
+                                         compress_rate=args.svd_transform)
         )
     if args and args.fft_transform > 0.0:
         transformations.append(
@@ -99,7 +100,8 @@ def get_transform_test(args, dtype=torch.float32, signal_dimension=2,
             AddGaussianNoiseTransformation(sigma=noise_sigma))
     if args and args.svd_transform > 0.0:
         transformations.append(
-            SVDCompressionTransformation(compress_rate=args.svd_transform)
+            SVDCompressionTransformation(args=args,
+                                         compress_rate=args.svd_transform)
         )
     if args and args.fft_transform > 0.0:
         transformations.append(
@@ -141,7 +143,7 @@ def get_cifar(args, dataset_name):
     args.width = 32 * 32
     # The size of the flat vector after the conv layers in LeNet.
     args.flat_size = 500
-    # args.in_channels = 3  # number of channels in the input data
+    args.in_channels = 3  # number of channels in the input data
     args.out_channels = None
     args.signal_dimension = 2
     args.mean_array = cifar_mean_array

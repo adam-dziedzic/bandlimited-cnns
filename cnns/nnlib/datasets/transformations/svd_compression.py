@@ -12,8 +12,19 @@ class SVDCompressionTransformation(object):
 
     """
 
-    def __init__(self, compress_rate=0.0):
+    def __init__(self, args=None, compress_rate=0.0):
+        self.args = args
         self.compress_rate = compress_rate
+        svd_type = 'to_svd_domain'
+        if svd_type == 'standard_torch':
+            self.compress_f = compress_svd
+        elif svd_type == 'compress_resize':
+            self.compress_f = compress_svd_resize_through_numpy
+        elif svd_type == 'to_svd_domain':
+            self.args.in_channels = 6
+            self.compress_f = to_svd_through_numpy
+        else:
+            raise Exception(f'Unknown svd_type: {svd_type}')
 
     def __call__(self, data_item):
         """
@@ -23,12 +34,4 @@ class SVDCompressionTransformation(object):
         Returns:
             Tensor: compressed tensor
         """
-        svd_type = 'to_svd_domain'
-        if svd_type == 'standard_torch':
-            return compress_svd(data_item, compress_rate=self.compress_rate)
-        elif svd_type == 'compress_resize':
-            return compress_svd_resize_through_numpy(
-                data_item, compress_rate=self.compress_rate)
-        elif svd_type == 'to_svd_domain':
-            return to_svd_through_numpy(data_item,
-                                        compress_rate=self.compress_rate)
+        return self.compress_f(data_item, compress_rate=self.compress_rate)
