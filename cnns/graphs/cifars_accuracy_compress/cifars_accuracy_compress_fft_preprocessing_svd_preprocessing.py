@@ -4,6 +4,7 @@ matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
 import matplotlib.pyplot as plt
 import os
+from cnns.nnlib.utils.general_utils import get_log_time
 
 # http://ksrowell.com/blog-visualizing-data/2012/02/02/optimal-colors-for-graphs/
 MY_BLUE = (56, 106, 177)
@@ -23,7 +24,7 @@ def get_color(COLOR_TUPLE_255):
 
 lw = 4  # the line width
 ylabel_size = 25
-legend_size = 20
+legend_size = 25
 font = {'size': 30}
 title_size = 25
 matplotlib.rc('font', **font)
@@ -35,6 +36,8 @@ fig = plt.figure(figsize=(15, 7))
 plt.subplot(2, 1, 1)
 
 plt.title("ResNet-18 on CIFAR-10", fontsize=title_size)
+
+# FFT based compression for every convolutional layer.
 static_x = (
     0, 8.3855401, 11.87663269, 14.5, 17.8, 21.0941708, 24, 26, 29.26308507,
     39.203635, 49, 53.53477122, 67.50730502, 77.77388775
@@ -66,24 +69,19 @@ energy_y = (
 
 svd_x = (
     0,
-    5,
-    25,
-    50,
-    55,
-    60,
-    65,
-    70,
-    75,
+    11,
+    23,
+    30,
+    42,
+    49,
+    61,
+    74,
     80,
-    85,
-    90,
+    93
 )
 
 svd_y = (
     93.73,
-    93.5,
-    93.57,
-    93.47,
     93.36,
     92.91,
     92.53,
@@ -92,21 +90,58 @@ svd_y = (
     89.7,
     85.11,
     80.91,
+    10
 )
 
-plt.plot(static_x, static_y, label='fixed FFT compression (each conv layer)', lw=lw, marker='o',
-         color=get_color(MY_RED))
+fft_preprocess_x = [
+    0,
+    5,
+    15,
+    25,
+    35,
+    45,
+    50,
+    60,
+    75,
+    80,
+    90,
+    95
+]
+
+fft_preprocess_y = [
+    93.73,
+    93.63,
+    93.45,
+    93.3,
+    93.02,
+    92.71,
+    92.69,
+    91.9,
+    90.68,
+    89.34,
+    82.98,
+    78.07
+]
+
+# plt.plot(static_x, static_y, label='fixed FFT compression (each conv layer)',
+#          lw=lw, marker='o',
+#          color=get_color(MY_RED))
 # plt.plot(mix_x, mix_y, label='energy first + static rest', lw=2, marker='v',
 #          color=get_color(MY_ORANGE))
 # plt.plot(energy_x, energy_y, label='energy based compression', lw=lw,
 #          marker='s',
 #          color=get_color(MY_GREEN))
-plt.plot(svd_x, svd_y, label='fixed SVD compression (pre-processing)', lw=lw, marker='o',
+plt.plot(fft_preprocess_x, fft_preprocess_y,
+         label='fixed FFT compression (pre-processing only)', lw=lw,
+         marker='o',
          color=get_color(MY_BLUE))
+plt.plot(svd_x, svd_y,
+         label='fixed SVD compression (pre-processing only)', lw=lw,
+         marker='o',
+         color=get_color(MY_ORANGE))
 
 plt.xlabel('Compression rate (%)')
 plt.ylabel('Test accuracy (%)', fontsize=ylabel_size)
-plt.ylim(0, 100)
 plt.grid()
 plt.legend(loc=legend_position, frameon=frameon,
            prop={'size': legend_size}, bbox_to_anchor=bbox_to_anchor)
@@ -114,6 +149,8 @@ plt.legend(loc=legend_position, frameon=frameon,
 fig.tight_layout()
 # plt.show()
 format = "pdf"  # "png" or "pdf"
-fig.savefig(dir_path + "/" + "cifars-accuracy-compress-font13." + format,
+file_name = dir_path + "/" + "cifars-accuracy-compress-fft-svd-preprocess-"
+file_name += get_log_time() + "." + format
+fig.savefig(file_name,
             bbox_inches='tight', transparent=True)
 plt.close()
