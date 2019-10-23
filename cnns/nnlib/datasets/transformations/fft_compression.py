@@ -1,4 +1,6 @@
 from cnns.nnlib.robustness.channels.channels_definition import fft_channel
+from cnns.nnlib.robustness.channels.channels_definition import \
+    fft_squared_channel
 
 
 class FFTCompressionTransformation(object):
@@ -19,6 +21,11 @@ class FFTCompressionTransformation(object):
         Returns:
             Tensor: compressed tensor
         """
-        # return compress_svd(data_item, compress_rate=self.compress_rate)
-        return fft_channel(data_item.unsqueeze(0),
-                           compress_rate=self.compress_rate).squeeze()
+        fft_type = 'sqaured'
+        if fft_type == 'squared':
+            return fft_squared_channel(
+                data_item.unsqueeze(0),
+                compress_rate=self.compress_rate).squeeze()
+        else:
+            return fft_channel(data_item.unsqueeze(0),
+                               compress_rate=self.compress_rate).squeeze()

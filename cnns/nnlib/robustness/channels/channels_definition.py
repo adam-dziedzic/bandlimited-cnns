@@ -133,6 +133,7 @@ def fft_squared_channel(input, compress_rate, onesided=True,
     else:
         H_fft = H
         W_fft = W
+
     xfft = torch.rfft(input,
                       signal_ndim=2,
                       onesided=onesided)
@@ -143,12 +144,12 @@ def fft_squared_channel(input, compress_rate, onesided=True,
     # Remove the coefficients in the L-shaped fashion.
     if onesided:
         retain_rate = 1 - compress_rate / 100
-        n = math.sqrt(retain_rate * H_xfft * W_xfft / 2)
+        n = int(math.sqrt(retain_rate * H_xfft * W_xfft / 2) - 1)
     else:
         raise Exception(
             'Compression not supported for full FFT representation.')
     xfft[..., n + 1:-n, :, :] = 0  # zero out center
-    xfft[..., :, n + 1:, :] = 0  # zero out right stripe
+    xfft[..., :, n + 1:, :] = 0  # zero out right-end stripe
 
     out = torch.irfft(input=xfft,
                       signal_ndim=2,
@@ -514,8 +515,13 @@ def distort_svd_batch(x, distort_rate):
 def compress_svd_numpy(numpy_array, compress_rate):
     H = numpy_array.shape[-2]
     W = numpy_array.shape[-1]
-    D = min(H, W)
-    index = int((1 - compress_rate / 100) * D)
+    c = compress_rate / 100
+    """
+    (1-c) = (2*H*index + index) / (H * W)
+    (1-c) = index * (2*H + 1) / (H * W)
+    index = (1-c) * (H * W) / (2*H + 1) 
+    """
+    index = int((1 - c) * (H * W) / (2 * H + 1))
     iters = 10
     compress_img = numpy_array
     for i in range(iters):
@@ -544,8 +550,12 @@ def compress_svd_through_numpy(tensor, compress_rate):
 def compress_svd_resize(numpy_array, compress_rate):
     H = numpy_array.shape[-2]
     W = numpy_array.shape[-1]
-    D = min(H, W)
-    index = int((1 - compress_rate / 100) * D)
+    c = compress_rate / 100
+    """
+    (1-c) = (index*index) / (H * W)
+    index = sqrt((1-c) * (H * W)) 
+    """
+    index = int(math.sqrt((1 - c) * (H * W)))
     iters = 10
     compress_img = numpy_array
     for i in range(iters):
@@ -585,7 +595,13 @@ def to_svd_numpy(numpy_array, compress_rate):
     H = numpy_array.shape[-2]
     W = numpy_array.shape[-1]
     assert H == W
-    index = int((1 - compress_rate / 100) * H / 2)
+    c = compress_rate / 100
+    """
+    (1-c) = (2*H*index) / H * W
+    (1-c) = 2*index / W
+    index = (1-c) * W / 2
+    """
+    index = int((1 - c) * W / 2)
     try:
         u, s, vh = svd(a=numpy_array, full_matrices=False)
         u_c = u[..., :index]

@@ -426,9 +426,9 @@ class Arguments(object):
                  target_class=-1,
                  rgb_value=0,
                  rgb_values=[0],
-                 svd_compress_transform=[50.0],
+                 svd_compress_transform=[0.0],
                  svd_transform_type=SVDTransformType.TO_SVD_DOMAIN,
-                 fft_compress_transform=[0.0],
+                 fft_compress_transform=[50.0],
                  ):
         """
         The default parameters for the execution of the program.
