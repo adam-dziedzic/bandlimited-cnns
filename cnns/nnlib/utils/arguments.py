@@ -84,7 +84,8 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     in_channels = 1
 else:
     # dataset = "mnist"
-    dataset = "cifar10"
+    dataset = "synthetic"
+    # dataset = "cifar10"
     # dataset = "cifar100"
     # dataset = "imagenet"
     # dataset = "svhn"
@@ -115,15 +116,30 @@ else:
     in_channels = 3
 
     if dataset == "mnist":
+        epochs = 10
         batch_size = 64
         test_batch_size = 1000
         momentum = 0.5
         learning_rate = 0.01
-        epochs = 100
+        weight_decay = 0.0
         loss_type = LossType.NLL
-        loss_reduction = LossReduction.SUM
+        loss_reduction = LossReduction.MEAN
         network_type = NetworkType.Net
-        model_path = "2019-05-03-10-08-51-149612-dataset-mnist-preserve-energy-100-compress-rate-0.0-test-accuracy-99.07-channel-vals-0.model"
+        # model_path = "2019-05-03-10-08-51-149612-dataset-mnist-preserve-energy-100-compress-rate-0.0-test-accuracy-99.07-channel-vals-0.model"
+        model_path = "no_model"
+        in_channels = 1
+    elif dataset == "synthetic":
+        epochs = 10
+        batch_size = 64
+        test_batch_size = 1000
+        momentum = 0.5
+        learning_rate = 0.01
+        weight_decay = 0.0
+        loss_type = LossType.NLL
+        loss_reduction = LossReduction.MEAN
+        network_type = NetworkType.Net
+        model_path = "no_model"
+        in_channels = 1
     elif dataset == "cifar10":
         network_type = NetworkType.ResNet18
         # model_path = "saved_model_2019-04-08-16-51-16-845688-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.22-channel-vals-0.model"
@@ -175,7 +191,7 @@ class Arguments(object):
         return self.__counter__
 
     def __init__(self,
-                 is_debug=True,
+                 is_debug=False,
                  # network_type=NetworkType.ResNet18,
                  # network_type=NetworkType.DenseNetCifar,
                  network_type=network_type,
@@ -428,7 +444,7 @@ class Arguments(object):
                  rgb_values=[0],
                  svd_compress_transform=[0.0],
                  svd_transform_type=SVDTransformType.TO_SVD_DOMAIN,
-                 fft_compress_transform=[50.0],
+                 fft_compress_transform=[0.0],
                  ):
         """
         The default parameters for the execution of the program.

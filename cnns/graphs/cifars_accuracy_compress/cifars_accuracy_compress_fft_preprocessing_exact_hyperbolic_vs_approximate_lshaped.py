@@ -12,6 +12,10 @@ MY_RED = (204, 37, 41)
 MY_ORANGE = (218, 124, 48)
 MY_GREEN = (62, 150, 81)
 MY_BLACK = (83, 81, 84)
+MY_GOLD = (148, 139, 61)
+MY_VIOLET = (107, 76, 154)
+MY_BROWN = (146, 36, 40)
+MY_OWN = (25, 150, 10)
 
 legend_position = 'lower left'
 frameon = False
@@ -24,7 +28,7 @@ def get_color(COLOR_TUPLE_255):
 
 lw = 4  # the line width
 ylabel_size = 25
-legend_size = 25
+legend_size = 20
 font = {'size': 30}
 title_size = 25
 matplotlib.rc('font', **font)
@@ -69,24 +73,19 @@ energy_y = (
 
 svd_x = (
     0,
-    5,
-    25,
-    50,
-    55,
-    60,
-    65,
-    70,
-    75,
+    11,
+    23,
+    30,
+    42,
+    49,
+    61,
+    74,
     80,
-    85,
-    90,
+    93
 )
 
 svd_y = (
     93.73,
-    93.5,
-    93.57,
-    93.47,
     93.36,
     92.91,
     92.53,
@@ -95,6 +94,7 @@ svd_y = (
     89.7,
     85.11,
     80.91,
+    10
 )
 
 fft_preprocess_x = [
@@ -127,18 +127,82 @@ fft_preprocess_y = [
     78.07
 ]
 
-plt.plot(static_x, static_y, label='fixed FFT compression (each conv layer)',
-         lw=lw, marker='o',
-         color=get_color(MY_RED))
+train_on_svd_x = [
+    0,
+    1,
+    25,
+    50,
+    75
+]
+
+train_on_svd_y = [
+    93.73,
+    64.23,
+    61.88,
+    64.15,
+    57.45,
+]
+
+fft_preprocess_lshaped_x = [
+    0,
+    5,
+    15,
+    25,
+    35,
+    45,
+    50,
+    60,
+    75,
+    80,
+    85,
+    90,
+    95,
+]
+
+fft_preproces_lashaped_y = [
+    93.73,
+    93.7,
+    93.44,
+    93.3,
+    92.9,
+    92.5,
+    91.85,
+    91.5,
+    89.94,
+    88.81,
+    88,
+    81.66,
+    77.68,
+]
+
+# plt.plot(static_x, static_y, label='fixed FFT compression (each conv layer)',
+#          lw=lw, marker='o',
+#          color=get_color(MY_RED))
 # plt.plot(mix_x, mix_y, label='energy first + static rest', lw=2, marker='v',
 #          color=get_color(MY_ORANGE))
 # plt.plot(energy_x, energy_y, label='energy based compression', lw=lw,
 #          marker='s',
 #          color=get_color(MY_GREEN))
 plt.plot(fft_preprocess_x, fft_preprocess_y,
-         label='fixed FFT compression (pre-processing only)', lw=lw,
+         label='fixed FFT exact hyperbolic compression (pre-processing only)',
+         lw=lw,
          marker='o',
          color=get_color(MY_BLUE))
+plt.plot(fft_preprocess_lshaped_x,
+         fft_preproces_lashaped_y,
+         label='fixed FFT approximate L-shaped compression (pre-processing only)',
+         lw=lw,
+         marker='^',
+         color=get_color(MY_GOLD))
+# plt.plot(svd_x, svd_y,
+#          label='fixed SVD compression (pre-processing only)', lw=lw,
+#          marker='o',
+#          color=get_color(MY_ORANGE))
+#
+# plt.plot(train_on_svd_x, train_on_svd_y,
+#          label='train on SVD representation (6 channels, U*D, V)', lw=lw,
+#          marker='o',
+#          color=get_color(MY_GREEN))
 
 plt.xlabel('Compression rate (%)')
 plt.ylabel('Test accuracy (%)', fontsize=ylabel_size)
@@ -149,9 +213,8 @@ plt.legend(loc=legend_position, frameon=frameon,
 fig.tight_layout()
 # plt.show()
 format = "pdf"  # "png" or "pdf"
-file_name = dir_path + "/" + "cifars-accuracy-compress-fft-preprocess-"
+file_name = dir_path + "/" + "cifars-accuracy-fft-preprocess-lshaped-hyperbolic-"
 file_name += get_log_time() + "." + format
 fig.savefig(file_name,
             bbox_inches='tight', transparent=True)
 plt.close()
-

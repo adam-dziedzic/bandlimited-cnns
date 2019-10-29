@@ -1,5 +1,4 @@
 from __future__ import print_function
-import argparse
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
@@ -48,7 +47,8 @@ def test(args, model, device, test_loader):
 def main():
     # Training settings
     args = get_args()
-    use_cuda = not args.no_cuda and torch.cuda.is_available()
+
+    use_cuda = not args.use_cuda and torch.cuda.is_available()
 
     torch.manual_seed(args.seed)
 
@@ -70,7 +70,7 @@ def main():
         batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
     model = Net(args).to(device)
-    optimizer = optim.SGD(model.parameters(), lr=args.lr,
+    optimizer = optim.SGD(model.parameters(), lr=args.learning_rate,
                           momentum=args.momentum)
 
     for epoch in range(1, args.epochs + 1):
