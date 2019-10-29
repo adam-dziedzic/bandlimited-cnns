@@ -10,7 +10,7 @@ class SyntheticDataset(Dataset):
 
     def __init__(
             self, train=True, train_len=60000, test_len=10000,
-            num_classes=2,
+            num_classes=10, precompute_set=True,
             width=28, height=28):
         if train:
             self.length = train_len
@@ -20,6 +20,20 @@ class SyntheticDataset(Dataset):
         self.height = height
         self.index = 0
         self.num_classes = num_classes
+        self.precompute_set = precompute_set
+
+        if self.precompute_set:
+            labels = []
+            data = []
+            class_len = self.length // num_classes
+            assert self.length % num_classes == 0
+            for class_nr in range(num_classes):
+                labels.append(class_nr * np.ones(class_len, dtype=np.long))
+                data.append(class_nr * np.ones(
+                    (class_len, 1, self.height, self.width),
+                    dtype=np.float32))
+            self.labels = np.concatenate(labels)
+            self.data = np.concatenate(data, axis=0)
 
     @property
     def width(self):
@@ -38,11 +52,15 @@ class SyntheticDataset(Dataset):
         self.__num_classes = val
 
     def __getitem__(self, index):
-        assert index >= 0 and index <= self.length
-        label = randint(0, self.num_classes - 1)
-        # First dimension of size 1 is for the single channel.
-        input = label * np.ones((1, self.height, self.width),
-                                dtype=np.float32)
+        assert index >= 0 and index < self.length
+        if self.precompute_set:
+            label = self.labels[index]
+            input = self.data[index]
+        else:
+            label = randint(0, self.num_classes - 1)
+            # First dimension of size 1 is for the single channel.
+            input = label * np.ones((1, self.height, self.width),
+                                    dtype=np.float32)
         return input, label
 
     def __len__(self):
@@ -70,3 +88,16 @@ class SyntheticDataset(Dataset):
 if __name__ == "__main__":
     train_set = SyntheticDataset(train=True)
     print('data item 0: ', train_set[0])
+    labels = []
+    for index, (data, label) in enumerate(train_set):
+        labels.append(label)
+        if index == train_set.length - 1:
+            break
+
+    counter = {}
+    for label in labels:
+        if counter.get(label):
+            counter[label] += 1
+        else:
+            counter[label] = 1
+    print('counter: ', counter)
