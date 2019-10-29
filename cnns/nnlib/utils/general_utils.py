@@ -231,6 +231,7 @@ class NetworkType(EnumWithNames):
     FCNN_VERY_TINY = 19
     FCNN_MICRO = 20
     Linear4 = 21
+    NetSynthetic = 22
 
 
 class CompressType(EnumWithNames):

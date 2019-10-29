@@ -306,13 +306,13 @@ def main(args):
             file.write(DATASET_HEADER)
             # Write the header with the names of the columns.
             header = ['epoch',
-                      'train_loss',
-                      'test_loss',
                       'train_accruacy',
                       'test_accuracy',
+                      'epoch_time',
+                      'train_loss',
+                      'test_loss',
                       'dev_loss',
                       'dev_accuracy',
-                      'epoch_time',
                       'learning_rate',
                       'train_time',
                       'test_time',
@@ -525,13 +525,13 @@ def main(args):
 
         with open(dataset_log_file, "a") as file:
             msg = [epoch,
-                   train_loss,
-                   test_loss,
                    train_accuracy,
                    test_accuracy,
+                   epoch_time,
+                   train_loss,
+                   test_loss,
                    dev_loss,
                    dev_accuracy,
-                   epoch_time,
                    lr,
                    train_time,
                    test_time,
@@ -601,6 +601,7 @@ if __name__ == '__main__':
     global_log_file = os.path.join(results_folder_name,
                                    get_log_time() + "-ucr-fcnn.log")
     args_str = args.get_str()
+    print('args: ', args_str)
     HEADER = "hostname," + str(
         hostname) + ",timestamp," + get_log_time() + "," + str(
         args_str) + ",cuda_visible_devices," + str(cuda_visible_devices)

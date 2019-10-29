@@ -10,18 +10,19 @@ def get_conv(args, in_channels, out_channels, kernel_size, stride=1,
                 padding=[padding], args=args, is_bias=bias).get_conv()
 
 
-class Net(nn.Module):
+class NetSynthetic(nn.Module):
     def __init__(self, args):
-        super(Net, self).__init__()
+        super(NetSynthetic, self).__init__()
         self.args = args
-        # self.conv1 = nn.Conv2d(1, 20, 5, 1)
-        self.conv1 = get_conv(args, in_channels=1, out_channels=20,
+        out_channels1 = 3
+        self.conv1 = get_conv(args, in_channels=1, out_channels=out_channels1,
                               kernel_size=5, stride=1)
-        # self.conv2 = nn.Conv2d(20, 50, 5, 1)
-        self.conv2 = get_conv(args, in_channels=20, out_channels=50,
+        self.out_channels2 = 5
+        self.conv2 = get_conv(args, in_channels=out_channels1,
+                              out_channels=self.out_channels2,
                               kernel_size=5, stride=1)
 
-        self.fc1 = nn.Linear(4 * 4 * 50, 500)
+        self.fc1 = nn.Linear(4 * 4 * self.out_channels2, 500)
         self.fc2 = nn.Linear(500, 10)
 
     def forward(self, x):
@@ -30,7 +31,7 @@ class Net(nn.Module):
         x = F.max_pool2d(x, 2, 2)
         x = F.relu(self.conv2(x))
         x = F.max_pool2d(x, 2, 2)
-        x = x.view(-1, 4 * 4 * 50)
+        x = x.view(-1, 4 * 4 * self.out_channels2)
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)

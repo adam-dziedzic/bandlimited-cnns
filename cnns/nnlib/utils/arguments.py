@@ -129,15 +129,15 @@ else:
         model_path = "no_model"
         in_channels = 1
     elif dataset == "synthetic":
-        epochs = 10
-        batch_size = 64
-        test_batch_size = 1000
-        momentum = 0.5
-        learning_rate = 0.01
+        epochs = 30
+        batch_size = 32
+        test_batch_size = 32
+        momentum = 0.7
+        learning_rate = 0.001
         weight_decay = 0.0
         loss_type = LossType.NLL
         loss_reduction = LossReduction.MEAN
-        network_type = NetworkType.Net
+        network_type = NetworkType.NetSynthetic
         model_path = "no_model"
         in_channels = 1
     elif dataset == "cifar10":

@@ -9,7 +9,7 @@ class SyntheticDataset(Dataset):
     This is purely data of rank 1."""
 
     def __init__(
-            self, train=True, train_len=60000, test_len=10000,
+            self, train=True, train_len=60000, test_len=60000,
             num_classes=10, precompute_set=True,
             width=28, height=28):
         if train:
@@ -34,6 +34,12 @@ class SyntheticDataset(Dataset):
                     dtype=np.float32))
             self.labels = np.concatenate(labels)
             self.data = np.concatenate(data, axis=0)
+
+            # randomize the data
+            randomized_indices = np.random.choice(
+                self.length, self.length, replace=False)
+            self.data = self.data[randomized_indices, ...]
+            self.labels = self.labels[randomized_indices]
 
     @property
     def width(self):
