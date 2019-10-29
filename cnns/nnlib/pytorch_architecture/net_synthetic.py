@@ -14,10 +14,10 @@ class NetSynthetic(nn.Module):
     def __init__(self, args):
         super(NetSynthetic, self).__init__()
         self.args = args
-        out_channels1 = 3
+        out_channels1 = 5
         self.conv1 = get_conv(args, in_channels=1, out_channels=out_channels1,
                               kernel_size=5, stride=1)
-        self.out_channels2 = 5
+        self.out_channels2 = 10
         self.conv2 = get_conv(args, in_channels=out_channels1,
                               out_channels=self.out_channels2,
                               kernel_size=5, stride=1)
