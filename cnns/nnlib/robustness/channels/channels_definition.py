@@ -625,3 +625,39 @@ def to_svd_through_numpy(tensor, compress_rate):
     numpy_image = to_svd_numpy(numpy_array=numpy_image,
                                compress_rate=compress_rate)
     return torch.from_numpy(numpy_image).to(device)
+
+
+def svd_transformation_numpy(numpy_array, compress_rate):
+    """
+    We transform an image to its SVD representation: U x D x V^T.
+    We return as output with all separate: U, D, and V^T
+    The initial size is n^2, the final size is: 2np
+
+    :param numpy_array: the input image
+    :param compress_rate: the compression rate
+    :return: the image with 2 times more channels
+    """
+    H = numpy_array.shape[-2]
+    W = numpy_array.shape[-1]
+    assert H == W
+    c = compress_rate / 100
+    """
+    (1-c) = (2*H*index) / H * W
+    (1-c) = 2*index / W
+    index = (1-c) * W / 2
+    """
+    index = int((1 - c) * W / 2)
+    try:
+        u, s, vh = svd(a=numpy_array, full_matrices=False)
+        u_c = u[..., :index]
+        s_c = s[..., :index]
+        vh_c = vh[..., :index, :]
+
+        v_s = vh_c.transpose((0, 2, 1))
+        result = (u_c, s_c, v_s)
+    except RuntimeError as ex:
+        msg = "SVD compression problem: " + ex
+        print(msg)
+        raise ex
+
+    return result
