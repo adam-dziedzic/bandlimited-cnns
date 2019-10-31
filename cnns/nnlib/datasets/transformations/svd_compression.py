@@ -6,7 +6,7 @@ from cnns.nnlib.robustness.channels.channels_definition import \
 from cnns.nnlib.robustness.channels.channels_definition import \
     compress_svd_through_numpy
 from cnns.nnlib.robustness.channels.channels_definition import \
-    svd_transformation_numpy_to_torch
+    svd_transformation
 from cnns.nnlib.utils.general_utils import SVDTransformType
 
 
@@ -30,7 +30,7 @@ class SVDCompressionTransformation(object):
             self.args.in_channels = 6
             self.compress_f = to_svd_through_numpy
         elif args.svd_transform_type == SVDTransformType.SYNTHETIC_SVD:
-            self.compress_f = svd_transformation_numpy_to_torch
+            self.compress_f = svd_transformation
         else:
             raise Exception(
                 f'Unknown svd_type: {args.svd_transform_type.name}')

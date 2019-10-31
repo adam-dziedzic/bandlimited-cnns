@@ -637,28 +637,29 @@ def get_svd_index(H, W, compress_rate):
     index = int((1 - c) * H * W / (2 * H + 1))
     return index
 
-def svd_transformation_numpy_to_torch(numpy_array, compress_rate):
+def svd_transformation(input, compress_rate):
     """
     We transform an image to its SVD representation: U x D x V^T.
     We return as output with all separate: U, D, and V^T
-    The initial size is n^2, the final size is: 2np
 
-    :param numpy_array: the input image
+    :param input: the input image
     :param compress_rate: the compression rate
     :return: the image with 2 times more channels
     """
-    H = numpy_array.shape[-2]
-    W = numpy_array.shape[-1]
+    if type(input) is torch.Tensor:
+        input = input.cpu().numpy()
+    H = input.shape[-2]
+    W = input.shape[-1]
     assert H == W
     index = get_svd_index(H=H, W=W, compress_rate=compress_rate)
 
     try:
-        u, s, vh = svd(a=numpy_array, full_matrices=False)
+        u, s, vh = svd(a=input, full_matrices=False)
         # compression
         u = u[..., :index].transpose((0, 2, 1))
         s = s[..., :index]
         vh = vh[..., :index, :]
-        # TODO: merge the last dimension from svd to channels
+        # Merge the last dimension from svd to channels.
         u = u.reshape((-1, u.shape[-1]))
         s = s.reshape((s.shape[-1], 1))
         vh = vh.reshape((-1, vh.shape[-1]))

@@ -3,6 +3,8 @@ from torchvision import transforms
 import torch
 from cnns.nnlib.utils.general_utils import MemoryType
 import numpy as np
+from cnns.nnlib.datasets.transformations.svd_compression import \
+    SVDCompressionTransformation
 
 mnist_mean = (0.1307,)
 mnist_mean_mean = 0.1307
@@ -16,6 +18,18 @@ mnist_std_array = np.array(mnist_std, dtype=np.float32).reshape((1, 1, 1))
 # mnist_max = np.float(2.8214867)
 mnist_min = np.float32(-0.425)
 mnist_max = np.float32(2.8215)
+
+def get_transform(args):
+    transformations = []
+    transformations.append(transforms.ToTensor())
+    transformations.append(transforms.Normalize(mnist_mean, mnist_std))
+    if args and args.svd_transform > 0.0:
+        transformations.append(
+            SVDCompressionTransformation(args=args,
+                                         compress_rate=args.svd_transform)
+        )
+    transform_train = transforms.Compose(transformations)
+    return transform_train
 
 def get_mnist(args):
     """
@@ -51,11 +65,7 @@ def get_mnist(args):
     train_dataset = torchvision.datasets.MNIST(
         root='./data', train=True,
         download=True,
-        transform=transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Normalize(mnist_mean, mnist_std)
-            ])
+        transform=get_transform(args=args)
     )
     if sample_count > 0:
         train_dataset.train_data = train_dataset.train_data[:sample_count]
@@ -70,11 +80,7 @@ def get_mnist(args):
     test_dataset = torchvision.datasets.MNIST(
         root='./data', train=False,
         download=True,
-        transform=transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Normalize(mnist_mean, mnist_std)
-            ])
+        transform=get_transform(args=args)
     )
     if sample_count > 0:
         test_dataset.test_data = test_dataset.test_data[:sample_count]
