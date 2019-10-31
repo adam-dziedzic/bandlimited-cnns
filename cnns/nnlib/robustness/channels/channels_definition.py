@@ -660,7 +660,7 @@ def svd_transformation_numpy_to_torch(numpy_array, compress_rate):
         vh = vh[..., :index, :]
         # TODO: merge the last dimension from svd to channels
         u = u.reshape((-1, u.shape[-1]))
-        s = s.reshape((s.shape[-1]))
+        s = s.reshape((s.shape[-1], 1))
         vh = vh.reshape((-1, vh.shape[-1]))
 
         u = torch.from_numpy(u)

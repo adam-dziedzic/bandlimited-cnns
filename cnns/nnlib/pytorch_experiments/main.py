@@ -246,13 +246,20 @@ def test(model, test_loader, loss_function, args, epoch=None):
     total = 0
     with torch.no_grad():
         for batch_idx, (data, target) in enumerate(test_loader):
-            data = data.to(device=args.device, dtype=args.dtype)
+            if isinstance(data, dict):
+                for k, v in data.items():
+                    data[k] = v.to(device=args.device,
+                                   dtype=args.dtype)
+                output = model(data)
+            else:
+                data = data.to(device=args.device, dtype=args.dtype)
+                output = model(data)
+
             target = target.to(args.device)
 
             # if args.svd_transform > 0.0:
             #     compress_svd_batch(x=data, compress_rate=args.svd_transform)
 
-            output = model(data)
             # sum up batch loss
             test_loss += loss_function(output, target.squeeze()).item()
 

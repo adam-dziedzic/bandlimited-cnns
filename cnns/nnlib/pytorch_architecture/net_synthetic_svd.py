@@ -25,22 +25,28 @@ class NetSyntheticSVD(nn.Module):
         compress_rate = args.svd_transform
         index = get_svd_index(H=H, W=W, compress_rate=compress_rate)
         in_channels = index
+        first_kernel_size = 5
         args.conv_type = conv_type_1D
         self.conv1_u = get_conv(args, in_channels=in_channels,
-                                 out_channels=out_channels1,
-                                 kernel_size=5, stride=1)
-
-        self.conv1_s = get_conv(args, in_channels=1,
                                 out_channels=out_channels1,
-                                kernel_size=1, stride=1)
+                                kernel_size=first_kernel_size,
+                                stride=1)
 
-        self.conv1_v = get_conv(args, in_channels=1,
+        self.conv1_s = get_conv(args, in_channels=in_channels,
                                 out_channels=out_channels1,
-                                kernel_size=5, stride=1)
+                                kernel_size=1,
+                                stride=1)
+
+        self.conv1_v = get_conv(args, in_channels=in_channels,
+                                out_channels=out_channels1,
+                                kernel_size=first_kernel_size,
+                                stride=1)
 
         self.out_channels2 = 10
+        # self.in_channels2 = out_channels1
+        self.in_channels2 = 1
         args.conv_type = conv_type_2D
-        self.conv2 = get_conv(args, in_channels=out_channels1,
+        self.conv2 = get_conv(args, in_channels=self.in_channels2,
                               out_channels=self.out_channels2,
                               kernel_size=5, stride=1)
 
@@ -61,12 +67,16 @@ class NetSyntheticSVD(nn.Module):
         v = F.relu(v)
 
         u = F.max_pool1d(u, 2)
-        s = F.max_pool1d(s, 2)
         v = F.max_pool1d(v, 2)
 
         # Combine the singular vectors and singular values to the 2D
         # representation.
-        x = v.matmul(u.transpose((0, 1, 3, 2)) * s[..., None, :])
+        u = u.transpose(2, 1)
+        s = s.transpose(2, 1)
+        u_s = u * s
+        x = u_s.matmul(v)
+        # Add a single channel.
+        x = x.unsqueeze(1)
 
         x = F.relu(self.conv2(x))
         x = F.max_pool2d(x, 2, 2)
