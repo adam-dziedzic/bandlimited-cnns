@@ -207,6 +207,7 @@ class SVDTransformType(EnumWithNames):
     STANDARD_TORCH = 2
     STANDARD_NUMPY = 3
     COMPRESS_RESIZE = 4
+    SYNTHETIC_SVD = 5
 
 
 class NetworkType(EnumWithNames):
@@ -232,6 +233,7 @@ class NetworkType(EnumWithNames):
     FCNN_MICRO = 20
     Linear4 = 21
     NetSynthetic = 22
+    NetSyntheticSVD = 23
 
 
 class CompressType(EnumWithNames):

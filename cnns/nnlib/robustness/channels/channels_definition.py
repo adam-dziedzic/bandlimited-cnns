@@ -627,7 +627,17 @@ def to_svd_through_numpy(tensor, compress_rate):
     return torch.from_numpy(numpy_image).to(device)
 
 
-def svd_transformation_numpy(numpy_array, compress_rate):
+def get_svd_index(H, W, compress_rate):
+    """
+    (1-c) = (2*H*index + index) / H * W
+    (1-c) = (2*H + 1) * index / H * W
+    index = (1-c) * H * W / (2*H + 1)
+    """
+    c = compress_rate / 100
+    index = int((1 - c) * H * W / (2 * H + 1))
+    return index
+
+def svd_transformation_numpy_to_torch(numpy_array, compress_rate):
     """
     We transform an image to its SVD representation: U x D x V^T.
     We return as output with all separate: U, D, and V^T
@@ -640,21 +650,23 @@ def svd_transformation_numpy(numpy_array, compress_rate):
     H = numpy_array.shape[-2]
     W = numpy_array.shape[-1]
     assert H == W
-    c = compress_rate / 100
-    """
-    (1-c) = (2*H*index) / H * W
-    (1-c) = 2*index / W
-    index = (1-c) * W / 2
-    """
-    index = int((1 - c) * W / 2)
+    index = get_svd_index(H=H, W=W, compress_rate=compress_rate)
+
     try:
         u, s, vh = svd(a=numpy_array, full_matrices=False)
-        u_c = u[..., :index]
-        s_c = s[..., :index]
-        vh_c = vh[..., :index, :]
+        # compression
+        u = u[..., :index].transpose((0, 2, 1))
+        s = s[..., :index]
+        vh = vh[..., :index, :]
+        # TODO: merge the last dimension from svd to channels
+        u = u.reshape((-1, u.shape[-1]))
+        s = s.reshape((s.shape[-1]))
+        vh = vh.reshape((-1, vh.shape[-1]))
 
-        v_s = vh_c.transpose((0, 2, 1))
-        result = (u_c, s_c, v_s)
+        u = torch.from_numpy(u)
+        s = torch.from_numpy(s)
+        vh = torch.from_numpy(vh)
+        result = {'u': u, 's': s, 'v': vh}
     except RuntimeError as ex:
         msg = "SVD compression problem: " + ex
         print(msg)

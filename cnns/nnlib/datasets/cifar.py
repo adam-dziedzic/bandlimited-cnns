@@ -140,7 +140,9 @@ def get_cifar(args, dataset_name):
         kwargs = {'num_workers': num_workers, 'pin_memory': pin_memory}
     else:
         kwargs = {'num_workers': num_workers}
-    args.width = 32 * 32
+    args.input_height = 32
+    args.input_width = 32
+    args.width = args.input_height * args.input_width
     # The size of the flat vector after the conv layers in LeNet.
     args.flat_size = 500
     args.in_channels = 3  # number of channels in the input data

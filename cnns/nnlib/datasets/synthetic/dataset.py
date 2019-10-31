@@ -11,7 +11,7 @@ class SyntheticDataset(Dataset):
     def __init__(
             self, train=True, train_len=60000, test_len=60000,
             num_classes=10, precompute_set=True,
-            width=28, height=28):
+            width=28, height=28, transform=None):
         if train:
             self.length = train_len
         else:
@@ -21,6 +21,7 @@ class SyntheticDataset(Dataset):
         self.index = 0
         self.num_classes = num_classes
         self.precompute_set = precompute_set
+        self.transform = transform
 
         if self.precompute_set:
             labels = []
@@ -67,6 +68,8 @@ class SyntheticDataset(Dataset):
             # First dimension of size 1 is for the single channel.
             input = label * np.ones((1, self.height, self.width),
                                     dtype=np.float32)
+        if self.transform is not None:
+            input = self.transform(input)
         return input, label
 
     def __len__(self):

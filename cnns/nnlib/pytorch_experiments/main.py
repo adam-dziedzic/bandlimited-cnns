@@ -42,7 +42,9 @@ from cnns.nnlib.pytorch_architecture.get_model_architecture import \
 from cnns.nnlib.pytorch_experiments.utils.progress_bar import progress_bar
 # from memory_profiler import profile
 from cnns.nnlib.datasets.deeprl.rollouts import get_rollouts_dataset
-from cnns.nnlib.robustness.channels.channels_definition import compress_svd_batch
+from cnns.nnlib.robustness.channels.channels_definition import \
+    compress_svd_batch
+from cnns.nnlib.utils.general_utils import NetworkType
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -151,15 +153,22 @@ def train(model, train_loader, optimizer, loss_function, args, epoch=None):
 
     for batch_idx, (data, target) in enumerate(train_loader):
         # fp16 (apex) - the data is cast explicitely to fp16 via data.to() method.
-        data = data.to(device=args.device, dtype=args.dtype)
+        optimizer.zero_grad()
+
+        if isinstance(data, dict):
+            for k, v in data.items():
+                data[k] = v.to(device=args.device,
+                               dtype=args.dtype)
+            output = model(data)
+        else:
+            data = data.to(device=args.device, dtype=args.dtype)
+            output = model(data)
+
         target = target.to(device=args.device)
 
         # if args.svd_transform > 0.0:
         #     compress_svd_batch(x=data, compress_rate=args.svd_transform)
 
-        # print("target: ", target)
-        optimizer.zero_grad()
-        output = model(data)
         loss = loss_function(output, target)
 
         # The cross entropy loss combines `log_softmax` and `nll_loss` in
@@ -564,7 +573,7 @@ def main(args):
                                           test_accuracy) +
                                       "-channel-vals-" + str(
                                           args.values_per_channel) + \
-                                          "-env_name-" + args.env_name + \
+                                      "-env_name-" + args.env_name + \
                                       ".model")
             torch.save(model.state_dict(), model_path)
 

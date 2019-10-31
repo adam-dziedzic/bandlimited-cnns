@@ -49,11 +49,17 @@ def get_synthetic(args):
         kwargs = {'num_workers': num_workers}
     args.num_classes = 10
     args.flat_size = 320  # the size of the flat vector after the conv layers in LeNet
-    args.width = 28 * 28
+    args.input_height = 28
+    args.input_width = 28
+    args.width = args.input_height * args.input_width
     args.in_channels = 1  # number of channels in the input data
     args.out_channels = [10, 20]
 
-    train_dataset = SyntheticDataset(train=True, num_classes=args.num_classes)
+    train_dataset = SyntheticDataset(
+        train=True,
+        transform=get_transform_train(
+            args=args),
+        num_classes=args.num_classes)
     if sample_count > 0:
         train_dataset.set_length(length=sample_count)
 
@@ -61,24 +67,19 @@ def get_synthetic(args):
         dataset=train_dataset,
         batch_size=args.min_batch_size,
         shuffle=True,
-        transform=get_transform_train(
-            args=args,
-            dtype=torch.float,
-            signal_dimension=args.signal_dimension),
         **kwargs)
 
-    test_dataset = SyntheticDataset(train=False, num_classes=args.num_classes)
+    test_dataset = SyntheticDataset(
+        train=False,
+        transform=get_transform_test(
+            args=args),
+        num_classes=args.num_classes)
     if sample_count > 0:
         test_dataset.set_length(length=sample_count)
     test_loader = torch.utils.data.DataLoader(
         dataset=test_dataset,
         batch_size=args.test_batch_size,
         shuffle=False,
-        transform=get_transform_test(
-            args=args,
-            dtype=torch.float,
-            signal_dimension=args.signal_dimension,
-            noise_sigma=args.noise_sigma),
         **kwargs)
 
     return train_loader, test_loader, train_dataset, test_dataset

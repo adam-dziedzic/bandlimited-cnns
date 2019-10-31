@@ -137,7 +137,7 @@ else:
         weight_decay = 0.0
         loss_type = LossType.NLL
         loss_reduction = LossReduction.MEAN
-        network_type = NetworkType.NetSynthetic
+        network_type = NetworkType.NetSyntheticSVD
         model_path = "no_model"
         in_channels = 1
     elif dataset == "cifar10":
@@ -442,8 +442,8 @@ class Arguments(object):
                  target_class=-1,
                  rgb_value=0,
                  rgb_values=[0],
-                 svd_compress_transform=[0.0],
-                 svd_transform_type=SVDTransformType.TO_SVD_DOMAIN,
+                 svd_compress_transform=[0.1],
+                 svd_transform_type=SVDTransformType.SYNTHETIC_SVD,
                  fft_compress_transform=[0.0],
                  ):
         """
