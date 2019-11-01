@@ -637,6 +637,7 @@ def get_svd_index(H, W, compress_rate):
     index = int((1 - c) * H * W / (2 * H + 1))
     return index
 
+
 def svd_transformation(input, compress_rate):
     """
     We transform an image to its SVD representation: U x D x V^T.
@@ -674,3 +675,11 @@ def svd_transformation(input, compress_rate):
         raise ex
 
     return result
+
+
+if __name__ == "__main__":
+    H = 28
+    W = 28
+
+    for i in range(100):
+        print(i, ": ", get_svd_index(H, W, i))

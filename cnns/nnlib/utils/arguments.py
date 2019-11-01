@@ -37,7 +37,9 @@ conv_type = ConvType.STANDARD2D
 # conv_type = ConvType.DCT
 compress_rate = 1.0
 
-if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
+data_dim = "2D"
+
+if data_dim == "1D":
     # dataset = "ucr"
     # dataset = "WIFI64"
     # dataset = "debug22"  # only Adiac
@@ -82,9 +84,9 @@ if conv_type == ConvType.FFT1D or conv_type == ConvType.STANDARD:
     # model_path = 'wifi-all-accuracy-99-25.model'
     # model_path = 'pytorch_behave1.model'
     in_channels = 1
-else:
-    # dataset = "mnist"
-    dataset = "synthetic"
+elif data_dim == "2D":
+    dataset = "mnist"
+    # dataset = "synthetic"
     # dataset = "cifar10"
     # dataset = "cifar100"
     # dataset = "imagenet"
@@ -124,7 +126,8 @@ else:
         weight_decay = 0.0
         loss_type = LossType.NLL
         loss_reduction = LossReduction.MEAN
-        network_type = NetworkType.Net
+        # network_type = NetworkType.Net
+        network_type = NetworkType.NetSyntheticSVD
         # model_path = "2019-05-03-10-08-51-149612-dataset-mnist-preserve-energy-100-compress-rate-0.0-test-accuracy-99.07-channel-vals-0.model"
         model_path = "no_model"
         in_channels = 1
@@ -166,6 +169,8 @@ else:
         model_path = "no_model"
     else:
         raise Exception(f"Unknown dataset name: {dataset}")
+else:
+    raise Exception(f"Unknown data dim: {data_dim}")
 
 import os
 
@@ -322,6 +327,8 @@ class Arguments(object):
                  # conv_type=ConvType.FFT2D,
                  # conv_type=ConvType.STANDARD2D,
                  conv_type=conv_type,
+                 # conv_type1D=ConvType.STANDARD,
+                 # conv_type2D=ConvType.STANDARD2D,
                  # conv_type=ConvType.STANDARD,
                  # conv_exec_type=ConvExecType.CUDA,
                  # conv_exec_type=ConvExecType.CUDA_DEEP,
@@ -442,7 +449,11 @@ class Arguments(object):
                  target_class=-1,
                  rgb_value=0,
                  rgb_values=[0],
-                 svd_compress_transform=[0.1],
+                 # index: 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
+                 # svd_compress_transform=[
+                 #     10, 20, 25, 30, 40, 45, 50, 60, 70, 75, 80, 90, 95],
+                 svd_compress_transform=[
+                     1, 10, 20, 25, 30, 40, 45, 50, 60, 70, 75, 80, 90],
                  svd_transform_type=SVDTransformType.SYNTHETIC_SVD,
                  fft_compress_transform=[0.0],
                  ):

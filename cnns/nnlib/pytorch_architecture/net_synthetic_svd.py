@@ -17,15 +17,23 @@ class NetSyntheticSVD(nn.Module):
     def __init__(self, args):
         super(NetSyntheticSVD, self).__init__()
         self.args = args
-        out_channels1 = 5
+
         conv_type_2D = args.conv_type
         conv_type_1D = ConvType.STANDARD
         H = args.input_height
         W = args.input_width
         compress_rate = args.svd_transform
         index = get_svd_index(H=H, W=W, compress_rate=compress_rate)
+        print('svd index in NetSynthetic SVD: ', index)
         in_channels = index
         first_kernel_size = 5
+        # self.out_channels2 = 10
+        self.out_channels2 = 50
+        # self.in_channels2 = out_channels1
+        self.in_channels2 = 1
+        out_channels1 = 5100 -
+
+
         args.conv_type = conv_type_1D
         self.conv1_u = get_conv(args, in_channels=in_channels,
                                 out_channels=out_channels1,
@@ -42,9 +50,7 @@ class NetSyntheticSVD(nn.Module):
                                 kernel_size=first_kernel_size,
                                 stride=1)
 
-        self.out_channels2 = 10
-        # self.in_channels2 = out_channels1
-        self.in_channels2 = 1
+
         args.conv_type = conv_type_2D
         self.conv2 = get_conv(args, in_channels=self.in_channels2,
                               out_channels=self.out_channels2,
