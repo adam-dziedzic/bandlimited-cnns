@@ -51,13 +51,13 @@ class RemyDataset(Dataset):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         if data_path is None:
             data_path = os.path.join(dir_path, os.pardir, os.pardir,
-                                     "TimeSeriesDatasets")
+                                     "remy_data")
         else:
             data_path = os.path.join(dir_path, data_path)
         if train is True:
-            suffix = "_train"
+            suffix = "_train.csv"
         else:
-            suffix = "_test"
+            suffix = "_test.csv"
         csv_path = data_path + '/' + 'remy_data' + suffix
         self.data_all = pd.read_csv(csv_path, header=None)
         self.labels = np.asarray(self.data_all.iloc[:, 0], dtype=np.int)

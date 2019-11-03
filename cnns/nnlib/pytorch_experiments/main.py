@@ -728,4 +728,4 @@ if __name__ == '__main__':
                                     print("elapsed time (sec): ",
                                           time.time() - start_training)
 
-    print("total elapsed time (sec): ", time.time() - start_time)
+    print("total elapsed time (sec); ", time.time() - start_time)
