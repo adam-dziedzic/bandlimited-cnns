@@ -188,7 +188,7 @@ class ResNet(nn.Module):
                 out_channels = 26 * 64 / (7 x 3 x index)
                 out_channels = 26 * 64 / (21 x index)
                 """
-                out_channels1 = int(
+                out_channels1 = 10 * int(
                     (conv1_param_nr - 64) / (
                     ((2 * kernel_size1 + 1) * in_channels_initial * index)))
                 print('out_channels1: ', out_channels1)
