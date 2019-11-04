@@ -172,22 +172,26 @@ class ResNet(nn.Module):
                 print('svd index in NetSynthetic SVD: ', index)
 
                 kernel_size1 = 3
-                kernel_size2 = 3
-                out_channels2 = 64
                 in_channels_initial = 3
                 out_channels1 = 64
                 conv1_param_nr = in_channels_initial * out_channels1 * kernel_size1 * kernel_size1
-                conv2_param_nr = out_channels1 * out_channels2 * kernel_size2 * kernel_size2
-                conv_param_nr = conv1_param_nr + conv2_param_nr
-                # self.in_channels2 = out_channels1
-                in_channels2 = 1  # fixed by SVD
-                conv2_param_nr = in_channels2 * out_channels2 * kernel_size2  # 250
-                conv1_param_nr = conv_param_nr - conv2_param_nr  # 5100 - 250 = 4850
-                # conv1_param_nr = in_channels1 (i) * self.out_channels1 * kernel_size1
-                # for in_channels = 13, out_channels1 = 4850 / (13 * 5) = 3
+                in_channels2_svd = 1  # fixed by SVD
+                conv1x1_svd_param_nr = 64
+                """
+                U: index x in_channels_initial x kernel_size1 x out_channels
+                V: index x in_channels_initial x kernel_size1 x out_channels
+                S: index x in_channels_initial x out_channels
+                conv1x1: 64
+                
+                out_channels x ((2 x kernel_size1 + 1) x in_channels_initial x index) + 64 = 3 x 3 x 3 x 64 = conv1_param_nr
+                out_channels = ((3 x 3 x 3 x 64) - 64) / ((2 x kernel_size1 + 1) x in_channels_inital x index)
+                out_channels = 26 * 64 / (7 x 3 x index)
+                out_channels = 26 * 64 / (21 x index)
+                """
                 out_channels1 = int(
-                    conv1_param_nr / (in_channels * kernel_size1))
-                # out_channels1 = 5
+                    (conv1_param_nr - 64) / (
+                    ((2 * kernel_size1 + 1) * in_channels_initial * index)))
+                print('out_channels1: ', out_channels1)
 
                 in_channels = index * in_channels_initial
                 args.conv_type = conv_type_1D
@@ -212,7 +216,8 @@ class ResNet(nn.Module):
 
                 args.conv_type = conv_type_2D
 
-                self.conv_1x1 = conv1x1(in_planes=1, out_planes=64,
+                self.conv_1x1 = conv1x1(in_planes=in_channels2_svd,
+                                        out_planes=conv1x1_svd_param_nr,
                                         stride=1, args=args)
             else:
                 self.conv1 = conv3x3(in_planes=in_channels, out_planes=64,
