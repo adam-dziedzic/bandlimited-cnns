@@ -85,9 +85,9 @@ if data_dim == "1D":
     # model_path = 'pytorch_behave1.model'
     in_channels = 1
 elif data_dim == "2D":
-    # dataset = "mnist"
+    dataset = "mnist"
     # dataset = "synthetic"
-    dataset = "cifar10"
+    # dataset = "cifar10"
     # dataset = "cifar100"
     # dataset = "imagenet"
     # dataset = "svhn"
@@ -118,7 +118,7 @@ elif data_dim == "2D":
     in_channels = 3
 
     if dataset == "mnist":
-        epochs = 20
+        epochs = 50
         batch_size = 64
         test_batch_size = 1000
         momentum = 0.5

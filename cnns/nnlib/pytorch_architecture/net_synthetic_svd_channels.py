@@ -126,7 +126,7 @@ class NetSyntheticSVD(nn.Module):
         u = u.transpose(2, 1)
         s = s.transpose(2, 1)
         u_s = u * s
-        x = u_s.matmul(v)
+        x = u_s.bmm(v)
         # Add a single channel.
         x = x.unsqueeze(1)
 
