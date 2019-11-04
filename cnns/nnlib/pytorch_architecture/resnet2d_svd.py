@@ -176,8 +176,8 @@ class ResNet(nn.Module):
                 out_channels2 = 64
                 in_channels_initial = 3
                 out_channels1 = 64
-                conv1_param_nr = in_channels_initial * out_channels1 * kernel_size1
-                conv2_param_nr = out_channels1 * out_channels2 * kernel_size2
+                conv1_param_nr = in_channels_initial * out_channels1 * kernel_size1 * kernel_size1
+                conv2_param_nr = out_channels1 * out_channels2 * kernel_size2 * kernel_size2
                 conv_param_nr = conv1_param_nr + conv2_param_nr
                 # self.in_channels2 = out_channels1
                 in_channels2 = 1  # fixed by SVD
