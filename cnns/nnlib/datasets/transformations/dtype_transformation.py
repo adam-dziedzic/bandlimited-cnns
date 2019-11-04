@@ -1,5 +1,6 @@
 import torch
 
+
 class DtypeTransformation(object):
     """Transform a tensor to its dtype representation.
 
@@ -16,4 +17,9 @@ class DtypeTransformation(object):
         Returns:
             Tensor: with dtype.
         """
-        return tensor.to(dtype=self.dtype)
+        if isinstance(tensor, dict):
+            for k, v in tensor.items():
+                tensor[k] = v.to(dtype=self.dtype)
+        else:
+            tensor = tensor.to(dtype=self.dtype)
+        return tensor

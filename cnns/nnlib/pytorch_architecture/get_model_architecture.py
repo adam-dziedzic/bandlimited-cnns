@@ -3,6 +3,7 @@ from cnns.nnlib.pytorch_architecture.net import Net
 from cnns.nnlib.pytorch_architecture.net_synthetic import NetSynthetic
 from cnns.nnlib.pytorch_architecture.net_synthetic_svd import NetSyntheticSVD
 from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
+from cnns.nnlib.pytorch_architecture.resnet2d_svd import resnet18svd
 from cnns.nnlib.pytorch_architecture.resnet2d import resnet50
 from cnns.nnlib.pytorch_architecture.resnet2d import resnet50_imagenet
 from cnns.nnlib.pytorch_architecture.densenet import densenet_cifar
@@ -58,6 +59,8 @@ def getModelPyTorch(args, pretrained=False):
         return FCNNPytorch(args=args, out_channels=args.out_channels)
     elif network_type == NetworkType.ResNet18:
         return resnet18(args=args, pretrained=pretrained)
+    elif network_type == NetworkType.ResNet18SVD:
+        return resnet18svd(args=args, pretrained=pretrained)
     elif network_type == NetworkType.DenseNetCifar:
         return densenet_cifar(args=args)
     elif network_type == NetworkType.ResNet50:

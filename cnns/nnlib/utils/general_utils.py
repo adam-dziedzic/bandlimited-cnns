@@ -236,6 +236,7 @@ class NetworkType(EnumWithNames):
     Linear4 = 21
     NetSynthetic = 22
     NetSyntheticSVD = 23
+    ResNet18SVD = 24
 
 
 class CompressType(EnumWithNames):

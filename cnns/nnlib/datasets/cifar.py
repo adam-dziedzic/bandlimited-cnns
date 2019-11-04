@@ -159,6 +159,8 @@ def get_cifar(args, dataset_name):
         args.signal_dimension = 2
     elif args.network_type is NetworkType.ResNet18:
         args.signal_dimension = 2
+    elif args.network_type is NetworkType.ResNet18SVD:
+        args.signal_dimension = 2
     elif args.network_type is NetworkType.DenseNetCifar:
         args.signal_dimension = 2
     else:

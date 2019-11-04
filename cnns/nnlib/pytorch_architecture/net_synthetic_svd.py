@@ -89,6 +89,8 @@ class NetSyntheticSVD(nn.Module):
                                 kernel_size=kernel_size1,
                                 stride=1)
 
+
+
         args.conv_type = conv_type_2D
         self.conv2 = get_conv(args, in_channels=in_channels2,
                               out_channels=out_channels2,
@@ -115,8 +117,10 @@ class NetSyntheticSVD(nn.Module):
         s = F.relu(s)
         v = F.relu(v)
 
+
         u = F.max_pool1d(u, pull1)
         v = F.max_pool1d(v, pull1)
+
 
         # Combine the singular vectors and singular values to the 2D
         # representation.

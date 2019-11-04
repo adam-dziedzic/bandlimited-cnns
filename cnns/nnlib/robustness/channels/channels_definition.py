@@ -633,6 +633,8 @@ def get_svd_index(H, W, compress_rate):
     (1-c) = (2*H + 1) * index / H * W
     index = (1-c) * H * W / (2*H + 1)
     """
+    if compress_rate > 100:
+        return min(H, W)
     c = compress_rate / 100
     index = int((1 - c) * H * W / (2 * H + 1))
     return index
@@ -662,7 +664,7 @@ def svd_transformation(input, compress_rate):
         vh = vh[..., :index, :]
         # Merge the last dimension from svd to channels.
         u = u.reshape((-1, u.shape[-1]))
-        s = s.reshape((s.shape[-1], 1))
+        s = s.reshape((-1, 1))
         vh = vh.reshape((-1, vh.shape[-1]))
 
         u = torch.from_numpy(u)
