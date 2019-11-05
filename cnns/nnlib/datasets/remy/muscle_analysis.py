@@ -70,7 +70,7 @@ class LeastSquareClassifier(BaseEstimator, ClassifierMixin):
     def fit(self, X, y=None):
         # make the classifier affine
         X = self.add_ones_short(X)
-        self.w = find_w_svd(X, y)
+        self.w = find_w(X, y)
 
     def predict(self, X, y=None):
         X = self.add_ones_short(X)
@@ -99,7 +99,9 @@ classifiers = {
     "QDA": QuadraticDiscriminantAnalysis()}
 
 
-def find_w(X, y):
+def find_w_standard(X, y):
+    H, W = X.shape
+    assert H >= W
     X_t = X.transpose()
     X_t_X = np.matmul(X_t, X)
     X_t_X_inv = np.linalg.inv(X_t_X)
@@ -116,6 +118,14 @@ def find_w_svd(X, y):
     u_v = np.matmul(u * s[..., None, :], vh)
     w = np.matmul(u_v.T, y)
     return w
+
+
+def find_w(X, y):
+    H, W = X.shape
+    if H >= W:
+        return find_w_standard(X, y)
+    else:
+        return find_w_svd(X, y)
 
 
 def take_n_samples_each_clas(X, Y, nr_class, nr_samples_each_class):
@@ -299,6 +309,50 @@ def normalize_with_nans(data, nans=999, means=None, stds=None):
     return data, means, stds
 
 
+priority_classifiers = {
+    "Least Squares": LeastSquareClassifier(),
+    "Decision Tree": DecisionTreeClassifier(max_depth=5)
+}
+
+
+def column_priority(X, y, X_cv, y_cv, labels, classifiers=priority_classifiers):
+    w = find_w_svd(X, y)
+    w_abs = np.abs(w)
+    index_w = [[i, w] for i, w in enumerate(w_abs)]
+    # sort in descending order
+    sort_index_w = sorted(index_w, key=lambda index_w: [-index_w[1]])
+    w_sorted_indexes = [index for (index, _) in sort_index_w]
+    for index, w in sort_index_w:
+        print(index, ';', labels[index], ';', w)
+    # print('sort_index_w: ', sort_index_w)
+
+    print('# of columns', end="")
+    classifier_names = classifiers.keys()
+    for classifier_name in classifier_names:
+        print(",", classifier_name, "accuracy train,", classifier_name,
+              ",accuracy cross-validation", end="")
+    print()
+
+    for i in range(1, len(w_sorted_indexes) + 1):
+        print(i, end="")
+        # Extract most important columns from the dataset X.
+        column_subset = w_sorted_indexes[:i]
+        X_short = X[:, column_subset]
+        X_cv_short = X_cv[:, column_subset]
+        for clf in classifiers.values():
+            clf.fit(X_short, y)
+            train_score = clf.score(X_short, y)
+            print(",", train_score, end="")
+            try:
+                cv_score = np.average(cross_val_score(clf, X_cv_short, y_cv, cv=6))
+                print(",", cv_score, end="")
+            except np.linalg.LinAlgError as err:
+                print(",", "N/A", end="")
+
+        print()
+    return w_sorted_indexes
+
+
 def compute():
     dir_path = os.path.dirname(os.path.realpath(__file__))
     # data_path = os.path.join(dir_path, "remy_data_all.csv")
@@ -332,7 +386,6 @@ def compute():
     # print('stds: ', stds)
 
     w_hat = find_w_svd(X_norm, y)
-    print('w_hat: ', w_hat)
     y_hat = np.sign(np.matmul(X_norm, w_hat))
     # print("check y_hat: ", y_hat)
     diff = np.sum(y_hat == y)
@@ -340,7 +393,13 @@ def compute():
     print('On the whole data: ')
     print('Full Least Squares accuracy: ',
           accuracy_percent(accuracy))
-    w_hat = np.abs(w_hat)
+
+    # for cross validation we take the same number of samples for each class
+    X_cv = np.concatenate((X[:30, :], X[31:61, :]))
+    y_cv = np.concatenate((y[:30], y[31:61]))
+
+    w_sorted_indexes = column_priority(X_norm, y, X_cv, y_cv, labels=labels)
+
     print('labels len: ', len(labels))
     print('w_hat len: ', len(w_hat))
 
@@ -369,28 +428,35 @@ def compute():
         score = clf.score(X_norm, y)
         print(name, accuracy_percent(score))
 
-    # for cross validation we take the same number of samples for each class
-    X = np.concatenate((X[:30, :], X[31:61, :]))
-    y = np.concatenate((y[:30], y[31:61]))
+    print(
+        'Accuracy on self-crafted cross-validation with normalization '
+        'and subset of columns: ')
+    X_subset = X_cv[:, w_sorted_indexes[:32]]
+    for name, clf in classifiers.items():
+        accuracy = cross_validate(X_subset, y_cv, classifier=clf,
+                                  nr_class=nr_class, is_affine=False)
+        print(name, ",", accuracy_percent(accuracy))
+    print()
 
     print('Accuracy from cross-validation (non-normalized data): ')
     for name, clf in classifiers.items():
-        accuracy = np.average(cross_val_score(clf, X, y, cv=6))
-        print(name, accuracy_percent(accuracy))
+        accuracy = np.average(cross_val_score(clf, X_cv, y_cv, cv=6))
+        print(name, ",", accuracy_percent(accuracy))
     print()
 
     X_norm2 = np.concatenate((X_norm[:30, :], X_norm[31:61, :]))
     print('Accuracy from cross-validation (normalized the whole): ')
     for name, clf in classifiers.items():
-        accuracy = np.average(cross_val_score(clf, X_norm2, y, cv=6))
-        print(name, accuracy_percent(accuracy))
+        accuracy = np.average(cross_val_score(clf, X_norm2, y_cv, cv=6))
+        print(name, ",", accuracy_percent(accuracy))
     print()
 
-    print('Accuracy on self-crafted cross-validation with normalization: ')
+    print(
+        'Accuracy on self-crafted cross-validation with normalization: ')
     for name, clf in classifiers.items():
-        accuracy = cross_validate(X, y, classifier=clf,
+        accuracy = cross_validate(X_cv, y_cv, classifier=clf,
                                   nr_class=nr_class, is_affine=False)
-        print(name, accuracy_percent(accuracy))
+        print(name, ",", accuracy_percent(accuracy))
     print()
 
 
