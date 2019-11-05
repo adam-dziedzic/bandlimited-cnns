@@ -1,5 +1,4 @@
-label_names = [
-    "ASD",
+label_names_array = [
     "Gender (0 = female)",
     "C3 Vertebral body",
     "C3 Right total CSA",

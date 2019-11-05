@@ -2,6 +2,8 @@ from cnns.nnlib.pytorch_architecture.le_net import LeNet
 from cnns.nnlib.pytorch_architecture.net import Net
 from cnns.nnlib.pytorch_architecture.net_synthetic import NetSynthetic
 from cnns.nnlib.pytorch_architecture.net_synthetic_svd import NetSyntheticSVD
+from cnns.nnlib.pytorch_architecture.net_synthetic_svd_channels import \
+    NetSyntheticSVDChannels
 from cnns.nnlib.pytorch_architecture.resnet2d import resnet18
 from cnns.nnlib.pytorch_architecture.resnet2d_svd import resnet18svd
 from cnns.nnlib.pytorch_architecture.resnet2d import resnet50
@@ -39,6 +41,8 @@ def getModelPyTorch(args, pretrained=False):
         return NetSynthetic(args=args)
     elif network_type is NetworkType.NetSyntheticSVD:
         return NetSyntheticSVD(args=args)
+    elif network_type is NetworkType.NetSyntheticSVDChannels:
+        return NetSyntheticSVDChannels(args=args)
     elif str(network_type).startswith("NetworkType.FCNN_"):
         if network_type is NetworkType.FCNN_MICRO:
             args.out_channels = [1, 2, 1]

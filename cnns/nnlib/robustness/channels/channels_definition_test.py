@@ -116,10 +116,10 @@ class TestChannelsDefinition(unittest.TestCase):
         print('u_s: ', u_s)
 
         u_s = u_s.unsqueeze(-1)
-        v = v.unsqueeze(1)
+        v = v.unsqueeze(-2)
 
         # Batch Matrix Multiply
-        x = u_s.bmm(v)
+        x = u_s.matmul(v)
         x_0channel = torch.sum(x[:3], dim=0, keepdim=False)
         assert_allclose(actual=x_0channel, desired=a[0], atol=1e-12)
         x = torch.sum(x, dim=0, keepdim=True)

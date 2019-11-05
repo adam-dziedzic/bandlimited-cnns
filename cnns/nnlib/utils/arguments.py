@@ -85,7 +85,8 @@ if data_dim == "1D":
     # model_path = 'pytorch_behave1.model'
     in_channels = 1
 elif data_dim == "2D":
-    dataset = "mnist"
+    # dataset = "mnist"
+    dataset = "mnist_svd"
     # dataset = "synthetic"
     # dataset = "cifar10"
     # dataset = "cifar100"
@@ -127,7 +128,23 @@ elif data_dim == "2D":
         loss_type = LossType.NLL
         loss_reduction = LossReduction.MEAN
         # network_type = NetworkType.Net
-        network_type = NetworkType.NetSyntheticSVD
+        # network_type = NetworkType.NetSyntheticSVD
+        network_type = NetworkType.NetSyntheticSVDChannels
+        # model_path = "2019-05-03-10-08-51-149612-dataset-mnist-preserve-energy-100-compress-rate-0.0-test-accuracy-99.07-channel-vals-0.model"
+        model_path = "no_model"
+        in_channels = 1
+    elif dataset == "mnist_svd":
+        learning_rate = 0.01
+        momentum = 0.7
+        epochs = 50
+        batch_size = 64
+        test_batch_size = 1000
+        weight_decay = 0.0
+        loss_type = LossType.NLL
+        loss_reduction = LossReduction.MEAN
+        # network_type = NetworkType.Net
+        # network_type = NetworkType.NetSyntheticSVD
+        network_type = NetworkType.NetSyntheticSVDChannels
         # model_path = "2019-05-03-10-08-51-149612-dataset-mnist-preserve-energy-100-compress-rate-0.0-test-accuracy-99.07-channel-vals-0.model"
         model_path = "no_model"
         in_channels = 1
@@ -455,7 +472,7 @@ class Arguments(object):
                  #     10, 20, 25, 30, 40, 45, 50, 60, 70, 75, 80, 90, 95],
                  # svd_compress_transform=[
                  #     1, 10, 20, 25, 30, 40, 45, 50, 60, 70, 75, 80, 90],
-                 svd_compress_transform=[1.0],
+                 svd_compress_transform=[10, 5, 75, 60, 80., 90],
                  svd_transform_type=SVDTransformType.SYNTHETIC_SVD,
                  # svd_transform_type=SVDTransformType.STANDARD_NUMPY,
                  fft_compress_transform=[0.0],

@@ -1,7 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
 from cnns.nnlib.pytorch_layers.conv_picker import Conv
-from cnns.nnlib.pytorch_layers.conv1D_fft import Conv1dfft
 from cnns.nnlib.utils.general_utils import ConvType
 from cnns.nnlib.robustness.channels.channels_definition import get_svd_index
 from cnns.nnlib.pytorch_architecture.net import conv_param_nr
@@ -23,8 +22,6 @@ kernel_size2 = 5
 hidden_neurons = 500
 pull1 = 2
 pull2 = 2
-# out_channels2 = 10
-out_channels2 = 50
 
 
 def get_HW_after_pull2(
@@ -49,9 +46,9 @@ def get_HW_after_pull2(
     return H_pull2, W_pull2
 
 
-class NetSyntheticSVD(nn.Module):
+class NetSyntheticSVDChannels(nn.Module):
     def __init__(self, args):
-        super(NetSyntheticSVD, self).__init__()
+        super(NetSyntheticSVDChannels, self).__init__()
         self.args = args
 
         conv_type_2D = args.conv_type
@@ -60,45 +57,43 @@ class NetSyntheticSVD(nn.Module):
         W = args.input_width
         compress_rate = args.svd_transform
         index = get_svd_index(H=H, W=W, compress_rate=compress_rate)
-        print('svd index in NetSynthetic SVD: ', index)
-        in_channels = index
-
-        # self.in_channels2 = out_channels1
-        in_channels2 = 1  # fixed by SVD
-        conv2_param_nr = in_channels2 * out_channels2 * kernel_size2  # 250
-        conv1_param_nr = conv_param_nr - conv2_param_nr  # 5100 - 250 = 4850
-        # conv1_param_nr = in_channels1 (i) * self.out_channels1 * kernel_size1
+        print('svd index in NetSynthetic SVD channels: ', index)
+        in_channels1 = index
+        out_channels1 = index
+        in_channels2 = out_channels1  # fixed by SVD
+        conv1_param_nr = in_channels1 * out_channels1 * kernel_size1
+        conv2_param_nr = conv_param_nr - conv1_param_nr
+        # conv2_param_nr = in_channels2 * out_channels2 * kernel_size2  # 250
+        self.out_channels2 = int(
+            conv2_param_nr / (in_channels2 * kernel_size2))  # 5100 - 250 = 4850
         # for in_channels = 13, out_channels1 = 4850 / (13 * 5) = 3
-        out_channels1 = 1 * int(conv1_param_nr  / (in_channels * kernel_size1))
         # out_channels1 = 5
-        print('out channels in NetSythetic SVD: ', index)
+        print('out_channels2 in NetSythetic SVD channels: ', self.out_channels2)
 
         args.conv_type = conv_type_1D
-        self.conv1_u = get_conv(args, in_channels=in_channels,
+        self.conv1_u = get_conv(args, in_channels=in_channels1,
                                 out_channels=out_channels1,
                                 kernel_size=kernel_size1,
                                 stride=1)
 
-        self.conv1_s = get_conv(args, in_channels=in_channels,
+        self.conv1_s = get_conv(args, in_channels=in_channels1,
                                 out_channels=out_channels1,
                                 kernel_size=1,
                                 stride=1)
 
-        self.conv1_v = get_conv(args, in_channels=in_channels,
+        self.conv1_v = get_conv(args, in_channels=in_channels1,
                                 out_channels=out_channels1,
                                 kernel_size=kernel_size1,
                                 stride=1)
 
-
-
         args.conv_type = conv_type_2D
         self.conv2 = get_conv(args, in_channels=in_channels2,
-                              out_channels=out_channels2,
+                              out_channels=self.out_channels2,
                               kernel_size=kernel_size2, stride=1)
 
         H_after_pull2, W_after_pull2 = get_HW_after_pull2()
         self.fc1 = nn.Linear(
-            H_after_pull2 * W_after_pull2 * out_channels2,
+            H_after_pull2 * W_after_pull2 * self.out_channels2,
             hidden_neurons)
         self.fc2 = nn.Linear(
             hidden_neurons,
@@ -117,24 +112,24 @@ class NetSyntheticSVD(nn.Module):
         s = F.relu(s)
         v = F.relu(v)
 
-
         u = F.max_pool1d(u, pull1)
         v = F.max_pool1d(v, pull1)
 
         # Combine the singular vectors and singular values to the 2D
         # representation.
-        u = u.transpose(2, 1)
-        s = s.transpose(2, 1)
         u_s = u * s
-        x = u_s.bmm(v)
-        # Add a single channel.
-        x = x.unsqueeze(1)
+
+        u_s = u_s.unsqueeze(-1)
+        v = v.unsqueeze(-2)
+
+        # Batch matrix multiply.
+        x = u_s.matmul(v)
 
         x = F.relu(self.conv2(x))
         x = F.max_pool2d(x, pull2, pull2)
         H_after_pull2, W_after_pull2 = get_HW_after_pull2()
         x = x.view(-1,
-                   H_after_pull2 * W_after_pull2 * out_channels2)
+                   H_after_pull2 * W_after_pull2 * self.out_channels2)
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)

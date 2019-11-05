@@ -4,11 +4,12 @@ import os
 import matplotlib
 import pandas as pd
 from sklearn.base import ClassifierMixin, BaseEstimator
+from cnns.nnlib.datasets.remy.label_names import label_names_array
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from numpy.linalg import qr
-
+from numpy.linalg import svd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.neural_network import MLPClassifier
@@ -59,7 +60,32 @@ def plot(nr_samples, error_rates,
     plt.close()
 
 
+class LeastSquareClassifier(BaseEstimator, ClassifierMixin):
+
+    def add_ones_short(self, X):
+        ones = np.ones(X.shape[0])
+        X = np.concatenate((ones[:, np.newaxis], X), axis=1)
+        return X
+
+    def fit(self, X, y=None):
+        # make the classifier affine
+        X = self.add_ones_short(X)
+        self.w = find_w_svd(X, y)
+
+    def predict(self, X, y=None):
+        X = self.add_ones_short(X)
+        return [x for x in np.sign(np.matmul(X, self.w))]
+
+    def score(self, X, y):
+        X = self.add_ones_short(X)
+        n, _ = X.shape
+        y_hat = np.sign(np.matmul(X, self.w))
+        score = np.sum(y_hat == y)
+        return score / n
+
+
 classifiers = {
+    "Least Squares": LeastSquareClassifier(),
     "Nearest Neighbors": KNeighborsClassifier(3),
     "SVM": SVC(kernel="linear", C=0.025),
     "RBF SVM": SVC(gamma=2, C=1),
@@ -80,6 +106,16 @@ def find_w(X, y):
     X_t_X_inv_X_t = np.matmul(X_t_X_inv, X_t)
     w_hat = np.matmul(X_t_X_inv_X_t, y)
     return w_hat
+
+
+def find_w_svd(X, y):
+    H, W = X.shape
+    assert W >= H
+    u, s, vh = svd(a=X, full_matrices=False)
+    s = 1 / s
+    u_v = np.matmul(u * s[..., None, :], vh)
+    w = np.matmul(u_v.T, y)
+    return w
 
 
 def take_n_samples_each_clas(X, Y, nr_class, nr_samples_each_class):
@@ -218,31 +254,6 @@ def cross_validate(X, Y, classifier, cv_count=6, nr_class=2, repeat=3,
     return np.average(all_accuracies)
 
 
-class LeastSquareClassifier(BaseEstimator, ClassifierMixin):
-
-    def add_ones_short(self, X):
-        ones = np.ones(X.shape[0])
-        X_short = np.concatenate((ones[:, np.newaxis], X), axis=1)
-        X_short = X_short[:, :X_short.shape[0]]
-        return X_short
-
-    def fit(self, X, y=None):
-        # make the classifier affine
-        X = self.add_ones_short(X)
-        self.w = find_w(X, y)
-
-    def predict(self, X, y=None):
-        X = self.add_ones_short(X)
-        return [x for x in np.sign(np.matmul(X, self.w))]
-
-    def score(self, X, y):
-        X = self.add_ones_short(X)
-        n, _ = X.shape
-        y_hat = np.sign(np.matmul(X, self.w))
-        score = np.sum(y_hat == y)
-        return score / n
-
-
 def err_percent(error_rate):
     return str(100 * error_rate) + " %"
 
@@ -292,7 +303,8 @@ def compute():
     dir_path = os.path.dirname(os.path.realpath(__file__))
     # data_path = os.path.join(dir_path, "remy_data_all.csv")
     # data_path = os.path.join(dir_path, "remy_data_cleaned_with_header.csv")
-    data_path = os.path.join(dir_path, "remy_data_final.csv")
+    # data_path = os.path.join(dir_path, "remy_data_final.csv")
+    data_path = os.path.join(dir_path, "remy_data_final_sign_class.csv")
     data_all = pd.read_csv(data_path, header=0)
     labels = np.asarray(data_all.iloc[:, 0], dtype=np.int)
     nr_class = len(np.unique(labels))
@@ -313,20 +325,32 @@ def compute():
     # remove column with all zeros
     # print('columns with all zeros: ', np.where(~X_norm.any(axis=0))[0])
     X = np.delete(X, -3, 1)
+    labels = np.delete(label_names_array, -3)
 
     X_norm, means, stds = normalize_with_nans(data=X.copy(), nans=999)
     # print('means: ', means)
     # print('stds: ', stds)
 
-    ones = np.ones(X_norm.shape[0])
-    X_short = np.concatenate((ones[:, np.newaxis], X_norm), axis=1)
-    X_short = X_short[:, :X_short.shape[0]]
-    w_hat = find_w(X_short, y)
-    y_hat = np.rint(np.matmul(X_short, w_hat))
+    w_hat = find_w_svd(X_norm, y)
+    print('w_hat: ', w_hat)
+    y_hat = np.sign(np.matmul(X_norm, w_hat))
     # print("check y_hat: ", y_hat)
     diff = np.sum(y_hat == y)
     accuracy = diff / len(y)
     print('On the whole data: ')
+    print('Full Least Squares accuracy: ',
+          accuracy_percent(accuracy))
+    w_hat = np.abs(w_hat)
+    print('labels len: ', len(labels))
+    print('w_hat len: ', len(w_hat))
+
+    ones = np.ones(X_norm.shape[0])
+    X_ones = np.concatenate((ones[:, np.newaxis], X_norm), axis=1)
+    w_hat = find_w_svd(X_ones, y)
+    y_hat = np.sign(np.matmul(X_ones, w_hat))
+    # print("check y_hat: ", y_hat)
+    diff = np.sum(y_hat == y)
+    accuracy = diff / len(y)
     print('Least Squares accuracy: ',
           accuracy_percent(accuracy))
 

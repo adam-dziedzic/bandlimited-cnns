@@ -375,7 +375,7 @@ def main(args):
     train_loader, dev_loader, test_loader = None, None, None
     if dataset_name == "cifar10" or dataset_name == "cifar100":
         train_loader, test_loader, _, _ = get_cifar(args, dataset_name)
-    elif dataset_name == "mnist":
+    elif dataset_name == "mnist" or dataset_name == "mnist_svd":
         train_loader, test_loader, _, _ = get_mnist(args)
     elif dataset_name == "synthetic":
         train_loader, test_loader, _, _ = get_synthetic(args)
@@ -657,6 +657,8 @@ if __name__ == '__main__':
     elif args.dataset == "cifar100":
         flist = ["cifar100"]
     elif args.dataset == "mnist":
+        flist = ["mnist"]
+    elif args.dataset == "mnist_svd":
         flist = ["mnist"]
     elif args.dataset == "synthetic":
         flist = ["synthetic"]
