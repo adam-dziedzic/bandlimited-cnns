@@ -99,7 +99,7 @@ classifiers = {
     "QDA": QuadraticDiscriminantAnalysis()}
 
 
-def find_w_standard(X, y):
+def find_w_X_more_rows_than_cols(X, y):
     H, W = X.shape
     assert H >= W
     X_t = X.transpose()
@@ -107,6 +107,17 @@ def find_w_standard(X, y):
     X_t_X_inv = np.linalg.inv(X_t_X)
     X_t_X_inv_X_t = np.matmul(X_t_X_inv, X_t)
     w_hat = np.matmul(X_t_X_inv_X_t, y)
+    return w_hat
+
+
+def find_w_X_more_cols_than_rows(X, y):
+    H, W = X.shape
+    assert H < W
+    X_t = X.transpose()
+    X_X_t = np.matmul(X, X_t)
+    X_X_t_inv = np.linalg.inv(X_X_t)
+    X_t_X_X_t_inv = np.matmul(X_t, X_X_t_inv)
+    w_hat = np.matmul(X_t_X_X_t_inv, y)
     return w_hat
 
 
@@ -123,9 +134,10 @@ def find_w_svd(X, y):
 def find_w(X, y):
     H, W = X.shape
     if H >= W:
-        return find_w_standard(X, y)
+        return find_w_X_more_rows_than_cols(X, y)
     else:
-        return find_w_svd(X, y)
+        return find_w_X_more_cols_than_rows(X, y)
+        # return find_w_svd(X, y)
 
 
 def take_n_samples_each_clas(X, Y, nr_class, nr_samples_each_class):
@@ -385,7 +397,7 @@ def compute():
     # print('means: ', means)
     # print('stds: ', stds)
 
-    w_hat = find_w_svd(X_norm, y)
+    w_hat = find_w(X_norm, y)
     y_hat = np.sign(np.matmul(X_norm, w_hat))
     # print("check y_hat: ", y_hat)
     diff = np.sum(y_hat == y)
