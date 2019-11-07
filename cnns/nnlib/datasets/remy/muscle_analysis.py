@@ -4,7 +4,7 @@ import os
 import matplotlib
 import pandas as pd
 from sklearn.base import ClassifierMixin, BaseEstimator
-from cnns.nnlib.datasets.remy.label_names import label_names_array
+from cnns.nnlib.datasets.remy.col_names import col_names_array
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -90,7 +90,7 @@ classifiers = {
     "SVM": SVC(kernel="linear", C=0.025),
     "RBF SVM": SVC(gamma=2, C=1),
     "Gaussian Process": GaussianProcessClassifier(1.0 * RBF(1.0)),
-    "Decision Tree": DecisionTreeClassifier(max_depth=5),
+    "Decision Tree": DecisionTreeClassifier(max_depth=None),
     "Random Forest": RandomForestClassifier(max_depth=5, n_estimators=10,
                                             max_features=1),
     "Neural Net": MLPClassifier(alpha=0.01, max_iter=1000),
@@ -136,8 +136,8 @@ def find_w(X, y):
     if H >= W:
         return find_w_X_more_rows_than_cols(X, y)
     else:
-        return find_w_X_more_cols_than_rows(X, y)
-        # return find_w_svd(X, y)
+        # return find_w_X_more_cols_than_rows(X, y)
+        return find_w_svd(X, y)
 
 
 def take_n_samples_each_clas(X, Y, nr_class, nr_samples_each_class):
@@ -170,7 +170,7 @@ def take_n_samples_each_clas(X, Y, nr_class, nr_samples_each_class):
 
 
 def cross_validate(X, Y, classifier, cv_count=6, nr_class=2, repeat=3,
-                   train_limit=None, is_affine=True):
+                   labels=None, train_limit=None):
     """
     Cross-validate the model.
 
@@ -255,7 +255,7 @@ def cross_validate(X, Y, classifier, cv_count=6, nr_class=2, repeat=3,
                 x_train = x_train[:train_limit, :]
                 y_train = y_train[:train_limit]
 
-            x_train, means, stds = normalize_with_nans(x_train)
+            x_train, means, stds = normalize_with_nans(x_train, labels=labels)
 
             x_test = []
             y_test = []
@@ -284,7 +284,45 @@ def accuracy_percent(accuracy):
     return str(100 * accuracy) + " %"
 
 
-def normalize_with_nans(data, nans=999, means=None, stds=None):
+def missing_values_col(data, nans, col_names, missing_rate=0.5):
+    remove_cols = []
+    missing_values_col = []
+    for col_nr in range(data.shape[1]):
+        col = data[:, col_nr].copy()
+        col_clean = col[col != nans]
+        nr_missing_values = len(col) - len(col_clean)
+        col_name = col_names[col_nr]
+        if nr_missing_values >= (missing_rate * len(col)):
+            print(f'More than {missing_rate} of the patients have missing '
+                  f'value for column number {col_nr} labeled {col_name}')
+            remove_cols.append(col_nr)
+        missing_values_col.append(nr_missing_values)
+    avg_missing_values_per_column = np.average(missing_values_col)
+    print('average number of missing values per column: ',
+          avg_missing_values_per_column)
+    return remove_cols
+
+
+def missing_values_row(data, nans, missing_rate=0.5):
+    missing_values_row = []
+    remove_patients = []
+    for row_nr in range(data.shape[0]):
+        row = data[row_nr, :].copy()
+        row_clean = row[row != nans]
+        nr_missing_values = len(row) - len(row_clean)
+        missing_values_row.append(nr_missing_values)
+        if nr_missing_values >= (missing_rate * len(row)):
+            print(
+                f'{nr_missing_values} (more than {missing_rate * 100}%) of the '
+                f'measurements are missing for patient number: {row_nr}')
+            remove_patients.append(row_nr)
+    avg_missing_values_per_row = np.average(missing_values_row)
+    print('average number of missing values per row: ',
+          avg_missing_values_per_row)
+    return remove_patients
+
+
+def normalize_with_nans(data, nans=999, means=None, stds=None, labels=None):
     """
     Normalize the data after setting nans to mean values.
     :param data: the input data
@@ -305,19 +343,20 @@ def normalize_with_nans(data, nans=999, means=None, stds=None):
 
     for col_nr in range(data.shape[1]):
         col = data[:, col_nr].copy()
-        col = col[col != nans]
+        col_clean = col[col != nans]
+
         if is_test:
             mean = means[col_nr]
             std = stds[col_nr]
         else:
-            mean = np.mean(col)
-            std = np.std(col)
+            mean = np.mean(col_clean)
+            std = np.std(col_clean)
             means.append(mean)
             stds.append(std)
         # normalize the column
-        col = data[:, col_nr]
         col[col == nans] = mean
         data[:, col_nr] = (col - mean) / std
+
     return data, means, stds
 
 
@@ -356,13 +395,78 @@ def column_priority(X, y, X_cv, y_cv, labels, classifiers=priority_classifiers):
             train_score = clf.score(X_short, y)
             print(",", train_score, end="")
             try:
-                cv_score = np.average(cross_val_score(clf, X_cv_short, y_cv, cv=6))
+                cv_score = np.average(
+                    cross_val_score(clf, X_cv_short, y_cv, cv=6))
                 print(",", cv_score, end="")
             except np.linalg.LinAlgError as err:
                 print(",", "N/A", end="")
 
         print()
     return w_sorted_indexes
+
+
+def show_decision_tree(estimator, col_names, means, stds):
+    # source: https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html
+    # The decision estimator has an attribute called tree_  which stores the entire
+    # tree structure and allows access to low level attributes. The binary tree
+    # tree_ is represented as a number of parallel arrays. The i-th element of each
+    # array holds information about the node `i`. Node 0 is the tree's root. NOTE:
+    # Some of the arrays only apply to either leaves or split nodes, resp. In this
+    # case the values of nodes of the other type are arbitrary!
+    #
+    # Among those arrays, we have:
+    #   - left_child, id of the left child of the node
+    #   - right_child, id of the right child of the node
+    #   - feature, feature used for splitting the node
+    #   - threshold, threshold value at the node
+    #
+
+    # Using those arrays, we can parse the tree structure:
+
+    n_nodes = estimator.tree_.node_count
+    children_left = estimator.tree_.children_left
+    children_right = estimator.tree_.children_right
+    feature = estimator.tree_.feature
+    threshold = estimator.tree_.threshold
+
+    # The tree structure can be traversed to compute various properties such
+    # as the depth of each node and whether or not it is a leaf.
+    node_depth = np.zeros(shape=n_nodes, dtype=np.int64)
+    is_leaves = np.zeros(shape=n_nodes, dtype=bool)
+    stack = [(0, -1)]  # seed is the root node id and its parent depth
+    while len(stack) > 0:
+        node_id, parent_depth = stack.pop()
+        node_depth[node_id] = parent_depth + 1
+
+        # If we have a test node
+        if (children_left[node_id] != children_right[node_id]):
+            stack.append((children_left[node_id], parent_depth + 1))
+            stack.append((children_right[node_id], parent_depth + 1))
+        else:
+            is_leaves[node_id] = True
+
+    print("The binary tree structure has %s nodes and has "
+          "the following tree structure:"
+          % n_nodes)
+    for i in range(n_nodes):
+        if is_leaves[i]:
+            print("%snode=%s leaf node." % (node_depth[i] * "\t", i))
+        else:
+            feature_nr = feature[i]
+            print(
+                # "%snode=%s test node: go to node %s if X[:, %s] <= %s else to "
+                # "node %s."
+                "%snode=%s test node: go to node %s if '%s' <= %s else to "
+                "node %s."
+                % (node_depth[i] * "\t",
+                   i,
+                   children_left[i],
+                   # feature[i],
+                   col_names[feature_nr],
+                   # threshold[i],
+                   threshold[i] * stds[feature_nr] + means[feature_nr],
+                   children_right[i],
+                   ))
 
 
 def compute():
@@ -376,10 +480,15 @@ def compute():
     nr_class = len(np.unique(labels))
     X = np.asarray(data_all.iloc[:, 1:], dtype=np.float)
     y = labels
+    row_nr, col_nr = X.shape
+    col_names = np.array(col_names_array)
     # print('X: ', X)
     # print('y: ', y)
-    print('size of X: ', X.shape)
-    print('size of y: ', y.shape)
+    # print('size of X: ', X.shape)
+    # print('size of y: ', y.shape)
+
+    print('row number: ', row_nr)
+    print('column number: ', col_nr)
 
     # remove the dependent columns
     # Q, R = qr(a=X, mode='reduced')
@@ -390,10 +499,30 @@ def compute():
 
     # remove column with all zeros
     # print('columns with all zeros: ', np.where(~X_norm.any(axis=0))[0])
-    X = np.delete(X, -3, 1)
-    labels = np.delete(label_names_array, -3)
 
-    X_norm, means, stds = normalize_with_nans(data=X.copy(), nans=999)
+    nans = 999
+
+    """
+    Special case:
+    Column: “Asymmetry  Total CSA > 12% at C3” – it has only zero values or 
+    ‘999’s only (it is the 3rd column from the end).
+    """
+    X = np.delete(X, -3, axis=1)
+    col_names = np.delete(col_names, -3)
+
+    remove_cols = missing_values_col(data=X, nans=nans, col_names=col_names)
+    remove_rows = missing_values_row(data=X, nans=nans)
+
+    print('Delete columns: ', remove_cols)
+    X = np.delete(X, remove_cols, axis=1)
+    col_names = np.delete(col_names, remove_cols)
+
+    print('Delete rows: ', remove_rows)
+    X = np.delete(X, remove_rows, axis=0)
+    y = np.delete(y, remove_rows)
+
+    X_norm, means, stds = normalize_with_nans(data=X.copy(), nans=nans,
+                                              labels=col_names)
     # print('means: ', means)
     # print('stds: ', stds)
 
@@ -410,9 +539,9 @@ def compute():
     X_cv = np.concatenate((X[:30, :], X[31:61, :]))
     y_cv = np.concatenate((y[:30], y[31:61]))
 
-    w_sorted_indexes = column_priority(X_norm, y, X_cv, y_cv, labels=labels)
+    w_sorted_indexes = column_priority(X_norm, y, X_cv, y_cv, labels=col_names)
 
-    print('labels len: ', len(labels))
+    print('labels len: ', len(col_names))
     print('w_hat len: ', len(w_hat))
 
     ones = np.ones(X_norm.shape[0])
@@ -435,6 +564,13 @@ def compute():
     score = clf.score(X_norm, y)
     print('Neural net accuracy: ', accuracy_percent(score))
 
+    clf = classifiers['Decision Tree']
+    clf.fit(X_norm, y)
+    score = clf.score(X_norm, y)
+    print('Decision Tree accuracy: ', accuracy_percent(score))
+    show_decision_tree(estimator=clf, col_names=col_names, means=means,
+                       stds=stds)
+
     for name, clf in classifiers.items():
         clf.fit(X_norm, y)
         score = clf.score(X_norm, y)
@@ -446,7 +582,7 @@ def compute():
     X_subset = X_cv[:, w_sorted_indexes[:32]]
     for name, clf in classifiers.items():
         accuracy = cross_validate(X_subset, y_cv, classifier=clf,
-                                  nr_class=nr_class, is_affine=False)
+                                  nr_class=nr_class, labels=col_names)
         print(name, ",", accuracy_percent(accuracy))
     print()
 
@@ -467,7 +603,7 @@ def compute():
         'Accuracy on self-crafted cross-validation with normalization: ')
     for name, clf in classifiers.items():
         accuracy = cross_validate(X_cv, y_cv, classifier=clf,
-                                  nr_class=nr_class, is_affine=False)
+                                  nr_class=nr_class, labels=col_names)
         print(name, ",", accuracy_percent(accuracy))
     print()
 

@@ -1,4 +1,4 @@
-label_names_array = [
+col_names_array = [
     "Gender (0 = female)",
     "C3 Vertebral body",
     "C3 Right total CSA",
