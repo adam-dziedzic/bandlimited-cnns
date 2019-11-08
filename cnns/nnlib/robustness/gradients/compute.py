@@ -26,7 +26,7 @@ def get_default_loss_function(loss_type=LossType.CROSS_ENTROPY,
 
 def get_gradient_for_input(args, model, input: torch.tensor, target,
                            loss_function=torch.nn.CrossEntropyLoss()):
-    if input is None:
+    if input is None or target is None:
         return None
     if input.ndim == 3:
         input = np.expand_dims(input, axis=0)
@@ -94,29 +94,42 @@ def compute_gradients(args, model, original_image: torch.tensor, original_label,
                                                    input=original_image,
                                                    target=original_label)
     assert grad_original_correct[2] == original_label, 'wrong classification'
-    grad_original_adv = get_gradient_for_input(args=args, model=model,
-                                               input=original_image,
-                                               target=adv_label)
+
     grad_original_zero = get_gradient_for_input(args=args, model=model,
                                                 input=original_image,
                                                 target=target)
-    assert grad_original_adv[2] == original_label, 'wrong classification'
-    grad_adv_correct = get_gradient_for_input(args=args, model=model,
+
+    if adv_image:
+        grad_original_adv = get_gradient_for_input(args=args, model=model,
+                                                   input=original_image,
+                                                   target=adv_label)
+        assert grad_original_adv[2] == original_label, 'wrong classification'
+
+        grad_adv_correct = get_gradient_for_input(args=args, model=model,
+                                                  input=adv_image,
+                                                  target=original_label)
+        assert grad_adv_correct[2] == adv_label, 'wrong classification'
+        grad_adv_adv = get_gradient_for_input(args=args, model=model,
                                               input=adv_image,
-                                              target=original_label)
-    assert grad_adv_correct[2] == adv_label, 'wrong classification'
-    grad_adv_adv = get_gradient_for_input(args=args, model=model,
-                                          input=adv_image,
-                                          target=adv_label)
-    assert grad_adv_adv[2] == adv_label, 'wrong classification'
-    grad_adv_zero = get_gradient_for_input(args=args, model=model,
-                                           input=adv_image,
-                                           target=target)
+                                              target=adv_label)
+        assert grad_adv_adv[2] == adv_label, 'wrong classification'
+        grad_adv_zero = get_gradient_for_input(args=args, model=model,
+                                               input=adv_image,
+                                               target=target)
+        grad_gauss_adv = get_gradient_for_input(args=args, model=model,
+                                                input=gauss_image,
+                                                target=adv_label)
+
+        grads['original_adv'] = grad_original_adv
+        grads['adv_correct'] = grad_adv_correct
+        grads['adv_adv'] = grad_adv_adv
+        grads['adv_zero'] = grad_adv_zero
+        grads['gauss_adv'] = grad_gauss_adv
+
     grad_gauss_correct = get_gradient_for_input(args=args, model=model,
                                                 input=gauss_image,
                                                 target=original_label)
-    grad_gauss_adv = get_gradient_for_input(args=args, model=model,
-                                            input=gauss_image, target=adv_label)
+
     grad_gauss_zero = get_gradient_for_input(args=args, model=model,
                                              input=gauss_image, target=target)
 
@@ -124,48 +137,69 @@ def compute_gradients(args, model, original_image: torch.tensor, original_label,
                                               input=original_image)
 
     grads['original_correct'] = grad_original_correct
-    grads['original_adv'] = grad_original_adv
     grads['original_zero'] = grad_original_zero
-
-    grads['adv_correct'] = grad_adv_correct
-    grads['adv_adv'] = grad_adv_adv
-    grads['adv_zero'] = grad_adv_zero
-
     grads['gauss_correct'] = grad_gauss_correct
-    grads['gauss_adv'] = grad_gauss_adv
     grads['gauss_zero'] = grad_gauss_zero
 
     results = dict()
-    results['l2_norm_adv_adv'] = np.sqrt(np.sum(grad_adv_adv[0] * grad_adv_adv[0]))
-    results['l2_norm_adv_correct'] = np.sqrt(np.sum(grad_adv_correct[0] * grad_adv_correct[0]))
-    results['l2_norm_adv_zero'] = np.sqrt(np.sum(grad_adv_zero[0] * grad_adv_zero[0]))
 
-    results['adv_dot_adv_adv'] = np.sum(grad_adv_adv[0] * grad_adv_adv[0])
-    results['adv_dot_adv_correct'] = np.sum(grad_adv_adv[0] * grad_adv_correct[0])
-    results['adv_dot_adv_zero'] = np.sum(grad_adv_adv[0] * grad_adv_zero[0])
-    results['adv_dot_correct_zero'] = np.sum(grad_adv_correct[0] * grad_adv_zero[0])
+    if adv_image is not None:
+        results['l2_norm_adv_adv'] = np.sqrt(
+            np.sum(grad_adv_adv[0] * grad_adv_adv[0]))
+        results['l2_norm_adv_correct'] = np.sqrt(
+            np.sum(grad_adv_correct[0] * grad_adv_correct[0]))
+        results['l2_norm_adv_zero'] = np.sqrt(
+            np.sum(grad_adv_zero[0] * grad_adv_zero[0]))
 
-    results['l2_norm_original_adv'] = np.sqrt(np.sum(grad_original_adv[0] * grad_original_adv[0]))
-    results['l2_norm_original_correct'] = np.sqrt(np.sum(grad_original_correct[0] * grad_original_correct[0]))
-    results['l2_norm_original_zero'] = np.sqrt(np.sum(grad_original_zero[0] * grad_original_zero[0]))
+        results['adv_dot_adv_adv'] = np.sum(grad_adv_adv[0] * grad_adv_adv[0])
+        results['adv_dot_adv_correct'] = np.sum(
+            grad_adv_adv[0] * grad_adv_correct[0])
+        results['adv_dot_adv_zero'] = np.sum(grad_adv_adv[0] * grad_adv_zero[0])
+        results['adv_dot_correct_zero'] = np.sum(
+            grad_adv_correct[0] * grad_adv_zero[0])
 
-    results['original_dot_correct_correct'] = np.sum(grad_original_correct[0] * grad_original_correct[0])
-    results['original_dot_adv_adv'] = np.sum(grad_original_adv[0] * grad_original_adv[0])
-    results['original_dot_zero_zero'] = np.sum(grad_original_zero[0] * grad_original_zero[0])
-    results['original_dot_adv_correct'] = np.sum(grad_original_adv[0] * grad_original_correct[0])
-    results['original_dot_adv_zero'] = np.sum(grad_original_adv[0] * grad_original_zero[0])
-    results['original_dot_correct_zero'] = np.sum(grad_original_correct[0] * grad_original_zero[0])
+        results['l2_norm_original_adv'] = np.sqrt(
+            np.sum(grad_original_adv[0] * grad_original_adv[0]))
 
-    results['l2_norm_gauss_adv'] = np.sqrt(np.sum(grad_gauss_adv[0] * grad_gauss_adv[0]))
-    results['l2_norm_gauss_correct'] = np.sqrt(np.sum(grad_gauss_correct[0] * grad_gauss_correct[0]))
-    results['l2_norm_gauss_zer'] = np.sqrt(np.sum(grad_gauss_zero[0] * grad_gauss_zero[0]))
+        results['original_dot_adv_adv'] = np.sum(
+            grad_original_adv[0] * grad_original_adv[0])
 
-    results['gauss_dot_correct_correct'] = np.sum(grad_gauss_correct[0] * grad_gauss_correct[0])
-    results['gauss_dot_adv_correct'] = np.sum(grad_gauss_adv[0] * grad_gauss_correct[0])
-    results['gauss_dot_adv_zero'] = np.sum(grad_gauss_adv[0] * grad_gauss_zero[0])
-    results['gauss_dot_correct_zero'] = np.sum(grad_gauss_correct[0] * grad_gauss_zero[0])
+        results['original_dot_adv_correct'] = np.sum(
+            grad_original_adv[0] * grad_original_correct[0])
+        results['original_dot_adv_zero'] = np.sum(
+            grad_original_adv[0] * grad_original_zero[0])
 
-    results['z_l2_dist_adv_org_image'] = args.meter.measure(original_image, adv_image)
+        results['gauss_dot_adv_correct'] = np.sum(
+            grad_gauss_adv[0] * grad_gauss_correct[0])
+        results['l2_norm_gauss_adv'] = np.sqrt(
+            np.sum(grad_gauss_adv[0] * grad_gauss_adv[0]))
+        results['gauss_dot_adv_zero'] = np.sum(
+            grad_gauss_adv[0] * grad_gauss_zero[0])
+
+        results['z_l2_dist_adv_org_image'] = args.meter.measure(original_image,
+                                                                adv_image)
+
+    results['l2_norm_original_correct'] = np.sqrt(
+        np.sum(grad_original_correct[0] * grad_original_correct[0]))
+    results['l2_norm_original_zero'] = np.sqrt(
+        np.sum(grad_original_zero[0] * grad_original_zero[0]))
+
+    results['original_dot_correct_correct'] = np.sum(
+        grad_original_correct[0] * grad_original_correct[0])
+    results['original_dot_zero_zero'] = np.sum(
+        grad_original_zero[0] * grad_original_zero[0])
+    results['original_dot_correct_zero'] = np.sum(
+        grad_original_correct[0] * grad_original_zero[0])
+
+    results['l2_norm_gauss_correct'] = np.sqrt(
+        np.sum(grad_gauss_correct[0] * grad_gauss_correct[0]))
+    results['l2_norm_gauss_zero'] = np.sqrt(
+        np.sum(grad_gauss_zero[0] * grad_gauss_zero[0]))
+
+    results['gauss_dot_correct_correct'] = np.sum(
+        grad_gauss_correct[0] * grad_gauss_correct[0])
+    results['gauss_dot_correct_zero'] = np.sum(
+        grad_gauss_correct[0] * grad_gauss_zero[0])
 
     results['eta_grad'] = eta_grad
     results['eta_x'] = eta_x

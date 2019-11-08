@@ -95,6 +95,8 @@ gauss_recovered_labels = []
 gauss_non_recovered_images = []
 guass_non_recovered_images = []
 
+l2_norm_gauss_img_org_label_gradients = []
+
 
 def save_file(name, images, labels):
     save_time = get_log_time() + '-len-' + str(len(labels))
@@ -748,6 +750,7 @@ def run(args):
 
         adv_image = None
         created_new_adversarial = False
+        result_adv = None
         # The image has to be correctly classified in the first place to then
         # create an adversarial example for it.
         if args.adv_type == AdversarialType.BEFORE and (
@@ -977,31 +980,40 @@ def run(args):
         else:
             result.gauss_label = None
 
-        if adv_image is not None and original_result.class_id == args.True_class_id and args.noise_sigma > 0:
+        if original_result.class_id == args.True_class_id and args.noise_sigma > 0:
             gradients, grad_stats = compute_gradients(args=args,
                                                       model=pytorch_model,
                                                       original_image=original_image,
                                                       original_label=original_result.class_id,
                                                       adv_image=adv_image,
-                                                      adv_label=result_adv.class_id,
+                                                      adv_label=None if result_adv is None else result_adv.class_id,
                                                       gauss_image=gauss_image)
             if result_adv:
                 grad_stats['adv_confidence'] = result_adv.confidence
+            else:
+                grad_stats['adv_confidence'] = 'N/A'
             if original_result:
                 grad_stats['original_confidence'] = original_result.confidence
+            else:
+                grad_stats['original_confidence'] = 'N/A'
             if result_gauss:
                 is_gauss_recovered = (
                         result_gauss.class_id == args.True_class_id)
                 grad_stats['is_gauss_recovered'] = is_gauss_recovered
             else:
-                raise Exception('We need the result of adding Gaussian noise.')
+                # raise Exception('We need the result of adding Gaussian noise.')
+                grad_stats['is_gauss_recovered'] = 'N/A'
 
             grad_stats['image_index'] = args.image_index
             grad_stats['attack_strength'] = args.attack_strength
 
+            l2_norm_gauss_img_org_label_gradients.append(
+                grad_stats['l2_norm_gauss_correct'])
+
             # Write with respect to the recovered or not.
             file_recovered_name = args.global_log_time + '_grad_stats_' + str(
                 is_gauss_recovered) + '-' + args.dataset + '.csv'
+            print('gradients file: ', file_recovered_name)
             with open(file_recovered_name, 'a') as file:
                 for key in sorted(grad_stats.keys()):
                     val = grad_stats[key]
@@ -1101,8 +1113,9 @@ def run(args):
         if args.rgb_value > 0 and image is not None:
             print("rgb subtraction defense")
             title = "rgb (" + str(args.rgb_value) + ")"
-            rgb_image = subtract_rgb(images=image, subtract_value=args.rgb_value,
-                                 rounder=np.around)
+            rgb_image = subtract_rgb(images=image,
+                                     subtract_value=args.rgb_value,
+                                     rounder=np.around)
             result_rgb = classify_image(
                 image=rgb_image,
                 original_image=original_image,
@@ -1114,7 +1127,7 @@ def run(args):
 
             start_time = time.time()
             result_rgb = randomized_defense(image=rgb_image, fmodel=fmodel,
-                                                original_image=original_image)
+                                            original_image=original_image)
             result.time_rgb_defend = time.time() - start_time
 
             result.add(result_rgb, prefix="rgb_many_")
@@ -1170,6 +1183,7 @@ def run(args):
         if args.adv_type == AdversarialType.NONE:
             result.adv_label = None
             adv_image = None
+            result_adv = None
 
         if adv_image is not None and (created_new_adversarial):
             if (attack_name != "CarliniWagnerL2AttackRoundFFT") and (
@@ -1894,6 +1908,29 @@ if __name__ == "__main__":
                                 'The image was misclassified                            percent_of_adversarial_from_correctly_classified!')
                         recovered_accuracy = count_recovered / total_count * 100
                         recovered_many_accuracy = count_many_recovered / total_count * 100
+
+                        avg_l2_norm_gauss_gradient = np.average(
+                            l2_norm_gauss_img_org_label_gradients)
+
+                        std_l2_norm_gauss_gradient = np.std(
+                            l2_norm_gauss_img_org_label_gradients)
+
+                        min_l2_norm_gauss_gradient = np.min(
+                            l2_norm_gauss_img_org_label_gradients)
+
+                        max_l2_norm_gauss_gradient = np.max(
+                            l2_norm_gauss_img_org_label_gradients)
+
+                        l2_norm_gauss_img_org_label_gradients = []
+
+                        with open('gauss_l2_norm_gradient_org_label', "a") as f:
+                            f.write(delimiter.join([str(x) for x in
+                                                    [args.noise_sigma,
+                                                     avg_l2_norm_gauss_gradient,
+                                                     std_l2_norm_gauss_gradient,
+                                                     min_l2_norm_gauss_gradient,
+                                                     max_l2_norm_gauss_gradient,
+                                                     ]]) + "\n")
 
                         with open(out_recovered_file, "a") as f:
                             f.write(delimiter.join([str(x) for x in

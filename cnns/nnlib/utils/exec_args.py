@@ -492,6 +492,12 @@ def get_args():
                         default=args.rgb_values,
                         help=f"values to be subtracted from each pixel"
                         f"(default: {args.rgb_values})")
+    parser.add_argument("--svd_transform",
+                        default=args.svd_transform,
+                        type=float,
+                        help=f"svd compression rate for input "
+                        f"transformation during training and inference: "
+                        f"{args.svd_transform}")
     parser.add_argument("--svd_compress_transform",
                         default=args.svd_compress_transform,
                         type=float,
@@ -499,6 +505,12 @@ def get_args():
                         help=f"many svd compression rates for input "
                         f"transformations during training and inference: "
                         f"{args.svd_compress_transform}")
+    parser.add_argument("--fft_transform",
+                        default=args.fft_transform,
+                        type=float,
+                        help=f"fft compression rate for input "
+                        f"transformations during training and inference: "
+                        f"{args.fft_transform}")
     parser.add_argument("--fft_compress_transform",
                         default=args.fft_compress_transform,
                         type=float,

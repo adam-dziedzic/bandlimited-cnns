@@ -73,6 +73,10 @@ labels = "labels"
 legend_cols = "legend_cols"
 xlim = "xlim"
 ylim = "ylim"
+image = "image"
+adv = "adv"
+org = "original"
+gauss = "gauss"
 
 recovered_0_001 = {  # ylabel: "L2 adv",
     # file_name: "2019-09-09-18-28-04-319343_grad_stats_True.csv",
@@ -163,6 +167,7 @@ recovered_0_01 = {  # ylabel: "L2 adv",
     # legend_pos: "lower left",
     legend_pos: "lower right",
     # bbox: (0.0, 0.0),
+    image: org,
     column_nr: 62,
     legend_cols: 1,
     labels: ['recovered c=0.01, confidence=0'],
@@ -679,12 +684,9 @@ for j, dataset in enumerate(datasets):
     print("dataset: ", dataset)
     columns = dataset[column_nr]
     cols = read_columns(dataset[file_name], columns=columns)
-    if j < 2:
-        is_org_image = True
-    else:
-        is_org_image = False
+    img_type = dataset[image]
 
-    if is_org_image:
+    if img_type is org:
         org_col = 42
         adv_col = 40
         print(f'cols[{org_col}][0]: ', cols[org_col][0])
@@ -695,7 +697,18 @@ for j, dataset in enumerate(datasets):
         adv_grad = cols[adv_col + 1]
         x_grad = org_grad
         y_grad = adv_grad
-    else:
+    elif img_type is adv:
+        org_col = 30
+        adv_col = 28
+        print(f'cols[{org_col}][0]: ', cols[org_col][0])
+        assert cols[org_col][0] == 'l2_norm_adv_correct'
+        print(f'cols[{adv_col}][0]: ', cols[adv_col][0])
+        assert cols[adv_col][0] == 'l2_norm_adv_adv'
+        org_grad = cols[org_col + 1]
+        adv_grad = cols[adv_col + 1]
+        x_grad = adv_grad
+        y_grad = org_grad
+    elif img_type is gauss:
         org_col = 30
         adv_col = 28
         print(f'cols[{org_col}][0]: ', cols[org_col][0])

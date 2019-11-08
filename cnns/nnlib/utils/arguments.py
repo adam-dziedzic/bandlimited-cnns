@@ -74,7 +74,7 @@ if data_dim == "1D":
     next_power2 = True
     schedule_patience = 50
     schedule_factor = 0.5
-    epochs = 12
+    epochs = 1000
     optimizer_type = OptimizerType.ADAM
     momentum = 0.9
     # loss_type = LossType.CROSS_ENTROPY
@@ -86,11 +86,11 @@ if data_dim == "1D":
     in_channels = 1
 elif data_dim == "2D":
     # dataset = "mnist"
-    dataset = "mnist_svd"
+    # dataset = "mnist_svd"
     # dataset = "synthetic"
     # dataset = "cifar10"
     # dataset = "cifar100"
-    # dataset = "imagenet"
+    dataset = "imagenet"
     # dataset = "svhn"
 
     batch_size = 32
@@ -102,7 +102,7 @@ elif data_dim == "2D":
         learning_rate = 0.1
     weight_decay = 0.0001
     momentum = 0.9
-    epochs = 350
+    epochs = 1000
     preserved_energy = 100  # for unit tests
     preserved_energies = [preserved_energy]
     tensor_type = TensorType.FLOAT32
@@ -161,11 +161,11 @@ elif data_dim == "2D":
         model_path = "no_model"
         in_channels = 1
     elif dataset == "cifar10":
-        # network_type = NetworkType.ResNet18
-        network_type = NetworkType.ResNet18SVD
+        network_type = NetworkType.ResNet18
+        # network_type = NetworkType.ResNet18SVD
         # model_path = "saved_model_2019-04-08-16-51-16-845688-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.22-channel-vals-0.model"
-        # model_path = "saved_model_2019-05-16-11-37-45-415722-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.56-channel-vals-0.model"
-        model_path = "no_model"
+        model_path = "saved_model_2019-05-16-11-37-45-415722-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.56-channel-vals-0.model"
+        # model_path = "no_model"
         # model_path = 'saved-model-2019-08-13-23-06-55-540595-dataset-cifar10-preserve-energy-100-compress-rate-0.0-test-loss-0.01350257922783494-test-accuracy-91.83-channel-vals-0-fft-channel-50-percent.model'
         # model_path = 'saved_model_2019-08-13-21-50-15-942405-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-loss-0.023045711521059276-test-accuracy-86.73-channel-vals-0-fft-layer-85-percent.model'
     elif dataset == "cifar100":
@@ -380,8 +380,9 @@ class Arguments(object):
                  test_compress_rates=False,
                  noise_sigma=0.0,
                  # noise_sigmas=[0.0],
-                 # noise_sigmas=[x/1000 for x in range(1, 10)] + [x/100 for x in range(1, 10)] + [x/10 for x in range(1, 11)],
-                 noise_sigmas=[0.0],
+                 noise_sigmas=[0.0000000001] + [x/1000 for x in range(1, 10)] + [x/100 for x in range(1, 10)] + [x/10 for x in range(1, 11)],
+
+                 # noise_sigmas=[0.0],
                  # noise_sigmas=[0.05, 0.06, 0.07, 0.08, 0.09],
                  # noise_sigmas=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
                  # noise_epsilons=[0.1, 0.07, 0.03, 0.009, 0.007, 0.04, 0.02, 0.3],
@@ -431,9 +432,9 @@ class Arguments(object):
                  # recover_type="all",
                  # recover_type="laplace",
                  # recover_type="debug",
-                 # recover_type="gauss",
+                 recover_type="gauss",
                  # recover_type="empty",
-                 recover_type='rgb',
+                 # recover_type='rgb',
                  noise_epsilon=0.0,
                  noise_epsilons=[0.0],
                  step_size=1,
@@ -452,8 +453,8 @@ class Arguments(object):
                  use_foolbox_data=False,
                  svd_compress=0.0,
                  many_svd_compress=[0.0],
-                 adv_type=AdversarialType.BEFORE,
-                 # adv_type=AdversarialType.NONE,
+                 # adv_type=AdversarialType.BEFORE,
+                 adv_type=AdversarialType.NONE,
                  # prediction_type=PredictionType.REGRESSION,
                  prediction_type=PredictionType.CLASSIFICATION,
                  # 'regression' or 'classification'
@@ -472,9 +473,12 @@ class Arguments(object):
                  #     10, 20, 25, 30, 40, 45, 50, 60, 70, 75, 80, 90, 95],
                  # svd_compress_transform=[
                  #     1, 10, 20, 25, 30, 40, 45, 50, 60, 70, 75, 80, 90],
-                 svd_compress_transform=[10, 5, 75, 60, 80., 90],
+                 # svd_compress_transform=[10, 5, 75, 60, 80., 90],
+                 svd_transform=0.0,
+                 svd_compress_transform=[0.0],
                  svd_transform_type=SVDTransformType.SYNTHETIC_SVD,
                  # svd_transform_type=SVDTransformType.STANDARD_NUMPY,
+                 fft_transform=0.0,
                  fft_compress_transform=[0.0],
                  ):
         """
@@ -620,8 +624,10 @@ class Arguments(object):
         self.attack_confidence = attack_confidence
         self.rgb_value = rgb_value
         self.rgb_values = rgb_values
+        self.svd_transform = svd_transform
         self.svd_compress_transform = svd_compress_transform
         self.svd_transform_type = svd_transform_type
+        self.fft_transform = fft_transform
         self.fft_compress_transform = fft_compress_transform
 
         # deeprl

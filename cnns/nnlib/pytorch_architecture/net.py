@@ -47,16 +47,16 @@ def get_HW_after_pull2(
 conv1_param_nr = in_channels * out_channels1 * kernel_size1
 conv2_param_nr = out_channels1 * out_channels2 * kernel_size2
 conv_param_nr = conv1_param_nr + conv2_param_nr
-print('total conv params: ', conv_param_nr)
+# print('total conv params: ', conv_param_nr)
 
 H_pull2, W_pull2 = get_HW_after_pull2()
 fc1_param_nr = H_pull2 * W_pull2 * hidden_neurons
 fc2_param_nr = hidden_neurons * num_classes
 fc_param_nr = fc1_param_nr + fc2_param_nr
-print('total fully connected params: ', fc_param_nr)
+# print('total fully connected params: ', fc_param_nr)
 
 param_nr = conv1_param_nr + conv2_param_nr + fc1_param_nr + fc2_param_nr
-print('total param nr: ', param_nr) # 18100
+# print('total param nr: ', param_nr) # 18100
 
 class Net(nn.Module):
     def __init__(self, args):
