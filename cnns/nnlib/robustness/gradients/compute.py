@@ -99,7 +99,7 @@ def compute_gradients(args, model, original_image: torch.tensor, original_label,
                                                 input=original_image,
                                                 target=target)
 
-    if adv_image:
+    if adv_image is not None:
         grad_original_adv = get_gradient_for_input(args=args, model=model,
                                                    input=original_image,
                                                    target=adv_label)

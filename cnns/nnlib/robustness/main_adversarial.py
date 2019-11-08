@@ -765,7 +765,7 @@ def run(args):
             if args.target_class:
                 full_name += '-target-class-' + str(args.target_class)
             print("full name of stored adversarial example: ", full_name)
-            is_load_image = True
+            is_load_image = False
             if is_load_image and os.path.exists(full_name + ".npy") and (
                     attack_name != "CarliniWagnerL2AttackRoundFFT") and (
                     attack_name != "GaussAttack") and (
@@ -777,12 +777,14 @@ def run(args):
                 adv_image = np.load(file=full_name + ".npy")
                 result.adv_timing = -1
             else:
+                print('Loading pre-computed adversarial images is disabled.')
                 start_adv = time.time()
                 if attack_name.startswith("Carlini"):
                     adv_image = attack(
                         original_image, args.True_class_id,
                         # max_iterations=args.attack_max_iterations,
-                        # max_iterations=2, binary_search_steps=1, initial_const=1e+12,
+                        # max_iterations=2, binary_search_steps=1,
+                        # initial_const=1e+12,
                         max_iterations=1000, binary_search_steps=5,
                         initial_const=args.attack_strength,
                         confidence=args.attack_confidence,
@@ -820,6 +822,11 @@ def run(args):
                     # adv_image = np.load(file=full_name)
                     adv_image = attack(input_or_adv=original_image,
                                        label=args.True_class_id)
+                elif attack_name == "FGSM":
+                    adv_image = attack(input_or_adv=original_image,
+                                       label=args.True_class_id,
+                                       epsilons=1,
+                                       max_epsilon=args.attack_strength)
                 else:
                     adv_image = attack(input_or_adv=original_image,
                                        label=args.True_class_id)
