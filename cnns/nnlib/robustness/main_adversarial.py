@@ -1196,7 +1196,7 @@ def run(args):
             if (attack_name != "CarliniWagnerL2AttackRoundFFT") and (
                     attack_name != "GaussAttack") and not attack_name.startswith(
                 'FFT'):
-                np.save(file=full_name + ".npy", arr=adv_image)
+                # np.save(file=full_name + ".npy", arr=adv_image)
                 if args.save_out and result.original_class_id == args.True_class_id and args.noise_sigma > 0:
                     adv_images.append(adv_image)
                     adv_labels.append(result.adv_class_id)
@@ -1446,10 +1446,10 @@ if __name__ == "__main__":
     # arguments
     args = get_args()
     # save fft representations of the original and adversarial images to files
-    args.save_out = True
+    args.save_out = False
     # args.diff_type = "source"  # "source" or "fft"
     args.diff_type = "fft"
-    args.show_original = True
+    args.show_original = False
     args.global_log_time = get_log_time()
     # args.max_iterations = 1000
     # args.max_iterations = 20
