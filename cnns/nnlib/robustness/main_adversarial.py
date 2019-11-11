@@ -1449,7 +1449,7 @@ if __name__ == "__main__":
     args.save_out = False
     # args.diff_type = "source"  # "source" or "fft"
     args.diff_type = "fft"
-    args.show_original = False
+    args.show_original = True
     args.global_log_time = get_log_time()
     # args.max_iterations = 1000
     # args.max_iterations = 20
