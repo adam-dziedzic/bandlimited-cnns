@@ -554,6 +554,9 @@ def run(args):
     elif args.attack_name == "RandomStartProjectedGradientDescentAttack":
         attack = foolbox.attacks.RandomStartProjectedGradientDescentAttack(
             fmodel, criterion=criterion)
+    elif args.attack_name == "ProjectedGradientDescentAttack":
+        attack = foolbox.attacks.ProjectedGradientDescentAttack(
+            fmodel, criterion=criterion)
     elif args.attack_name == "DeepFoolAttack":
         # L2 attack by default, can also be L infinity
         attack = foolbox.attacks.DeepFoolAttack(fmodel, criterion=criterion)
@@ -827,6 +830,11 @@ def run(args):
                                        label=args.True_class_id,
                                        epsilons=1,
                                        max_epsilon=args.attack_strength)
+                elif attack_name == "ProjectedGradientDescentAttack":
+                    adv_image = attack(input_or_adv=original_image,
+                                       label=args.True_class_id,
+                                       binary_search=False,
+                                       iterations=args.attack_strength)
                 else:
                     adv_image = attack(input_or_adv=original_image,
                                        label=args.True_class_id)

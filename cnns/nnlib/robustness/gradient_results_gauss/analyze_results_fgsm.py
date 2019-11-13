@@ -2,7 +2,7 @@ import numpy as np
 import os
 import pandas as pd
 
-delimiter = ';'
+delimiter = ','
 
 
 def check_image_indexes(data_all, step):
@@ -51,7 +51,7 @@ def get_col_val(data_all, col_name, dtype=np.float):
     col_nr = None
     for i in range(W):
         data_col_name = data_all.iloc[0, i]
-        # print('data_col_name: ', data_col_name)
+        print('data_col_name: ', data_col_name)
         if data_col_name == col_name:
             col_nr = i + 1
     if col_nr is None:
@@ -70,9 +70,10 @@ def get_col_vals(data_all, col_names, dtype=np.float):
 
 def compute():
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    file_name = "2019-11-07-20-58-55-215404_imagenet_grad_stats.csv"
+    # file_name = "2019-11-07-20-58-55-215404_imagenet_grad_stats.csv"
+    file_name = 'imagenet_grad_stats_fgsm.csv'
     data_path = os.path.join(dir_path, file_name)
-    data_all = pd.read_csv(data_path, header=None, sep=';')
+    data_all = pd.read_csv(data_path, header=None, sep=delimiter)
     print('shape of data all: ', data_all.shape)
     H, W = data_all.shape
     print('row number: ', H)
@@ -80,22 +81,18 @@ def compute():
     print('expected runs: ', H / step)
     print(data_all.head(5))
 
-    noise_sigmas = [0.0000000001]
-    noise_sigmas += [x / 1000 for x in range(1, 10)]
-    noise_sigmas += [x / 100 for x in range(1, 10)]
-    noise_sigmas += [x / 10 for x in range(1, 11)]
-
-    fgsm_
+    params = [0.0005, 0.001, 0.003, 0.009, 0.002, 0.007, 0.03, 0.08, 50, 800]
 
     # check_image_indexes(data_all=data_all, step=step)
 
-    col_names = ['l2_norm_gauss_correct', 'l2_norm_original_correct']
+    col_names = ['l2_norm_gauss_correct', 'l2_norm_original_correct',
+                 'l2_norm_adv_adv']
     col_vals = get_col_vals(data_all=data_all, col_names=col_names)
 
     recovered_nr = get_col_val(data_all=data_all, col_name='is_gauss_recovered',
                                dtype=np.bool)
 
-    header = ['i', 'sigma']
+    header = ['i', 'param']
     for _ in col_names:
         header += stats.keys()
     header += ['nr_recovered']
@@ -105,14 +102,13 @@ def compute():
     start_index = -step
     end_index = 0
 
-    gauss_avg = []
-    org_avg = []
+    vals = []
 
-    for i, sigma in enumerate(noise_sigmas):
+    for i, param in enumerate(params):
         start_index += step
         end_index += step
 
-        info = [i, sigma]
+        info = [i, param]
         for col_val in col_vals:
             col_stats = get_stats(col_val[start_index:end_index])
             info += col_stats.values()

@@ -170,7 +170,8 @@ recovered_0_01 = {  # ylabel: "L2 adv",
     image: org,
     column_nr: 62,
     legend_cols: 1,
-    labels: ['recovered c=0.01, confidence=0'],
+    # labels: ['recovered c=0.01, confidence=0'],
+    labels: ['recovered'],
     xlim: (0, 100),
     ylim: (0, 100)}
 
@@ -188,7 +189,8 @@ not_recovered_0_01 = {  # ylabel: "L2 adv",
     # bbox: (0.0, 0.0),
     column_nr: 62,
     legend_cols: 1,
-    labels: ['not recovered c=0.01, confidence=0'],
+    # labels: ['not recovered c=0.01, confidence=0'],
+    labels: ['not recovered'],
     xlim: (0, 100),
     ylim: (0, 100)}
 
@@ -311,7 +313,8 @@ recovered_0_01_conf_1000 = {  # ylabel: "L2 adv",
     # bbox: (0.0, 0.0),
     column_nr: 62,
     legend_cols: 1,
-    labels: ['recovered c=0.01, confidence=1000'],
+    # labels: ['recovered c=0.01, confidence=1000'],
+    labels: ['recovered'],
     xlim: (0, 100),
     ylim: (0, 100)}
 
@@ -330,7 +333,8 @@ not_recovered_0_01_conf_1000 = {  # ylabel: "L2 adv",
     # bbox: (0.0, 0.0),
     column_nr: 62,
     legend_cols: 1,
-    labels: ['not recovered c=0.01, confidence=1000'],
+    # labels: ['not recovered c=0.01, confidence=1000'],
+    labels: ['not recovered'],
     xlim: (0, 100),
     ylim: (0, 100)}
 
@@ -619,6 +623,8 @@ datasets = [
     # not_recovered_0_001,
     # recovered_0_001_conf_1000,
     # not_recovered_0_001_conf_1000,
+    # recovered_0_01_conf_1000,
+    # not_recovered_0_01_conf_1000,
     recovered_0_01,
     not_recovered_0_01,
     recovered_0_01_conf_1000,
@@ -684,9 +690,14 @@ for j, dataset in enumerate(datasets):
     print("dataset: ", dataset)
     columns = dataset[column_nr]
     cols = read_columns(dataset[file_name], columns=columns)
-    img_type = dataset[image]
+
+    if j <= 3:
+        img_type = org
+    else:
+        img_type = adv
 
     if img_type is org:
+        is_org_img = True
         org_col = 42
         adv_col = 40
         print(f'cols[{org_col}][0]: ', cols[org_col][0])
@@ -708,6 +719,8 @@ for j, dataset in enumerate(datasets):
         adv_grad = cols[adv_col + 1]
         x_grad = adv_grad
         y_grad = org_grad
+
+
     elif img_type is gauss:
         org_col = 30
         adv_col = 28
@@ -719,6 +732,10 @@ for j, dataset in enumerate(datasets):
         adv_grad = cols[adv_col + 1]
         x_grad = adv_grad
         y_grad = org_grad
+
+
+    print('adv grad average, count: ', np.mean(adv_grad), np.shape(adv_grad))
+    print('org grad average, count: ', np.mean(org_grad), np.shape(org_grad))
 
     l2_dist_col = 60
     print(f'cols[{l2_dist_col}][0]: ', cols[l2_dist_col][0])
@@ -751,29 +768,43 @@ for j, dataset in enumerate(datasets):
              color=colors[j % len(colors)],
              # linestyle=linestyles[j],
              linestyle='None',
-             marker=markers[j % len(markers)])
+             marker=markers[j % len(markers)],
+             markersize=6)
 
     if j % 2 == 1:
         dist_not_recovered = str(np.around(avg_l2_dist, decimals=decimals))
         plt.grid()
         plt.legend(loc=dataset[legend_pos], ncol=dataset[legend_cols],
-                   frameon=False,
+                   frameon=True,
                    prop={'size': legend_size},
+                   markerscale=3,
                    # bbox_to_anchor=dataset[bbox]
                    )
-        if is_org_image:
-            plt.ylabel('$L_2$ of gradient for org image and adv class')
-            plt.xlabel('$L_2$ of gradient for org image and org class')
-            plt.title('The original image')
+        if img_type is org:
+            # plt.ylabel('$L_2$ of gradient for org image and adv class')
+            plt.ylabel(
+                '$E_{x}||\partial_{x}\mathcal{L}(x=org, class=adv)||_2$')
+            # plt.xlabel('$L_2$ of gradient for org image and org class')
+            plt.xlabel(
+                '$E_{x}||\partial_{x}\mathcal{L}(x=org, class=org)||_2$')
+            plt.title('Original image')
         else:
-            plt.ylabel('$L_2$ of gradient for adv image and org class')
-            plt.xlabel('$L_2$ of gradient for adv image and adv class')
-            plt.title(
-                f'$L_2$ distance\nrecovered: {dist_recovered}, not recovered: {dist_not_recovered}',
-                fontsize=title_size)
+            # plt.ylabel('$L_2$ of gradient for adv image and org class')
+            plt.ylabel(
+                '$E_{x}||\partial_{x}\mathcal{L}(x=adv, class=org)||_2$')
+            # plt.xlabel('$L_2$ of gradient for adv image and adv class')
+            plt.xlabel(
+                '$E_{x}||\partial_{x}\mathcal{L}(x=adv, class=adv)||_2$')
+            if j == 3:
+                plt.title('Adversarial: high confidence')
+            elif j == 5:
+                plt.title('Adversarial: low confidence')
+            # plt.title(
+            #     f'$L_2$ distance\nrecovered: {dist_recovered}, not recovered: {dist_not_recovered}',
+            #     fontsize=title_size)
 
-        plt.xlim((0, 50))
-        plt.ylim((0, 50))
+        plt.xlim((0, 40))
+        plt.ylim((0, 40))
         # plt.xscale('log', basex=10)
         # plt.yscale('log', basey=10)
 
