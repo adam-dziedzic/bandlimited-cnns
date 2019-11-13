@@ -834,7 +834,7 @@ def run(args):
                     adv_image = attack(input_or_adv=original_image,
                                        label=args.True_class_id,
                                        binary_search=False,
-                                       iterations=args.attack_strength)
+                                       iterations=int(args.attack_strength))
                 else:
                     adv_image = attack(input_or_adv=original_image,
                                        label=args.True_class_id)
