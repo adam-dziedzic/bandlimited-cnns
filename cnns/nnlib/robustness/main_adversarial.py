@@ -1933,19 +1933,20 @@ if __name__ == "__main__":
                         recovered_accuracy = count_recovered / total_count * 100
                         recovered_many_accuracy = count_many_recovered / total_count * 100
 
-                        avg_l2_norm_gauss_gradient = np.average(
-                            l2_norm_gauss_img_org_label_gradients)
+                        if len(l2_norm_gauss_img_org_label_gradients) > 0:
+                            avg_l2_norm_gauss_gradient = np.average(
+                                l2_norm_gauss_img_org_label_gradients)
 
-                        std_l2_norm_gauss_gradient = np.std(
-                            l2_norm_gauss_img_org_label_gradients)
+                            std_l2_norm_gauss_gradient = np.std(
+                                l2_norm_gauss_img_org_label_gradients)
 
-                        min_l2_norm_gauss_gradient = np.min(
-                            l2_norm_gauss_img_org_label_gradients)
+                            min_l2_norm_gauss_gradient = np.min(
+                                l2_norm_gauss_img_org_label_gradients)
 
-                        max_l2_norm_gauss_gradient = np.max(
-                            l2_norm_gauss_img_org_label_gradients)
+                            max_l2_norm_gauss_gradient = np.max(
+                                l2_norm_gauss_img_org_label_gradients)
 
-                        l2_norm_gauss_img_org_label_gradients = []
+                            l2_norm_gauss_img_org_label_gradients = []
 
                         with open('gauss_l2_norm_gradient_org_label', "a") as f:
                             f.write(delimiter.join([str(x) for x in
