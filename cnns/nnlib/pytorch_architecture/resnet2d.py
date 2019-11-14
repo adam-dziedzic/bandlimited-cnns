@@ -296,6 +296,8 @@ class ResNet(nn.Module):
             pass
         elif self.args.attack_type == AttackType.LAPLACE_RECOVERY:
             pass
+        elif self.args.attack_type == AttackType.NO_ATTACK:
+            pass
         else:
             raise Exception("Unknown attack type: ", self.args.attack_type)
 
