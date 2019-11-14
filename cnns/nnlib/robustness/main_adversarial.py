@@ -1948,14 +1948,14 @@ if __name__ == "__main__":
 
                             l2_norm_gauss_img_org_label_gradients = []
 
-                        with open('gauss_l2_norm_gradient_org_label', "a") as f:
-                            f.write(delimiter.join([str(x) for x in
-                                                    [args.noise_sigma,
-                                                     avg_l2_norm_gauss_gradient,
-                                                     std_l2_norm_gauss_gradient,
-                                                     min_l2_norm_gauss_gradient,
-                                                     max_l2_norm_gauss_gradient,
-                                                     ]]) + "\n")
+                            with open('gauss_l2_norm_gradient_org_label', "a") as f:
+                                f.write(delimiter.join([str(x) for x in
+                                                        [args.noise_sigma,
+                                                         avg_l2_norm_gauss_gradient,
+                                                         std_l2_norm_gauss_gradient,
+                                                         min_l2_norm_gauss_gradient,
+                                                         max_l2_norm_gauss_gradient,
+                                                         ]]) + "\n")
 
                         with open(out_recovered_file, "a") as f:
                             f.write(delimiter.join([str(x) for x in
