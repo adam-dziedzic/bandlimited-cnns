@@ -1004,6 +1004,7 @@ def run(args):
                                                       adv_image=adv_image,
                                                       adv_label=None if result_adv is None else result_adv.class_id,
                                                       gauss_image=gauss_image)
+
             if result_adv:
                 grad_stats['adv_confidence'] = result_adv.confidence
                 grad_stats['adv_label'] = result_adv.label
@@ -1027,7 +1028,8 @@ def run(args):
                 grad_stats['is_gauss_recovered'] = 'N/A'
 
             grad_stats['image_index'] = args.image_index
-            grad_stats['attack_strength'] = args.attack_strength
+            grad_stats['adv_attack_name'] = args.attack_name
+            grad_stats['adv_attack_strength'] = args.attack_strength
 
             l2_norm_gauss_img_org_label_gradients.append(
                 grad_stats['l2_norm_gauss_correct'])
