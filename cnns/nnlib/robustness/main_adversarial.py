@@ -982,6 +982,7 @@ def run(args):
                 args=args,
                 title=title)
             result.add(result_gauss, prefix="gauss_")
+            result.gauss_label = result_gauss.label
 
             start_time = time.time()
             result_noise = randomized_defense(image=image, fmodel=fmodel,
@@ -1005,16 +1006,22 @@ def run(args):
                                                       gauss_image=gauss_image)
             if result_adv:
                 grad_stats['adv_confidence'] = result_adv.confidence
+                grad_stats['adv_label'] = result_adv.label
+                grad_stats['adv_class'] = result_adv.class_id
             else:
                 grad_stats['adv_confidence'] = 'N/A'
             if original_result:
                 grad_stats['original_confidence'] = original_result.confidence
+                grad_stats['original_label'] = original_result.label
+                grad_stats['original_class'] = original_result.class_id
             else:
                 grad_stats['original_confidence'] = 'N/A'
             if result_gauss:
                 is_gauss_recovered = (
                         result_gauss.class_id == args.True_class_id)
                 grad_stats['is_gauss_recovered'] = is_gauss_recovered
+                grad_stats['gauss_label'] = result_gauss.label
+                grad_stats['gauss_class'] = result_gauss.class_id
             else:
                 # raise Exception('We need the result of adding Gaussian noise.')
                 grad_stats['is_gauss_recovered'] = 'N/A'
@@ -1204,7 +1211,7 @@ def run(args):
             if (attack_name != "CarliniWagnerL2AttackRoundFFT") and (
                     attack_name != "GaussAttack") and not attack_name.startswith(
                 'FFT'):
-                # np.save(file=full_name + ".npy", arr=adv_image)
+                np.save(file=full_name + ".npy", arr=adv_image)
                 if args.save_out and result.original_class_id == args.True_class_id and args.noise_sigma > 0:
                     adv_images.append(adv_image)
                     adv_labels.append(result.adv_class_id)

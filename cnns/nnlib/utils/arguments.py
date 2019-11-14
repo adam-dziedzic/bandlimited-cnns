@@ -88,9 +88,9 @@ elif data_dim == "2D":
     # dataset = "mnist"
     # dataset = "mnist_svd"
     # dataset = "synthetic"
-    # dataset = "cifar10"
+    dataset = "cifar10"
     # dataset = "cifar100"
-    dataset = "imagenet"
+    # dataset = "imagenet"
     # dataset = "svhn"
 
     batch_size = 32
@@ -408,10 +408,10 @@ class Arguments(object):
                  schedule_factor=schedule_factor,
                  compress_fft_layer=0,
                  # attack_name="CarliniWagnerL2AttackRoundFFT",
-                 # attack_name="CarliniWagnerL2Attack",
+                 attack_name="CarliniWagnerL2Attack",
                  # attack_name=None,
                  # attack_name="FGSM",
-                 attack_name="ProjectedGradientDescentAttack",
+                 # attack_name="ProjectedGradientDescentAttack",
                  # attack_name="GaussAttack",
                  # attack_name="FFTHighFrequencyAttack",
                  # attack_name="FFTHighFrequencyAttackAdversary",
@@ -464,7 +464,7 @@ class Arguments(object):
                  # attack_strengths=[0.08, 0.09, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9],
                  # attack_strengths=(0.001, 0.01, 0.03, 0.04, 0.05, 0.07, 0.08, 0.09, 0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9, 1.0,),
                  # attack_strengths=(0.01,),
-                 attack_strengths = [1, 2, 4, 8, 16, 32, 64],
+                 attack_strengths = [0.01],
                  gradient_iters=1,
                  ensemble=1,
                  attack_confidence=0,

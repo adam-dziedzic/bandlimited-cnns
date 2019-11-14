@@ -30,7 +30,7 @@ def get_color(COLOR_TUPLE_255):
 
 
 # fontsize=20
-fontsize = 36
+fontsize = 43
 legend_size = fontsize
 title_size = fontsize
 font = {'size': fontsize}
@@ -45,7 +45,7 @@ GPU_MEM_SIZE = 16280
 def read_columns(dataset, columns=5):
     file_name = dir_path + "/" + dataset
     with open(file_name) as csvfile:
-        data = csv.reader(csvfile, delimiter=";", quotechar='|')
+        data = csv.reader(csvfile, delimiter=",", quotechar='|')
         cols = []
         for column in range(columns):
             cols.append([])
@@ -55,6 +55,7 @@ def read_columns(dataset, columns=5):
                 for column in range(columns):
                     try:
                         # print('column: ', column)
+                        # print('row: ', row[column])
                         cols[column].append(float(row[column]))
                     except ValueError as ex:
                         pass
@@ -691,7 +692,7 @@ for j, dataset in enumerate(datasets):
     columns = dataset[column_nr]
     cols = read_columns(dataset[file_name], columns=columns)
 
-    if j <= 3:
+    if j <= 1:
         img_type = org
     else:
         img_type = adv

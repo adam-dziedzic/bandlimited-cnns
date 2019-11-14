@@ -25,9 +25,9 @@ def get_color(COLOR_TUPLE_255):
 
 
 # fontsize=20
-fontsize = 30
-legend_size = 22
-title_size = 30
+fontsize = 50
+legend_size = 50
+title_size = 50
 font = {'size': fontsize}
 matplotlib.rc('font', **font)
 
@@ -174,7 +174,7 @@ height = 10
 line_width = 4
 markersize = 20
 layout = "horizontal"  # "horizontal" or "vertical"
-
+print('len(datasets): ', len(datasets))
 fig = plt.figure(figsize=(len(datasets) * width, height))
 xlen = 20
 indexing = []
@@ -235,7 +235,7 @@ title += f' from {dataset_name}'
 # plt.interactive(False)
 # plt.imshow()
 # plt.subplots_adjust(hspace=0.3)
-format = "png"  # "pdf" or "png"
+format = "pdf"  # "pdf" or "png"
 destination = dir_path + "/"
 destination += f"highest_eigenvalues_histogram_data_len_{data_len}_"
 destination += f"dataset_name_{dataset_name}_"
@@ -243,7 +243,7 @@ destination += get_log_time() + '.' + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
-            transparent=True
+            transparent=False
             )
 # plt.show(block=False)
 # plt.interactive(False)

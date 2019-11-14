@@ -37,16 +37,24 @@ def get_gradient_for_input(args, model, input: torch.tensor, target,
     model.to(args.device)
     output = model(data)
     predicted_class = torch.argmax(output).item()
-    confidence = torch.max(F.softmax(output)).item()
+    confidence = F.softmax(output).squeeze()[target].item()
+    # confidence = torch.max(F.softmax(output)).item()
     loss = loss_function(output, target)
     loss.backward()
     loss_value = loss.item()
     gradient = data.grad.detach().cpu().numpy()
     # l2_norm = args.meter.measure_single_numpy(gradient)
-    # l2_norm = np.sqrt(np.sum(gradient * gradient))
-    l2_norm = np.sum(gradient * gradient)
-    return gradient, loss_value, predicted_class, l2_norm, np.min(
-        gradient), np.mean(gradient), np.max(gradient), confidence
+    l2_norm = np.sqrt(np.sum(gradient * gradient))
+    # l2_norm = np.sum(gradient * gradient)
+    return [gradient,
+            loss_value,
+            predicted_class,
+            l2_norm,
+            np.min(gradient),
+            np.mean(gradient),
+            np.max(gradient),
+            confidence
+            ]
 
 
 def gauss_noise_torch(epsilon, images, bounds):
@@ -89,6 +97,7 @@ def get_gradient_g1g2_wrt_x(args, model, input: torch.tensor):
 def compute_gradients(args, model, original_image: torch.tensor, original_label,
                       adv_image: torch.tensor, adv_label, gauss_image=None):
     grads = {}
+    results = dict()
     target = 1
     grad_original_correct = get_gradient_for_input(args=args, model=model,
                                                    input=original_image,
@@ -98,6 +107,13 @@ def compute_gradients(args, model, original_image: torch.tensor, original_label,
     grad_original_zero = get_gradient_for_input(args=args, model=model,
                                                 input=original_image,
                                                 target=target)
+
+    for class_nr in range(args.num_classes):
+        grad_original = get_gradient_for_input(
+            args=args, model=model, input=original_image, target=class_nr)
+        results[f'l2_norm_original_class_{class_nr}'] = np.sqrt(
+            np.sum(grad_original[0] * grad_original[0]))
+        results[f'org_confidence_class_{class_nr}'] = grad_original[7]
 
     if adv_image is not None:
         grad_original_adv = get_gradient_for_input(args=args, model=model,
@@ -120,6 +136,13 @@ def compute_gradients(args, model, original_image: torch.tensor, original_label,
                                                 input=gauss_image,
                                                 target=adv_label)
 
+        for class_nr in range(args.num_classes):
+            grad_adv = get_gradient_for_input(
+                args=args, model=model, input=adv_image, target=class_nr)
+            results[f'l2_norm_adv_class_{class_nr}'] = np.sqrt(
+                np.sum(grad_adv[0] * grad_adv[0]))
+            results[f'adv_confidence_class_{class_nr}'] = grad_adv[7]
+
         grads['original_adv'] = grad_original_adv
         grads['adv_correct'] = grad_adv_correct
         grads['adv_adv'] = grad_adv_adv
@@ -140,8 +163,6 @@ def compute_gradients(args, model, original_image: torch.tensor, original_label,
     grads['original_zero'] = grad_original_zero
     grads['gauss_correct'] = grad_gauss_correct
     grads['gauss_zero'] = grad_gauss_zero
-
-    results = dict()
 
     if adv_image is not None:
         results['l2_norm_adv_adv'] = np.sqrt(
@@ -208,7 +229,7 @@ def compute_gradients(args, model, original_image: torch.tensor, original_label,
         grad = grads[grad_key]
         info = [grad_key, ' grad L2: ', grad[3], ' loss value', grad[1],
                 ' predicated class', grad[2], 'min', grad[4], 'mean', grad[5],
-                'max', grad[6], 'confidence', grad[7]]
+                'max', grad[6], 'target confidence', grad[7]]
         print(",".join([str(x) for x in info]))
 
     return grads, results

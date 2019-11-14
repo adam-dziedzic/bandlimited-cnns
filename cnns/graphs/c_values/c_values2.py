@@ -28,9 +28,9 @@ def get_color(COLOR_TUPLE_255):
 
 
 # fontsize=20
-fontsize = 20
+fontsize = 50
 legend_size = 20
-title_size = 20
+title_size = 50
 font = {'size': fontsize}
 matplotlib.rc('font', **font)
 
@@ -147,7 +147,7 @@ height = 10
 line_width = 3
 markersize = 15
 layout = "horizontal"  # "horizontal" or "vertical"
-
+print('len of datasets: ', len(datasets))
 fig = plt.figure(figsize=(len(datasets) * width, height))
 xlen = 20
 indexing = []
@@ -180,8 +180,9 @@ leg = plt.legend(  # loc='upper right',
     # bbox_to_anchor=dataset[bbox]
 )
 leg._legend_box.align = "left"
+plt.setp(leg.get_title(),fontsize=35)
 plt.ylabel('Test accuracy (%)')
-plt.xlabel('$c$ parameter (in the C&W $L_2$ attack)')
+plt.xlabel('$c$ param (strength of C&W $L_2$ attack)')
 plt.xticks(indexing)
 plt.xscale('log', basex=10)
 # plt.title(f'Highest eigenvalues of Hessians w.r.t. {wrt} for 62 images',

@@ -25,9 +25,9 @@ def get_color(COLOR_TUPLE_255):
 
 
 # fontsize=20
-fontsize = 30
-legend_size = 22
-title_size = 30
+fontsize = 50
+legend_size = 32
+title_size = 50
 font = {'size': fontsize}
 matplotlib.rc('font', **font)
 
@@ -116,7 +116,8 @@ pgd_cifar10 = {ylabel: "Accuracy (%)",
 
 random_pgd_cifar10 = {ylabel: "Accuracy (%)",
                       file_name: "distortionRandomPGDCifar",
-                      title: "PGD (random start) L$_{\infty}$ CIFAR-10",
+                      # title: "PGD (random start) L$_{\infty}$ CIFAR-10",
+                      title: "PGD L$_{\infty}$ CIFAR-10",
                       # legend_pos: "lower left",
                       legend_pos: "upper right",
                       # bbox: (0.0, 0.0),
@@ -128,7 +129,8 @@ random_pgd_cifar10 = {ylabel: "Accuracy (%)",
 
 random_pgd_cifar10_full = {ylabel: "Accuracy (%)",
                            file_name: "distortionRandomPGDCifarFull",
-                           title: "PGD (random start) L$_{\infty}$ CIFAR-10",
+                           # title: "PGD (random start) L$_{\infty}$ CIFAR-10",
+                           title: "PGD L$_{\infty}$ CIFAR-10",
                            # legend_pos: "lower left",
                            legend_pos: "upper right",
                            # bbox: (0.0, 0.0),
@@ -141,7 +143,7 @@ random_pgd_cifar10_full = {ylabel: "Accuracy (%)",
 
 pgd_imagenet = {ylabel: "Accuracy (%)",
                 file_name: "distortionPGDImageNet",
-                title: "PGD (random start) L$_{\infty}$ ImageNet",
+                title: "PGD L$_{\infty}$ ImageNet",
                 # legend_pos: "lower left",
                 legend_pos: "upper right",
                 # bbox: (0.0, 0.0),
@@ -168,19 +170,19 @@ colors = [get_color(color) for color in
 markers = ["+", "o", "v", "s", "D", "^", "+"]
 linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 
-datasets = [
-    random_pgd_cifar10_full,
-    carlini_cifar10,
-    carlini_imagenet_full,
-]
-# datasets = [carlini_cifar10,
-#             carlini_imagenet,
-#             # carlini_imagenet_full,
-#             # pgd_cifar10,
-#             random_pgd_cifar10,
-#             pgd_imagenet,
-#             fgsm_imagenet,
-#             ]
+# datasets = [
+#     random_pgd_cifar10_full,
+#     carlini_cifar10,
+#     carlini_imagenet_full,
+# ]
+datasets = [carlini_cifar10,
+            carlini_imagenet,
+            # carlini_imagenet_full,
+            # pgd_cifar10,
+            random_pgd_cifar10,
+            pgd_imagenet,
+            fgsm_imagenet,
+            ]
 
 # width = 12
 # height = 5
@@ -195,9 +197,9 @@ fig = plt.figure(figsize=(len(datasets) * width, height))
 
 for j, dataset in enumerate(datasets):
     if layout == "vertical":
-        plt.subplot(len(datasets), 1, j + 1)
+        ax = plt.subplot(len(datasets), 1, j + 1)
     else:
-        plt.subplot(1, len(datasets), j + 1)
+        ax = plt.subplot(1, len(datasets), j + 1)
     print("dataset: ", dataset)
     columns = dataset[column_nr]
     cols = read_columns(dataset[file_name], columns=columns)
@@ -206,23 +208,37 @@ for j, dataset in enumerate(datasets):
     print("col 1: ", cols[1])
 
     for col in range(0, columns, 2):
-        # if col == 8:  # skip Laplace
-        #     continue
+        skip_laplace = True
+        if skip_laplace and col == 8:  # skip Laplace
+            continue
         i = col // 2
-        plt.plot(cols[col], cols[col + 1], label=f"{dataset[labels][i]}",
+        plt.plot(cols[col], cols[col + 1],
+                 label=f"{dataset[labels][i]}",
                  lw=line_width,
                  color=colors[i], linestyle=linestyles[i])
+        # Trick: set only two labels in the 1st column in the legend.
+        if col == 2:
+            plt.plot(cols[col], cols[col + 1],
+                     label=f" ",
+                     lw=line_width,
+                     color=colors[i], linestyle=" ")
 
     plt.grid()
-    plt.legend(loc=dataset[legend_pos], ncol=dataset[legend_cols],
+    plt.legend(loc=dataset[legend_pos],
+               ncol=dataset[legend_cols],
                frameon=False,
                prop={'size': legend_size},
+               columnspacing=1.0,
                # bbox_to_anchor=dataset[bbox]
                )
     plt.xlabel('$L_2$ distortion')
     plt.title(dataset[title], fontsize=title_size)
     if j == 0:
         plt.ylabel(dataset[ylabel])
+    else:
+        pass
+        # ax.axes.get_yaxis().set_visible(False)
+        # ax.set_yticklabels([])
     plt.ylim(dataset[ylim])
     plt.xlim(dataset[xlim])
 
@@ -232,7 +248,7 @@ for j, dataset in enumerate(datasets):
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
 format = "pdf"  # "pdf" or "png"
-destination = dir_path + "/" + "distortionFullData" + get_log_time() + "." + format
+destination = dir_path + "/" + "channel_distortion_vs_accuracy_" + get_log_time() + "." + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
