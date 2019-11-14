@@ -828,7 +828,7 @@ def run(args):
                 elif attack_name == "FGSM":
                     adv_image = attack(input_or_adv=original_image,
                                        label=args.True_class_id,
-                                       epsilons=1,
+                                       epsilons=1000,
                                        max_epsilon=args.attack_strength)
                 elif attack_name == "ProjectedGradientDescentAttack":
                     adv_image = attack(input_or_adv=original_image,
