@@ -81,23 +81,26 @@ org = "original"
 gauss = "gauss"
 
 gradient_gauss_data = {
-    file_name: 'gradient_gauss_data.csv',
+    file_name: 'gradient_gauss_cw_data.csv',
     title: "recovered",
     # legend_pos: "lower left",
     legend_pos: "upper right",
     # bbox: (0.0, 0.0),
-    column_nr: 4,
+    column_nr: 5,
     legend_cols: 1,
-    labels: ['gauss image', 'original image (baseline)', 'adv image (FGSM)'],
-    xlim: (0, 1.0),
-    ylim: (0, 4)}
+    labels: ['gauss image org class',
+             'gauss image adv class',
+             'original image org class\n',
+             'adv image (C&W) adv class'],
+    xlim: (0, 0.03),
+    ylim: (0, 17)}
 
 
 colors = [get_color(color) for color in
-          [MY_BLACK, MY_BLUE, MY_RED, MY_BLUE, MY_BLACK, MY_GOLD,
+          [MY_BLACK, MY_BLUE, MY_RED, MY_GREEN, MY_BLACK, MY_GOLD,
            MY_VIOLET, MY_OWN, MY_BROWN, MY_GREEN]]
-markers = ["o", "", "", "v", "D", "^", "+", 'o', 'v', '+']
-linestyles = ["-", "--", "--", "--", "-", "--", "-", "--", ':', ':']
+markers = ["o", "+", "^", "v", "D", "^", "+", 'o', 'v', '+']
+linestyles = ["-", "--", ":", "--", "-", "--", "-", "--", ':', ':']
 
 datasets = [
     gradient_gauss_data,
@@ -137,13 +140,12 @@ for j, dataset in enumerate(datasets):
                  # linestyle='None',
                  marker=markers[i % len(markers)])
 
-    plt.legend(loc=dataset[legend_pos],
-               ncol=dataset[legend_cols],
+    plt.legend(loc=dataset[legend_pos], ncol=dataset[legend_cols],
                frameon=False,
                prop={'size': legend_size},
                # bbox_to_anchor=dataset[bbox]
                )
-    plt.ylabel('$E_{x}||\partial_{x}\mathcal{L}(x, c_{org})||_2$')
+    plt.ylabel('$E_{x}||\partial_{x}\mathcal{L}(x, c)||_2$')
     plt.xlabel('$\sigma$ (strength of the Gaussian noise)')
     # plt.title('The original image')
 

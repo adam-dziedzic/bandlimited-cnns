@@ -71,9 +71,12 @@ def get_col_vals(data_all, col_names, dtype=np.float):
 def compute():
     dir_path = os.path.dirname(os.path.realpath(__file__))
     # file_name = "2019-11-07-20-58-55-215404_imagenet_grad_stats.csv"
-    file_name = 'imagenet_grad_stats_fgsm.csv'
+    # file_name = 'gradient_pgd_iterations_data.csv'
+    # file_name = '2019-11-13-18-19-34-329136_imagenet_grad_stats.csv'
+    file_name = '2019-11-13-22-44-49-709234_cifar10_grad_stats.csv'
     data_path = os.path.join(dir_path, file_name)
     data_all = pd.read_csv(data_path, header=None, sep=delimiter)
+    # print('N/A indexes: ', data_all.iloc[:, 1] == np.isnan)
     print('shape of data all: ', data_all.shape)
     H, W = data_all.shape
     print('row number: ', H)
@@ -81,8 +84,7 @@ def compute():
     print('expected runs: ', H / step)
     print(data_all.head(5))
 
-    params = [0.001, 0.002, 0.004, 0.007, 0.009, 0.01, 0.02, 0.03, 0.04, 0.05,
-              0.08, 0.1, 0.5, 1.0]
+    params = [1, 2, 4, 8, 16, 32]
 
     # check_image_indexes(data_all=data_all, step=step)
 

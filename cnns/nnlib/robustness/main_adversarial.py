@@ -768,7 +768,7 @@ def run(args):
             if args.target_class:
                 full_name += '-target-class-' + str(args.target_class)
             print("full name of stored adversarial example: ", full_name)
-            is_load_image = True
+            is_load_image = False
             if is_load_image and os.path.exists(full_name + ".npy") and (
                     attack_name != "CarliniWagnerL2AttackRoundFFT") and (
                     attack_name != "GaussAttack") and (

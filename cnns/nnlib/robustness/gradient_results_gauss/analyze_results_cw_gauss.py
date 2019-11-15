@@ -2,7 +2,7 @@ import numpy as np
 import os
 import pandas as pd
 
-delimiter = ','
+delimiter = ';'
 
 
 def check_image_indexes(data_all, step):
@@ -71,9 +71,13 @@ def get_col_vals(data_all, col_names, dtype=np.float):
 def compute():
     dir_path = os.path.dirname(os.path.realpath(__file__))
     # file_name = "2019-11-07-20-58-55-215404_imagenet_grad_stats.csv"
-    file_name = 'imagenet_grad_stats_fgsm.csv'
+    # file_name = 'gradient_pgd_iterations_data.csv'
+    # file_name = '2019-11-13-18-19-34-329136_imagenet_grad_stats.csv'
+    # file_name = '2019-11-13-22-44-49-709234_cifar10_grad_stats.csv'
+    file_name = '2019-11-15-04-12-26-863148_cifar10_grad_stats.csv'
     data_path = os.path.join(dir_path, file_name)
     data_all = pd.read_csv(data_path, header=None, sep=delimiter)
+    # print('N/A indexes: ', data_all.iloc[:, 1] == np.isnan)
     print('shape of data all: ', data_all.shape)
     H, W = data_all.shape
     print('row number: ', H)
@@ -86,8 +90,17 @@ def compute():
 
     # check_image_indexes(data_all=data_all, step=step)
 
-    col_names = ['l2_norm_gauss_correct', 'l2_norm_original_correct',
-                 'l2_norm_adv_adv', 'adv_confidence', 'z_l2_dist_adv_org_image']
+    col_names = ['l2_norm_gauss_correct',
+                 'l2_norm_gauss_adv',
+                 'l2_norm_gauss_zero',
+                 'l2_norm_original_correct',
+                 'l2_norm_original_adv',
+                 'l2_norm_original_class_0',
+                 'l2_norm_adv_adv',
+                 'l2_norm_adv_correct',
+                 'l2_norm_adv_class_0',
+                 'adv_confidence', 'original_confidence',
+                 'z_l2_dist_adv_org_image']
     col_vals = get_col_vals(data_all=data_all, col_names=col_names)
 
     recovered_nr = get_col_val(data_all=data_all, col_name='is_gauss_recovered',
