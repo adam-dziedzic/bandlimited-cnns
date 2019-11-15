@@ -142,7 +142,7 @@ for j, dataset in enumerate(datasets):
                prop={'size': legend_size},
                # bbox_to_anchor=dataset[bbox]
                )
-    plt.ylabel('$E_{x}||\partial_{x}\mathcal{L}||_2$')
+    plt.ylabel('$E_{x}||\partial_{x}\mathcal{L}(x, c_{org})||_2$')
     plt.xlabel('$\sigma$ (strength of the Gaussian noise)')
     # plt.title('The original image')
 

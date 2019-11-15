@@ -604,10 +604,10 @@ not_recovered_10000_0 = {  # ylabel: "L2 adv",
     ylim: (0, 100)}
 
 colors = [get_color(color) for color in
-          [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD,
-           MY_VIOLET, MY_OWN, MY_BROWN, MY_GREEN]]
-markers = ["+", "o", "v", "s", "D", "^", "+", 'o', 'v', '+']
-linestyles = [":", "-", "--", ":", "-", "--", "-", "--", ':', ':']
+          [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_ORANGE, MY_RED,
+           MY_BLACK, MY_GOLD, MY_VIOLET, MY_OWN, MY_BROWN, MY_GREEN]]
+markers = ["+", "o", "v", "s", "v", "s", "+", 'o', 'v', '+']
+linestyles = [":", "-", "--", ":", "--", ":", "-", "--", ':', ':']
 
 datasets = [
     # recovered_0_001,

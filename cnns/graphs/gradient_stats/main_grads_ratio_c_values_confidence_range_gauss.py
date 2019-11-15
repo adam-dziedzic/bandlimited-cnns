@@ -614,10 +614,10 @@ not_recovered_10000_0 = {  # ylabel: "L2 adv",
     ylim: (0, 100)}
 
 colors = [get_color(color) for color in
-          [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD,
-           MY_VIOLET, MY_OWN, MY_BROWN, MY_GREEN]]
-markers = ["+", "o", "v", "s", "D", "^", "+", 'o', 'v', '+']
-linestyles = [":", "-", "--", ":", "-", "--", "-", "--", ':', ':']
+          [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_ORANGE, MY_RED,
+           MY_BLACK, MY_GOLD, MY_VIOLET, MY_OWN, MY_BROWN, MY_GREEN]]
+markers = ["+", "o", "v", "s", "v", "s", "+", 'o', 'v', '+']
+linestyles = [":", "-", "--", ":", "--", ":", "-", "--", ':', ':']
 
 datasets = [
     # recovered_0_001,
@@ -784,18 +784,18 @@ for j, dataset in enumerate(datasets):
         if img_type is org:
             # plt.ylabel('$L_2$ of gradient for org image and adv class')
             plt.ylabel(
-                '$E_{x}||\partial_{x}\mathcal{L}(x=org, class=adv)||_2$')
+                '$E_{x}||\partial_{x}\mathcal{L}(x_{org}, c_{adv})||_2$')
             # plt.xlabel('$L_2$ of gradient for org image and org class')
             plt.xlabel(
-                '$E_{x}||\partial_{x}\mathcal{L}(x=org, class=org)||_2$')
+                '$E_{x}||\partial_{x}\mathcal{L}(x_{org}, c_{org})||_2$')
             plt.title('Original image')
         else:
             # plt.ylabel('$L_2$ of gradient for adv image and org class')
             plt.ylabel(
-                '$E_{x}||\partial_{x}\mathcal{L}(x=adv, class=org)||_2$')
+                '$E_{x}||\partial_{x}\mathcal{L}(x_{adv}, c_{org})||_2$')
             # plt.xlabel('$L_2$ of gradient for adv image and adv class')
             plt.xlabel(
-                '$E_{x}||\partial_{x}\mathcal{L}(x=adv, class=adv)||_2$')
+                '$E_{x}||\partial_{x}\mathcal{L}(x_{adv}, c_{adv})||_2$')
             if j == 3:
                 plt.title('Adversarial: high confidence')
             elif j == 5:
