@@ -539,6 +539,14 @@ def compute():
     X_cv = np.concatenate((X[:30, :], X[31:61, :]))
     y_cv = np.concatenate((y[:30], y[31:61]))
 
+    print(
+        'Accuracy on self-crafted cross-validation with normalization: ')
+    for name, clf in [('SVM', SVC(kernel="linear", C=0.02))]:
+        accuracy = cross_validate(X_cv, y_cv, classifier=clf,
+                                  nr_class=nr_class, labels=col_names)
+        print(name, ",", accuracy_percent(accuracy))
+    print()
+
     w_sorted_indexes = column_priority(X_norm, y, X_cv, y_cv, labels=col_names)
 
     print('labels len: ', len(col_names))
