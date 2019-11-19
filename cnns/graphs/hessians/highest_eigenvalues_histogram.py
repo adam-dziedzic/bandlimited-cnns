@@ -18,6 +18,7 @@ MY_ORANGE = (218, 124, 48)
 MY_GREEN = (62, 150, 81)
 MY_BLACK = (83, 81, 84)
 MY_GOLD = (148, 139, 61)
+MY_WHITE = (255, 255, 255)
 
 
 def get_color(COLOR_TUPLE_255):
@@ -155,7 +156,8 @@ gauss = {  # ylabel: "L2 adv",
     ylim: (0, 100)}
 
 colors = [get_color(color) for color in
-          [MY_RED, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD, MY_GREEN]]
+          [MY_BLUE, MY_RED, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD,
+           MY_GREEN]]
 markers = ["v", "o", "+", "s", "D", "^", "+"]
 linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 
@@ -168,7 +170,7 @@ datasets = [
 # width = 12
 # height = 5
 # lw = 3
-fig_size = 10
+# fig_size = 10
 width = 10
 height = 10
 line_width = 4
@@ -182,12 +184,13 @@ indexing = []
 # limit = 1201
 limit = 1024
 # limit = 512
+data_len = 0
 
 for j, dataset in enumerate(datasets):
     print("dataset: ", dataset)
     rows = read_rows(dataset[file_name], row_nr=dataset[row_nr])
     row = rows[0]
-    print(f"row {j}: ", row)
+    # print(f"row {j}: ", row)
     data_len = len(row)
     print("length: ", data_len)
     if limit > 0:
@@ -200,7 +203,22 @@ for j, dataset in enumerate(datasets):
     # indexing = [i + 1 for i in range(xlen)]
     y, bin_edges = np.histogram(eigenvalues, bins=50)
     bin_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
-    plt.plot(bin_centers,
+    print("bin centers: ")
+    for center in bin_centers:
+        print(center)
+    print("y: ")
+    for x in y:
+        print(x)
+    # y = [0 for x in y]
+    is_clean = True
+    if j > -1:
+        line_width = 0
+        dataset[labels][0] = ""
+        colors[j] = get_color(MY_WHITE)
+        merkersize = 0
+        markers[j % len(markers)] = ""
+    plt.plot(
+             bin_centers,
              y,
              label=dataset[labels][0],
              lw=line_width,
@@ -210,7 +228,9 @@ for j, dataset in enumerate(datasets):
              marker=markers[j % len(markers)],
              markersize=markersize)
 
-plt.grid()
+
+# plt.plot([0], [0])
+# plt.grid()
 plt.legend(  # loc='upper right',
     loc='upper right',
     ncol=1,
@@ -219,7 +239,7 @@ plt.legend(  # loc='upper right',
     title='Image type:',
     # bbox_to_anchor=dataset[bbox]
 )
-plt.ylabel('Frequency count')
+h = plt.ylabel('Frequency', rotation=0, labelpad=40)
 plt.xlabel('Eigenvalue magnitude')
 # plt.xticks(indexing)
 plt.yscale('log', basey=10)
@@ -227,15 +247,15 @@ title = f'Highest eigenvalues of Hessians w.r.t. {wrt} for {limit} images'
 title += f' from {dataset_name}'
 # plt.title(title, fontsize=title_size)
 
-# plt.ylim((0,20))
-# plt.xlim((0, xlen))
+# plt.xlim((0, 250))
+# plt.ylim((0,1000))
 
 # plt.gcf().autofmt_xdate()
 # plt.xticks(rotation=0)
 # plt.interactive(False)
 # plt.imshow()
 # plt.subplots_adjust(hspace=0.3)
-format = "pdf"  # "pdf" or "png"
+format = "png"  # "pdf" or "png"
 destination = dir_path + "/"
 destination += f"highest_eigenvalues_histogram_data_len_{data_len}_"
 destination += f"dataset_name_{dataset_name}_"
@@ -243,7 +263,7 @@ destination += get_log_time() + '.' + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
-            transparent=False
+            transparent=True
             )
 # plt.show(block=False)
 # plt.interactive(False)

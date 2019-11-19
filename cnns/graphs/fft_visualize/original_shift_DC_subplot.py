@@ -78,6 +78,7 @@ def show_fft(xfft, ax, extent=extent1, add_to_figure=True):
     print("fft min, max: ", vmin, vmax)
     im = ax.imshow(xfft, vmin=vmin, vmax=vmax, cmap="hot",
                    interpolation='nearest', extent=extent)
+
     # https://stackoverflow.com/questions/23876588/matplotlib-colorbar-in-each-subplot
     divider = make_axes_locatable(ax)
     if add_to_figure:
@@ -111,9 +112,9 @@ def show_image(image, ax, extent=extent1):
 # type = "original"
 # type = "exact"
 # type = "exact"
-# type = "dc"
+type = "dc"
 # type = "practice"
-type = "sequence"
+# type = "sequence"
 args = Arguments()
 args.compress_fft_layer = 50
 args.compress_rate = 50
@@ -187,6 +188,7 @@ elif type == "dc":
     xfft_corner = get_fft(image, is_DC_shift=False)
     ax = plt.subplot(1, cols, 1)
     show_image(image, ax, extent=extent1)
+
     ax = plt.subplot(1, cols, 2)
     im = show_fft(xfft, ax, extent=extent2)
 elif type == "practice":
@@ -233,10 +235,10 @@ else:
 # colorbar labels don't appear to factor in to the adjustment
 plt.subplots_adjust(left=0.075, right=0.9)
 
-format = "pdf"  # "png" "pdf"
+format = "png" # "pdf"  # "png" "pdf"
 # plt.tight_layout()
 # plt.show(block=True)
-fname = "images/" + type + "-" + dataset + "4." + format
+fname = "images/" + type + "-" + dataset + "6." + format
 print("fname: ", fname)
 plt.savefig(fname=fname, format=format, transparent=True)
 plt.close()
