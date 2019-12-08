@@ -683,7 +683,9 @@ def col_scores(X, y, clf, nr_class, col_names, max_col_nr):
             col_scores[col] += accuracy
 
     for w in sorted(col_scores, key=col_scores.get, reverse=True):
-        print(w, col_names[w], col_scores[w])
+        result = [w, col_names[w], col_scores[w]]
+        result_str = delimiter.join([str(x) for x in result])
+        print(result_str)
     return col_scores
 
 
@@ -696,9 +698,9 @@ def compute():
     # data_path = os.path.join(dir_path, "remy_data_final_sign_class.csv")
     # data_path = os.path.join(dir_path, "clean-2019-11-24-3.csv")
 
-    data_path = os.path.join(dir_path, "remy_2019_10_29.csv")
+    # data_path = os.path.join(dir_path, "remy_2019_10_29.csv")
     # data_path = os.path.join(dir_path, "garrett_2019_11_24.csv")
-    # data_path = os.path.join(dir_path, "arnold_2019_12_07.csv")
+    data_path = os.path.join(dir_path, "arnold_2019_12_07.csv")
 
     print('data_path: ', data_path)
     data_all = pd.read_csv(data_path, header=0)
