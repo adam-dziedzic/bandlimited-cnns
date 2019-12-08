@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 from scipy.stats import describe
 import os
@@ -737,6 +738,7 @@ def col_scores_parallel(X, y, clf, nr_class, col_names, max_col_nr):
         result = [w, col_names[w], col_scores[w]]
         result_str = delimiter.join([str(x) for x in result])
         print(result_str)
+    sys.stdout.flush()
     return col_scores_single_thread
 
 
@@ -821,7 +823,7 @@ def compute():
 
     SVM = classifiers["SVM"]
 
-    max_col_nr=3
+    max_col_nr=2
 
     start = time.time()
     col_scores_parallel(
@@ -829,11 +831,11 @@ def compute():
         max_col_nr=max_col_nr)
     print('col scores parallel timing: ', time.time() - start)
 
-    start = time.time()
-    col_scores_single_thread(
-        X=X_cv, y=y_cv, col_names=col_names, clf=SVM, nr_class=nr_class,
-        max_col_nr=max_col_nr)
-    print('col scores single timing: ', time.time() - start)
+    # start = time.time()
+    # col_scores_single_thread(
+    #     X=X_cv, y=y_cv, col_names=col_names, clf=SVM, nr_class=nr_class,
+    #     max_col_nr=max_col_nr)
+    # print('col scores single timing: ', time.time() - start)
 
     # pca_scikit_train_test(X=X_cv, y=y_cv, clf=SVM)
     pca_scikit_train(X=X_cv, y=y_cv, clf=SVM)
