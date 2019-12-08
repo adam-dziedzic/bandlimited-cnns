@@ -8,14 +8,13 @@ from sklearn.base import ClassifierMixin, BaseEstimator
 import warnings
 import scipy
 import sklearn
+from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
+import itertools
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from numpy.linalg import qr
 from numpy.linalg import svd
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
 from sklearn.neural_network import MLPClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
@@ -29,6 +28,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import RandomizedSearchCV
 
 h = .02  # step size in the mesh
+delimiter = ";"
 
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
@@ -90,7 +90,23 @@ class LeastSquareClassifier(BaseEstimator, ClassifierMixin):
 
     def predict_proba(self, X):
         X = self.add_ones_short(X)
-        return np.matmul(X, self.w)
+        ys = np.matmul(X, self.w)
+        probs = []
+        for y in ys:
+            if y < 0:
+                if y < -1:
+                    probs.append([1, 0.0])
+                else:
+                    y = 0.5 * np.abs(y) + 0.5
+                    probs.append([y, 1 - y])
+            else:
+                if y > 1:
+                    probs.append([0.0, 1])
+                else:
+                    y = 0.5 * np.abs(y) + 0.5
+                    probs.append([1 - y, y])
+        probs = np.array(probs)
+        return probs
 
 
 classifiers = {
@@ -410,7 +426,7 @@ def column_priority(X, y, X_cv, y_cv, labels, classifiers=priority_classifiers):
     print('# of columns', end="")
     classifier_names = classifiers.keys()
     for classifier_name in classifier_names:
-        print(",", classifier_name, "accuracy train,", classifier_name,
+        print(delimiter, classifier_name, "accuracy train,", classifier_name,
               ",accuracy cross-validation", end="")
     print()
 
@@ -423,13 +439,13 @@ def column_priority(X, y, X_cv, y_cv, labels, classifiers=priority_classifiers):
         for clf in classifiers.values():
             clf.fit(X_short, y)
             train_score = clf.score(X_short, y)
-            print(",", train_score, end="")
+            print(delimiter, train_score, end="")
             try:
                 cv_score = np.average(
                     cross_val_score(clf, X_cv_short, y_cv, cv=6))
-                print(",", cv_score, end="")
+                print(delimiter, cv_score, end="")
             except np.linalg.LinAlgError as err:
-                print(",", "N/A", end="")
+                print(delimiter, "N/A", end="")
 
         print()
     return w_sorted_indexes
@@ -542,7 +558,7 @@ def show_param_performance(X_cv, y_cv, nr_class, col_names):
             accuracy, auc = cross_validate(X_cv, y_cv, classifier=clf,
                                            nr_class=nr_class,
                                            col_names=col_names)
-            print(name, "C=", C, ",", accuracy_percent(accuracy), auc)
+            print(name, "C=", C, delimiter, accuracy_percent(accuracy), auc)
     print()
 
 
@@ -573,6 +589,14 @@ def svd_spectrum(X):
 
 
 def pca(X, index):
+    """
+    Compute PCA for X.
+
+    :param X: the whole input data
+    :param index: how many singular values retain
+    (the dimension of the subspace)
+    :return: the projected rows of X on a lower dimensional space
+    """
     XT = X.T  # samples in columns
     u, s, vh = svd(a=XT, full_matrices=False)
     # We want to project the samples on a lower dimensional space.
@@ -582,17 +606,85 @@ def pca(X, index):
     return z
 
 
-def accuracy_on_pca_data(X, y, classifiers, nr_class, col_names):
+def pca_scikit_whole_train(X, index):
+    pca = PCA(n_components=index)  # adjust yourself
+    pca.fit(X)
+    z = pca.transform(X)
+    return z
+
+
+def pca_scikit_train_test(X, y, clf):
+    print("PCA train test from scikit learn:")
+    print("index, score")
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.4, random_state=0)
+    for index in range(1, X_test.shape[0]):
+        pca = PCA(n_components=index)  # adjust yourself
+        pca.fit(X_train)
+        X_t_train = pca.transform(X_train)
+        X_t_test = pca.transform(X_test)
+        clf.fit(X_t_train, y_train)
+        print(index, ',', clf.score(X_t_test, y_test))
+
+
+def pca_scikit_train(X, y, clf):
+    print("PCA train from scikit learn:")
+    print("index, score")
+    for index in range(1, X.shape[0]):
+        pca = PCA(n_components=index)  # adjust yourself
+        pca.fit(X)
+        xpca = pca.transform(X)
+        clf.fit(xpca, y)
+        print(index, ',', clf.score(xpca, y))
+
+
+def accuracy_on_pca_data(X, y, classifiers, nr_class, col_names,
+                         pca_function=pca):
     H, W = X.shape
     print('PCA:')
-    print('index, accuracy, auc')
+    print('index' + delimiter + 'accuracy' + delimiter + 'auc')
     for index in range(1, H):
-        xpca = pca(X, index=index)
+        xpca = pca_function(X, index=index)
         for name, clf in classifiers.items():
             accuracy, auc = cross_validate(
                 X=xpca, Y=y, classifier=clf, nr_class=nr_class,
                 col_names=col_names)
-            print(index, accuracy, auc)
+            result = [index, accuracy, auc]
+            str_result = delimiter.join([str(x) for x in result])
+            print(str_result)
+
+
+def findsubsets(s, max=None):
+    if max is None:
+        n = len(s) + 1
+    else:
+        n = max + 1
+    subsets = []
+    for i in range(1, n):
+        subset = list(itertools.combinations(s, i))
+        for x in subset:
+            subsets.append(x)
+    return subsets
+
+
+def col_scores(X, y, clf, nr_class, col_names, max_col_nr):
+    H, W = X.shape
+    col_scores = {}
+    for col in range(W):
+        col_scores[col] = 0
+
+    subsets = findsubsets(np.arange(W), max_col_nr)
+    print('subsets count: ', len(subsets))
+    for set in subsets:
+        Xset = X[:, set]
+        accuracy, auc = cross_validate(Xset, y, classifier=clf,
+                                       nr_class=nr_class, col_names=col_names)
+        for col in set:
+            col_scores[col] += accuracy
+
+    for w in sorted(col_scores, key=col_scores.get, reverse=True):
+        print(w, col_names[w], col_scores[w])
+    return col_scores
 
 
 def compute():
@@ -602,7 +694,13 @@ def compute():
     # data_path = os.path.join(dir_path, "remy_data_cleaned_with_header.csv")
     # data_path = os.path.join(dir_path, "remy_data_final.csv")
     # data_path = os.path.join(dir_path, "remy_data_final_sign_class.csv")
-    data_path = os.path.join(dir_path, "clean-2019-11-24-3.csv")
+    # data_path = os.path.join(dir_path, "clean-2019-11-24-3.csv")
+
+    data_path = os.path.join(dir_path, "remy_2019_10_29.csv")
+    # data_path = os.path.join(dir_path, "garrett_2019_11_24.csv")
+    # data_path = os.path.join(dir_path, "arnold_2019_12_07.csv")
+
+    print('data_path: ', data_path)
     data_all = pd.read_csv(data_path, header=0)
     labels = np.asarray(data_all.iloc[:, 0], dtype=np.int)
     nr_class = len(np.unique(labels))
@@ -670,14 +768,26 @@ def compute():
 
     SVM = classifiers["SVM"]
 
+    start = time.time()
+    col_scores(X=X_cv, y=y_cv, col_names=col_names, clf=SVM, nr_class=nr_class,
+               max_col_nr=2)
+    print('col scores timing: ', time.time() - start)
+
+    # pca_scikit_train_test(X=X_cv, y=y_cv, clf=SVM)
+    pca_scikit_train(X=X_cv, y=y_cv, clf=SVM)
+
+    # pca_function=pca
+    pca_function = pca_scikit_whole_train
     accuracy_on_pca_data(X=X_cv, y=y_cv, classifiers={"SVM": SVM},
-                         nr_class=nr_class, col_names=col_names)
+                         nr_class=nr_class, col_names=col_names,
+                         pca_function=pca_function)
 
     # run_param_search(X=X_cv, y=y_cv, clf=SVC(probability=True))
 
     # show_param_performance(X_cv=X_cv, y_cv=y_cv, nr_class=nr_class,
     #                        col_names=col_names)
 
+    print("Column priority: ")
     w_sorted_indexes = column_priority(X_norm, y, X_cv, y_cv, labels=col_names)
 
     print('labels len: ', len(col_names))
@@ -709,6 +819,7 @@ def compute():
     show_decision_tree(estimator=clf, col_names=col_names, means=means,
                        stds=stds)
 
+    print('Accuracy on normalized X_norm: ')
     for name, clf in classifiers.items():
         clf.fit(X_norm, y)
         score = clf.score(X_norm, y)
@@ -722,20 +833,20 @@ def compute():
     for name, clf in classifiers.items():
         accuracy, auc = cross_validate(X_subset, y_cv, classifier=clf,
                                        nr_class=nr_class, col_names=col_names)
-        print(name, ",", accuracy_percent(accuracy), ",", auc)
+        print(name, delimiter, accuracy_percent(accuracy), delimiter, auc)
     print()
 
     print('Accuracy from cross-validation (non-normalized data): ')
     for name, clf in classifiers.items():
         accuracy = np.average(cross_val_score(clf, X_cv, y_cv, cv=6))
-        print(name, ",", accuracy_percent(accuracy))
+        print(name, delimiter, accuracy_percent(accuracy))
     print()
 
     X_norm2 = np.concatenate((X_norm[:30, :], X_norm[31:61, :]))
     print('Accuracy from cross-validation (normalized the whole): ')
     for name, clf in classifiers.items():
         accuracy = np.average(cross_val_score(clf, X_norm2, y_cv, cv=6))
-        print(name, ",", accuracy_percent(accuracy))
+        print(name, delimiter, accuracy_percent(accuracy))
     print()
 
     print(
@@ -744,7 +855,7 @@ def compute():
     for name, clf in classifiers.items():
         accuracy, auc = cross_validate(X_cv, y_cv, classifier=clf,
                                        nr_class=nr_class, col_names=col_names)
-        print(name, ",", accuracy_percent(accuracy), ",", auc)
+        print(name, delimiter, accuracy_percent(accuracy), delimiter, auc)
     print()
 
 
