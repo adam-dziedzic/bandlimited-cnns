@@ -11,6 +11,7 @@ import sklearn
 from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
 import itertools
+import multiprocessing as mp
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -667,7 +668,7 @@ def findsubsets(s, max=None):
     return subsets
 
 
-def col_scores(X, y, clf, nr_class, col_names, max_col_nr):
+def col_scores_single_thread(X, y, clf, nr_class, col_names, max_col_nr):
     H, W = X.shape
     col_scores = {}
     for col in range(W):
@@ -689,6 +690,56 @@ def col_scores(X, y, clf, nr_class, col_names, max_col_nr):
     return col_scores
 
 
+col_scores = {}
+
+
+def get_accuracy(X, set, y, clf, nr_class, col_names):
+    Xset = X[:, set]
+    accuracy, _ = cross_validate(Xset, y, classifier=clf,
+                                 nr_class=nr_class, col_names=col_names)
+    return set, accuracy
+
+
+def collect_accuracies(result):
+    set, accuracy = result
+    for col in set:
+        col_scores[col] += accuracy
+
+
+def col_scores_parallel(X, y, clf, nr_class, col_names, max_col_nr):
+    H, W = X.shape
+    global col_scores
+    for col in range(W):
+        col_scores[col] = 0
+
+    subsets = findsubsets(np.arange(W), max_col_nr)
+    print('subsets count: ', len(subsets))
+
+    # Step 1: Init multiprocessing.Pool()
+    pool = mp.Pool(mp.cpu_count())
+
+    # Step 2: pool.apply to a function
+    for set in subsets:
+        pool.apply_async(
+            get_accuracy,
+            args=(X, set, y, clf, nr_class, col_names),
+            callback=collect_accuracies
+        )
+
+    # Step 3: close the pool
+    pool.close()
+
+    # Step 4: postpones the execution of next line of code until all
+    # processes in the queue are done.
+    pool.join()
+
+    for w in sorted(col_scores, key=col_scores.get, reverse=True):
+        result = [w, col_names[w], col_scores[w]]
+        result_str = delimiter.join([str(x) for x in result])
+        print(result_str)
+    return col_scores_single_thread
+
+
 def compute():
     warnings.filterwarnings("ignore")
     dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -698,9 +749,9 @@ def compute():
     # data_path = os.path.join(dir_path, "remy_data_final_sign_class.csv")
     # data_path = os.path.join(dir_path, "clean-2019-11-24-3.csv")
 
-    # data_path = os.path.join(dir_path, "remy_2019_10_29.csv")
+    data_path = os.path.join(dir_path, "remy_2019_10_29.csv")
     # data_path = os.path.join(dir_path, "garrett_2019_11_24.csv")
-    data_path = os.path.join(dir_path, "arnold_2019_12_07.csv")
+    # data_path = os.path.join(dir_path, "arnold_2019_12_07.csv")
 
     print('data_path: ', data_path)
     data_all = pd.read_csv(data_path, header=0)
@@ -770,10 +821,19 @@ def compute():
 
     SVM = classifiers["SVM"]
 
+    max_col_nr=2
+
     start = time.time()
-    col_scores(X=X_cv, y=y_cv, col_names=col_names, clf=SVM, nr_class=nr_class,
-               max_col_nr=2)
-    print('col scores timing: ', time.time() - start)
+    col_scores_parallel(
+        X=X_cv, y=y_cv, col_names=col_names, clf=SVM, nr_class=nr_class,
+        max_col_nr=max_col_nr)
+    print('col scores parallel timing: ', time.time() - start)
+
+    start = time.time()
+    col_scores_single_thread(
+        X=X_cv, y=y_cv, col_names=col_names, clf=SVM, nr_class=nr_class,
+        max_col_nr=max_col_nr)
+    print('col scores single timing: ', time.time() - start)
 
     # pca_scikit_train_test(X=X_cv, y=y_cv, clf=SVM)
     pca_scikit_train(X=X_cv, y=y_cv, clf=SVM)
