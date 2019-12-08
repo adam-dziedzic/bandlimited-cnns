@@ -830,6 +830,7 @@ def compute():
         X=X_cv, y=y_cv, col_names=col_names, clf=SVM, nr_class=nr_class,
         max_col_nr=max_col_nr)
     print('col scores parallel timing: ', time.time() - start)
+    sys.stdout.flush()
 
     # start = time.time()
     # col_scores_single_thread(
