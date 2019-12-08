@@ -821,7 +821,7 @@ def compute():
 
     SVM = classifiers["SVM"]
 
-    max_col_nr=2
+    max_col_nr=3
 
     start = time.time()
     col_scores_parallel(
