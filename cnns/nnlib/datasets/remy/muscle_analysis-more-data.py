@@ -8,6 +8,7 @@ from sklearn.base import ClassifierMixin, BaseEstimator
 import warnings
 import scipy
 import sklearn
+from sklearn.decomposition import PCA
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -87,12 +88,16 @@ class LeastSquareClassifier(BaseEstimator, ClassifierMixin):
         score = np.sum(y_hat == y)
         return score / n
 
+    def predict_proba(self, X):
+        X = self.add_ones_short(X)
+        return np.matmul(X, self.w)
+
 
 classifiers = {
     "Least Squares": LeastSquareClassifier(),
     "Nearest Neighbors": KNeighborsClassifier(3),
-    "SVM": SVC(kernel="linear", C=0.025),
-    "RBF SVM": SVC(gamma=2, C=1),
+    "SVM": SVC(kernel="linear", C=0.025, probability=True),
+    "RBF SVM": SVC(gamma=2, C=1, probability=True),
     "Gaussian Process": GaussianProcessClassifier(1.0 * RBF(1.0)),
     "Decision Tree": DecisionTreeClassifier(max_depth=None),
     "Random Forest": RandomForestClassifier(max_depth=5, n_estimators=10,
@@ -100,7 +105,8 @@ classifiers = {
     "Neural Net": MLPClassifier(alpha=0.01, max_iter=1000),
     "AdaBoost": AdaBoostClassifier(),
     "Naive Bayes": GaussianNB(),
-    "QDA": QuadraticDiscriminantAnalysis()}
+    "QDA": QuadraticDiscriminantAnalysis()
+}
 
 
 def find_w_X_more_rows_than_cols(X, y):
@@ -277,8 +283,10 @@ def cross_validate(X, Y, classifier, cv_count=6, nr_class=2, repeat=3,
             clf = classifier
             clf.fit(x_train, y_train)
             score = clf.score(x_test, y_test)
-            y_score = clf.predict(x_test)
-            auc = sklearn.metrics.roc_auc_score(y_true=y_test, y_score=y_score)
+            # y_score = clf.predict(x_test)
+            y_probs = clf.predict_proba(x_test)
+            auc = sklearn.metrics.roc_auc_score(y_true=y_test,
+                                                y_score=y_probs[:, 1])
             all_aucs.append(auc)
             all_accuracies.append(score)
 
@@ -331,7 +339,8 @@ def missing_values_row(data, nans, missing_rate=0.5):
     return remove_patients
 
 
-def normalize_with_nans(data, nans=999, means=None, stds=None, col_names=None):
+def normalize_with_nans(data, nans=999, means=None, stds=None,
+                        col_names=None):
     """
     Normalize the data after setting nans to mean values.
     :param data: the input data
@@ -506,7 +515,7 @@ def report(results, n_top=3):
             print("")
 
 
-def run_param_search(X, y, clf=SVC()):
+def run_param_search(X, y, clf=SVC(probability=True)):
     # specify parameters and distributions to sample from
     param_dist = {'C': scipy.stats.expon(scale=100),
                   'gamma': scipy.stats.expon(scale=.1),
@@ -523,6 +532,18 @@ def run_param_search(X, y, clf=SVC()):
     print("RandomizedSearchCV took %.2f seconds for %d candidates"
           " parameter settings." % ((time.time() - start), n_iter_search))
     report(random_search.cv_results_)
+
+
+def show_param_performance(X_cv, y_cv, nr_class, col_names):
+    print(
+        'Accuracy on self-crafted cross-validation with normalization: ')
+    for C in np.linspace(start=0.0001, stop=200, num=100):
+        for name, clf in [('SVM', SVC(kernel="linear", C=C, probability=True))]:
+            accuracy, auc = cross_validate(X_cv, y_cv, classifier=clf,
+                                           nr_class=nr_class,
+                                           col_names=col_names)
+            print(name, "C=", C, ",", accuracy_percent(accuracy), auc)
+    print()
 
 
 def svd_spectrum(X):
@@ -549,6 +570,29 @@ def svd_spectrum(X):
     plt.tight_layout()
     plt.savefig(output_path)
     plt.close()
+
+
+def pca(X, index):
+    XT = X.T  # samples in columns
+    u, s, vh = svd(a=XT, full_matrices=False)
+    # We want to project the samples on a lower dimensional space.
+    u = u[:, :index]
+    # Columns of z are the new lower dimensional coordinates for the intial samples.
+    z = np.matmul(X, u)
+    return z
+
+
+def accuracy_on_pca_data(X, y, classifiers, nr_class, col_names):
+    H, W = X.shape
+    print('PCA:')
+    print('index, accuracy, auc')
+    for index in range(1, H):
+        xpca = pca(X, index=index)
+        for name, clf in classifiers.items():
+            accuracy, auc = cross_validate(
+                X=xpca, Y=y, classifier=clf, nr_class=nr_class,
+                col_names=col_names)
+            print(index, accuracy, auc)
 
 
 def compute():
@@ -624,17 +668,15 @@ def compute():
     X_cv = np.concatenate((X[:30, :], X[31:61, :]))
     y_cv = np.concatenate((y[:30], y[31:61]))
 
-    run_param_search(X=X_cv, y=y_cv, clf=SVC())
+    SVM = classifiers["SVM"]
 
-    print(
-        'Accuracy on self-crafted cross-validation with normalization: ')
-    for C in np.linspace(start=0.0001, stop=200, num=100):
-        for name, clf in [('SVM', SVC(kernel="linear", C=C))]:
-            accuracy, auc = cross_validate(X_cv, y_cv, classifier=clf,
-                                           nr_class=nr_class,
-                                           col_names=col_names)
-            print(name, "C=", C, ",", accuracy_percent(accuracy), auc)
-    print()
+    accuracy_on_pca_data(X=X_cv, y=y_cv, classifiers={"SVM": SVM},
+                         nr_class=nr_class, col_names=col_names)
+
+    # run_param_search(X=X_cv, y=y_cv, clf=SVC(probability=True))
+
+    # show_param_performance(X_cv=X_cv, y_cv=y_cv, nr_class=nr_class,
+    #                        col_names=col_names)
 
     w_sorted_indexes = column_priority(X_norm, y, X_cv, y_cv, labels=col_names)
 
