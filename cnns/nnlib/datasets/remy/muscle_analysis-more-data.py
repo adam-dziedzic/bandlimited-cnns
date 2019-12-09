@@ -754,8 +754,8 @@ def compute():
     # data_path = os.path.join(dir_path, "remy_data_final_sign_class.csv")
     # data_path = os.path.join(dir_path, "clean-2019-11-24-3.csv")
 
-    # data_path = os.path.join(dir_path, "remy_2019_10_29.csv")
-    data_path = os.path.join(dir_path, "garrett_2019_11_24.csv")
+    data_path = os.path.join(dir_path, "remy_2019_10_29.csv")
+    # data_path = os.path.join(dir_path, "garrett_2019_11_24.csv")
     # data_path = os.path.join(dir_path, "arnold_2019_12_07.csv")
 
     print('data_path: ', data_path)
@@ -765,7 +765,10 @@ def compute():
     X = np.asarray(data_all.iloc[:, 1:], dtype=np.float)
     y = labels
     row_nr, col_nr = X.shape
+    assert len(y) == row_nr
     col_names = np.array(list(data_all.columns.values))
+    col_names = col_names[1:]  # skip the ASD column name
+    assert len(col_names) == col_nr
     # print('X: ', X)
     # print('y: ', y)
     # print('size of X: ', X.shape)
@@ -826,7 +829,7 @@ def compute():
 
     SVM = classifiers["SVM"]
 
-    max_col_nr=3
+    max_col_nr = 3
 
     start = time.time()
     col_scores_parallel(
