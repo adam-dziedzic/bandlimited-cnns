@@ -26,7 +26,7 @@ void complex_mul_deep_cuda(at::Tensor x, at::Tensor y, at::Tensor out);
 void check_input(at::Tensor x, at::Tensor y, at::Tensor out) {
     CHECK_INPUT(x);
     CHECK_INPUT(y);
-    CHECK_INPUT(out)
+    CHECK_INPUT(out);
 }
 
 void complex_mul_stride_no_permute(at::Tensor x, at::Tensor y, at::Tensor out,
