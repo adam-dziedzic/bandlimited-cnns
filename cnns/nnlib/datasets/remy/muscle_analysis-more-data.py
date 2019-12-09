@@ -754,9 +754,9 @@ def compute():
     # data_path = os.path.join(dir_path, "remy_data_final_sign_class.csv")
     # data_path = os.path.join(dir_path, "clean-2019-11-24-3.csv")
 
-    # data_path = os.path.join(dir_path, "remy_2019_10_29.csv")
+    data_path = os.path.join(dir_path, "remy_2019_10_29.csv")
     # data_path = os.path.join(dir_path, "arnold_2019_12_07.csv")
-    data_path = os.path.join(dir_path, "garrett_2019_11_24.csv")
+    # data_path = os.path.join(dir_path, "garrett_2019_11_24.csv")
 
     print('data_path: ', data_path)
     data_all = pd.read_csv(data_path, header=0)
@@ -824,12 +824,52 @@ def compute():
           accuracy_percent(accuracy))
 
     # for cross validation we take the same number of samples for each class
-    X_cv = np.concatenate((X[:30, :], X[31:61, :]))
-    y_cv = np.concatenate((y[:30], y[31:61]))
+    num_pos = np.count_nonzero(y == 1)
+    num_neg = np.count_nonzero(y == -1)
+    count = min(num_pos, num_neg)
+    X_cv = np.concatenate((X[:count, :], X[-count:, :]))
+    y_cv = np.concatenate((y[:count], y[-count:]))
 
     SVM = classifiers["SVM"]
 
-    max_col_nr = 3
+    col_order = []
+    if 'garrett' in data_path:
+        col_order = [126, 120, 130, 128, 111, 132, 116, 99, 100, 114, 129, 103,
+                     125, 94, 117, 131, 127, 115, 104, 121, 98, 92, 97, 112,
+                     113, 95, 119, 96, 118, 102, 101, 105, 122, 109, 184, 135,
+                     134, 179, 123, 107, 89, 180, 124, 178, 185, 106, 150, 10,
+                     155, 170, 55, 2, 176, 140, 160, 6, 52, 11, 74, 91, 56, 75,
+                     93, 110, 90, 154, 51, 174, 32, 145, 5, 133, 19, 73, 183,
+                     29, 27, 21, 78, 18, 14, 80, 144, 164, 69, 48, 151, 171,
+                     149, 169, 72, 1, 163, 88, 68, 31, 86, 143, 46, 84, 23, 44,
+                     85, 67, 79, 33, 24, 54, 63, 22, 82, 153, 173, 159, 139, 7,
+                     83, 181, 61, 30, 66, 62, 49, 16, 71, 161, 141, 58, 166,
+                     177, 42, 146, 45, 77, 142, 57, 162, 70, 65, 35, 20, 36, 41,
+                     39, 40, 60, 168, 148, 0, 26, 76, 157, 34, 87, 158, 156, 4,
+                     136, 138, 13, 147, 167, 137, 25, 172, 9, 43, 59, 152, 108,
+                     50, 8, 28, 64, 182, 17, 38, 12, 37, 81, 53, 47, 3, 175,
+                     165, 15]
+    if 'remy' in data_path:
+        col_order = [46, 89, 112, 62, 110, 90, 77, 31, 71, 76, 14, 63, 105, 70,
+                     80, 66, 100, 67, 30, 95, 113, 11, 78, 45, 73, 75, 72, 47,
+                     55, 35, 15, 41, 109, 10, 98, 108, 27, 79, 84, 65, 104, 51,
+                     74, 39, 25, 24, 26, 99, 83, 21, 54, 111, 40, 33, 32, 64,
+                     59, 28, 53, 87, 69, 61, 88, 106, 82, 20, 37, 29, 50, 44,
+                     34, 94, 18, 22, 8, 101, 58, 7, 43, 38, 81, 13, 6, 36, 103,
+                     60, 85, 49, 2, 56, 102, 16, 19, 3, 5, 1, 57, 12, 23, 42,
+                     17, 48, 86, 93, 97, 96, 91, 52, 92, 107, 4, 0, 9, 68]
+
+    print('SVM garrett accuracy col order')
+    print('nr of priority columns;accuracy')
+    for i in range(1, len(col_order) + 1):
+        cols_order = col_order[:i]
+        X_order = X_cv[:, cols_order]
+        accuracy, auc = cross_validate(
+            X_order, y_cv, classifier=SVM, nr_class=nr_class,
+            col_names=col_names)
+        print(i, delimiter, accuracy)
+
+    max_col_nr = 1
 
     start = time.time()
     col_scores_parallel(
