@@ -755,8 +755,8 @@ def compute():
     # data_path = os.path.join(dir_path, "clean-2019-11-24-3.csv")
 
     # data_path = os.path.join(dir_path, "remy_2019_10_29.csv")
-    data_path = os.path.join(dir_path, "arnold_2019_12_07.csv")
-    # data_path = os.path.join(dir_path, "garrett_2019_11_24.csv")
+    # data_path = os.path.join(dir_path, "arnold_2019_12_07.csv")
+    data_path = os.path.join(dir_path, "garrett_2019_11_24.csv")
 
     print('data_path: ', data_path)
     data_all = pd.read_csv(data_path, header=0)
