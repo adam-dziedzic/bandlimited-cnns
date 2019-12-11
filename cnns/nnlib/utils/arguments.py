@@ -478,7 +478,7 @@ class Arguments(object):
                  #     1, 10, 20, 25, 30, 40, 45, 50, 60, 70, 75, 80, 90],
                  # svd_compress_transform=[10, 5, 75, 60, 80., 90],
                  svd_transform=0.0,
-                 svd_compress_transform=[0.0],
+                 svd_compress_transform=[0.01],
                  svd_transform_type=SVDTransformType.SYNTHETIC_SVD,
                  # svd_transform_type=SVDTransformType.STANDARD_NUMPY,
                  fft_transform=0.0,
