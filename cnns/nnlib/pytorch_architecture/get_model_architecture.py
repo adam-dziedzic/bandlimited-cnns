@@ -1,5 +1,6 @@
 from cnns.nnlib.pytorch_architecture.le_net import LeNet
 from cnns.nnlib.pytorch_architecture.net import Net
+from cnns.nnlib.pytorch_architecture.net_eigen import NetEigen
 from cnns.nnlib.pytorch_architecture.net_synthetic import NetSynthetic
 from cnns.nnlib.pytorch_architecture.net_synthetic_svd import NetSyntheticSVD
 from cnns.nnlib.pytorch_architecture.net_synthetic_svd_channels import \
@@ -37,6 +38,8 @@ def getModelPyTorch(args, pretrained=False):
         return LeNet(args=args)
     elif network_type is NetworkType.Net:
         return Net(args=args)
+    elif network_type is NetworkType.NetEigen:
+        return NetEigen(args=args)
     elif network_type is NetworkType.NetSynthetic:
         return NetSynthetic(args=args)
     elif network_type is NetworkType.NetSyntheticSVD:

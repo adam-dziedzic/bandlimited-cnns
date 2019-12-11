@@ -31,6 +31,8 @@ class SVDCompressionTransformation(object):
             self.compress_f = to_svd_through_numpy
         elif args.svd_transform_type == SVDTransformType.SYNTHETIC_SVD:
             self.compress_f = svd_transformation
+        elif args.svd_transform_type == SVDTransformType.NONE:
+            self.compress_f = lambda x, compress_rate: x
         else:
             raise Exception(
                 f'Unknown svd_type: {args.svd_transform_type.name}')

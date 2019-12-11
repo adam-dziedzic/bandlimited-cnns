@@ -210,6 +210,7 @@ class SVDTransformType(EnumWithNames):
     STANDARD_NUMPY = 3
     COMPRESS_RESIZE = 4
     SYNTHETIC_SVD = 5
+    NONE = 6
 
 
 class NetworkType(EnumWithNames):
@@ -238,6 +239,7 @@ class NetworkType(EnumWithNames):
     NetSyntheticSVD = 23
     ResNet18SVD = 24
     NetSyntheticSVDChannels = 25
+    NetEigen = 26
 
 
 class CompressType(EnumWithNames):
