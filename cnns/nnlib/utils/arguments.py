@@ -85,10 +85,10 @@ if data_dim == "1D":
     # model_path = 'pytorch_behave1.model'
     in_channels = 1
 elif data_dim == "2D":
-    dataset = "mnist"
+    # dataset = "mnist"
     # dataset = "mnist_svd"
     # dataset = "synthetic"
-    # dataset = "cifar10"
+    dataset = "cifar10"
     # dataset = "cifar100"
     # dataset = "imagenet"
     # dataset = "svhn"
@@ -383,7 +383,7 @@ class Arguments(object):
                  noise_sigma=0.0,
                  # noise_sigmas=[0.0],
                  # noise_sigmas=[0.0000000001] + [x/1000 for x in range(1, 10)] + [x/100 for x in range(1, 10)] + [x/10 for x in range(1, 11)],
-                 noise_sigmas = [0.0],
+                 noise_sigmas = [0.02],
                  # noise_sigmas=[0.0],
                  # noise_sigmas=[0.05, 0.06, 0.07, 0.08, 0.09],
                  # noise_sigmas=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
@@ -410,8 +410,8 @@ class Arguments(object):
                  schedule_factor=schedule_factor,
                  compress_fft_layer=0,
                  # attack_name="CarliniWagnerL2AttackRoundFFT",
-                 # attack_name="CarliniWagnerL2Attack",
-                 attack_name=None,
+                 attack_name="CarliniWagnerL2Attack",
+                 # attack_name=None,
                  # attack_name="FGSM",
                  # attack_name="ProjectedGradientDescentAttack",
                  # attack_name="GaussAttack",
@@ -466,7 +466,7 @@ class Arguments(object):
                  # attack_strengths=[0.08, 0.09, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9],
                  # attack_strengths=(0.001, 0.01, 0.03, 0.04, 0.05, 0.07, 0.08, 0.09, 0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9, 1.0,),
                  # attack_strengths=(0.01,),
-                 attack_strengths = [0.0],
+                 attack_strengths = [0.1],
                  gradient_iters=1,
                  ensemble=1,
                  attack_confidence=0,
@@ -486,6 +486,7 @@ class Arguments(object):
                  svd_transform_type=SVDTransformType.NONE,
                  fft_transform=0.0,
                  fft_compress_transform=[0.0],
+                 binary_search_steps=1,
                  ):
         """
         The default parameters for the execution of the program.
@@ -635,6 +636,7 @@ class Arguments(object):
         self.svd_transform_type = svd_transform_type
         self.fft_transform = fft_transform
         self.fft_compress_transform = fft_compress_transform
+        self.binary_search_steps = binary_search_steps
 
         # deeprl
         # self.env_name = "Reacher-v2"

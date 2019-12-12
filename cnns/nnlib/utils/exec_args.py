@@ -524,6 +524,10 @@ def get_args():
                              "that should be applied for data pre-processing"
                              " (transformation). " + ",".join(
                             SVDTransformType.get_names()))
+    parser.add_argument('--binary_search_steps', type=int,
+                        default=args.binary_search_steps,
+                        help=f"# of binary search steps in the attacks"
+                        f" (default: {args.binary_search_steps})")
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)
     return args

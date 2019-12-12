@@ -785,10 +785,11 @@ def run(args):
                 if attack_name.startswith("Carlini"):
                     adv_image = attack(
                         original_image, args.True_class_id,
-                        # max_iterations=args.attack_max_iterations,
-                        # max_iterations=2, binary_search_steps=1,
+                        max_iterations=args.attack_max_iterations,
+                        # max_iterations=2,
+                        binary_search_steps=args.binary_search_steps,
                         # initial_const=1e+12,
-                        max_iterations=1000, binary_search_steps=5,
+                        # max_iterations=1000,
                         initial_const=args.attack_strength,
                         confidence=args.attack_confidence,
                     )
@@ -1790,10 +1791,11 @@ if __name__ == "__main__":
                                 if result_run.gauss_label is not None:
                                     if result_run.true_label == result_run.gauss_label:
                                         count_recovered += 1
-                                sum_L2_distance_defense += result_run.gauss_L2_distance
-                                sum_L1_distance_defense += result_run.gauss_L1_distance
-                                sum_Linf_distance_defense += result_run.gauss_Linf_distance
-                                sum_confidence_defense += result_run.gauss_confidence
+                                if args.noise_sigma > 0:
+                                    sum_L2_distance_defense += result_run.gauss_L2_distance
+                                    sum_L1_distance_defense += result_run.gauss_L1_distance
+                                    sum_Linf_distance_defense += result_run.gauss_Linf_distance
+                                    sum_confidence_defense += result_run.gauss_confidence
                                 if args.noise_iterations > 0 or args.recover_iterations > 0:
                                     if result_run.true_label == result_run.gauss_many_label:
                                         count_many_recovered += 1
