@@ -487,6 +487,7 @@ class Arguments(object):
                  fft_transform=0.0,
                  fft_compress_transform=[0.0],
                  binary_search_steps=1,
+                 use_set = 'train_set',
                  ):
         """
         The default parameters for the execution of the program.
@@ -637,6 +638,7 @@ class Arguments(object):
         self.fft_transform = fft_transform
         self.fft_compress_transform = fft_compress_transform
         self.binary_search_steps = binary_search_steps
+        self.use_set = use_set
 
         # deeprl
         # self.env_name = "Reacher-v2"

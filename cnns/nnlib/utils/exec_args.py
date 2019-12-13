@@ -528,6 +528,9 @@ def get_args():
                         default=args.binary_search_steps,
                         help=f"# of binary search steps in the attacks"
                         f" (default: {args.binary_search_steps})")
+    parser.add_argument('--use_set',
+                        type=str,
+                        default=args.use_set)
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)
     return args

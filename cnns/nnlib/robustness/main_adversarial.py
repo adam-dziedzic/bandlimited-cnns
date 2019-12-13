@@ -681,8 +681,15 @@ def run(args):
         images = images / 255
         # print("max value in images after 255 division: ", np.max(images))
     else:
-        images = test_dataset
-        # images = train_dataset
+        if args.use_set == 'test_set':
+            images = test_dataset
+        elif args.use_set == 'train_set':
+            images = train_dataset
+        else:
+            raise Exception("Unknown use set: ", args.use_set)
+        print(f"Using set: {args.use_set} for source of data to find "
+              f"adversarial examples.")
+
         labels = None
 
     # for attack_strength in args.attack_strengths:
