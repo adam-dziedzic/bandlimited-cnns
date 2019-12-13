@@ -46,15 +46,16 @@ def get_gradient_for_input(args, model, input: torch.tensor, target,
     # l2_norm = args.meter.measure_single_numpy(gradient)
     l2_norm = np.sqrt(np.sum(gradient * gradient))
     # l2_norm = np.sum(gradient * gradient)
-    return [gradient,
-            loss_value,
-            predicted_class,
-            l2_norm,
-            np.min(gradient),
-            np.mean(gradient),
-            np.max(gradient),
-            confidence
-            ]
+    return [
+        gradient,
+        loss_value,
+        predicted_class,
+        l2_norm,
+        np.min(gradient),
+        np.mean(gradient),
+        np.max(gradient),
+        confidence
+    ]
 
 
 def gauss_noise_torch(epsilon, images, bounds):
