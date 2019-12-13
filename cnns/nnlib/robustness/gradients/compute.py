@@ -103,10 +103,12 @@ def compute_gradients(args, model, original_image: torch.tensor, original_label,
                                                    input=original_image,
                                                    target=original_label)
     assert grad_original_correct[2] == original_label, 'wrong classification'
+    grads['original_correct'] = grad_original_correct
 
     grad_original_zero = get_gradient_for_input(args=args, model=model,
                                                 input=original_image,
                                                 target=target)
+    grads['original_zero'] = grad_original_zero
 
     for class_nr in range(args.num_classes):
         grad_original = get_gradient_for_input(
@@ -147,22 +149,23 @@ def compute_gradients(args, model, original_image: torch.tensor, original_label,
         grads['adv_correct'] = grad_adv_correct
         grads['adv_adv'] = grad_adv_adv
         grads['adv_zero'] = grad_adv_zero
-        grads['gauss_adv'] = grad_gauss_adv
+        if gauss_image is not None:
+            grads['gauss_adv'] = grad_gauss_adv
 
-    grad_gauss_correct = get_gradient_for_input(args=args, model=model,
-                                                input=gauss_image,
-                                                target=original_label)
+    if gauss_image is not None:
+        grad_gauss_correct = get_gradient_for_input(args=args, model=model,
+                                                    input=gauss_image,
+                                                    target=original_label)
 
-    grad_gauss_zero = get_gradient_for_input(args=args, model=model,
-                                             input=gauss_image, target=target)
+        grad_gauss_zero = get_gradient_for_input(args=args, model=model,
+                                                 input=gauss_image,
+                                                 target=target)
+
+        grads['gauss_correct'] = grad_gauss_correct
+        grads['gauss_zero'] = grad_gauss_zero
 
     eta_grad, eta_x = get_gradient_g1g2_wrt_x(args=args, model=model,
                                               input=original_image)
-
-    grads['original_correct'] = grad_original_correct
-    grads['original_zero'] = grad_original_zero
-    grads['gauss_correct'] = grad_gauss_correct
-    grads['gauss_zero'] = grad_gauss_zero
 
     if adv_image is not None:
         results['l2_norm_adv_adv'] = np.sqrt(
@@ -190,12 +193,13 @@ def compute_gradients(args, model, original_image: torch.tensor, original_label,
         results['original_dot_adv_zero'] = np.sum(
             grad_original_adv[0] * grad_original_zero[0])
 
-        results['gauss_dot_adv_correct'] = np.sum(
-            grad_gauss_adv[0] * grad_gauss_correct[0])
-        results['l2_norm_gauss_adv'] = np.sqrt(
-            np.sum(grad_gauss_adv[0] * grad_gauss_adv[0]))
-        results['gauss_dot_adv_zero'] = np.sum(
-            grad_gauss_adv[0] * grad_gauss_zero[0])
+        if gauss_image is not None:
+            results['gauss_dot_adv_correct'] = np.sum(
+                grad_gauss_adv[0] * grad_gauss_correct[0])
+            results['l2_norm_gauss_adv'] = np.sqrt(
+                np.sum(grad_gauss_adv[0] * grad_gauss_adv[0]))
+            results['gauss_dot_adv_zero'] = np.sum(
+                grad_gauss_adv[0] * grad_gauss_zero[0])
 
         results['z_l2_dist_adv_org_image'] = args.meter.measure(original_image,
                                                                 adv_image)
@@ -212,15 +216,16 @@ def compute_gradients(args, model, original_image: torch.tensor, original_label,
     results['original_dot_correct_zero'] = np.sum(
         grad_original_correct[0] * grad_original_zero[0])
 
-    results['l2_norm_gauss_correct'] = np.sqrt(
-        np.sum(grad_gauss_correct[0] * grad_gauss_correct[0]))
-    results['l2_norm_gauss_zero'] = np.sqrt(
-        np.sum(grad_gauss_zero[0] * grad_gauss_zero[0]))
+    if gauss_image is not None:
+        results['l2_norm_gauss_correct'] = np.sqrt(
+            np.sum(grad_gauss_correct[0] * grad_gauss_correct[0]))
+        results['l2_norm_gauss_zero'] = np.sqrt(
+            np.sum(grad_gauss_zero[0] * grad_gauss_zero[0]))
 
-    results['gauss_dot_correct_correct'] = np.sum(
-        grad_gauss_correct[0] * grad_gauss_correct[0])
-    results['gauss_dot_correct_zero'] = np.sum(
-        grad_gauss_correct[0] * grad_gauss_zero[0])
+        results['gauss_dot_correct_correct'] = np.sum(
+            grad_gauss_correct[0] * grad_gauss_correct[0])
+        results['gauss_dot_correct_zero'] = np.sum(
+            grad_gauss_correct[0] * grad_gauss_zero[0])
 
     results['eta_grad'] = eta_grad
     results['eta_x'] = eta_x

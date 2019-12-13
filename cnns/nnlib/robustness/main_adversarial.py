@@ -996,8 +996,9 @@ def run(args):
                   result_gauss.label, result_gauss.class_id)
         else:
             result.gauss_label = None
+            gauss_image = None
 
-        if original_result.class_id == args.True_class_id and args.noise_sigma > 0:
+        if original_result.class_id == args.True_class_id:
             gradients, grad_stats = compute_gradients(args=args,
                                                       model=pytorch_model,
                                                       original_image=original_image,
@@ -1018,22 +1019,23 @@ def run(args):
                 grad_stats['original_class'] = original_result.class_id
             else:
                 grad_stats['original_confidence'] = 'N/A'
-            if result_gauss:
+            if gauss_image is not None and result_gauss:
                 is_gauss_recovered = (
                         result_gauss.class_id == args.True_class_id)
                 grad_stats['is_gauss_recovered'] = is_gauss_recovered
                 grad_stats['gauss_label'] = result_gauss.label
                 grad_stats['gauss_class'] = result_gauss.class_id
+
+                l2_norm_gauss_img_org_label_gradients.append(
+                    grad_stats['l2_norm_gauss_correct'])
             else:
                 # raise Exception('We need the result of adding Gaussian noise.')
                 grad_stats['is_gauss_recovered'] = 'N/A'
+                is_gauss_recovered = 'NotApplied'
 
             grad_stats['image_index'] = args.image_index
             grad_stats['adv_attack_name'] = args.attack_name
             grad_stats['adv_attack_strength'] = args.attack_strength
-
-            l2_norm_gauss_img_org_label_gradients.append(
-                grad_stats['l2_norm_gauss_correct'])
 
             # Write with respect to the recovered or not.
             file_recovered_name = args.global_log_time + '_grad_stats_' + str(
@@ -1950,7 +1952,8 @@ if __name__ == "__main__":
 
                             l2_norm_gauss_img_org_label_gradients = []
 
-                            with open('gauss_l2_norm_gradient_org_label', "a") as f:
+                            with open('gauss_l2_norm_gradient_org_label',
+                                      "a") as f:
                                 f.write(delimiter.join([str(x) for x in
                                                         [args.noise_sigma,
                                                          avg_l2_norm_gauss_gradient,
