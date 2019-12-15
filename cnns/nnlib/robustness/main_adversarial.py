@@ -1042,6 +1042,8 @@ def run(args):
 
             grad_stats['image_index'] = args.image_index
             grad_stats['adv_attack_name'] = args.attack_name
+            grad_stats['adv_attack_confidence'] = args.attack_confidence
+            grad_stats['adv_attack_use_set'] = args.use_set
             grad_stats['adv_attack_strength'] = args.attack_strength
 
             # Write with respect to the recovered or not.
