@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import matplotlib
 import numpy as np
-
+import time
 # matplotlib.use('TkAgg')
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
@@ -16,9 +16,9 @@ from cnns.nnlib.utils.general_utils import get_log_time
 print(matplotlib.get_backend())
 
 delimiter = ';'
-classes_nr = 10
+classes_nr = 1000
 max_cols = 20 * classes_nr
-attack_name = "Simba"
+attack_name = "C & W"
 
 ylabel_size = 25
 font = {'size': 30}
@@ -189,7 +189,7 @@ def plot_results(results):
     # plt.xticks(np.arange(min(x), max(x) + 5000, 5000))
     # plt.xlim(0, 23000)
     # plt.grid()
-    plt.legend(loc='center right',
+    plt.legend(loc='lower right',
                frameon=frameon,
                prop={'size': legend_size},
                # bbox_to_anchor=bbox_to_anchor,
@@ -363,24 +363,28 @@ def compute():
         'dist adv org']
     header_str = delimiter.join(header)
     print(header_str)
-    results = []
-    files = [
-        # "2019-12-15-21-26-40-429251_cifar10_grad_stats-simba.csv", # skr
-        # "2019-12-13-12-56-32-374438_cifar10_grad_stats-simba.csv" # skr
-        # "2019-12-15-23-02-54-338101_cifar10_grad_stats-simba.csv",
-        # "2019-12-15-23-13-44-482865_cifar10_grad_stats-simba.csv",
-        "simba/2019-12-16-06-34-18-485577_cifar10_grad_stats.csv",  # p300-1for
-        "simba/2019-12-16-06-34-18-469832_cifar10_grad_stats.csv",
-        "simba/2019-12-16-06-32-10-895211_cifar10_grad_stats.csv",
-        "simba/2019-12-16-06-08-58-399800_cifar10_grad_stats.csv",
-        "simba/2019-12-16-06-29-52-436515_cifar10_grad_stats.csv",
-        "simba/2019-12-16-06-29-27-050725_cifar10_grad_stats.csv",
-    ]
-    for file_name in files:
-        get_file_stats(file_name,
-                       class_type=class_type,
-                       results=results)
-    results = sorted(results, key=lambda val: val[0])
+    computed_results = True
+    if computed_results:
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        file_name = 'carlini_imagenet/carlini_imagenet_results.csv'
+        results_path = os.path.join(dir_path, file_name)
+        results = np.genfromtxt(fname=results_path,
+                      dtype=np.float,
+                      delimiter=";")
+    else:
+        results = []
+        prefix = "carlini_imagenet/"
+        files = [
+            "2019-12-16-00-46-33-836539_imagenet_grad_stats.csv",
+            "2019-12-16-00-42-03-299869_imagenet_grad_stats.csv",
+        ]
+        for file_name in files:
+            full_name = prefix + file_name
+            print("file full_name: ", full_name)
+            get_file_stats(full_name,
+                           class_type=class_type,
+                           results=results)
+        results = sorted(results, key=lambda val: val[0])
 
     print('Sorted results: ')
     for result in results:
@@ -391,4 +395,6 @@ def compute():
 
 
 if __name__ == "__main__":
+    start = time.time()
     compute()
+    print('Elapsed time: ', time.time() - start)
