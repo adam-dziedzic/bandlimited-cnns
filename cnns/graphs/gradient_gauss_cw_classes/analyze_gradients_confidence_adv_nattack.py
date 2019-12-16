@@ -17,7 +17,7 @@ print(matplotlib.get_backend())
 
 delimiter = ';'
 classes_nr = 10
-max_cols = 20 * classes_nr
+max_cols = 30 * classes_nr
 
 ylabel_size = 25
 font = {'size': 30}
@@ -364,9 +364,8 @@ def compute():
     print(header_str)
     results = []
     files = [
-        "2019-12-15-21-26-40-429251_cifar10_grad_stats-simba.csv", # skr
-        # "2019-12-13-12-56-32-374438_cifar10_grad_stats-simba.csv" # skr
-        "2019-12-15-23-02-54-338101_cifar10_grad_stats.csv",
+        # "2019-12-15-23-08-24-215841_cifar10_grad_stats-nattack.csv", # skr
+        "2019-12-15-23-08-24-215841_cifar10_grad_stats.csv",
     ]
     for file_name in files:
         get_file_stats(file_name,

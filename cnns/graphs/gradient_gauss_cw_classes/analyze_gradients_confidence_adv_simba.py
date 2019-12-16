@@ -366,7 +366,8 @@ def compute():
     files = [
         "2019-12-15-21-26-40-429251_cifar10_grad_stats-simba.csv", # skr
         # "2019-12-13-12-56-32-374438_cifar10_grad_stats-simba.csv" # skr
-        "2019-12-15-23-02-54-338101_cifar10_grad_stats.csv",
+        "2019-12-15-23-02-54-338101_cifar10_grad_stats-simba.csv",
+        "2019-12-15-23-13-44-482865_cifar10_grad_stats-simba.csv",
     ]
     for file_name in files:
         get_file_stats(file_name,
