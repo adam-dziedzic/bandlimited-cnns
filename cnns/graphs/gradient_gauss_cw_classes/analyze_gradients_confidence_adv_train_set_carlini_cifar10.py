@@ -156,7 +156,10 @@ def plot_results(results):
     plt.subplot(2, 1, 1)
     plt.title("Carlini-Wagner $L_2$ attack (CIFAR-10 train set)", fontsize=title_size)
 
+    # attack strength
     x = results[:, 0]
+
+    # % loweset gradient == highest confidence
     y_1 = results[:, 1] * 100
 
     plt.plot(x, y_1,
@@ -168,17 +171,18 @@ def plot_results(results):
              color=get_color(MY_BLUE)
              )
 
-    # condition number
+    # % adv examples
     y_2 = results[:, 2] * 100
 
     plt.plot(x, y_2,
              # label='train on SVD representation (3 channels, V*D*U is p by p)',
-             label="% adversarial examples found",
+             label="% adv found",
              lw=lw,
              linestyle='-',
              marker='o',
              color=get_color(MY_RED)
              )
+
 
     # plt.xlabel("C&W $L_2$ attack strength")
     plt.ylabel("Normalized %", fontsize=ylabel_size)
@@ -281,6 +285,11 @@ def get_file_stats(file_name, results, class_type='adv'):
                                 dtype=np.bool)
         # print('total recovered: ', np.nansum(recovered))
 
+        adv_confidence = get_col_val(data=data,
+                                   col_name='adv_confidence',
+                                   dtype=np.float)
+        avg_adv_confidence = np.nanmean(adv_confidence)
+
         dist_adv_org = get_col_val(data=data,
                                    col_name='z_l2_dist_adv_org_image',
                                    dtype=np.float)
@@ -338,6 +347,7 @@ def get_file_stats(file_name, results, class_type='adv'):
             count_lowest,
             count_highest,
             adv_found,
+            avg_adv_confidence,
             np.sum(recovered),
             np.mean(dist_adv_org)]
         results.append(values)

@@ -23,7 +23,7 @@ font = {'size': 30}
 matplotlib.rc('font', **font)
 lw = 4
 fontsize = 25
-legend_size = fontsize
+legend_size = 20
 title_size = fontsize
 font = {'size': fontsize}
 matplotlib.rc('font', **font)
@@ -154,14 +154,17 @@ def plot_graph(recovered_org_grad, recovered_2nd_grad,
 def plot_results(results):
     fig = plt.figure(figsize=(16, 7))
     plt.subplot(2, 1, 1)
-    plt.title("Carlini-Wagner $L_2$ attack", fontsize=title_size)
+    confidence = results[0, -2]
+    plt.title(
+        f"Carlini-Wagner $L_2$ attack (confidence={confidence})",
+        fontsize=title_size)
 
     x = results[:, 0]
     y_1 = results[:, 1] * 100
 
     plt.plot(x, y_1,
              # label='train on SVD representation (3 channels, V*D*U is p by p)',
-             label=f"% lowest gradient = highest confidence",
+             label=f"lowest gradient = highest confidence",
              lw=lw,
              linestyle=":",
              marker='',
@@ -173,11 +176,23 @@ def plot_results(results):
 
     plt.plot(x, y_2,
              # label='train on SVD representation (3 channels, V*D*U is p by p)',
-             label="% adversarial examples found",
+             label="adversarial examples found",
              lw=lw,
              linestyle='-',
              marker='o',
              color=get_color(MY_RED)
+             )
+
+    # % confidence value
+    y_3 = results[:, 3] * 100
+
+    plt.plot(x, y_3,
+             # label='train on SVD representation (3 channels, V*D*U is p by p)',
+             label="avg adv confidence",
+             lw=lw,
+             linestyle='-',
+             marker='^',
+             color=get_color(MY_GREEN)
              )
 
     # plt.xlabel("C&W $L_2$ attack strength")
@@ -236,12 +251,23 @@ def get_file_stats(file_name, results, class_type='adv'):
     dir_path = os.path.dirname(os.path.realpath(__file__))
     data_path = os.path.join(dir_path, file_name)
     start_from_line = None
-    max_cols = 157
+    max_cols = 200
     data_all = pd.read_csv(
         data_path, header=start_from_line, sep=delimiter,
         error_bad_lines=False, names=list(range(0, max_cols)))
     # print('shape of data all: ', data_all.shape)
     # print(data_all.head(5))
+
+    attack_confidences_name = 'adv_attack_confidence'
+
+    attack_confidences = get_col_val(data=data_all,
+                                     col_name=attack_confidences_name,
+                                     dtype=np.float)
+
+    unique_confidences = np.unique(attack_confidences)
+    assert len(unique_confidences) == 1
+    attack_confidence = unique_confidences[0]
+
     attack_strength_name = 'adv_attack_strength'
 
     attack_strengths = get_col_val(data=data_all,
@@ -262,7 +288,7 @@ def get_file_stats(file_name, results, class_type='adv'):
         correctly_classified = H
         # print('correctly_classified: ', correctly_classified)
 
-        adv_class_name_col = 4
+        adv_class_name_col = 8
         data = data[data.iloc[:, adv_class_name_col] == 'adv_class']
         H, W = data.shape
         adv_found = H
@@ -291,6 +317,11 @@ def get_file_stats(file_name, results, class_type='adv'):
         for class_nr in range(classes_nr):
             col_names += [class_type + '_confidence_class_' + str(class_nr)]
         conf_vals = get_col_vals(data=data, col_names=col_names)
+
+        adv_confidence = get_col_val(data=data_all,
+                                     col_name='adv_confidence',
+                                     dtype=np.float)
+        avg_adv_confidence = np.nanmean(adv_confidence)
 
         recovered_org_grad = []
         recovered_2nd_grad = []
@@ -334,11 +365,13 @@ def get_file_stats(file_name, results, class_type='adv'):
             attack_strength,
             count_lowest / adv_found,
             adv_found / correctly_classified,
+            avg_adv_confidence,
             correctly_classified,
             count_lowest,
             count_highest,
             adv_found,
             np.sum(recovered),
+            attack_confidence,
             np.mean(dist_adv_org)]
         results.append(values)
         values_str = delimiter.join([str(x) for x in values])
@@ -354,35 +387,36 @@ def compute():
         'adv strength',
         'agreement lowest gradient and max confidence',
         '% of adv (out of correctly classified)',
+        'avg prediction confidence',
         'correctly classified',
         'norm lowest for ' + class_type,
         'norm highest for ' + class_type,
         'adv found',
         'recovered number',
+        'attack confidence',
         'dist adv org']
     header_str = delimiter.join(header)
     print(header_str)
-    results = []
     files = [
-        "2019-12-13-12-53-46-542496_cifar10_grad_stats.csv", # skr
-        "2019-12-13-12-56-32-374438_cifar10_grad_stats.csv", # skr
-        "2019-12-13-18-58-51-053128_cifar10_grad_stats.csv",
-        "2019-12-13-19-01-31-196764_cifar10_grad_stats.csv",
-        "2019-12-13-19-16-31-829369_cifar10_grad_stats.csv",
-        "2019-12-13-19-19-19-825889_cifar10_grad_stats.csv",
+        "2019-12-15-19-05-42-798917_cifar10_grad_stats.csv",
+        "2019-12-15-19-05-42-897714_cifar10_grad_stats.csv",
+        "2019-12-15-19-05-43-009107_cifar10_grad_stats.csv",
+        "2019-12-15-19-05-43-110562_cifar10_grad_stats.csv",
     ]
     for file_name in files:
+        results = []
+        print('file_name: ', file_name)
         get_file_stats(file_name,
                        class_type=class_type,
                        results=results)
-    results = sorted(results, key=lambda val: val[0])
+        results = sorted(results, key=lambda val: val[0])
 
-    print('Sorted results: ')
-    for result in results:
-        for val in result:
-            print(str(val) + delimiter, end="")
-        print()
-    plot_results(np.array(results))
+        print('Sorted results: ')
+        for result in results:
+            for val in result:
+                print(str(val) + delimiter, end="")
+            print()
+        plot_results(np.array(results))
 
 
 if __name__ == "__main__":

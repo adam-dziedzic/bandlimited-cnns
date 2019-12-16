@@ -154,7 +154,7 @@ def plot_graph(recovered_org_grad, recovered_2nd_grad,
 def plot_results(results):
     fig = plt.figure(figsize=(16, 7))
     plt.subplot(2, 1, 1)
-    plt.title("Carlini-Wagner $L_2$ attack (CIFAR-10 test set)", fontsize=title_size)
+    plt.title("Carlini-Wagner $L_2$ attack (confidence=1000)", fontsize=title_size)
 
     x = results[:, 0]
     y_1 = results[:, 1] * 100
@@ -180,12 +180,24 @@ def plot_results(results):
              color=get_color(MY_RED)
              )
 
+    # % confidence value
+    y_3 = results[:, 3] * 100
+
+    plt.plot(x, y_3,
+             # label='train on SVD representation (3 channels, V*D*U is p by p)',
+             label="avg adv confidence",
+             lw=lw,
+             linestyle='-',
+             marker='^',
+             color=get_color(MY_GREEN)
+             )
+
     # plt.xlabel("C&W $L_2$ attack strength")
     plt.ylabel("Normalized %", fontsize=ylabel_size)
     plt.xscale('log', basex=10)
     plt.ylim(0, 100)
-    minx = 0.00001
-    maxx = 100
+    minx = 0.0001
+    maxx = 10
     plt.xlim(minx, maxx)
     # plt.xticks(np.arange(min(x), max(x) + 5000, 5000))
     # plt.xlim(0, 23000)
@@ -289,6 +301,12 @@ def get_file_stats(file_name, results, class_type='adv'):
                                    dtype=np.float)
         # print('averge l2 dist adv org: ', np.nanmean(dist_adv_org))
 
+        adv_confidence = get_col_val(data=data,
+                                     col_name='adv_confidence',
+                                     dtype=np.float)
+        avg_adv_confidence = np.nanmean(adv_confidence)
+
+
         class_type = 'org' if class_type == 'original' else 'adv'
         col_names = []
         for class_nr in range(classes_nr):
@@ -337,6 +355,7 @@ def get_file_stats(file_name, results, class_type='adv'):
             attack_strength,
             count_lowest / adv_found,
             adv_found / correctly_classified,
+            avg_adv_confidence,
             correctly_classified,
             count_lowest,
             count_highest,
@@ -357,6 +376,7 @@ def compute():
         'adv strength',
         'agreement lowest gradient and max confidence',
         '% of adv (out of correctly classified)',
+        'avg prediction confidence',
         'correctly classified',
         'norm lowest for ' + class_type,
         'norm highest for ' + class_type,
