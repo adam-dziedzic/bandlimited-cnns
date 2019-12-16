@@ -154,7 +154,7 @@ def plot_graph(recovered_org_grad, recovered_2nd_grad,
 def plot_results(results):
     fig = plt.figure(figsize=(16, 7))
     plt.subplot(2, 1, 1)
-    plt.title("Carlini-Wagner $L_2$ attack (CIFAR-10 test set)", fontsize=title_size)
+    plt.title("Carlini-Wagner $L_2$ attack", fontsize=title_size)
 
     x = results[:, 0]
     y_1 = results[:, 1] * 100
@@ -184,9 +184,6 @@ def plot_results(results):
     plt.ylabel("Normalized %", fontsize=ylabel_size)
     plt.xscale('log', basex=10)
     plt.ylim(0, 100)
-    minx = 0.00001
-    maxx = 100
-    plt.xlim(minx, maxx)
     # plt.xticks(np.arange(min(x), max(x) + 5000, 5000))
     # plt.xlim(0, 23000)
     # plt.grid()
@@ -214,7 +211,7 @@ def plot_results(results):
     plt.xscale('log', basex=10)
     # plt.ylim(0, 100)
     # plt.xticks(np.arange(min(x), max(x) + 5000, 5000))
-    plt.xlim(minx, maxx)
+    # plt.xlim(0, 23000)
     # plt.grid()
     plt.legend(loc='lower right',
                frameon=frameon,

@@ -154,7 +154,7 @@ def plot_graph(recovered_org_grad, recovered_2nd_grad,
 def plot_results(results):
     fig = plt.figure(figsize=(16, 7))
     plt.subplot(2, 1, 1)
-    plt.title("Carlini-Wagner $L_2$ attack (CIFAR-10 test set)", fontsize=title_size)
+    plt.title("Carlini-Wagner $L_2$ attack (CIFAR-10 train set)", fontsize=title_size)
 
     x = results[:, 0]
     y_1 = results[:, 1] * 100
@@ -184,9 +184,6 @@ def plot_results(results):
     plt.ylabel("Normalized %", fontsize=ylabel_size)
     plt.xscale('log', basex=10)
     plt.ylim(0, 100)
-    minx = 0.00001
-    maxx = 100
-    plt.xlim(minx, maxx)
     # plt.xticks(np.arange(min(x), max(x) + 5000, 5000))
     # plt.xlim(0, 23000)
     # plt.grid()
@@ -214,7 +211,7 @@ def plot_results(results):
     plt.xscale('log', basex=10)
     # plt.ylim(0, 100)
     # plt.xticks(np.arange(min(x), max(x) + 5000, 5000))
-    plt.xlim(minx, maxx)
+    # plt.xlim(0, 23000)
     # plt.grid()
     plt.legend(loc='lower right',
                frameon=frameon,
@@ -367,12 +364,10 @@ def compute():
     print(header_str)
     results = []
     files = [
-        "2019-12-13-12-53-46-542496_cifar10_grad_stats.csv", # skr
-        "2019-12-13-12-56-32-374438_cifar10_grad_stats.csv", # skr
-        "2019-12-13-18-58-51-053128_cifar10_grad_stats.csv",
-        "2019-12-13-19-01-31-196764_cifar10_grad_stats.csv",
-        "2019-12-13-19-16-31-829369_cifar10_grad_stats.csv",
-        "2019-12-13-19-19-19-825889_cifar10_grad_stats.csv",
+        "2019-12-15-18-58-00-966361_cifar10_grad_stats.csv",
+        "2019-12-15-18-58-00-948324_cifar10_grad_stats.csv",
+        "2019-12-15-18-58-00-912424_cifar10_grad_stats.csv",
+        "2019-12-15-18-42-35-394475_cifar10_grad_stats.csv",
     ]
     for file_name in files:
         get_file_stats(file_name,
