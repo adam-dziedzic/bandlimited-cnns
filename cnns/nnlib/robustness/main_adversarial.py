@@ -596,9 +596,16 @@ def run(args):
         attack = FFTLimitMagnitudesAttack(fmodel)
     elif args.attack_name == "Nattack":
         # We operate directly in PyTorch.
-        attack = Nattack(model=pytorch_model, args=args)
-    elif args.attack_name == 'SimbaSingle':
-        attack = SimbaSingle(model=pytorch_model, args=args)
+        attack = Nattack(model=pytorch_model,
+                         args=args,
+                         iterations=args.attack_max_iterations,
+                         sigma=args.attack_strength)
+    elif args.attack_name == "SimbaSingle":
+        # This is a simple attack for a single image in the pixel space.
+        attack = SimbaSingle(model=pytorch_model,
+                             args=args,
+                             iterations=args.attack_max_iterations,
+                             epsilon=args.attack_strength)
     elif args.attack_name == "EmptyAttack":
         attack = EmptyAttack(fmodel)
     elif args.attack_name is None or args.attack_name == 'None':

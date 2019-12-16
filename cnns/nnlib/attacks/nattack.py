@@ -3,9 +3,8 @@ import torch
 from foolbox.attacks.base import Attack
 import cv2
 
-# npop = 300  # population size
-npop = 100  # population size
-sigma = 0.1  # noise standard deviation
+npop = 300  # population size
+# npop = 100  # population size
 alpha = 0.02  # learning rate
 # alpha = 0.001  # learning rate
 boxmin = 0
@@ -29,7 +28,7 @@ def torch_arctanh(x, eps=1e-6):
 
 class Nattack(Attack):
 
-    def __init__(self, args, model, iterations=500):
+    def __init__(self, args, model, iterations=500, sigma=0.1):
         super(Nattack, self).__init__()
         self.model = model
         self.means = args.mean_array
@@ -37,15 +36,20 @@ class Nattack(Attack):
         self.iterations = iterations
         self.is_debug = args.is_debug
         self.dataset = args.dataset
+        self.sigma = sigma
 
     def __call__(self, input_or_adv, label=None, unpack=True,
                  is_channel_last=False):
-        return nattack(input=input_or_adv, target=label, model=self.model,
-                       means=self.means, stds=self.stds,
+        return nattack(input=input_or_adv,
+                       target=label,
+                       model=self.model,
+                       means=self.means,
+                       stds=self.stds,
                        is_channel_last=is_channel_last,
                        iterations=self.iterations,
                        is_debug=self.is_debug,
-                       dataset=self.dataset)
+                       dataset=self.dataset,
+                       sigma=self.sigma)
 
 
 default_mean_array = np.array([0.0, 0.0, 0.0], dtype=np.float32).reshape(
@@ -68,7 +72,10 @@ def clipping(realdist, dist_type):
     return realclipdist
 
 
-def nattack(input, target, model,
+def nattack(input,
+            target,
+            model,
+            sigma=0.1,  # noise standard deviation
             means=default_mean_array,
             stds=default_std_array,
             is_channel_last=False,
