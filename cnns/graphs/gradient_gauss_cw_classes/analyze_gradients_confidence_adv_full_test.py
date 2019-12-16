@@ -364,8 +364,8 @@ def compute():
     print(header_str)
     results = []
     files = [
-        "2019-12-13-12-53-46-542496_cifar10_grad_stats.csv",
-        "2019-12-13-12-56-32-374438_cifar10_grad_stats.csv",
+        "2019-12-13-12-53-46-542496_cifar10_grad_stats.csv", # skr
+        "2019-12-13-12-56-32-374438_cifar10_grad_stats.csv", # skr
         "2019-12-13-18-58-51-053128_cifar10_grad_stats.csv",
         "2019-12-13-19-01-31-196764_cifar10_grad_stats.csv",
         "2019-12-13-19-16-31-829369_cifar10_grad_stats.csv",

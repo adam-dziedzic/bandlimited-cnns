@@ -19,7 +19,10 @@ def simba_single(model, x, y, num_iters=10000, epsilon=0.2, dataset='imagenet'):
     last_probs = get_probs(model, x, dataset=dataset)
     for i in range(num_iters):
         diff = torch.zeros(n_dims)
-        diff[perm[i]] = epsilon
+        try:
+            diff[perm[i]] = epsilon
+        except IndexError:
+            continue
         probs = get_probs(model, (x - diff.view(x.size())).clamp(0, 1),
                           dataset=dataset)
         if probs[y] < last_probs[y]:
