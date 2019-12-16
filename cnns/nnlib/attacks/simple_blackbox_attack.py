@@ -29,6 +29,9 @@ class SimbaSingle(Attack):
             num_iters=self.iterations,
             epsilon=self.epsilon,
             dataset=self.dataset)
+
+        if output_tensor is None:
+            return None
         # output_tensor = self.args.normalizer(output_tensor.detach())
         output_tensor = self.ranger.to_torch(output_tensor.detach(),
                                              dataset=self.dataset)
