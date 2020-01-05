@@ -576,9 +576,10 @@ def compute():
     warnings.filterwarnings("ignore")
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
-    data_path = os.path.join(
-        dir_path,
-        "data_journal/NLOS-6/2_classes_WIFI/2_classes_WIFI")
+    # wifi_path = "data_journal/NLOS-6/2_classes_WIFI/2_classes_WIFI"
+    wifi_path = "data_journal/NLOS-6/3_classes_WIFI/3_classes_WIFI"
+
+    data_path = os.path.join(dir_path, wifi_path)
     limit_row_nr = None
     X_train, y_train = get_data(data_path=data_path + '_TRAIN',
                                 limit_row_nr=limit_row_nr)

@@ -43,7 +43,7 @@ for sample_size in sample_sizes:
 
     datasets = dict()
     path_prefix = 'data_journal/'
-    start_counter = 1
+    start_counter = 0
     max_class = 3
     class_counter = max_class - start_counter
 

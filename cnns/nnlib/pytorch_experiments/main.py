@@ -384,7 +384,8 @@ def main(args):
     elif dataset_name == "svhn":
         train_loader, test_loader, _, _ = get_svhn(args)
     elif dataset_name.startswith("WIFI") or dataset_name.startswith(
-            '2_classes_WiFi') or dataset_name.startswith('Case'):
+            '2_classes_WiFi') or dataset_name.startswith(
+        'Case') or dataset_name.startswith('2_classes_WIFI'):
         # train_loader, test_loader, dev_loader = get_ucr(args)
         test_loader, train_loader, dev_loader = get_ucr(args)
     elif dataset_name in os.listdir(ucr_path):  # dataset from UCR archive
@@ -668,7 +669,7 @@ if __name__ == '__main__':
         flist = ["imagenet"]
     elif args.dataset == "deeprl":
         flist = ["deeprl"]
-    elif args.dataset.startswith("WIFI") or args.dataset.startswith(
+    elif "WIFI" in args.dataset or args.dataset.startswith(
             '2_classes_WiFi') or args.dataset.startswith('Case'):
         flist = [args.dataset]
     else:

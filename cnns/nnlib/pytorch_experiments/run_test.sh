@@ -8486,3 +8486,10 @@ echo ${timestamp}.txt
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
 CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 wifi_analysis.py >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type='STANDARD' --conv_exec_type=CUDA --dataset='2_classes_WIFI' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_MEDIUM' --next_power2='TRUE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/data_journal/NLOS-6/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 6969
+ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2020-01-05-16-39-26-899415672.txt
