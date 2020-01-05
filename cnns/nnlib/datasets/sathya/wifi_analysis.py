@@ -67,7 +67,7 @@ def plot(nr_samples, error_rates,
     plt.close()
 
 
-class LeastSquareClassifier(BaseEstimator, ClassifierMixin):
+class LeastSquareClassifierWithOnes(BaseEstimator, ClassifierMixin):
 
     def add_ones_short(self, X):
         ones = np.ones(X.shape[0])
@@ -75,53 +75,33 @@ class LeastSquareClassifier(BaseEstimator, ClassifierMixin):
         return X
 
     def fit(self, X, y=None):
-        # make the classifier affine
+        # make the classifier affine (add columns with ones)
         X = self.add_ones_short(X)
         self.w = find_w(X, y)
 
     def predict(self, X, y=None):
         X = self.add_ones_short(X)
-        return [x for x in np.sign(np.matmul(X, self.w))]
+        return [x for x in np.rint(np.matmul(X, self.w))]
 
     def score(self, X, y):
         X = self.add_ones_short(X)
         n, _ = X.shape
-        y_hat = np.sign(np.matmul(X, self.w))
+        y_hat = np.rint(np.matmul(X, self.w))
         score = np.sum(y_hat == y)
         return score / n
 
-    def predict_proba(self, X):
-        X = self.add_ones_short(X)
-        ys = np.matmul(X, self.w)
-        probs = []
-        for y in ys:
-            if y < 0:
-                if y < -1:
-                    probs.append([1, 0.0])
-                else:
-                    y = 0.5 * np.abs(y) + 0.5
-                    probs.append([y, 1 - y])
-            else:
-                if y > 1:
-                    probs.append([0.0, 1])
-                else:
-                    y = 0.5 * np.abs(y) + 0.5
-                    probs.append([1 - y, y])
-        probs = np.array(probs)
-        return probs
-
 
 classifiers = {
-    "Least Squares": LeastSquareClassifier(),
-    "Nearest Neighbors": KNeighborsClassifier(3),
-    "SVM": SVC(kernel="linear", C=0.025, probability=True),
-    "RBF SVM": SVC(gamma=2, C=1, probability=True),
-    "Gaussian Process": GaussianProcessClassifier(1.0 * RBF(1.0)),
-    "Decision Tree": DecisionTreeClassifier(max_depth=None),
+    "AdaBoost": AdaBoostClassifier(),
     "Random Forest": RandomForestClassifier(max_depth=5, n_estimators=10,
                                             max_features=1),
+    "Decision Tree": DecisionTreeClassifier(max_depth=None),
     "Neural Net": MLPClassifier(alpha=0.01, max_iter=1000),
-    "AdaBoost": AdaBoostClassifier(),
+    "SVM": SVC(kernel="linear", C=0.025, probability=True),
+    "RBF SVM": SVC(gamma=2, C=1, probability=True),
+    "Least Squares (with ones)": LeastSquareClassifierWithOnes(),
+    "Nearest Neighbors": KNeighborsClassifier(3),
+    "Gaussian Process": GaussianProcessClassifier(1.0 * RBF(1.0)),
     "Naive Bayes": GaussianNB(),
     "QDA": QuadraticDiscriminantAnalysis()
 }
@@ -312,11 +292,11 @@ def cross_validate(X, Y, classifier, cv_count=6, nr_class=2, repeat=3,
 
 
 def err_percent(error_rate):
-    return str(100 * error_rate) + " %"
+    return str(100 * error_rate) + "%"
 
 
 def accuracy_percent(accuracy):
-    return str(100 * accuracy) + " %"
+    return str(100 * accuracy) + "%"
 
 
 def missing_values_col(data, nans, col_names, missing_rate=0.5):
@@ -357,7 +337,7 @@ def missing_values_row(data, nans, missing_rate=0.5):
     return remove_patients
 
 
-def normalize_with_nans(data, nans=999, means=None, stds=None,
+def normalize_with_nans(data, nans='N/A', means=None, stds=None,
                         col_names=None):
     """
     Normalize the data after setting nans to mean values.
@@ -406,51 +386,6 @@ def normalize_with_nans(data, nans=999, means=None, stds=None,
         data[:, col_nr] = col
 
     return data, means, stds
-
-
-priority_classifiers = {
-    "Least Squares": LeastSquareClassifier(),
-    "Decision Tree": DecisionTreeClassifier(max_depth=5)
-}
-
-
-def column_priority(X, y, X_cv, y_cv, labels, classifiers=priority_classifiers):
-    w = find_w_svd(X, y)
-    w_abs = np.abs(w)
-    index_w = [[i, w] for i, w in enumerate(w_abs)]
-    # sort in descending order
-    sort_index_w = sorted(index_w, key=lambda index_w: [-index_w[1]])
-    w_sorted_indexes = [index for (index, _) in sort_index_w]
-    for index, w in sort_index_w:
-        print(index, ';', labels[index], ';', w)
-    # print('sort_index_w: ', sort_index_w)
-
-    print('# of columns', end="")
-    classifier_names = classifiers.keys()
-    for classifier_name in classifier_names:
-        print(delimiter, classifier_name, "accuracy train,", classifier_name,
-              ",accuracy cross-validation", end="")
-    print()
-
-    for i in range(1, len(w_sorted_indexes) + 1):
-        print(i, end="")
-        # Extract most important columns from the dataset X.
-        column_subset = w_sorted_indexes[:i]
-        X_short = X[:, column_subset]
-        X_cv_short = X_cv[:, column_subset]
-        for clf in classifiers.values():
-            clf.fit(X_short, y)
-            train_score = clf.score(X_short, y)
-            print(delimiter, train_score, end="")
-            try:
-                cv_score = np.average(
-                    cross_val_score(clf, X_cv_short, y_cv, cv=6))
-                print(delimiter, cv_score, end="")
-            except np.linalg.LinAlgError as err:
-                print(delimiter, "N/A", end="")
-
-        print()
-    return w_sorted_indexes
 
 
 def show_decision_tree(estimator, col_names, means, stds):
@@ -564,207 +499,45 @@ def show_param_performance(X_cv, y_cv, nr_class, col_names):
     print()
 
 
-def svd_spectrum(X):
-    u, s, vh = svd(a=X, full_matrices=False)
-    print("Rank of X: ", len(s))
-    s = [x ** 2 for x in s]
-    sum_s = np.sum(s)
-    s = [x / sum_s for x in s]
-    print("Importance of singular values: ", s)
-    print("length of singular values: ", len(s))
-    ax1 = plt.subplot(111)
-    ax1.plot(
-        range(len(s)), s, label="$\frac{\sigma_i^2}{\sum_j^N \sigma_j^2}$",
-        marker="o", linestyle="", color=get_color(MY_BLUE))
-    ax1.set_title("Spectrum of X")
-    ax1.set_xlabel("index i of $\sigma_i$")
-    # ax1.set_ylabel("$\sigma_i^2$/\n$\sum_j^N \sigma_j^2$", rotation=0)
-    ax1.set_ylabel("$\sigma_i^2$", rotation=0)
-    # ax1.legend(["true rating", "predicted rating"], loc="upper left")
-    # ax1.axis([0, num_train, -15, 10])
-    # plt.show()
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    output_path = os.path.join(dir_path, "svd_spectrum.png")
-    plt.tight_layout()
-    plt.savefig(output_path)
-    plt.close()
-
-
-def pca(X, index):
+def limit_data_rows(X, y, nr_class, class_labels, limit_row_nr):
     """
-    Compute PCA for X.
+    Limit number of rows representing a given label.
 
-    :param X: the whole input data
-    :param index: how many singular values retain
-    (the dimension of the subspace)
-    :return: the projected rows of X on a lower dimensional space
+    :param X: the whole dataset with values
+    :param y: labels
+    :param nr_class: number of classes
+    :param class_labels: instances of class labels, e.g., ['apple', 'carrot']
+    :param limit_row_nr: how many rows we expect in the output dataset
+    :return: the limited dataset
     """
-    XT = X.T  # samples in columns
-    u, s, vh = svd(a=XT, full_matrices=False)
-    # We want to project the samples on a lower dimensional space.
-    u = u[:, :index]
-    # Columns of z are the new lower dimensional coordinates for the intial samples.
-    z = np.matmul(X, u)
-    return z
+    limit = limit_row_nr // nr_class
+    X_new, y_new = None, None
+    for class_label in class_labels:
+        index = (y == class_label)
+        # extract rows for this class label
+        X_add = X[index]
+        y_add = y[index]
+        # limit the number of rows
+        X_add = X_add[:limit]
+        y_add = y_add[:limit]
+        if X_new is None:
+            X_new, y_new = X_add, y_add
+        else:
+            # concatenate the data for this class label with X_new, y_new
+            X_new = np.concatenate((X_new, X_add))
+            y_new = np.concatenate((y_new, y_add))
+    return X_new, y_new
 
 
-def pca_scikit_whole_train(X, index):
-    pca = PCA(n_components=index)  # adjust yourself
-    pca.fit(X)
-    z = pca.transform(X)
-    return z
-
-
-def pca_scikit_train_test(X, y, clf):
-    print("PCA train test from scikit learn:")
-    print("index, score")
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.4, random_state=0)
-    for index in range(1, X_test.shape[0]):
-        pca = PCA(n_components=index)  # adjust yourself
-        pca.fit(X_train)
-        X_t_train = pca.transform(X_train)
-        X_t_test = pca.transform(X_test)
-        clf.fit(X_t_train, y_train)
-        print(index, ',', clf.score(X_t_test, y_test))
-
-
-def pca_scikit_train(X, y, clf):
-    print("PCA train from scikit learn:")
-    print("index, score")
-    for index in range(1, X.shape[0]):
-        pca = PCA(n_components=index)  # adjust yourself
-        pca.fit(X)
-        xpca = pca.transform(X)
-        clf.fit(xpca, y)
-        print(index, ',', clf.score(xpca, y))
-
-
-def accuracy_on_pca_data(X, y, classifiers, nr_class, col_names,
-                         pca_function=pca):
-    H, W = X.shape
-    print('PCA:')
-    print('index' + delimiter + 'accuracy' + delimiter + 'auc')
-    for index in range(1, H):
-        xpca = pca_function(X, index=index)
-        for name, clf in classifiers.items():
-            accuracy, auc = cross_validate(
-                X=xpca, Y=y, classifier=clf, nr_class=nr_class,
-                col_names=col_names)
-            result = [index, accuracy, auc]
-            str_result = delimiter.join([str(x) for x in result])
-            print(str_result)
-
-
-def findsubsets(s, max=None):
-    if max is None:
-        n = len(s) + 1
-    else:
-        n = max + 1
-    subsets = []
-    for i in range(1, n):
-        subset = list(itertools.combinations(s, i))
-        for x in subset:
-            subsets.append(x)
-    return subsets
-
-
-def col_scores_single_thread(X, y, clf, nr_class, col_names, max_col_nr):
-    H, W = X.shape
-    col_scores = {}
-    for col in range(W):
-        col_scores[col] = 0
-
-    subsets = findsubsets(np.arange(W), max_col_nr)
-    print('subsets count: ', len(subsets))
-    for set in subsets:
-        Xset = X[:, set]
-        accuracy, auc = cross_validate(Xset, y, classifier=clf,
-                                       nr_class=nr_class, col_names=col_names)
-        for col in set:
-            col_scores[col] += accuracy
-
-    for w in sorted(col_scores, key=col_scores.get, reverse=True):
-        result = [w, col_names[w], col_scores[w]]
-        result_str = delimiter.join([str(x) for x in result])
-        print(result_str)
-    return col_scores
-
-
-col_scores = {}
-
-
-def get_accuracy(X, set, y, clf, nr_class, col_names):
-    Xset = X[:, set]
-    accuracy, _ = cross_validate(Xset, y, classifier=clf,
-                                 nr_class=nr_class, col_names=col_names)
-    return set, accuracy
-
-
-def collect_accuracies(result):
-    set, accuracy = result
-    for col in set:
-        col_scores[col] += accuracy
-
-
-def col_scores_parallel(X, y, clf, nr_class, col_names, max_col_nr):
-    H, W = X.shape
-    global col_scores
-    for col in range(W):
-        col_scores[col] = 0
-
-    subsets = findsubsets(np.arange(W), max_col_nr)
-    print('subsets count: ', len(subsets))
-
-    # parallel python
-    # source:
-    # https://www.machinelearningplus.com/python/parallel-processing-python/
-    # Step 1: Init multiprocessing.Pool()
-    pool = mp.Pool(mp.cpu_count())
-
-    # Step 2: pool.apply to a function
-    for set in subsets:
-        pool.apply_async(
-            get_accuracy,
-            args=(X, set, y, clf, nr_class, col_names),
-            callback=collect_accuracies
-        )
-
-    # Step 3: close the pool
-    pool.close()
-
-    # Step 4: postpones the execution of next line of code until all
-    # processes in the queue are done.
-    pool.join()
-
-    for w in sorted(col_scores, key=col_scores.get, reverse=True):
-        result = [w, col_names[w], col_scores[w]]
-        result_str = delimiter.join([str(x) for x in result])
-        print(result_str)
-    sys.stdout.flush()
-    return col_scores_single_thread
-
-
-def compute():
-    warnings.filterwarnings("ignore")
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    # data_path = os.path.join(dir_path, "remy_data_all.csv")
-    # data_path = os.path.join(dir_path, "remy_data_cleaned_with_header.csv")
-    # data_path = os.path.join(dir_path, "remy_data_final.csv")
-    # data_path = os.path.join(dir_path, "remy_data_final_sign_class.csv")
-    # data_path = os.path.join(dir_path, "clean-2019-11-24-3.csv")
-
-    data_path = os.path.join(
-        dir_path,
-        "data_journal/NLOS-6/2_classes_WIFI/2_classes_WIFI_TRAIN")
-    # data_path = os.path.join(dir_path, "arnold_2019_12_07.csv")
-    # data_path = os.path.join(dir_path, "garrett_2019_11_24.csv")
-
+def get_data(data_path, limit_row_nr=1000):
     print('data_path: ', data_path)
     data_all = pd.read_csv(data_path, header=0)
+    # extract first column
     labels = np.asarray(data_all.iloc[:, 0], dtype=np.int)
-    nr_class = len(np.unique(labels))
+    class_labels = np.unique(labels)
+    nr_class = len(class_labels)
     print('number of classes: ', nr_class)
+    # skip first column
     X = np.asarray(data_all.iloc[:, 1:], dtype=np.float)
     y = labels
     row_nr, col_nr = X.shape
@@ -775,157 +548,54 @@ def compute():
     print('row number: ', row_nr)
     print('column number: ', col_nr)
 
-    limit_row_nr = 1000
-    half_limit = limit_row_nr // 2
     if limit_row_nr is not None:
-        X = np.concatenate((X[:half_limit], X[row_nr - half_limit:]))
-        y = np.concatenate((y[:half_limit], y[row_nr - half_limit:]))
+        X, y = limit_data_rows(X=X, y=y, nr_class=nr_class,
+                               class_labels=class_labels,
+                               limit_row_nr=limit_row_nr)
+    return X, y
 
-    # remove the dependent columns
-    # Q, R = qr(a=X, mode='reduced')
 
-    # print('descriptive statistics for X: ', describe(X))
+def basic_least_squares(X_train, y_train, X_test, y_test):
+    w_hat = find_w(X_train, y_train)
 
-    # print('X affine: ', X)
+    y_hat_train = np.rint(np.matmul(X_train, w_hat))
+    diff_train = np.sum(y_hat_train == y_train)
+    train_accuracy = diff_train / len(y_train)
 
-    # remove column with all zeros
-    # print('columns with all zeros: ', np.where(~X_norm.any(axis=0))[0])
+    y_hat_test = np.rint(np.matmul(X_test, w_hat))
+    diff_test = np.sum(y_hat_test == y_test)
+    test_accuracy = diff_test / len(y_test)
 
-    nans = ''
-
-    """
-    Special case:
-    Column: “Asymmetry  Total CSA > 12% at C3” – it has only zero values or 
-    ‘999’s only (it is the 3rd column from the end).
-    """
-    # X = np.delete(X, -3, axis=1)
-    # col_names = np.delete(col_names, -3)
-
-    w_hat = find_w(X, y)
-    y_hat = np.sign(np.matmul(X, w_hat))
-    # print("check y_hat: ", y_hat)
-    diff = np.sum(y_hat == y)
-    accuracy = diff / len(y)
     print('On the whole data: ')
-    print('Full Least Squares accuracy (without column of ones): ',
-          accuracy_percent(accuracy))
+    print('Least Squares (without column of ones)')
+    print('train accuracy, test accuracy')
+    print(train_accuracy, ',', test_accuracy)
 
+
+def compute():
+    warnings.filterwarnings("ignore")
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+
+    data_path = os.path.join(
+        dir_path,
+        "data_journal/NLOS-6/2_classes_WIFI/2_classes_WIFI")
+    limit_row_nr = None
+    X_train, y_train = get_data(data_path=data_path + '_TRAIN',
+                                limit_row_nr=limit_row_nr)
+    X_test, y_test = get_data(data_path=data_path + '_TEST',
+                              limit_row_nr=limit_row_nr)
+
+    # basic_least_squares(X_train=X_train, y_train=y_train,
+    #                     X_test=X_test, y_test=y_test)
+
+    print('Classifier, train accuracy, test accuracy')
     for name, clf in classifiers.items():
-        clf.fit(X, y)
-        score = clf.score(X, y)
-        print(name, accuracy_percent(score))
-
-
-    # for cross validation we take the same number of samples for each class
-    num_pos = np.count_nonzero(y == 1)
-    num_neg = np.count_nonzero(y == -1)
-    count = min(num_pos, num_neg)
-    X_cv = np.concatenate((X[:count, :], X[-count:, :]))
-    y_cv = np.concatenate((y[:count], y[-count:]))
-
-    SVM = classifiers["SVM"]
-
-    max_col_nr = 3
-
-    for name, clf in classifiers.items():
-        print('classifier name: ', clf)
-        start = time.time()
-        col_scores_parallel(
-            X=X_cv, y=y_cv, col_names=col_names, clf=SVM, nr_class=nr_class,
-            max_col_nr=max_col_nr)
-        print('col scores parallel timing: ', time.time() - start)
-        sys.stdout.flush()
-
-    # start = time.time()
-    # col_scores_single_thread(
-    #     X=X_cv, y=y_cv, col_names=col_names, clf=SVM, nr_class=nr_class,
-    #     max_col_nr=max_col_nr)
-    # print('col scores single timing: ', time.time() - start)
-
-    # pca_scikit_train_test(X=X_cv, y=y_cv, clf=SVM)
-    pca_scikit_train(X=X_cv, y=y_cv, clf=SVM)
-
-    # pca_function=pca
-    pca_function = pca_scikit_whole_train
-    accuracy_on_pca_data(X=X_cv, y=y_cv, classifiers={"SVM": SVM},
-                         nr_class=nr_class, col_names=col_names,
-                         pca_function=pca_function)
-
-    # run_param_search(X=X_cv, y=y_cv, clf=SVC(probability=True))
-
-    # show_param_performance(X_cv=X_cv, y_cv=y_cv, nr_class=nr_class,
-    #                        col_names=col_names)
-
-    print("Column priority: ")
-    w_sorted_indexes = column_priority(X_norm, y, X_cv, y_cv, labels=col_names)
-
-    print('labels len: ', len(col_names))
-    print('w_hat len: ', len(w_hat))
-
-    ones = np.ones(X_norm.shape[0])
-    X_ones = np.concatenate((ones[:, np.newaxis], X_norm), axis=1)
-    w_hat = find_w_svd(X_ones, y)
-    y_hat = np.sign(np.matmul(X_ones, w_hat))
-    # print("check y_hat: ", y_hat)
-    diff = np.sum(y_hat == y)
-    accuracy = diff / len(y)
-    print('Least Squares accuracy: ', accuracy_percent(accuracy))
-
-    clf = LeastSquareClassifier()
-    clf.fit(X_norm, y)
-    score = clf.score(X_norm, y)
-    print('Least Squares accuracy: ', accuracy_percent(score))
-
-    clf = classifiers['Neural Net']
-    clf.fit(X_norm, y)
-    score = clf.score(X_norm, y)
-    print('Neural net accuracy: ', accuracy_percent(score))
-
-    clf = classifiers['Decision Tree']
-    clf.fit(X_norm, y)
-    score = clf.score(X_norm, y)
-    print('Decision Tree accuracy: ', accuracy_percent(score))
-    show_decision_tree(estimator=clf, col_names=col_names, means=means,
-                       stds=stds)
-
-    print('Accuracy on normalized X_norm: ')
-    for name, clf in classifiers.items():
-        clf.fit(X_norm, y)
-        score = clf.score(X_norm, y)
-        print(name, accuracy_percent(score))
-
-    col_subset = 32
-    print(
-        f'Accuracy and AUC on self-crafted cross-validation with normalization '
-        f'and subset of {col_subset} columns: ')
-    X_subset = X_cv[:, w_sorted_indexes[:col_subset]]
-    for name, clf in classifiers.items():
-        accuracy, auc = cross_validate(X_subset, y_cv, classifier=clf,
-                                       nr_class=nr_class, col_names=col_names)
-        print(name, delimiter, accuracy_percent(accuracy), delimiter, auc)
-    print()
-
-    print('Accuracy from cross-validation (non-normalized data): ')
-    for name, clf in classifiers.items():
-        accuracy = np.average(cross_val_score(clf, X_cv, y_cv, cv=6))
-        print(name, delimiter, accuracy_percent(accuracy))
-    print()
-
-    X_norm2 = np.concatenate((X_norm[:30, :], X_norm[31:61, :]))
-    print('Accuracy from cross-validation (normalized the whole): ')
-    for name, clf in classifiers.items():
-        accuracy = np.average(cross_val_score(clf, X_norm2, y_cv, cv=6))
-        print(name, delimiter, accuracy_percent(accuracy))
-    print()
-
-    print(
-        'Accuracy and AUC on self-crafted cross-validation with normalization: ')
-    print("model name, accuracy (%), AUC")
-    for name, clf in classifiers.items():
-        accuracy, auc = cross_validate(X_cv, y_cv, classifier=clf,
-                                       nr_class=nr_class, col_names=col_names)
-        print(name, delimiter, accuracy_percent(accuracy), delimiter, auc)
-    print()
+        clf.fit(X_train, y_train)
+        score_train = clf.score(X_train, y_train)
+        score_test = clf.score(X_test, y_test)
+        print(name, ',',
+              score_train, ',',
+              score_test)
 
 
 if __name__ == "__main__":
