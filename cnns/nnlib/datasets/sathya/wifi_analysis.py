@@ -96,7 +96,7 @@ classifiers = {
     "Random Forest": RandomForestClassifier(max_depth=5, n_estimators=10,
                                             max_features=1),
     "Decision Tree": DecisionTreeClassifier(max_depth=None),
-    "Neural Net": MLPClassifier(alpha=0.01, max_iter=1000),
+    "FC Neural Net": MLPClassifier(alpha=0.01, max_iter=1000),
     "SVM": SVC(kernel="linear", C=0.025, probability=True),
     "RBF SVM": SVC(gamma=2, C=1, probability=True),
     "Least Squares (with ones)": LeastSquareClassifierWithOnes(),
@@ -548,7 +548,7 @@ def get_data(data_path, limit_row_nr=1000):
     print('row number: ', row_nr)
     print('column number: ', col_nr)
 
-    if limit_row_nr is not None:
+    if limit_row_nr is not None and limit_row_nr > 0:
         X, y = limit_data_rows(X=X, y=y, nr_class=nr_class,
                                class_labels=class_labels,
                                limit_row_nr=limit_row_nr)
@@ -596,7 +596,7 @@ def compute():
         print(name, ',',
               score_train, ',',
               score_test)
-
+        sys.stdout.flush()
 
 if __name__ == "__main__":
     compute()
