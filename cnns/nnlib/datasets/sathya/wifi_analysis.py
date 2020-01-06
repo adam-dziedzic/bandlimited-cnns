@@ -1,4 +1,5 @@
 import sys
+import argparse
 import numpy as np
 from scipy.stats import describe
 import os
@@ -572,12 +573,12 @@ def basic_least_squares(X_train, y_train, X_test, y_test):
     print(train_accuracy, ',', test_accuracy)
 
 
-def compute():
+def compute(args):
     warnings.filterwarnings("ignore")
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
-    # wifi_path = "data_journal/NLOS-6/2_classes_WIFI/2_classes_WIFI"
-    wifi_path = "data_journal/NLOS-6/3_classes_WIFI/3_classes_WIFI"
+    wifi_count = args.wifi
+    wifi_path = f"data_journal/NLOS-6/{wifi_count}_classes_WIFI/{wifi_count}_classes_WIFI"
 
     data_path = os.path.join(dir_path, wifi_path)
     limit_row_nr = None
@@ -599,5 +600,11 @@ def compute():
               score_test)
         sys.stdout.flush()
 
+
 if __name__ == "__main__":
-    compute()
+    parser = argparse.ArgumentParser(description='Process arguments.')
+    parser.add_argument('--wifi', metavar='N', type=int,
+                        default=4,
+                        help='number of wifis to detect')
+    args = parser.parse_args()
+    compute(args)

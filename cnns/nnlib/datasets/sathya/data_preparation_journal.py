@@ -44,7 +44,7 @@ for sample_size in sample_sizes:
     datasets = dict()
     path_prefix = 'data_journal/'
     start_counter = 0
-    max_class = 3
+    max_class = 6
     class_counter = max_class - start_counter
 
     for los_type in los_types:

@@ -383,7 +383,7 @@ def main(args):
         train_loader, test_loader, _, _ = load_imagenet(args)
     elif dataset_name == "svhn":
         train_loader, test_loader, _, _ = get_svhn(args)
-    elif dataset_name.startswith("WIFI") or dataset_name.startswith(
+    elif "WIFI" in dataset_name or dataset_name.startswith(
             '2_classes_WiFi') or dataset_name.startswith(
         'Case') or dataset_name.startswith('2_classes_WIFI'):
         # train_loader, test_loader, dev_loader = get_ucr(args)
