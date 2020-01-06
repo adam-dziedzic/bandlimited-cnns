@@ -46,11 +46,11 @@ Install CUDA kernel:
 We ran the experiments with CUDA 9.2.
 
 Install foolbox library:
-`
+```
 git clone https://github.com/adam-dziedzic/foolbox
 cd foolbox
 pip install .
-`
+```
 
 # Experiments
 To run the main experiments for cifar10 and cifar100, go to the directory: `cnns/nnlib/pytorch_experiments`.
