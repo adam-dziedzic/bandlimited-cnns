@@ -296,9 +296,11 @@ def replace_frequency(original_image, images, labels, attack_fn, args,
 
 def classify_image(image, original_image, args, title="",
                    clip_input_image=False, ylabel_text="",
-                   is_denormalize=True):
+                   is_denormalize=True, model=None):
     result = Object()
-    predictions = args.fmodel.predictions(image=image)
+    if model is None:
+        model = args.fmodel
+    predictions = model.predictions(image=image)
     soft_predictions = softmax(predictions)
     predicted_class_id = np.argmax(soft_predictions)
     predicted_label = args.from_class_idx_to_label[predicted_class_id]
@@ -1155,6 +1157,30 @@ def run(args):
 
         if args.rgb_value > 0 and image is not None:
             print("rgb subtraction defense")
+            title = "rgb (" + str(args.rgb_value) + ")"
+            rgb_image = subtract_rgb(images=image,
+                                     subtract_value=args.rgb_value,
+                                     rounder=np.around)
+            result_rgb = classify_image(
+                image=rgb_image,
+                original_image=original_image,
+                args=args,
+                title=title)
+            print("label, id found after applying rgb subtraction once: ",
+                  result_rgb.label, result_rgb.class_id)
+            result.add(result_rgb, prefix="rgb_")
+
+            start_time = time.time()
+            result_rgb = randomized_defense(image=rgb_image, fmodel=fmodel,
+                                            original_image=original_image)
+            result.time_rgb_defend = time.time() - start_time
+
+            result.add(result_rgb, prefix="rgb_many_")
+        else:
+            result.rgb_label = None
+
+        if args.param_noise > 0 and image is not None:
+            print("adding random noise to model parameters")
             title = "rgb (" + str(args.rgb_value) + ")"
             rgb_image = subtract_rgb(images=image,
                                      subtract_value=args.rgb_value,
