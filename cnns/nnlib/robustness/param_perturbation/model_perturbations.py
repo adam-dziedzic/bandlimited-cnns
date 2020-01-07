@@ -67,7 +67,9 @@ def compute(args):
     print('elapsed time: ', time.time() - start)
 
     print(f'noise sigma, perturb {args.use_set} accuracy, elapsed time')
-    for noise_sigma in args.noise_sigmas:
+
+    # for noise_sigma in args.noise_sigmas:
+    for noise_sigma in np.linspace(0.0001, 0.01, 1000):
         start = time.time()
         args.noise_sigma = noise_sigma
         perturb_fmodel = get_perturbed_fmodel(args)

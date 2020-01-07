@@ -1,5 +1,5 @@
 import torch
-
+import numpy as np
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.utils.general_utils import ConvType
@@ -18,8 +18,8 @@ from cnns.nnlib.utils.general_utils import PrecisionType
 from cnns.nnlib.utils.general_utils import PredictionType
 from cnns.nnlib.utils.general_utils import SVDTransformType
 from cnns.nnlib.utils.general_utils import PolicyType
-
 from cnns.nnlib.utils.general_utils import get_log_time
+
 
 """
 cFFT cuda_multiply: total elapsed time (sec):  15.602577447891235
@@ -383,8 +383,7 @@ class Arguments(object):
                  noise_sigma=0.0,
                  # noise_sigmas=[0.0],
                  # noise_sigmas=[0.0000000001] + [x/1000 for x in range(1, 10)] + [x/100 for x in range(1, 10)] + [x/10 for x in range(1, 11)],
-                 noise_sigmas=[1.0, 0.1, 0.01, 0.001, 0.0001, 0.00001, 0.000001,
-                               0.0000001],
+                 noise_sigmas=np.linspace(0.0001, 0.01, 100),
                  # noise_sigmas=[0.0],
                  # noise_sigmas=[0.05, 0.06, 0.07, 0.08, 0.09],
                  # noise_sigmas=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
