@@ -1,24 +1,31 @@
+from cnns import matplotlib_backend
+
+print('Using: ', matplotlib_backend.backend)
+
+import matplotlib
+
+print('Using: ', matplotlib.get_backend())
+
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
+import matplotlib.pyplot as plt
+
 import time
 import numpy as np
 from cnns.nnlib.utils.exec_args import get_args
 import cnns.foolbox.foolbox_2_3_0 as foolbox
 from cnns.nnlib.robustness.pytorch_model import get_model
 from cnns.nnlib.robustness.param_perturbation.utils import get_adv_images
+from cnns.nnlib.robustness.param_perturbation.utils import get_clean_accuracy
 from cnns.nnlib.robustness.param_perturbation.utils import get_data_loader
+from cnns.nnlib.robustness.param_perturbation.utils import get_data_loader
+from cnns.nnlib.robustness.param_perturbation.utils import get_fmodel
+from cnns.nnlib.robustness.param_perturbation.utils import get_accuracy
+from cnns.nnlib.robustness.param_perturbation.utils import get_perturbed_fmodel
+import sys
 
 
-def compute(args):
-    pytorch_model = get_model(args)
-    preprocessing = dict(mean=args.mean_array,
-                         std=args.std_array,
-                         axis=-3)
-    fmodel = foolbox.models.PyTorchModel(pytorch_model,
-                                         bounds=(args.min, args.max),
-                                         channel_axis=1,
-                                         device=args.device,
-                                         num_classes=args.num_classes,
-                                         preprocessing=(0, 1))
-
+def get_adv_accuracy(args):
     if args.target_class > -1:
         criterion = foolbox.criteria.TargetClass(target_class=args.target_class)
         print(f'target class id: {args.target_class}')
@@ -27,6 +34,8 @@ def compute(args):
     else:
         criterion = foolbox.criteria.Misclassification()
         print('No target class specified')
+
+    fmodel = get_fmodel(args=args)
 
     attack = foolbox.attacks.CarliniWagnerL2Attack(
         fmodel, criterion=criterion)
@@ -91,11 +100,32 @@ def compute(args):
         print('adv accuracy: ', adv_count / total_count)
 
 
+def compute(args):
+    data_loader = get_data_loader(args)
+
+    get_clean_accuracy(args=args, data_loader=data_loader)
+
+    print(f'noise sigma, perturb {args.use_set} accuracy, elapsed time')
+
+    # for noise_sigma in args.noise_sigmas:
+    for noise_sigma in np.linspace(0.0001, 0.01, 100):
+        start = time.time()
+        args.noise_sigma = noise_sigma
+        perturb_fmodel = get_perturbed_fmodel(args)
+        perturb_accuracy = get_adv_accuracy(
+            args=args,fmodel=perturb_fmodel, data_loader=data_loader)
+        elapsed_time = time.time() - start
+        print(args.noise_sigma, ',', perturb_accuracy, ',', elapsed_time)
+        sys.stdout.flush()
+
+
 if __name__ == "__main__":
     start_time = time.time()
     np.random.seed(31)
     # arguments
     args = get_args()
+    print('args: ', args.get_str())
+    sys.stdout.flush()
     for attack_iterations in args.many_attack_iterations:
         args.attack_max_iterations = attack_iterations
         for attack_strength in args.attack_strengths:
