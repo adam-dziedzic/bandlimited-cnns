@@ -1,3 +1,15 @@
+from cnns import matplotlib_backend
+
+print('Using: ', matplotlib_backend.backend)
+
+import matplotlib
+
+print('Using: ', matplotlib.get_backend())
+
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
+import matplotlib.pyplot as plt
+
 import torch
 import time
 import numpy as np
@@ -8,10 +20,6 @@ from cnns.nnlib.robustness.utils import gauss_noise
 from cnns.nnlib.robustness.param_perturbation.utils import get_data_loader
 from cnns import matplotlib_backend
 import sys
-print('Using: ', matplotlib_backend.backend)
-import matplotlib
-
-print('Using: ', matplotlib.get_backend())
 
 
 def get_perturbed_fmodel(args):
