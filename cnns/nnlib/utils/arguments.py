@@ -88,9 +88,9 @@ elif data_dim == "2D":
     # dataset = "mnist"
     # dataset = "mnist_svd"
     # dataset = "synthetic"
-    dataset = "cifar10"
+    # dataset = "cifar10"
     # dataset = "cifar100"
-    # dataset = "imagenet"
+    dataset = "imagenet"
     # dataset = "svhn"
 
     batch_size = 32
@@ -176,7 +176,7 @@ elif data_dim == "2D":
         model_path = "no_model"
     elif dataset == "imagenet":
         network_type = NetworkType.ResNet50
-        batch_size = 1
+        batch_size = 32
         test_batch_size = batch_size
         learning_rate = 0.1
         weight_decay = 0.0001
@@ -337,7 +337,7 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=0,  # 0 means run on full data
+                 sample_count_limit=32,  # 0 means run on full data
                  # sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,

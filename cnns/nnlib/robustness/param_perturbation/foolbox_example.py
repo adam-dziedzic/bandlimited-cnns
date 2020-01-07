@@ -7,7 +7,8 @@ model = models.resnet18(pretrained=True).eval()
 preprocessing = dict(mean=[0.485, 0.456, 0.406],
                      std=[0.229, 0.224, 0.225],
                      axis=-3)
-fmodel = foolbox.models.PyTorchModel(model, bounds=(0, 1), num_classes=1000,
+fmodel = foolbox.models.PyTorchModel(model, bounds=(0, 1),
+                                     num_classes=1000,
                                      preprocessing=preprocessing)
 
 # get a batch of images and labels and print the accuracy

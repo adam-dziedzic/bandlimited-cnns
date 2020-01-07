@@ -1,5 +1,3 @@
-import foolbox
-
 import torchvision.models as models
 
 from cnns.nnlib.datasets.imagenet.imagenet_from_class_idx_to_label import \
@@ -27,7 +25,7 @@ from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_std_array
 from cnns.nnlib.datasets.imagenet.imagenet_pytorch import imagenet_mean_mean
 
 
-def get_fmodel(args):
+def get_model(args):
     if args.dataset == "imagenet":
         args.cmap = None
         args.init_y, args.init_x = 224, 224
@@ -43,8 +41,7 @@ def get_fmodel(args):
         pytorch_model = models.resnet50(pretrained=True).eval().to(
             device=args.device)
         # network_model = load_model(args=args, pretrained=True)
-
-        from_class_idx_to_label = imagenet_from_class_idx_to_label
+        args.from_class_idx_to_label = imagenet_from_class_idx_to_label
 
     elif args.dataset == "cifar10":
         args.cmap = None
@@ -71,7 +68,7 @@ def get_fmodel(args):
         args.mean_mean = cifar_mean_mean
         args.std_array = cifar_std_array
         pytorch_model = load_model(args=args)
-        from_class_idx_to_label = cifar10_from_class_idx_to_label
+        args.from_class_idx_to_label = cifar10_from_class_idx_to_label
 
     elif args.dataset == "mnist":
         args.cmap = "gray"
@@ -91,12 +88,9 @@ def get_fmodel(args):
         args.std_array = mnist_std_array
         # args.network_type = NetworkType.Net
         pytorch_model = load_model(args=args)
-        from_class_idx_to_label = mnist_from_class_idx_to_label
+        args.from_class_idx_to_label = mnist_from_class_idx_to_label
 
     else:
         raise Exception(f"Unknown dataset type: {args.dataset}")
 
-    fmodel = foolbox.models.PyTorchModel(pytorch_model, bounds=(min, max),
-                                         num_classes=args.num_classes)
-
-    return fmodel, pytorch_model, from_class_idx_to_label
+    return pytorch_model

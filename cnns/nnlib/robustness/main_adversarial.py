@@ -67,7 +67,7 @@ from cnns.nnlib.robustness.channels.channels_definition import \
 from foolbox.criteria import TargetClass, Misclassification
 from cnns.nnlib.attacks.simple_blackbox_attack import SimbaSingle
 from cnns.nnlib.robustness.gradients.compute import compute_gradients
-from cnns.nnlib.robustness.fmodel import get_fmodel
+from cnns.nnlib.robustness.foolbox_model import get_fmodel
 from cnns.nnlib.datasets.load_data import get_data
 
 results_folder = "results/"
@@ -508,9 +508,6 @@ def run(args):
     # Choose how many channels should be plotted.
     channels_nr = 1
 
-    criterion_name = 'Misclassifiction'  # 'TargetClass' or 'Misclassification'
-    # criterion_name = 'TargetClass'
-
     if args.target_class > -1:
         criterion = TargetClass(target_class=args.target_class)
         print(f'target class id: {args.target_class}')
@@ -802,10 +799,7 @@ def run(args):
                     adv_image = attack(
                         original_image, args.True_class_id,
                         max_iterations=args.attack_max_iterations,
-                        # max_iterations=2,
                         binary_search_steps=args.binary_search_steps,
-                        # initial_const=1e+12,
-                        # max_iterations=1000,
                         initial_const=args.attack_strength,
                         confidence=args.attack_confidence,
                     )

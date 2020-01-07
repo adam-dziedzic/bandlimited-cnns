@@ -24,7 +24,7 @@ from cnns.nnlib.robustness.fast_attack.nattack import \
 from cnns.nnlib.robustness.fast_attack.nattack import npop as nattack_population
 from cnns.nnlib.utils.exec_args import get_args
 from cnns.nnlib.datasets.load_data import get_data
-from cnns.nnlib.robustness.fmodel import get_fmodel
+from cnns.nnlib.robustness.foolbox_model import get_fmodel
 from cnns.nnlib.datasets.transformations.normalize import Normalize
 from cnns.nnlib.datasets.transformations.denormalize import Denormalize
 from cnns.nnlib.datasets.transformations.denorm_distance import DenormDistance
