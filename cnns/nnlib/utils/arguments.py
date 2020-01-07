@@ -337,7 +337,7 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=32,  # 0 means run on full data
+                 sample_count_limit=10240,  # 0 means run on full data
                  # sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
@@ -383,7 +383,8 @@ class Arguments(object):
                  noise_sigma=0.0,
                  # noise_sigmas=[0.0],
                  # noise_sigmas=[0.0000000001] + [x/1000 for x in range(1, 10)] + [x/100 for x in range(1, 10)] + [x/10 for x in range(1, 11)],
-                 noise_sigmas = [0.02],
+                 noise_sigmas=[1.0, 0.1, 0.01, 0.001, 0.0001, 0.00001, 0.000001,
+                               0.0000001],
                  # noise_sigmas=[0.0],
                  # noise_sigmas=[0.05, 0.06, 0.07, 0.08, 0.09],
                  # noise_sigmas=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
@@ -466,7 +467,7 @@ class Arguments(object):
                  # attack_strengths=[0.08, 0.09, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9],
                  # attack_strengths=(0.001, 0.01, 0.03, 0.04, 0.05, 0.07, 0.08, 0.09, 0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9, 1.0,),
                  # attack_strengths=(0.01,),
-                 attack_strengths = [100.0],
+                 attack_strengths=[100.0],
                  gradient_iters=1,
                  ensemble=1,
                  attack_confidence=0,
@@ -487,7 +488,7 @@ class Arguments(object):
                  fft_transform=0.0,
                  fft_compress_transform=[0.0],
                  binary_search_steps=1,
-                 use_set = 'train_set',
+                 use_set='test_set',
                  ):
         """
         The default parameters for the execution of the program.

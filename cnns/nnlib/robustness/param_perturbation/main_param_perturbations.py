@@ -3,8 +3,8 @@ import numpy as np
 from cnns.nnlib.utils.exec_args import get_args
 import cnns.foolbox.foolbox_2_3_0 as foolbox
 from cnns.nnlib.robustness.pytorch_model import get_model
-from cnns.nnlib.datasets.load_data import get_data
 from cnns.nnlib.robustness.param_perturbation.utils import get_adv_images
+from cnns.nnlib.robustness.param_perturbation.utils import get_data_loader
 
 
 def compute(args):
@@ -18,9 +18,6 @@ def compute(args):
                                          device=args.device,
                                          num_classes=args.num_classes,
                                          preprocessing=(0, 1))
-
-    train_loader, test_loader, train_dataset, test_dataset, limit = get_data(
-        args=args)
 
     if args.target_class > -1:
         criterion = foolbox.criteria.TargetClass(target_class=args.target_class)
@@ -40,14 +37,7 @@ def compute(args):
     sum_distances = 0
     attacks_failed = 0
 
-    if args.use_set == 'test_set':
-        data_loader = test_loader
-    elif args.use_set == 'train_set':
-        data_loader = train_loader
-    else:
-        raise Exception("Unknown use set: ", args.use_set)
-    print(f"Using set: {args.use_set} for source of data to find "
-          f"adversarial examples.")
+    data_loader = get_data_loader(args)
 
     for batch_idx, (images, labels) in enumerate(data_loader):
         total_count += len(labels)

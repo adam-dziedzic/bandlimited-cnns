@@ -35,16 +35,16 @@ def softmax_from_torch(x):
 
 
 class AdditiveUniformNoiseAttack(AdditiveNoiseAttack):
-    """Adds uniform noise to the image, gradually increasing
+    """
+    Adds uniform noise to the image, gradually increasing
     the standard deviation until the image is misclassified.
-
     """
     def __init__(self, args):
         super(AdditiveUniformNoiseAttack, self).__init__()
         self.args = args
 
     def _sample_noise(self, epsilon, image, bounds):
-        return gauss_noise(epsilon=epsilon, shape=image.shape,
+        return uniform_noise(epsilon=epsilon, shape=image.shape,
                            dtype=image.dtype, args=self.args)
 
 
@@ -87,7 +87,7 @@ def gauss_noise(epsilon, shape, dtype, args):
     :return: the noise for images
     """
     std = epsilon / np.sqrt(3) * (args.max - args.min)
-    noise = nprng.normal(scale=std, size=shape)
+    noise = nprng.normal(loc=0.0, scale=std, size=shape)
     noise = noise.astype(dtype)
     return noise
 
