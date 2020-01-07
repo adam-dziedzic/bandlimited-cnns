@@ -7,7 +7,7 @@ from cnns.nnlib.robustness.pytorch_model import get_model
 from cnns.nnlib.robustness.utils import gauss_noise
 from cnns.nnlib.robustness.param_perturbation.utils import get_data_loader
 from cnns import matplotlib_backend
-
+import sys
 print('Using: ', matplotlib_backend.backend)
 import matplotlib
 
@@ -75,6 +75,7 @@ def compute(args):
                                         data_loader=data_loader)
         elapsed_time = time.time() - start
         print(args.noise_sigma, ',', perturb_accuracy, ',', elapsed_time)
+        sys.stdout.flush()
 
 
 if __name__ == "__main__":
