@@ -88,12 +88,12 @@ elif data_dim == "2D":
     # dataset = "mnist"
     # dataset = "mnist_svd"
     # dataset = "synthetic"
-    # dataset = "cifar10"
+    dataset = "cifar10"
     # dataset = "cifar100"
-    dataset = "imagenet"
+    # dataset = "imagenet"
     # dataset = "svhn"
 
-    batch_size = 32
+    batch_size = 256
     # test_batch_size = batch_size
     # test_batch_size = 256
     test_batch_size = batch_size
@@ -337,7 +337,7 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=0,  # 0 means run on full data
+                 sample_count_limit=256,  # 0 means run on full data
                  # sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
@@ -383,7 +383,9 @@ class Arguments(object):
                  noise_sigma=0.0,
                  # noise_sigmas=[0.0],
                  # noise_sigmas=[0.0000000001] + [x/1000 for x in range(1, 10)] + [x/100 for x in range(1, 10)] + [x/10 for x in range(1, 11)],
-                 noise_sigmas=np.linspace(0.0001, 0.01, 100),
+                 noise_sigmas = [0.005],
+                 # noise_sigmas = [0.0, 0.002, 0.003, 0.004, 0.005],
+                 # noise_sigmas=np.linspace(0.0001, 0.01, 100),
                  # noise_sigmas=[0.0],
                  # noise_sigmas=[0.05, 0.06, 0.07, 0.08, 0.09],
                  # noise_sigmas=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],

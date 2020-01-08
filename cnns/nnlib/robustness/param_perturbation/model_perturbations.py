@@ -5,7 +5,6 @@ import sys
 from cnns import matplotlib_backend
 from cnns.nnlib.utils.exec_args import get_args
 from cnns.nnlib.robustness.param_perturbation.utils import get_data_loader
-from cnns.nnlib.robustness.param_perturbation.utils import get_fmodel
 from cnns.nnlib.robustness.param_perturbation.utils import get_accuracy
 from cnns.nnlib.robustness.param_perturbation.utils import get_perturbed_fmodel
 from cnns.nnlib.robustness.param_perturbation.utils import get_clean_accuracy
@@ -19,7 +18,8 @@ def compute(args):
     print(f'noise sigma, perturb {args.use_set} accuracy, elapsed time')
 
     # for noise_sigma in args.noise_sigmas:
-    for noise_sigma in np.linspace(0.0001, 0.01, 100):
+    # for noise_sigma in np.linspace(0.0001, 0.01, 100):
+    for noise_sigma in np.linspace(0.0, 0.05, 30):
         start = time.time()
         args.noise_sigma = noise_sigma
         perturb_fmodel = get_perturbed_fmodel(args)

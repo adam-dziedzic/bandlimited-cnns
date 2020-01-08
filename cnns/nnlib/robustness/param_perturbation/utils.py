@@ -17,6 +17,27 @@ def get_adv_images(adversarials, images):
     return advs
 
 
+def get_adv_images_org_images(adversarials, images):
+    advs = [a.perturbed for a in adversarials]
+    advs = [
+        adv if adv is not None else image
+        for adv, image in zip(advs, images)
+    ]
+    advs = np.stack(advs)
+    return advs
+
+def get_adv_images_org_labels(adversarials, labels):
+    advs = [a.perturbed for a in adversarials]
+    adv_images = []
+    org_labels = []
+    for adv, label in zip(advs, labels):
+        if adv is not None:
+            adv_images.append(adv)
+            org_labels.append(label)
+    adv_images = np.stack(adv_images)
+    return adv_images, org_labels
+
+
 def get_data_loader(args):
     train_loader, test_loader, train_dataset, test_dataset, limit = get_data(
         args=args)
@@ -74,9 +95,10 @@ def get_accuracy(fmodel, data_loader):
     return predict_count / total_count
 
 
-def get_clean_accuracy(args, data_loader):
+def get_clean_accuracy(args, data_loader, clean_fmodel=None):
     start = time.time()
-    clean_fmodel = get_fmodel(args)
+    if clean_fmodel is None:
+        clean_fmodel = get_fmodel(args)
     clean_accuracy = get_accuracy(fmodel=clean_fmodel, data_loader=data_loader)
     print(f'clean {args.use_set} accuracy: ', clean_accuracy)
     print('elapsed time: ', time.time() - start)
