@@ -68,7 +68,8 @@ def get_transform_train(args, dtype=torch.float32, signal_dimension=2):
     # if args.values_per_channel > 0:
     #     transformations.append(
     #         RoundingTransformation(values_per_channel=args.values_per_channel))
-    transformations.append(transforms.Normalize(cifar_mean, cifar_std))
+    if args.normalize_pytorch:
+        transformations.append(transforms.Normalize(cifar_mean, cifar_std))
     if signal_dimension == 1:
         transformations.append(FlatTransformation())
     if args and args.svd_transform > 0.0:
@@ -92,7 +93,8 @@ def get_transform_test(args, dtype=torch.float32, signal_dimension=2,
     # if args.values_per_channel > 0:
     #     transformations.append(
     #         RoundingTransformation(values_per_channel=args.values_per_channel))
-    transformations.append(transforms.Normalize(cifar_mean, cifar_std))
+    if args.normalize_pytorch:
+        transformations.append(transforms.Normalize(cifar_mean, cifar_std))
     if signal_dimension == 1:
         transformations.append(FlatTransformation())
     if noise_sigma > 0:

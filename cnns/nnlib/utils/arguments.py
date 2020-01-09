@@ -20,7 +20,6 @@ from cnns.nnlib.utils.general_utils import SVDTransformType
 from cnns.nnlib.utils.general_utils import PolicyType
 from cnns.nnlib.utils.general_utils import get_log_time
 
-
 """
 cFFT cuda_multiply: total elapsed time (sec):  15.602577447891235
 
@@ -383,7 +382,7 @@ class Arguments(object):
                  noise_sigma=0.0,
                  # noise_sigmas=[0.0],
                  # noise_sigmas=[0.0000000001] + [x/1000 for x in range(1, 10)] + [x/100 for x in range(1, 10)] + [x/10 for x in range(1, 11)],
-                 noise_sigmas = [0.005],
+                 noise_sigmas=[0.005],
                  # noise_sigmas = [0.0, 0.002, 0.003, 0.004, 0.005],
                  # noise_sigmas=np.linspace(0.0001, 0.01, 100),
                  # noise_sigmas=[0.0],
@@ -490,6 +489,7 @@ class Arguments(object):
                  fft_compress_transform=[0.0],
                  binary_search_steps=1,
                  use_set='test_set',
+                 normalize_pytorch=True,
                  ):
         """
         The default parameters for the execution of the program.
@@ -641,6 +641,7 @@ class Arguments(object):
         self.fft_compress_transform = fft_compress_transform
         self.binary_search_steps = binary_search_steps
         self.use_set = use_set
+        self.normalize_pytorch = normalize_pytorch
 
         # deeprl
         # self.env_name = "Reacher-v2"
@@ -786,6 +787,7 @@ class Arguments(object):
         self.distributed = self.get_bool(parsed_args.distributed)
         self.is_DC_shift = self.get_bool(parsed_args.is_DC_shift)
         self.use_foolbox_data = self.get_bool(parsed_args.use_foolbox_data)
+        self.normalize_pytorch = self.get_bool(parsed_args.normalize_pytorch)
 
         if hasattr(parsed_args, "preserve_energy"):
             self.preserve_energy = parsed_args.preserve_energy

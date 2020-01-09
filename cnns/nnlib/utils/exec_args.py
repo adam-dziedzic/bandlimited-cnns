@@ -27,7 +27,7 @@ def get_args():
     parser.add_argument('--min_batch_size', type=int,
                         default=args.min_batch_size,
                         help=f"input mini batch size for training "
-                        f"(default: {args.min_batch_size})")
+                             f"(default: {args.min_batch_size})")
     parser.add_argument('--test_batch_size', type=int,
                         default=args.test_batch_size,
                         metavar='N',
@@ -35,7 +35,7 @@ def get_args():
     parser.add_argument('--epochs', type=int, default=args.epochs,
                         metavar='Epochs',
                         help=f"number of epochs to train ("
-                        f"default: {args.epochs})")
+                             f"default: {args.epochs})")
     parser.add_argument('--learning_rate', type=float,
                         default=args.learning_rate, metavar='LR',
                         help=f'learning rate (default: {args.learning_rate})')
@@ -229,7 +229,7 @@ def get_args():
                              'expressed as an empty string)')
     parser.add_argument('--start_epoch', type=int, default=args.start_epoch,
                         help=f"the epoch number from which to start the training"
-                        f"(default: {args.start_epoch})")
+                             f"(default: {args.start_epoch})")
     parser.add_argument("--precision_type", default=args.precision_type.name,
                         # "FP16", "FP32", "AMP"
                         help="the precision type: " + ",".join(
@@ -253,19 +253,19 @@ def get_args():
     parser.add_argument("--noise_sigma", default=args.noise_sigma,
                         type=float,
                         help=f"how much Gaussian noise to add: "
-                        "{args.noise_sigma}")
+                             "{args.noise_sigma}")
     parser.add_argument("--noise_sigmas", default=args.noise_sigmas, nargs="+",
                         type=float,
                         help=f"how much Gaussian noise to add: {args.noise_sigmas}")
     parser.add_argument("--noise_epsilon", default=args.noise_epsilon,
                         type=float,
                         help=f"how much uniform noise to add: "
-                        f"{args.noise_epsilon}")
+                             f"{args.noise_epsilon}")
     parser.add_argument("--noise_epsilons", default=args.noise_epsilons,
                         type=float,
                         nargs="+",
                         help=f"how much uniform noise to add: "
-                        f"{args.noise_epsilons}")
+                             f"{args.noise_epsilons}")
     parser.add_argument("--fft_type", default=args.fft_type,
                         help="the type of fft used: real_fft or complex_fft.")
     parser.add_argument("--imagenet_path", default=args.imagenet_path,
@@ -333,46 +333,46 @@ def get_args():
     parser.add_argument('--step_size', type=int, default=args.step_size,
                         metavar='Step size',
                         help=f"number of images to skip for an attack in "
-                        f"sequential order (default: {args.step_size})")
+                             f"sequential order (default: {args.step_size})")
     parser.add_argument('--noise_iterations', type=int,
                         default=args.noise_iterations,
                         help=f"number of iterations for the random defense "
-                        f"that we that attack is aware of and we use to recover "
-                        f"the correct label (default: {args.noise_iterations})")
+                             f"that we that attack is aware of and we use to recover "
+                             f"the correct label (default: {args.noise_iterations})")
     parser.add_argument('--many_noise_iterations', type=int, nargs="+",
                         default=args.many_noise_iterations,
                         help=f"many numbers of iterations for "
-                        f"the defense that the "
-                        f"attacker is aware of "
-                        f"(default: {args.many_noise_iterations})")
+                             f"the defense that the "
+                             f"attacker is aware of "
+                             f"(default: {args.many_noise_iterations})")
     parser.add_argument('--recover_iterations', type=int,
                         default=args.recover_iterations,
                         help=f"number of iterations for the defense that the "
-                        f"attacker is not aware of (default: {args.recover_iterations})")
+                             f"attacker is not aware of (default: {args.recover_iterations})")
     parser.add_argument('--many_recover_iterations', type=int, nargs="+",
                         default=args.many_recover_iterations,
                         help=f"many numbers of iterations for "
-                        f"the defense that the "
-                        f"attacker is not aware of "
-                        f"(default: {args.many_recover_iterations})")
+                             f"the defense that the "
+                             f"attacker is not aware of "
+                             f"(default: {args.many_recover_iterations})")
     parser.add_argument('--attack_max_iterations', type=int,
                         default=args.attack_max_iterations,
                         help=f"number of iterations for the attack that the "
-                        f" (default: {args.attack_max_iterations})")
+                             f" (default: {args.attack_max_iterations})")
     parser.add_argument('--many_attack_iterations', type=int, nargs="+",
                         default=args.many_attack_iterations,
                         help=f"many numbers of iterations for "
-                        f"the attacker "
-                        f"(default: {args.many_attack_iterations})")
+                             f"the attacker "
+                             f"(default: {args.many_attack_iterations})")
     parser.add_argument("--laplace_epsilon", default=args.laplace_epsilon,
                         type=float,
                         help=f"how much uniform noise to add: "
-                        f"{args.laplace_epsilon}")
+                             f"{args.laplace_epsilon}")
     parser.add_argument("--laplace_epsilons", default=args.laplace_epsilons,
                         type=float,
                         nargs="+",
                         help=f"how much laplace noise to add: "
-                        f"{args.laplace_epsilons}")
+                             f"{args.laplace_epsilons}")
     parser.add_argument("--is_DC_shift",
                         default="TRUE" if args.is_DC_shift else "FALSE",
                         help="should we shift the DC component to the center in"
@@ -385,17 +385,17 @@ def get_args():
     parser.add_argument("--svd_compress", default=args.svd_compress,
                         type=float,
                         help=f"svd compress rate: "
-                        f"{args.svd_compress}")
+                             f"{args.svd_compress}")
     parser.add_argument("--many_svd_compress", default=args.many_svd_compress,
                         type=float,
                         nargs="+",
                         help=f"many svd compression rates: "
-                        f"{args.many_svd_compress}")
+                             f"{args.many_svd_compress}")
     parser.add_argument("--rollout_file",
                         default=args.rollout_file,
                         type=str,
                         help=f"The rollout file for deep RL / IL, default: "
-                        f"{args.rollout_file}")
+                             f"{args.rollout_file}")
     parser.add_argument("--prediction_type",
                         default=args.prediction_type.name,
                         type=str,
@@ -465,7 +465,7 @@ def get_args():
                         nargs="+",
                         type=float,
                         help=f"how strong the attack should be: "
-                        f"{args.attack_strengths}")
+                             f"{args.attack_strengths}")
     parser.add_argument("--gradient_iters",
                         type=int,
                         default=args.gradient_iters,
@@ -487,37 +487,37 @@ def get_args():
     parser.add_argument('--rgb_value', type=int,
                         default=args.noise_iterations,
                         help=f"value to be subtracted from each pixel"
-                        f" (default: {args.rgb_value})")
+                             f" (default: {args.rgb_value})")
     parser.add_argument('--rgb_values', type=int, nargs="+",
                         default=args.rgb_values,
                         help=f"values to be subtracted from each pixel"
-                        f"(default: {args.rgb_values})")
+                             f"(default: {args.rgb_values})")
     parser.add_argument("--svd_transform",
                         default=args.svd_transform,
                         type=float,
                         help=f"svd compression rate for input "
-                        f"transformation during training and inference: "
-                        f"{args.svd_transform}")
+                             f"transformation during training and inference: "
+                             f"{args.svd_transform}")
     parser.add_argument("--svd_compress_transform",
                         default=args.svd_compress_transform,
                         type=float,
                         nargs="+",
                         help=f"many svd compression rates for input "
-                        f"transformations during training and inference: "
-                        f"{args.svd_compress_transform}")
+                             f"transformations during training and inference: "
+                             f"{args.svd_compress_transform}")
     parser.add_argument("--fft_transform",
                         default=args.fft_transform,
                         type=float,
                         help=f"fft compression rate for input "
-                        f"transformations during training and inference: "
-                        f"{args.fft_transform}")
+                             f"transformations during training and inference: "
+                             f"{args.fft_transform}")
     parser.add_argument("--fft_compress_transform",
                         default=args.fft_compress_transform,
                         type=float,
                         nargs="+",
                         help=f"many fft compression rates for input "
-                        f"transformations during training and inference: "
-                        f"{args.fft_compress_transform}")
+                             f"transformations during training and inference: "
+                             f"{args.fft_compress_transform}")
     parser.add_argument("--svd_transform_type",
                         default=args.svd_transform_type.name,
                         help="The type of SVD transformation / compression "
@@ -527,10 +527,15 @@ def get_args():
     parser.add_argument('--binary_search_steps', type=int,
                         default=args.binary_search_steps,
                         help=f"# of binary search steps in the attacks"
-                        f" (default: {args.binary_search_steps})")
+                             f" (default: {args.binary_search_steps})")
     parser.add_argument('--use_set',
                         type=str,
                         default=args.use_set)
+    parser.add_argument("--normalize_pytorch",
+                        default="TRUE" if args.normalize_pytorch else "FALSE",
+                        # "TRUE", "FALSE"
+                        help="should we normalize the data pytorch way? " + ",".join(
+                            Bool.get_names()))
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)
     return args

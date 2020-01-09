@@ -4,7 +4,6 @@ from cnns.nnlib.utils.complex_mask import get_hyper_mask
 from cnns.nnlib.utils.general_utils import next_power2
 from torch.nn.functional import pad as torch_pad
 from torch.distributions.laplace import Laplace
-from cnns.nnlib.robustness.channels.channels_definition import *
 
 nprng = np.random.RandomState()
 nprng.seed(31)

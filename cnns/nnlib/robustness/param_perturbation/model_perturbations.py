@@ -8,6 +8,7 @@ from cnns.nnlib.robustness.param_perturbation.utils import get_data_loader
 from cnns.nnlib.robustness.param_perturbation.utils import get_accuracy
 from cnns.nnlib.robustness.param_perturbation.utils import get_perturbed_fmodel
 from cnns.nnlib.robustness.param_perturbation.utils import get_clean_accuracy
+from cnns.nnlib.robustness.param_perturbation.sigmas import sigmas1, sigmas2
 
 
 def compute(args):
@@ -19,7 +20,8 @@ def compute(args):
 
     # for noise_sigma in args.noise_sigmas:
     # for noise_sigma in np.linspace(0.0001, 0.01, 100):
-    for noise_sigma in np.linspace(0.0, 0.05, 30):
+    # for noise_sigma in np.linspace(0.0, 0.05, 30):
+    for noise_sigma in sigmas2:
         start = time.time()
         args.noise_sigma = noise_sigma
         perturb_fmodel = get_perturbed_fmodel(args)

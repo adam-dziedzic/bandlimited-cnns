@@ -13,14 +13,14 @@ import time
 from cnns.nnlib.robustness.batch_attack.eot_pgd import EOT_PGD
 from cnns.nnlib.robustness.batch_attack.raw_pgd import RAW_PGD
 from cnns.nnlib.robustness.batch_attack.eot_cw import EOT_CW
-from cnns.nnlib.robustness.channels import fft_channel
-from cnns.nnlib.robustness.channels import round
-from cnns.nnlib.robustness.channels import gauss_noise_torch
-from cnns.nnlib.robustness.channels import uniform_noise_torch
-from cnns.nnlib.robustness.channels import compress_svd_batch
-from cnns.nnlib.robustness.channels import laplace_noise_torch
+from cnns.nnlib.robustness.channels_definition import fft_channel
+from cnns.nnlib.robustness.channels_definition import round
+from cnns.nnlib.robustness.channels_definition import gauss_noise_torch
+from cnns.nnlib.robustness.channels_definition import uniform_noise_torch
+from cnns.nnlib.robustness.channels.channels_definition import compress_svd_batch
+from cnns.nnlib.robustness.channels_definition import laplace_noise_torch
 from cnns.nnlib.utils.complex_mask import get_inverse_hyper_mask
-from cnns.nnlib.robustness.channels import subtract_rgb
+from cnns.nnlib.robustness.channels_definition import subtract_rgb
 import cnns.nnlib.pytorch_architecture as models
 
 
@@ -253,8 +253,8 @@ if __name__ == "__main__":
     bounds = (0, 1)
 
     if mod == 'trained-1-fft':
-       model =
-       modelAttack = model
+        model = 'rse_0.0_0.0_ady.pth-test-accuracy-0.8523'
+        modelAttack = model
     if mod == '0-0':
         model = 'rse_0.0_0.0_ady.pth-test-accuracy-0.8523'
         modelAttack = model
@@ -325,11 +325,11 @@ if __name__ == "__main__":
     parser.add_argument('--channel', type=str,
                         # default='gauss_torch',
                         # default='round',
-                        # default='empty',
+                        default='empty',
                         # default='svd',
                         # default='uniform',
                         # default='svd',
-                        default='fft',
+                        # default='fft',
                         # default='laplace',
                         # default='inv_fft',
                         # default='sub_rgb'
@@ -346,8 +346,8 @@ if __name__ == "__main__":
                              'processed. Set this param to 0 to process all '
                              'batches.')
     parser.add_argument('--noise_epsilons', type=float, nargs="+",
+                        default=[0.0018],
                         # default=0.3,
-                        default=[85],
                         # default=16,
                         # default=[1.,5.,10.,20.,30.,40.,50.],
                         # default=[2 ** x for x in range(8, 0, -1)],
