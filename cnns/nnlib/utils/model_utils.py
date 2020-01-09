@@ -4,6 +4,7 @@ from cnns.nnlib.pytorch_architecture.get_model_architecture import \
     getModelPyTorch
 import torchvision.models as models
 
+
 def load_model(args, pretrained=False):
     model = getModelPyTorch(args=args, pretrained=pretrained)
     # load pretrained weights
@@ -18,6 +19,7 @@ def load_model(args, pretrained=False):
         msg = "loaded model: " + args.model_path
         # print(msg)
     return model.eval()
+
 
 def save_model_from_pretrained():
     model = models.resnet50(pretrained=True)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import os
 import sys
 import argparse
 import torch
@@ -25,6 +25,7 @@ from cnns.nnlib.robustness.channels_definition import subtract_rgb
 import cnns.nnlib.pytorch_architecture as models
 from cnns.nnlib.pytorch_architecture import vgg
 from cnns.nnlib.pytorch_architecture import vgg_rse
+from cnns.nnlib.pytorch_architecture import resnet
 from cnns.nnlib.robustness.param_perturbation.utils import perturb_model_params
 
 
@@ -279,8 +280,8 @@ def get_nets(opt):
             net = models.vgg_brelu.VGG("VGG16", 0.0)
         elif opt.defense == "rse":
             net = vgg_rse.VGG("VGG16", opt.noiseInit,
-                                     opt.noiseInner,
-                                     noise_type='standard')
+                              opt.noiseInner,
+                              noise_type='standard')
             # netAttack = net
             netAttack = models.vgg_rse.VGG("VGG16", opt.noiseInit,
                                            opt.noiseInner,
@@ -305,8 +306,17 @@ def get_nets(opt):
         elif opt.defense == "rse":
             net = models.stl10_model_rse.stl10(32, opt.noiseInit,
                                                opt.noiseInner)
+    elif opt.net == 'resnet18':
+        net = resnet.ResNet18()
 
-    net = nn.DataParallel(net, device_ids=range(1))
+    try:
+        gpus = os.environ['CUDA_VISIBLE_DEVICES']
+        gpus = list(range(len(gpus.split(','))))
+    except KeyError as e:
+        # print('error: ', e)
+        gpus = [0]
+
+    net = nn.DataParallel(net, device_ids=gpus)
     net.load_state_dict(torch.load(opt.modelIn))
     net.cuda()
 
@@ -354,7 +364,9 @@ def get_dataloader(opt):
 if __name__ == "__main__":
 
     mod = '0-0'  # mode init noise - inner noise
+    # mod = 'resnet18'
     bounds = (0, 1)
+    model_prefix = 'vgg16'
 
     if mod == 'trained-1-fft':
         model = 'rse_0.0_0.0_ady.pth-test-accuracy-0.8523'
@@ -397,20 +409,29 @@ if __name__ == "__main__":
         modelAttack = model
         noiseInit = 0.3
         noiseInner = 0.0
+    elif mod == 'resnet18':
+        model = 'saved-model-2020-01-09-06-14-54-239467-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-loss-0.009636239625141025-test-accuracy-93.27-0-1-normalized-images.model'
+        modelAttack = model
+        noiseInit = 0.0
+        noiseInner = 0.0
+        model_prefix = '../../pytorch_experiments/models/'
     else:
         raise Exception(f'Unknown mod: {mod}')
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='cifar10')
-    parser.add_argument('--net', type=str, default='vgg16')
+    parser.add_argument('--net', type=str,
+                        default='vgg16',
+                        # default='resnet18',
+                        )
     parser.add_argument('--defense', type=str, default='rse')
     parser.add_argument('--modelIn', type=str,
                         # default='./vgg16/rse_0.2_0.1_ady-ver1.pth',
                         # default='./vgg16/rse_0.2_0.1_ady.pth-test-accuracy-0.8728'
-                        default='./vgg16/' + model
+                        default=f'./{model_prefix}/' + model
                         )
     parser.add_argument('--modelInAttack', type=str,
-                        default='./vgg16/' + modelAttack)
+                        default=f'./{model_prefix}/' + modelAttack)
     parser.add_argument('--c', type=float, nargs='+',
                         default=[0.0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.02,
                                  0.03, 0.04, 0.05, 0.07, 0.1, 0.2, 0.3, 0.4,
@@ -425,11 +446,14 @@ if __name__ == "__main__":
     parser.add_argument('--root', type=str, default='data/cifar10-py')
     parser.add_argument('--mode', type=str, default='test')  # peek or test
     parser.add_argument('--ensemble', type=int, default=1)
-    parser.add_argument('--batch_size', type=int, default=256)
+    parser.add_argument('--batch_size', type=int,
+                        default=256,
+                        # default=32,
+                        )
     parser.add_argument('--channel', type=str,
+                        # default='empty',
                         # default='gauss_torch',
                         # default='round',
-                        # default='empty',
                         # default='svd',
                         # default='uniform',
                         # default='svd',
@@ -443,10 +467,13 @@ if __name__ == "__main__":
                         default='standard',
                         # default='backward',
                         )
-    parser.add_argument('--attack_iters', type=int, default=300)
+    parser.add_argument('--attack_iters', type=int,
+                        # default=300,
+                        default=10,
+                        )
     parser.add_argument('--gradient_iters', type=int, default=1)
     parser.add_argument('--eot_sample_size', type=int, default=32)
-    parser.add_argument('--limit_batch_number', type=int, default=2,
+    parser.add_argument('--limit_batch_number', type=int, default=4,
                         help='If limit > 0, only that # of batches is '
                              'processed. Set this param to 0 to process all '
                              'batches.')
