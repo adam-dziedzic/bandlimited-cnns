@@ -363,7 +363,7 @@ def get_dataloader(opt):
 
 if __name__ == "__main__":
 
-    mod = '0-0'  # mode init noise - inner noise
+    mod = '2-1'  # mode init noise - inner noise
     # mod = 'resnet18'
     bounds = (0, 1)
     model_prefix = 'vgg16'

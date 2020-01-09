@@ -8673,5 +8673,5 @@ CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/py
 
 
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
-CUDA_VISIBLE_DEVICES=1 nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'perturb' --mod '0-0' --noise_epsilons 0.0018 >> ${timestamp}.txt 2>&1 &
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'clean' --mod '2-1' --noise_epsilons 0.0 >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
