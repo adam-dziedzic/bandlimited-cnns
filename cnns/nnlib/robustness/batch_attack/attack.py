@@ -10,6 +10,7 @@ import torchvision.datasets as dst
 from torch.utils.data import DataLoader
 import numpy as np
 import time
+from cnns import matplotlib_backend
 from cnns.nnlib.robustness.batch_attack.eot_pgd import EOT_PGD
 from cnns.nnlib.robustness.batch_attack.raw_pgd import RAW_PGD
 from cnns.nnlib.robustness.batch_attack.eot_cw import EOT_CW
@@ -237,7 +238,7 @@ def acc_under_attack(dataloader, net, c, attack_f, opt, netAttack=None):
     return correct / tot, np.sqrt(distort_np / tot)
 
 
-def peek(dataloader, net, src_net, c, attack_f, denormalize_layer):
+def peek(dataloader, net, src_net, c, attack_f):
     count, count2, count3 = 0, 0, 0
     for x, y in dataloader:
         x, y = x.cuda(), y.cuda()
@@ -246,12 +247,10 @@ def peek(dataloader, net, src_net, c, attack_f, denormalize_layer):
         net.eval()
         _, idx = torch.max(net(input_v), 1)
         _, idx2 = torch.max(net(adverse_v), 1)
-        idx3 = ensemble_infer2(adverse_v, net)
+        idx3 = ensemble_infer(adverse_v, net)
         count += torch.sum(label_v.eq(idx)).item()
         count2 += torch.sum(label_v.eq(idx2)).item()
         count3 += torch.sum(label_v.eq(idx3)).item()
-        less, more = check_in_bound(adverse_v, denormalize_layer)
-        print("<0: {}, >1: {}".format(less, more))
         print("Count: {}, Count2: {}, Count3: {}".format(count, count2, count3))
         ok = input("Continue next batch? y/n: ")
         if ok == 'n':
@@ -330,6 +329,7 @@ def get_nets(opt):
 
 def get_dataloader(opt):
     if opt.dataset == 'cifar10':
+        opt.root = 'data/cifar10-py'
         transform_train = tfs.Compose([
             tfs.RandomCrop(32, padding=4),
             tfs.RandomHorizontalFlip(),
@@ -339,7 +339,9 @@ def get_dataloader(opt):
         transform_test = tfs.Compose([
             tfs.ToTensor(),
         ])
-        data_test = dst.CIFAR10(opt.root, download=True, train=False,
+        data_test = dst.CIFAR10(opt.root,
+                                download=True,
+                                train=False,
                                 transform=transform_test)
     elif opt.dataset == 'stl10':
         transform_train = tfs.Compose([
@@ -361,94 +363,83 @@ def get_dataloader(opt):
     return dataloader_test
 
 
-if __name__ == "__main__":
-
-    mod = '2-1'  # mode init noise - inner noise
-    # mod = 'resnet18'
-    bounds = (0, 1)
-    model_prefix = 'vgg16'
-
-    if mod == 'trained-1-fft':
-        model = 'rse_0.0_0.0_ady.pth-test-accuracy-0.8523'
-        modelAttack = model
-    if mod == '0-0':
-        model = 'rse_0.0_0.0_ady.pth-test-accuracy-0.8523'
-        modelAttack = model
-        noiseInit = 0.0
-        noiseInner = 0.0
-    elif mod == '017-0-test':
-        model = 'rse_0.0_0.0_ady.pth-test-accuracy-0.8523'
-        modelAttack = model
+def set_model_settings(opt):
+    net_mode = opt.net_mode  # mode init noise - inner noise
+    noiseInit = 0.0
+    noiseInner = 0.0
+    if net_mode == 'trained-1-fft':
+        modelPath = 'vgg16/rse_0.0_0.0_ady.pth-test-accuracy-0.8523'
+        modelAttack = modelPath
+        net = 'vgg16'
+    elif net_mode == '0-0':
+        modelPath = 'vgg16/rse_0.0_0.0_ady.pth-test-accuracy-0.8523'
+        # modelPath = 'vgg16/rse_0.2_0.1_ady.pth-test-accuracy-0.8728'
+        modelAttack = modelPath
+        net = 'vgg16'
+    elif net_mode == '017-0-test':
+        modelPath = 'vgg16/rse_0.0_0.0_ady.pth-test-accuracy-0.8523'
+        modelAttack = modelPath
         noiseInit = 0.017
-        noiseInner = 0.0
-    elif mod == '03-0':
-        model = 'rse_0.03_0.0_ady.pth-test-accuracy-0.8574'
-        modelAttack = model
+        net = 'vgg16'
+    elif net_mode == '03-0':
+        modelPath = 'vgg16/rse_0.03_0.0_ady.pth-test-accuracy-0.8574'
+        modelAttack = modelPath
         noiseInit = 0.03
-        noiseInner = 0.0
-    elif mod == '017-0-trained':
-        model = 'rse_0.017_0.0_ady.pth-test-accuracy-0.8392'
+        net = 'vgg16'
+    elif net_mode == '017-0-trained':
+        modelPath = 'vgg16/rse_0.017_0.0_ady.pth-test-accuracy-0.8392'
         # modelAttack = model
         modelAttack = 'rse_0.0_0.0_ady.pth-test-accuracy-0.8523'
         noiseInit = 0.017
-        noiseInner = 0.0
-    elif mod == '2-0':
-        model = 'rse_0.2_0.0_ady.pth-test-accuracy-0.8553'
-        modelAttack = model
+        net = 'vgg16'
+    elif net_mode == '2-0':
+        modelPath = 'vgg16/rse_0.2_0.0_ady.pth-test-accuracy-0.8553'
+        modelAttack = modelPath
         noiseInit = 0.2
-        noiseInner = 0.0
-    elif mod == '2-1':
-        model = 'rse_0.2_0.1_ady.pth-test-accuracy-0.8728'
-        # modelAttack = 'rse_0.0_0.0_ady.pth-test-accuracy-0.8523'
-        # modelAttack = 'rse_0.2_0.1_ady.pth-test-accuracy-0.8728'
-        modelAttack = model
+        net = 'vgg16'
+    elif net_mode == '2-1':
+        # modelPath = 'vgg16/rse_0.2_0.1_ady.pth-test-accuracy-0.8728'
+        modelPath = 'vgg16/rse_0.2_0.1_ady.pth-test-accuracy-0.8516'
+        modelAttack = modelPath
         noiseInit = 0.2
         noiseInner = 0.1
-    elif mod == '3-0':
-        model = 'rse_0.3_0.0_ady.pth-test-accuracy-0.7618'
-        modelAttack = model
+        net = 'vgg16'
+    elif net_mode == '3-0':
+        modelPath = 'vgg16/rse_0.3_0.0_ady.pth-test-accuracy-0.7618'
+        modelAttack = modelPath
         noiseInit = 0.3
-        noiseInner = 0.0
-    elif mod == 'resnet18':
-        model = 'saved-model-2020-01-09-06-14-54-239467-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-loss-0.009636239625141025-test-accuracy-93.27-0-1-normalized-images.model'
-        modelAttack = model
-        noiseInit = 0.0
-        noiseInner = 0.0
-        model_prefix = '../../pytorch_experiments/models/'
+        net = 'vgg16'
+    elif net_mode == 'resnet18':
+        modelPath = '../../pytorch_experiments/models/saved-model-2020-01-09-06-14-54-239467-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-loss-0.009636239625141025-test-accuracy-93.27-0-1-normalized-images.model'
+        modelAttack = modelPath
+        net = 'resnet18'
     else:
-        raise Exception(f'Unknown mod: {mod}')
+        raise Exception(f'Unknown opt.net_mode: {opt.net_mode}')
 
+    opt.modelIn = modelPath
+    opt.modelInAttack = modelAttack
+    opt.noiseInit = noiseInit
+    opt.noiseInner = noiseInner
+    opt.net = net
+
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='cifar10')
-    parser.add_argument('--net', type=str,
-                        default='vgg16',
-                        # default='resnet18',
+    parser.add_argument('--net_mode',
+                        type=str,
+                        default='0-0')
+    parser.add_argument('--defense', type=str,
+                        default='rse',
+                        # default='plain',
                         )
-    parser.add_argument('--defense', type=str, default='rse')
-    parser.add_argument('--modelIn', type=str,
-                        # default='./vgg16/rse_0.2_0.1_ady-ver1.pth',
-                        # default='./vgg16/rse_0.2_0.1_ady.pth-test-accuracy-0.8728'
-                        default=f'./{model_prefix}/' + model
-                        )
-    parser.add_argument('--modelInAttack', type=str,
-                        default=f'./{model_prefix}/' + modelAttack)
     parser.add_argument('--c', type=float, nargs='+',
                         default=[0.0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.02,
                                  0.03, 0.04, 0.05, 0.07, 0.1, 0.2, 0.3, 0.4,
-                                 0.5, 1.0, 2.0],
+                                 0.5, 1.0, 2.0, 10.0, 100.0],
                         # default=[0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.5],
                         # default=[0.001, 0.03, 0.1],
                         # default = '1.0 10.0 100.0 1000.0',
                         # default='0.05,0.1,0.5,1.0,10.0,100.0',
-                        )
-    parser.add_argument('--noiseInit', type=float, default=noiseInit)
-    parser.add_argument('--noiseInner', type=float, default=noiseInner)
-    parser.add_argument('--root', type=str, default='data/cifar10-py')
-    parser.add_argument('--mode', type=str, default='test')  # peek or test
-    parser.add_argument('--ensemble', type=int, default=1)
-    parser.add_argument('--batch_size', type=int,
-                        default=256,
-                        # default=32,
                         )
     parser.add_argument('--channel', type=str,
                         # default='empty',
@@ -463,22 +454,17 @@ if __name__ == "__main__":
                         # default='sub_rgb'
                         default='perturb',
                         )
-    parser.add_argument('--noise_type', type=str,
-                        default='standard',
-                        # default='backward',
-                        )
     parser.add_argument('--attack_iters', type=int,
                         # default=300,
                         default=10,
                         )
-    parser.add_argument('--gradient_iters', type=int, default=1)
-    parser.add_argument('--eot_sample_size', type=int, default=32)
     parser.add_argument('--limit_batch_number', type=int, default=4,
                         help='If limit > 0, only that # of batches is '
                              'processed. Set this param to 0 to process all '
                              'batches.')
     parser.add_argument('--noise_epsilons', type=float, nargs="+",
                         default=[0.0018],
+                        # default=[0.0],
                         # default=0.3,
                         # default=16,
                         # default=[1.,5.,10.,20.,30.,40.,50.],
@@ -488,9 +474,26 @@ if __name__ == "__main__":
                         # default=[0.0],
                         # default=[0.01, 0.1, 0.5, 1.0, 2.0, 3.0, 4.0]
                         )
-
+    parser.add_argument('--dataset',
+                        type=str,
+                        default='cifar10')
+    parser.add_argument('--mode', type=str, default='test')  # peek or test
+    parser.add_argument('--ensemble', type=int, default=1)
+    parser.add_argument('--batch_size', type=int,
+                        default=256,
+                        # default=32,
+                        )
+    parser.add_argument('--noise_type', type=str,
+                        default='standard',
+                        # default='backward',
+                        )
+    parser.add_argument('--gradient_iters', type=int, default=1)
+    parser.add_argument('--eot_sample_size', type=int, default=32)
     opt = parser.parse_args()
-    opt.bounds = bounds
+    opt.bounds = (0, 1)
+
+    set_model_settings(opt)
+
     print('params: ', opt)
     print('input model: ', opt.modelIn)
     if opt.mode == 'peek' and len(opt.c) != 1:
@@ -515,8 +518,7 @@ if __name__ == "__main__":
     print('attack_f: ', attack_f)
 
     if opt.mode == 'peek':
-        peek(dataloader_test, net, src_net, opt.c[0], attack_f,
-             denormalize_layer)
+        peek(dataloader_test, net, net, opt.c[0], attack_f)
     elif opt.mode == 'test':
         print("#c, noise, test accuracy, L2 distortion, time (sec)")
         for c in opt.c:

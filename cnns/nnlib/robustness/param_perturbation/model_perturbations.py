@@ -22,8 +22,8 @@ def compute(args):
     # for noise_sigma in np.linspace(0.0001, 0.01, 100):
     # for noise_sigma in np.linspace(0.0, 0.05, 30):
     # for noise_sigma in sigmas2:
-    # for noise_sigma in [1e-5, 1e-6, 1e-7]:
-    for noise_sigma in sigmas3:
+    for noise_sigma in [0.0044, 0.004, 0.0039]:
+    # for noise_sigma in sigmas3:
         start = time.time()
         args.noise_sigma = noise_sigma
         perturb_fmodel = get_perturbed_fmodel(args)

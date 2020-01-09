@@ -8673,5 +8673,33 @@ CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/py
 
 
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
-CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'clean' --mod '2-1' --noise_epsilons 0.0 >> ${timestamp}.txt 2>&1 &
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 127625
+cc@icml:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-09-14-19-29-334055155.txt
+[1] 150436
+cc@icml:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-09-16-47-38-771340331.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0032 0.003 0.0028 0.0026 0.0024 0.0022 0.0018 0.0016 0.0014 0.0012 0.0008 --c 0.01 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 3036
+ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-09-08-25-45-083807238.txt
+[1] 19763
+ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-09-10-48-09-137681884.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0032 0.003 0.0028 0.0026 0.0024 0.0022 0.0018 0.0016 0.0014 0.0012 0.0008 --c 0.01 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode '2-1' --attack_iters 300 --limit_batch_number 0 --noise_epsilons 0.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode '0-0' --attack_iters 300 --limit_batch_number 0 --noise_epsilons 0.0 >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
