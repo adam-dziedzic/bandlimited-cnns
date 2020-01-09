@@ -17,11 +17,15 @@ from cnns.nnlib.robustness.channels_definition import fft_channel
 from cnns.nnlib.robustness.channels_definition import round
 from cnns.nnlib.robustness.channels_definition import gauss_noise_torch
 from cnns.nnlib.robustness.channels_definition import uniform_noise_torch
-from cnns.nnlib.robustness.channels.channels_definition import compress_svd_batch
+from cnns.nnlib.robustness.channels.channels_definition import \
+    compress_svd_batch
 from cnns.nnlib.robustness.channels_definition import laplace_noise_torch
 from cnns.nnlib.utils.complex_mask import get_inverse_hyper_mask
 from cnns.nnlib.robustness.channels_definition import subtract_rgb
 import cnns.nnlib.pytorch_architecture as models
+from cnns.nnlib.pytorch_architecture import vgg
+from cnns.nnlib.pytorch_architecture import vgg_rse
+from cnns.nnlib.robustness.param_perturbation.utils import perturb_model_params
 
 
 def attack_eot_pgd(input_v, label_v, net, epsilon=8.0 / 255.0, opt=None):
@@ -58,11 +62,15 @@ def attack_cw(input_v, label_v, net, c, opt, untarget=True, n_class=10):
     zero_v = torch.tensor([0.0], requires_grad=False).cuda()
     for _ in range(opt.attack_iters):
         net.zero_grad()
+        if opt.channel == 'perturb':
+            attack_net = get_perturbed_net()
+        else:
+            attack_net = net
         optimizer.zero_grad()
         adverse_v = 0.5 * (torch.tanh(w_v) + 1.0)
         logits = torch.zeros(batch_size, n_class).cuda()
         for i in range(opt.gradient_iters):
-            logits += net(adverse_v)
+            logits += attack_net(adverse_v)
         output = logits / opt.gradient_iters
         # output = logits
         # The logits for the correct class labels.
@@ -139,6 +147,14 @@ def ensemble_infer(input_v, net, n=50, nclass=10):
     return pred
 
 
+def get_perturbed_net():
+    perturbed_net, _ = get_nets(opt)
+    perturb_model_params(model=perturbed_net, epsilon=opt.noise_epsilon,
+                         min=0, max=1)
+    perturbed_net.eval()
+    return perturbed_net
+
+
 def acc_under_attack(dataloader, net, c, attack_f, opt, netAttack=None):
     correct = 0
     tot = 0
@@ -151,10 +167,13 @@ def acc_under_attack(dataloader, net, c, attack_f, opt, netAttack=None):
         # attack
         if netAttack is None:
             netAttack = net
+
         adverse_v, diff = attack_f(input_v, label_v, netAttack, c, opt)
         # print('min max: ', adverse_v.min().item(), adverse_v.max().item())
         bounds = (0.0, 1.0)
         if opt.channel == 'empty':
+            pass
+        elif opt.channel == 'perturb':
             pass
         elif opt.channel == 'gauss':
             adverse_v += gauss_noise_torch(epsilon=opt.noise_epsilon,
@@ -188,7 +207,11 @@ def acc_under_attack(dataloader, net, c, attack_f, opt, netAttack=None):
         # defense
         net.eval()
         if opt.ensemble == 1:
-            _, idx = torch.max(net(adverse_v), 1)
+            if opt.channel == 'perturb':
+                net_infer = get_perturbed_net()
+            else:
+                net_infer = net
+            _, idx = torch.max(net_infer(adverse_v), 1)
         else:
             idx = ensemble_infer(adverse_v, net, n=opt.ensemble)
         correct += torch.sum(label_v.eq(idx)).item()
@@ -245,6 +268,87 @@ def test_accuracy(dataloader, net):
         total += y.numel()
     acc = correct / total
     return acc
+
+
+def get_nets(opt):
+    netAttack = None
+    if opt.net == "vgg16" or opt.net == "vgg16-robust":
+        if opt.defense in ("plain", "adv", "dd"):
+            net = vgg.VGG("VGG16")
+        elif opt.defense == "brelu":
+            net = models.vgg_brelu.VGG("VGG16", 0.0)
+        elif opt.defense == "rse":
+            net = vgg_rse.VGG("VGG16", opt.noiseInit,
+                                     opt.noiseInner,
+                                     noise_type='standard')
+            # netAttack = net
+            netAttack = models.vgg_rse.VGG("VGG16", opt.noiseInit,
+                                           opt.noiseInner,
+                                           noise_type=opt.noise_type)
+            # netAttack = models.vgg_rse.VGG("VGG16", init_noise=0.0,
+            #                                inner_noise=0.0,
+            #                                noise_type='standard')
+    elif opt.net == "resnext":
+        if opt.defense in ("plain", "adv", "dd"):
+            net = models.resnext.ResNeXt29_2x64d()
+        elif opt.defense == "brelu":
+            net = models.resnext_brelu.ResNeXt29_2x64d(0)
+        elif opt.defense == "rse":
+            net = models.resnext_rse.ResNeXt29_2x64d(opt.noiseInit,
+                                                     opt.noiseInner)
+    elif opt.net == "stl10_model":
+        if opt.defense in ("plain", "adv", "dd"):
+            net = models.stl10_model.stl10(32)
+        elif opt.defense == "brelu":
+            # no noise at testing time
+            net = models.stl10_model_brelu.stl10(32, 0.0)
+        elif opt.defense == "rse":
+            net = models.stl10_model_rse.stl10(32, opt.noiseInit,
+                                               opt.noiseInner)
+
+    net = nn.DataParallel(net, device_ids=range(1))
+    net.load_state_dict(torch.load(opt.modelIn))
+    net.cuda()
+
+    if netAttack is not None and id(net) != id(netAttack):
+        netAttack = nn.DataParallel(netAttack, device_ids=range(1))
+        netAttack.load_state_dict(torch.load(opt.modelInAttack))
+        netAttack.cuda()
+
+    return net, netAttack
+
+
+def get_dataloader(opt):
+    if opt.dataset == 'cifar10':
+        transform_train = tfs.Compose([
+            tfs.RandomCrop(32, padding=4),
+            tfs.RandomHorizontalFlip(),
+            tfs.ToTensor(),
+        ])
+
+        transform_test = tfs.Compose([
+            tfs.ToTensor(),
+        ])
+        data_test = dst.CIFAR10(opt.root, download=True, train=False,
+                                transform=transform_test)
+    elif opt.dataset == 'stl10':
+        transform_train = tfs.Compose([
+            tfs.RandomCrop(96, padding=4),
+            tfs.RandomHorizontalFlip(),
+            tfs.ToTensor(),
+        ])
+        transform_test = tfs.Compose([
+            tfs.ToTensor(),
+        ])
+        data_test = dst.STL10(opt.root, split='test', download=True,
+                              transform=transform_test)
+    else:
+        print("Invalid dataset")
+        exit(-1)
+    assert data_test
+    dataloader_test = DataLoader(data_test, batch_size=opt.batch_size,
+                                 shuffle=False)
+    return dataloader_test
 
 
 if __name__ == "__main__":
@@ -325,7 +429,7 @@ if __name__ == "__main__":
     parser.add_argument('--channel', type=str,
                         # default='gauss_torch',
                         # default='round',
-                        default='empty',
+                        # default='empty',
                         # default='svd',
                         # default='uniform',
                         # default='svd',
@@ -333,6 +437,7 @@ if __name__ == "__main__":
                         # default='laplace',
                         # default='inv_fft',
                         # default='sub_rgb'
+                        default='perturb',
                         )
     parser.add_argument('--noise_type', type=str,
                         default='standard',
@@ -341,7 +446,7 @@ if __name__ == "__main__":
     parser.add_argument('--attack_iters', type=int, default=300)
     parser.add_argument('--gradient_iters', type=int, default=1)
     parser.add_argument('--eot_sample_size', type=int, default=32)
-    parser.add_argument('--limit_batch_number', type=int, default=0,
+    parser.add_argument('--limit_batch_number', type=int, default=2,
                         help='If limit > 0, only that # of batches is '
                              'processed. Set this param to 0 to process all '
                              'batches.')
@@ -364,81 +469,13 @@ if __name__ == "__main__":
     if opt.mode == 'peek' and len(opt.c) != 1:
         print("When opt.mode == 'peek', then only one 'c' is allowed")
         exit(-1)
-    netAttack = None
-    if opt.net == "vgg16" or opt.net == "vgg16-robust":
-        if opt.defense in ("plain", "adv", "dd"):
-            net = models.vgg.VGG("VGG16")
-        elif opt.defense == "brelu":
-            net = models.vgg_brelu.VGG("VGG16", 0.0)
-        elif opt.defense == "rse":
-            net = models.vgg_rse.VGG("VGG16", opt.noiseInit,
-                                     opt.noiseInner,
-                                     noise_type='standard')
-            # netAttack = net
-            netAttack = models.vgg_rse.VGG("VGG16", opt.noiseInit,
-                                           opt.noiseInner,
-                                           noise_type=opt.noise_type)
-            # netAttack = models.vgg_rse.VGG("VGG16", init_noise=0.0,
-            #                                inner_noise=0.0,
-            #                                noise_type='standard')
-    elif opt.net == "resnext":
-        if opt.defense in ("plain", "adv", "dd"):
-            net = models.resnext.ResNeXt29_2x64d()
-        elif opt.defense == "brelu":
-            net = models.resnext_brelu.ResNeXt29_2x64d(0)
-        elif opt.defense == "rse":
-            net = models.resnext_rse.ResNeXt29_2x64d(opt.noiseInit,
-                                                     opt.noiseInner)
-    elif opt.net == "stl10_model":
-        if opt.defense in ("plain", "adv", "dd"):
-            net = models.stl10_model.stl10(32)
-        elif opt.defense == "brelu":
-            # no noise at testing time
-            net = models.stl10_model_brelu.stl10(32, 0.0)
-        elif opt.defense == "rse":
-            net = models.stl10_model_rse.stl10(32, opt.noiseInit,
-                                               opt.noiseInner)
 
-    net = nn.DataParallel(net, device_ids=range(1))
-    net.load_state_dict(torch.load(opt.modelIn))
-    net.cuda()
-
-    if netAttack is not None and id(net) != id(netAttack):
-        netAttack = nn.DataParallel(netAttack, device_ids=range(1))
-        netAttack.load_state_dict(torch.load(opt.modelInAttack))
-        netAttack.cuda()
+    net, netAttack = get_nets(opt=opt)
 
     loss_f = nn.CrossEntropyLoss()
 
-    if opt.dataset == 'cifar10':
-        transform_train = tfs.Compose([
-            tfs.RandomCrop(32, padding=4),
-            tfs.RandomHorizontalFlip(),
-            tfs.ToTensor(),
-        ])
+    dataloader_test = get_dataloader(opt=opt)
 
-        transform_test = tfs.Compose([
-            tfs.ToTensor(),
-        ])
-        data_test = dst.CIFAR10(opt.root, download=True, train=False,
-                                transform=transform_test)
-    elif opt.dataset == 'stl10':
-        transform_train = tfs.Compose([
-            tfs.RandomCrop(96, padding=4),
-            tfs.RandomHorizontalFlip(),
-            tfs.ToTensor(),
-        ])
-        transform_test = tfs.Compose([
-            tfs.ToTensor(),
-        ])
-        data_test = dst.STL10(opt.root, split='test', download=True,
-                              transform=transform_test)
-    else:
-        print("Invalid dataset")
-        exit(-1)
-    assert data_test
-    dataloader_test = DataLoader(data_test, batch_size=opt.batch_size,
-                                 shuffle=False)
     print('Test accuracy {} on clean data for net.'.format(
         test_accuracy(dataloader_test, net)))
     # if netAttack is not None:
@@ -446,8 +483,8 @@ if __name__ == "__main__":
 
     # attack_f = attack_eot_cw
     # attack_f = attack_eot_pgd
-    # attack_f = attack_cw
-    attack_f = attack_gauss
+    attack_f = attack_cw
+    # attack_f = attack_gauss
     print('attack_f: ', attack_f)
 
     if opt.mode == 'peek':

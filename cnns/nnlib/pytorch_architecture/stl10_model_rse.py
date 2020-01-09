@@ -1,5 +1,5 @@
 import torch.nn as nn
-from cnns.nnlib.pytorch_architecture.models import layer
+from cnns.nnlib.pytorch_architecture import layer
 
 Noise = layer.Noise
 

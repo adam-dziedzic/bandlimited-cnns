@@ -5,7 +5,7 @@ See the paper "Aggregated Residual Transformations for Deep Neural Networks" for
 import torch.nn as nn
 import torch.nn.functional as F
 
-from cnns.nnlib.pytorch_architecture.models import layer
+from cnns.nnlib.pytorch_architecture import layer
 
 Noise = layer.Noise
 

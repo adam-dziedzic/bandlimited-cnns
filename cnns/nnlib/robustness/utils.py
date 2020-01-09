@@ -86,7 +86,25 @@ def gauss_noise(epsilon, shape, dtype, args):
     :param dtype: the output type
     :return: the noise for images
     """
-    std = epsilon / np.sqrt(3) * (args.max - args.min)
+    return gauss_noise_raw(epsilon=epsilon,
+                           shape=shape,
+                           dtype=dtype,
+                           min=args.min,
+                           max=args.max)
+
+
+def gauss_noise_raw(epsilon, shape, dtype, min, max):
+    """
+    Similar to foolbox but batched version.
+    :param epsilon: strength of the noise
+    :param bounds: min max for images
+    :param shape: the output shape
+    :param dtype: the output type
+    :param min: min value of a pixel
+    :param max: max value of a pixel
+    :return: the noise for images
+    """
+    std = epsilon / np.sqrt(3) * (max - min)
     noise = nprng.normal(loc=0.0, scale=std, size=shape)
     noise = noise.astype(dtype)
     return noise

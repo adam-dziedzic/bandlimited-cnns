@@ -2,7 +2,7 @@ import numpy as np
 from cnns.nnlib.datasets.load_data import get_data
 import cnns.foolbox.foolbox_2_3_0 as foolbox
 from cnns.nnlib.robustness.pytorch_model import get_model
-from cnns.nnlib.robustness.utils import gauss_noise
+from cnns.nnlib.robustness.utils import gauss_noise_raw
 import torch
 import time
 
@@ -25,6 +25,7 @@ def get_adv_images_org_images(adversarials, images):
     ]
     advs = np.stack(advs)
     return advs
+
 
 def get_adv_images_org_labels(adversarials, labels):
     advs = [a.perturbed for a in adversarials]
@@ -52,17 +53,23 @@ def get_data_loader(args):
     return data_loader
 
 
-def get_perturbed_fmodel(args):
-    fmodel = get_fmodel(args)
-    model = fmodel._model
+def perturb_model_params(model, epsilon, min, max):
     params = model.parameters()
     with torch.no_grad():
         for param in params:
             shape = list(param.shape)
-            noise = gauss_noise(epsilon=args.noise_sigma, args=args,
-                                shape=shape, dtype=np.float)
+            noise = gauss_noise_raw(epsilon=epsilon,
+                                    shape=shape, dtype=np.float,
+                                    min=min, max=max)
             noise = torch.tensor(noise, dtype=param.dtype, device=param.device)
             param.data += noise
+
+
+def get_perturbed_fmodel(args):
+    fmodel = get_fmodel(args)
+    model = fmodel._model
+    perturb_model_params(model, epsilon=args.noise_sigma, min=args.min,
+                         max=args.max)
     return fmodel
 
 
