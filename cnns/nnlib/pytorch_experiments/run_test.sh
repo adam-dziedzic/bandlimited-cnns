@@ -8722,26 +8722,54 @@ ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ ech
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
 CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'perturb' --noise_epsilons 0.004 --net_mode '0-0' --attack_iters 300 --batch_size 2048 --limit_batch_number 0 --c 0.0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
-[1] 68335
+[1] 68938
 cc@nips:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
-2020-01-10-00-56-05-668352003.txt
-[1] 68490
-cc@nips:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
-2020-01-10-00-59-41-225057951.txt
+2020-01-10-01-45-37-678386105.txt
 
 
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
 CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'perturb' --noise_epsilons 0.004 --net_mode '0-0' --attack_iters 300 --batch_size 2048 --limit_batch_number 0 --c 100.0 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
-[2] 68617
+[2] 69046
 cc@nips:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
-2020-01-10-01-02-20-425915550.txt
+2020-01-10-01-46-10-574432292.txt
+
 
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
 CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode '2-1' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --noise_epsilons 0.0 >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
+[1] 131629
+cc@wifi:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-10-02-15-40-482012407.txt
+
+
+
 
 
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
-CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode '0-0' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --noise_epsilons 0.0 >> ${timestamp}.txt 2>&1 &
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode '2-1' --attack_iters 200 --batch_size 1024 --limit_batch_number 0 --noise_epsilons 0.0 >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
+[1] 131876
+cc@wifi:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-10-02-35-37-823483677.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode '0-0' --attack_iters 200 --batch_size 1024 --limit_batch_number 0 --noise_epsilons 0.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 131954
+cc@wifi:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-10-02-35-47-741784530.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'perturb' --noise_epsilons 0.004 --net_mode '0-0' --attack_iters 300 --batch_size 1024 --limit_batch_number 0 --c 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[3] 16333
+ady@gpu1:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-09-20-49-44-928468387.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'perturb' --noise_epsilons 0.004 --net_mode '0-0' --attack_iters 300 --batch_size 1024 --limit_batch_number 0 --c 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 15991
+ady@gpu1:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-09-20-46-03-538323935.txt
