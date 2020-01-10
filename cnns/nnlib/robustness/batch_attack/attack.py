@@ -65,7 +65,7 @@ def attack_cw(input_v, label_v, net, c, opt, untarget=True, n_class=10):
     for _ in range(opt.attack_iters):
         net.zero_grad()
         if opt.channel == 'perturb':
-            attack_net = get_perturbed_net()
+            attack_net = get_perturbed_net(opt=opt)
         else:
             attack_net = net
         optimizer.zero_grad()
@@ -149,10 +149,10 @@ def ensemble_infer(input_v, net, n=50, nclass=10):
     return pred
 
 
-def get_perturbed_net():
+def get_perturbed_net(opt):
     perturbed_net, _ = get_nets(opt)
-    perturb_model_params(model=perturbed_net, epsilon=opt.noise_epsilon,
-                         min=0, max=1)
+    perturbed_net = perturb_model_params(
+        model=perturbed_net, epsilon=opt.noise_epsilon, min=0, max=1)
     perturbed_net.eval()
     return perturbed_net
 
@@ -210,7 +210,7 @@ def acc_under_attack(dataloader, net, c, attack_f, opt, netAttack=None):
         net.eval()
         if opt.ensemble == 1:
             if opt.channel == 'perturb':
-                net_infer = get_perturbed_net()
+                net_infer = get_perturbed_net(opt=opt)
             else:
                 net_infer = net
             _, idx = torch.max(net_infer(adverse_v), 1)
@@ -436,6 +436,7 @@ if __name__ == "__main__":
                         default=[0.0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.02,
                                  0.03, 0.04, 0.05, 0.07, 0.1, 0.2, 0.3, 0.4,
                                  0.5, 1.0, 2.0, 10.0, 100.0],
+                        # default=[0.01],
                         # default=[0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.5],
                         # default=[0.001, 0.03, 0.1],
                         # default = '1.0 10.0 100.0 1000.0',
@@ -456,14 +457,15 @@ if __name__ == "__main__":
                         )
     parser.add_argument('--attack_iters', type=int,
                         # default=300,
-                        default=10,
+                        default=1,
                         )
     parser.add_argument('--limit_batch_number', type=int, default=4,
                         help='If limit > 0, only that # of batches is '
                              'processed. Set this param to 0 to process all '
                              'batches.')
     parser.add_argument('--noise_epsilons', type=float, nargs="+",
-                        default=[0.0018],
+                        # default=[0.0018, 0.03],
+                        default=[0.0032],
                         # default=[0.0],
                         # default=0.3,
                         # default=16,
@@ -480,7 +482,8 @@ if __name__ == "__main__":
     parser.add_argument('--mode', type=str, default='test')  # peek or test
     parser.add_argument('--ensemble', type=int, default=1)
     parser.add_argument('--batch_size', type=int,
-                        default=256,
+                        # default=256,
+                        default=1024,
                         # default=32,
                         )
     parser.add_argument('--noise_type', type=str,

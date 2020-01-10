@@ -8693,13 +8693,55 @@ ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ ech
 2020-01-09-10-48-09-137681884.txt
 
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
-CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0032 0.003 0.0028 0.0026 0.0024 0.0022 0.0018 0.0016 0.0014 0.0012 0.0008 --c 0.01 >> ${timestamp}.txt 2>&1 &
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'perturb' --noise_epsilons 0.1 0.01 0.05 0.01 0.005 0.004 0.0032 0.003 0.0028 0.0026 0.0024 0.0022 0.0018 0.0016 0.0014 0.0012 0.0008 0.0004 0.0001 --c 0.01 --attack_iters 1 --batch_size 1024 --limit_batch_number 1 >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
 
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
 CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode '2-1' --attack_iters 300 --limit_batch_number 0 --noise_epsilons 0.0 >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
+[1] 129226
+cc@wifi:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-09-19-54-08-417990164.txt
 
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
 CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode '0-0' --attack_iters 300 --limit_batch_number 0 --noise_epsilons 0.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 129228
+cc@wifi:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-09-19-54-08-440128661.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'perturb' --noise_epsilons 0.0032 --net_mode '0-0' --attack_iters 200 --batch_size 3584 --limit_batch_number 0 --c 0.0 0.0001 0.0005 0.001 0.005 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 24529
+ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-09-18-45-25-051855865.txt
+
+0.0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'perturb' --noise_epsilons 0.004 --net_mode '0-0' --attack_iters 300 --batch_size 2048 --limit_batch_number 0 --c 0.0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 68335
+cc@nips:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-10-00-56-05-668352003.txt
+[1] 68490
+cc@nips:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-10-00-59-41-225057951.txt
+
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'perturb' --noise_epsilons 0.004 --net_mode '0-0' --attack_iters 300 --batch_size 2048 --limit_batch_number 0 --c 100.0 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 68617
+cc@nips:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-10-01-02-20-425915550.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode '2-1' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --noise_epsilons 0.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode '0-0' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --noise_epsilons 0.0 >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt

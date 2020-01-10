@@ -57,12 +57,14 @@ def perturb_model_params(model, epsilon, min, max):
     params = model.parameters()
     with torch.no_grad():
         for param in params:
+            # print(i, param)
             shape = list(param.shape)
             noise = gauss_noise_raw(epsilon=epsilon,
                                     shape=shape, dtype=np.float,
                                     min=min, max=max)
             noise = torch.tensor(noise, dtype=param.dtype, device=param.device)
             param.data += noise
+    return model
 
 
 def get_perturbed_fmodel(args):
