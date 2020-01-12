@@ -8,12 +8,12 @@ from cnns.nnlib.datasets.ucr.ucr import get_ucr
 
 
 class Net(nn.Module):
-    def __init__(self):
+    def __init__(self, out=2):
         super(Net, self).__init__()
         self.conv1 = nn.Conv1d(1, 20, 25, 1)
         self.conv2 = nn.Conv1d(20, 50, 25, 1)
         self.fc1 = nn.Linear(4 * 4 * 50, 500)
-        self.fc2 = nn.Linear(500, 2)
+        self.fc2 = nn.Linear(500, out)
 
     def forward(self, x):
         x = F.relu(self.conv1(x))

@@ -10,9 +10,15 @@ torch.manual_seed(1)
 lstm = nn.LSTM(3, 3)  # Input dim is 3, output dim is 3
 inputs = [torch.randn(1, 3) for _ in range(5)]  # make a sequence of length 5
 
-# initialize the hidden state.
-hidden = (torch.randn(1, 1, 3),
-          torch.randn(1, 1, 3))
+# initialize the hidden state
+init_raw = torch.randn(1, 1, 3)
+state_raw = torch.randn(1, 1, 3)
+
+init = init_raw.clone().detach()
+state = state_raw.clone().detach()
+
+hidden = (init, state)
+
 for i in inputs:
     # Step through the sequence one element at a time.
     # after each step, hidden contains the hidden state.
@@ -30,7 +36,13 @@ for i in inputs:
 # by passing it as an argument  to the lstm at a later time
 # Add the extra 2nd dimension
 inputs = torch.cat(inputs).view(len(inputs), 1, -1)
-hidden = (torch.randn(1, 1, 3), torch.randn(1, 1, 3))  # clean out hidden state
+print('size of inputs: ', inputs.size())
+# hidden = (torch.randn(1, 1, 3), torch.randn(1, 1, 3))  # clean out hidden state
+init = init_raw.clone().detach()
+state = state_raw.clone().detach()
+
+hidden = (init, state)
+
 out, hidden = lstm(inputs, hidden)
 print('out: ', out)
 print('hidden: ', hidden)
@@ -125,6 +137,8 @@ with torch.no_grad():
 for epoch in range(
         300):  # again, normally you would NOT do 300 epochs, it is toy data
     for sentence, tags in training_data:
+
+
         # Step 1. Remember that Pytorch accumulates gradients.
         # We need to clear them out before each instance
         model.zero_grad()

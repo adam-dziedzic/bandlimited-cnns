@@ -73,8 +73,10 @@ def read_columns(dataset):
             cols.append([])
 
         for i, row in enumerate(data):
-            print("i, row: ", i, row)
+            # print("i, row: ", i, row)
             for column in range(columns):
+                # get rid of any feed line characters or any other weired
+                # white characters
                 value = str(row[column]).strip()
                 if i > 0:  # skip header
                     cols[column].append(float(value))
@@ -116,7 +118,7 @@ plt.xscale('log', basex=10)
 plt.show(block=True)
 plt.interactive(False)
 format=".pdf" # ".png" or ".pdf"
-fig.savefig(dir_path + "model_param_perturb_" + get_log_time() + format,
+fig.savefig(dir_path + "/model_param_perturb_" + get_log_time() + format,
             bbox_inches='tight',
             transparent=True)
 plt.close()
