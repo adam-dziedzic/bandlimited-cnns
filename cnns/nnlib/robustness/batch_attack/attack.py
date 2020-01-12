@@ -433,10 +433,10 @@ if __name__ == "__main__":
                         # default='plain',
                         )
     parser.add_argument('--c', type=float, nargs='+',
-                        default=[0.0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.02,
-                                 0.03, 0.04, 0.05, 0.07, 0.1, 0.2, 0.3, 0.4,
-                                 0.5, 1.0, 2.0, 10.0, 100.0],
-                        # default=[0.01],
+                        # default=[0.0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.02,
+                        #          0.03, 0.04, 0.05, 0.07, 0.1, 0.2, 0.3, 0.4,
+                        #          0.5, 1.0, 2.0, 10.0, 100.0],
+                        default=[0.01],
                         # default=[0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.5],
                         # default=[0.001, 0.03, 0.1],
                         # default = '1.0 10.0 100.0 1000.0',
@@ -464,8 +464,9 @@ if __name__ == "__main__":
                              'processed. Set this param to 0 to process all '
                              'batches.')
     parser.add_argument('--noise_epsilons', type=float, nargs="+",
+                        default = np.linspace(0.09, 0.01, 100),
                         # default=[0.0018, 0.03],
-                        default=[0.0032],
+                        # default=[0.0032],
                         # default=[0.0],
                         # default=0.3,
                         # default=16,
@@ -482,8 +483,9 @@ if __name__ == "__main__":
     parser.add_argument('--mode', type=str, default='test')  # peek or test
     parser.add_argument('--ensemble', type=int, default=1)
     parser.add_argument('--batch_size', type=int,
+                        default=3584,
                         # default=256,
-                        default=1024,
+                        # default=1024,
                         # default=32,
                         )
     parser.add_argument('--noise_type', type=str,
