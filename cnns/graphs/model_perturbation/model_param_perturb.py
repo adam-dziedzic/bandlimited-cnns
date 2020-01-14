@@ -1,8 +1,4 @@
-import numpy as np
-import os
-import pandas as pd
 import matplotlib
-import numpy as np
 
 # matplotlib.use('TkAgg')
 matplotlib.rcParams['pdf.fonttype'] = 42
@@ -52,13 +48,11 @@ def get_color(COLOR_TUPLE_255):
 line_width = 4
 colors = [get_color(color) for color in
           [MY_RED, MY_BLUE, MY_RED, MY_GREEN, MY_BLACK, MY_GOLD,
-           MY_VIOLET, MY_OWN, MY_BROWN, MY_GREEN]]
-markers = ["o", "+", "^", "v", "D", "^", "+", 'o', 'v', '+']
-linestyles = ["-", "--", ":", "--", "-", "--", "-", "--", ':', ':']
-
+           MY_VIOLET, MY_OWN, MY_BROWN, MY_GREEN, MY_GREEN, MY_BLACK]]
+markers = ["o", "+", "^", "v", "D", "^", "+", 'o', 'v', '+', 'o', '+']
+linestyles = ["-", "--", ":", "--", "-", "--", "-", "--", ':', ':', '-', '--']
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-columns = 8
 
 
 def read_columns(dataset):
@@ -68,37 +62,41 @@ def read_columns(dataset):
         header = []
         cols = []
 
-        # prepare the empty columns
-        for column in range(columns):
-            cols.append([])
-
         for i, row in enumerate(data):
             # print("i, row: ", i, row)
-            for column in range(columns):
+            for column, value in enumerate(row):
                 # get rid of any feed line characters or any other weired
                 # white characters
-                value = str(row[column]).strip()
+                value = str(value).strip()
+                value = value.replace('\r', '')
+                value = value.replace('\n', '')
+                value = value.replace(chr(194), '')
+                value = value.replace(chr(160), '')
                 if i > 0:  # skip header
+                    if len(cols) < column + 1:
+                        cols.append([])
                     cols[column].append(float(value))
                 else:
                     header.append(value)
 
     return header, cols
 
+
 # width=8
 # height=6
 
-width=10
-height=7.5
+width = 10
+height = 7.5
 
 fig = plt.figure(figsize=(width, height))
 
-dataset = "model_perturb_data"
+dataset = "model_perturb_data4"
 labels, cols = read_columns(dataset)
 
-for i in range(columns):
+for i, column_values in enumerate(cols):
     if i > 0:  # skip sigma
-        plt.plot(cols[0], cols[i], label=labels[i], lw=3, marker=markers[i],
+        plt.plot(cols[0], column_values, label=labels[i], lw=3,
+                 marker=markers[i],
                  color=colors[i])
 
 plt.grid()
@@ -117,7 +115,7 @@ plt.xscale('log', basex=10)
 # plt.imshow()
 plt.show(block=True)
 plt.interactive(False)
-format=".pdf" # ".png" or ".pdf"
+format = ".pdf"  # ".png" or ".pdf"
 fig.savefig(dir_path + "/model_param_perturb_" + get_log_time() + format,
             bbox_inches='tight',
             transparent=True)

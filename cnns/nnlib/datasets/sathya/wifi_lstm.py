@@ -5,7 +5,7 @@ import torch.optim as optim
 import argparse
 import time
 from cnns.nnlib.datasets.sathya.torch_data import get_ucr
-from cnns.nnlib.datasets.sathya.mnist_sathya import Net
+from cnns.nnlib.datasets.sathya.lenet_architecture import Net
 
 HIDDEN_DIM = 512
 delimiter = ';'
@@ -42,7 +42,8 @@ def train(train_data, model):
     train_loss = 0
     correct = 0
 
-    for inputs, targets in train_data:
+    for iter, (inputs, targets) in enumerate(train_data):
+        # print('iter: ', iter)
 
         if torch.cuda.is_available():
             inputs, targets = inputs.cuda(), targets.cuda()
@@ -88,7 +89,6 @@ def test(test_data, model):
 def main(args, hidden_dim=HIDDEN_DIM):
     # model = LSTMWifi(input_dim=args.input_dim, hidden_dim=hidden_dim,
     #                  output_size=args.wifi)
-
     model = Net(out=args.wifi)
 
     if torch.cuda.is_available():
@@ -121,13 +121,15 @@ if __name__ == "__main__":
                         default=4,
                         help='number of wifis to detect')
     parser.add_argument('--epochs', metavar='N', type=int,
-                        default=300,
+                        default=100,
                         help='number of epochs for training')
     parser.add_argument('--input_dim', type=int, default=512,
                         help='input dimension of the data')
     parser.add_argument('--batch_size', type=int,
                         default=256)
     parser.add_argument('--sample_count', type=int,
-                        default=100)
+                        default=0)
     args = parser.parse_args()
-    main(args)
+    for wifi in [2, 3, 4, 5, 6]:
+        args.wifi = wifi
+        main(args)
