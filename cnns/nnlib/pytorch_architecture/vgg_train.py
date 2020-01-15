@@ -6,7 +6,10 @@ import torch.optim as optim
 import torch.nn as nn
 import torchvision.datasets as dst
 import torchvision.transforms as tfs
-from cnns.nnlib.pytorch_architecture.vgg_perturb import VGG
+from cnns.nnlib.pytorch_architecture.vgg_perturb import VGG as vgg_perturb
+from cnns.nnlib.pytorch_architecture.vgg_rse import VGG as vgg_rse
+from cnns.nnlib.pytorch_architecture.vgg_perturb_conv import \
+    VGG as vgg_perturb_conv
 from cnns.nnlib.pytorch_architecture.resnext import ResNeXt29_2x64d
 from cnns.nnlib.pytorch_architecture.stl10_model_rse import stl10
 from torch.utils.data import DataLoader
@@ -70,16 +73,16 @@ def main():
     parser.add_argument('--batchSize', type=int, default=128)
     parser.add_argument('--lr', type=float, default=0.1)
     parser.add_argument('--ngpu', type=int, default=1)
-    parser.add_argument('--net', type=str, default='vgg16')
+    parser.add_argument('--net', type=str, default='vgg16-perturb-conv')
     parser.add_argument('--method', type=str, default="momsgd")
     parser.add_argument('--root', type=str,
                         default="../datasets/cifar-10-batches-py")
-    parser.add_argument('--paramNoise', type=float, default=0.04)
-    parser.add_argument('--noiseInit', type=float, default=0.0)
-    parser.add_argument('--noiseInner', type=float, default=0.0)
+    parser.add_argument('--paramNoise', type=float, default=0.0)
+    parser.add_argument('--noiseInit', type=float, default=0.2)
+    parser.add_argument('--noiseInner', type=float, default=0.1)
     opt = parser.parse_args()
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    opt.modelOutRoot = f"{dir_path}/vgg16/rse_perturb_{opt.paramNoise}.pth"
+    opt.modelOutRoot = f"{dir_path}/vgg16/{opt.net}_perturb_{opt.paramNoise}_init_noise_{opt.noiseInit}_inner_noise_{opt.noiseInner}.pth"
     opt.root = dir_path + "/" + opt.root
     print(opt)
     # epochs = [80, 60, 40, 20]
@@ -90,8 +93,14 @@ def main():
     if opt.net is None:
         print("opt.net must be specified")
         exit(-1)
-    elif opt.net == "vgg16":
-        net = VGG("VGG16", param_noise=opt.paramNoise)
+    elif opt.net == "vgg16-perturb":
+        net = vgg_perturb("VGG16", param_noise=opt.paramNoise)
+    elif opt.net == "vgg16-rse":
+        net = vgg_rse("VGG16", init_noise=opt.noiseInit,
+                      inner_noise=opt.noiseInner)
+    elif opt.net == "vgg16-perturb-conv":
+        net = vgg_perturb_conv("VGG16", init_noise=opt.noiseInit,
+                               inner_noise=opt.noiseInner)
     elif opt.net == "resnext":
         net = ResNeXt29_2x64d()
     elif opt.net == "stl10_model":
