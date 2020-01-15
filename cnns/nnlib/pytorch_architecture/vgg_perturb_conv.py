@@ -6,6 +6,8 @@ normalization layers.
 '''
 import torch.nn as nn
 import torch
+import torch.nn.functional as F
+from torch.nn.modules.utils import _pair
 
 cfg = {
     'VGG11': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
@@ -30,13 +32,23 @@ class Conv2dNoise(nn.Conv2d):
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, padding=0,
-                 param_noise=0.04):
+                 param_noise=0.0):
         super(Conv2dNoise, self).__init__(in_channels=in_channels,
                                           out_channels=out_channels,
                                           kernel_size=kernel_size,
                                           padding=padding)
         self.param_noise = param_noise
         self.buffer_weight_noise = None
+
+    def conv2d_forward(self, input, weight):
+        if self.padding_mode == 'circular':
+            expanded_padding = ((self.padding[1] + 1) // 2, self.padding[1] // 2,
+                                (self.padding[0] + 1) // 2, self.padding[0] // 2)
+            return F.conv2d(F.pad(input, expanded_padding, mode='circular'),
+                            weight, self.bias, self.stride,
+                            _pair(0), self.dilation, self.groups)
+        return F.conv2d(input, weight, self.bias, self.stride,
+                        self.padding, self.dilation, self.groups)
 
     def forward(self, input):
         if self.buffer_weight_noise is None:
