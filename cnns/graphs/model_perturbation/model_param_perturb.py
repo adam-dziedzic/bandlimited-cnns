@@ -90,7 +90,8 @@ height = 7.5
 
 fig = plt.figure(figsize=(width, height))
 
-dataset = "model_perturb_data4"
+# dataset = "model_perturb_data4"
+dataset = "param_perturb_train2"
 labels, cols = read_columns(dataset)
 
 for i, column_values in enumerate(cols):
@@ -116,7 +117,7 @@ plt.xscale('log', basex=10)
 plt.show(block=True)
 plt.interactive(False)
 format = ".pdf"  # ".png" or ".pdf"
-fig.savefig(dir_path + "/model_param_perturb_" + get_log_time() + format,
+fig.savefig(dir_path + "/" + dataset + get_log_time() + format,
             bbox_inches='tight',
             transparent=True)
 plt.close()
