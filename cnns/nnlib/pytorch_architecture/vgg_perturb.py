@@ -6,8 +6,6 @@ normalization layers.
 '''
 import torch.nn as nn
 import torch
-from cnns.nnlib.robustness.utils import gauss_noise_raw
-import numpy as np
 import torch.nn.functional as F
 from torch.nn.modules.utils import _pair
 
@@ -22,14 +20,9 @@ cfg = {
 }
 
 
-def perturb_param(param, param_noise, min=0, max=1):
-    # with torch.no_grad: # causes an error _enter_
-    shape = list(param.shape)
-    noise = gauss_noise_raw(epsilon=param_noise,
-                            shape=shape, dtype=np.float,
-                            min=min, max=max)
-    noise = torch.tensor(noise, dtype=param.dtype, device=param.device)
-    return param + noise
+def perturb_param(param, param_noise, buffer_noise):
+    buffer_noise.normal_(0, param_noise)
+    return param + buffer_noise
 
 
 class Conv2dNoise(nn.Conv2d):
@@ -38,14 +31,14 @@ class Conv2dNoise(nn.Conv2d):
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, padding=0,
-                 param_noise=0.04, min=0, max=1):
+                 param_noise=0.04):
         super(Conv2dNoise, self).__init__(in_channels=in_channels,
                                           out_channels=out_channels,
                                           kernel_size=kernel_size,
                                           padding=padding)
         self.param_noise = param_noise
-        self.min = min
-        self.max = max
+        self.buffer_weight_noise = None
+        self.buffer_bias_noise = None
 
     def conv2d_forward(self, input, weight, bias):
         if self.padding_mode == 'circular':
@@ -59,12 +52,20 @@ class Conv2dNoise(nn.Conv2d):
                         self.padding, self.dilation, self.groups)
 
     def forward(self, input):
+        if self.buffer_weight_noise is None:
+            self.buffer_weight_noise = torch.zeros_like(
+                self.weight, requires_grad=False).normal_(
+                0, self.param_noise).to(self.weight.device)
         weight = perturb_param(param=self.weight,
                                param_noise=self.param_noise,
-                               min=self.min, max=self.max)
+                               buffer_noise=self.buffer_weight_noise)
+        if self.buffer_bias_noise is None:
+            self.buffer_bias_noise = torch.zeros_like(
+                self.bias, requires_grad=False).normal_(
+                0, self.param_noise).to(self.bias.device)
         bias = perturb_param(param=self.bias,
                              param_noise=self.param_noise,
-                             min=self.min, max=self.max)
+                             buffer_noise=self.buffer_bias_noise)
         return self.conv2d_forward(input, weight, bias)
 
 
@@ -74,41 +75,57 @@ class LinearNoise(nn.Linear):
     """
 
     def __init__(self, in_features, out_features, bias=True,
-                 param_noise=0.04, min=0, max=1):
+                 param_noise=0.04):
         super(LinearNoise, self).__init__(in_features=in_features,
                                           out_features=out_features,
                                           bias=bias)
         self.param_noise = param_noise
-        self.min = min
-        self.max = max
+        self.buffer_weight_noise = None
+        self.buffer_bias_noise = None
 
     def forward(self, input):
+        if self.buffer_weight_noise is None:
+            self.buffer_weight_noise = torch.zeros_like(
+                self.weight, requires_grad=False).normal_(
+                0, self.param_noise).to(self.weight.device)
         weight = perturb_param(param=self.weight,
                                param_noise=self.param_noise,
-                               min=self.min, max=self.max)
+                               buffer_noise=self.buffer_weight_noise)
+        if self.buffer_bias_noise is None:
+            self.buffer_bias_noise = torch.zeros_like(
+                self.bias, requires_grad=False).normal_(
+                0, self.param_noise).to(self.bias.device)
         bias = perturb_param(param=self.bias,
                              param_noise=self.param_noise,
-                             min=self.min, max=self.max)
+                             buffer_noise=self.buffer_bias_noise)
         return F.linear(input, weight, bias)
 
 
 class BatchNorm2dNoise(nn.BatchNorm2d):
     def __init__(self, num_features,
-                 param_noise=0.04, min=0, max=1):
+                 param_noise=0.04):
         super(BatchNorm2dNoise, self).__init__(num_features=num_features)
         self.param_noise = param_noise
-        self.min = min
-        self.max = max
+        self.buffer_weight_noise = None
+        self.buffer_bias_noise = None
 
     def forward(self, input):
         self._check_input_dim(input)
 
+        if self.buffer_weight_noise is None:
+            self.buffer_weight_noise = torch.zeros_like(
+                self.weight, requires_grad=False).normal_(
+                0, self.param_noise).to(self.weight.device)
         weight = perturb_param(param=self.weight,
                                param_noise=self.param_noise,
-                               min=self.min, max=self.max)
+                               buffer_noise=self.buffer_weight_noise)
+        if self.buffer_bias_noise is None:
+            self.buffer_bias_noise = torch.zeros_like(
+                self.bias, requires_grad=False).normal_(
+                0, self.param_noise).to(self.bias.device)
         bias = perturb_param(param=self.bias,
                              param_noise=self.param_noise,
-                             min=self.min, max=self.max)
+                             buffer_noise=self.buffer_bias_noise)
 
         # exponential_average_factor is set to self.momentum
         # (when it is available) only so that if gets updated
@@ -135,12 +152,10 @@ class BatchNorm2dNoise(nn.BatchNorm2d):
 
 
 class VGG(nn.Module):
-    def __init__(self, vgg_name, param_noise=0.04, min=0, max=1):
+    def __init__(self, vgg_name, param_noise=0.04):
         super(VGG, self).__init__()
         self.param_noise = param_noise
-        self.min = min
-        self.max = max
-        self.classifier = LinearNoise(512, 10)
+        self.classifier = LinearNoise(512, 10, param_noise=self.param_noise)
         self.features = self._make_layers(cfg[vgg_name])
 
     def forward(self, x):
@@ -158,9 +173,8 @@ class VGG(nn.Module):
             else:
                 layers += [
                     Conv2dNoise(in_channels, x, kernel_size=3, padding=1,
-                                param_noise=self.param_noise, min=self.min,
-                                max=self.max),
-                    BatchNorm2dNoise(x),
+                                param_noise=self.param_noise),
+                    BatchNorm2dNoise(x, param_noise=self.param_noise),
                     nn.ReLU(inplace=True)]
                 in_channels = x
         layers += [nn.AvgPool2d(kernel_size=1, stride=1)]

@@ -88,7 +88,7 @@ def main():
         print("opt.net must be specified")
         exit(-1)
     elif opt.net == "vgg16":
-        net = VGG("VGG16", param_noise=opt.paramNoise, min=0, max=1)
+        net = VGG("VGG16", param_noise=opt.paramNoise)
     elif opt.net == "resnext":
         net = ResNeXt29_2x64d()
     elif opt.net == "stl10_model":
