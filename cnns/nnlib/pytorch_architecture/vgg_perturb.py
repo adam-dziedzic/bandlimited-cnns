@@ -21,7 +21,8 @@ cfg = {
 
 
 def perturb_param(param, param_noise, buffer_noise):
-    buffer_noise.normal_(0, param_noise)
+    if param_noise > 0:
+        buffer_noise.normal_(0, param_noise)
     return param + buffer_noise
 
 
@@ -54,15 +55,19 @@ class Conv2dNoise(nn.Conv2d):
     def forward(self, input):
         if self.buffer_weight_noise is None:
             self.buffer_weight_noise = torch.zeros_like(
-                self.weight, requires_grad=False).normal_(
-                0, self.param_noise).to(self.weight.device)
+                self.weight, requires_grad=False)
+            if self.param_noise > 0:
+                self.buffer_weight_noise.normal_(
+                    0, self.param_noise).to(self.weight.device)
         weight = perturb_param(param=self.weight,
                                param_noise=self.param_noise,
                                buffer_noise=self.buffer_weight_noise)
         if self.buffer_bias_noise is None:
             self.buffer_bias_noise = torch.zeros_like(
-                self.bias, requires_grad=False).normal_(
-                0, self.param_noise).to(self.bias.device)
+                self.bias, requires_grad=False)
+            if self.param_noise > 0:
+                self.buffer_bias_noise.normal_(
+                    0, self.param_noise).to(self.bias.device)
         bias = perturb_param(param=self.bias,
                              param_noise=self.param_noise,
                              buffer_noise=self.buffer_bias_noise)
@@ -86,15 +91,19 @@ class LinearNoise(nn.Linear):
     def forward(self, input):
         if self.buffer_weight_noise is None:
             self.buffer_weight_noise = torch.zeros_like(
-                self.weight, requires_grad=False).normal_(
-                0, self.param_noise).to(self.weight.device)
+                self.weight, requires_grad=False)
+            if self.param_noise > 0:
+                self.buffer_weight_noise.normal_(
+                    0, self.param_noise).to(self.weight.device)
         weight = perturb_param(param=self.weight,
                                param_noise=self.param_noise,
                                buffer_noise=self.buffer_weight_noise)
         if self.buffer_bias_noise is None:
             self.buffer_bias_noise = torch.zeros_like(
-                self.bias, requires_grad=False).normal_(
-                0, self.param_noise).to(self.bias.device)
+                self.bias, requires_grad=False)
+            if self.param_noise > 0:
+                self.buffer_bias_noise.normal_(
+                    0, self.param_noise).to(self.bias.device)
         bias = perturb_param(param=self.bias,
                              param_noise=self.param_noise,
                              buffer_noise=self.buffer_bias_noise)
@@ -114,15 +123,19 @@ class BatchNorm2dNoise(nn.BatchNorm2d):
 
         if self.buffer_weight_noise is None:
             self.buffer_weight_noise = torch.zeros_like(
-                self.weight, requires_grad=False).normal_(
-                0, self.param_noise).to(self.weight.device)
+                self.weight, requires_grad=False)
+            if self.param_noise > 0:
+                self.buffer_weight_noise.normal_(
+                    0, self.param_noise).to(self.weight.device)
         weight = perturb_param(param=self.weight,
                                param_noise=self.param_noise,
                                buffer_noise=self.buffer_weight_noise)
         if self.buffer_bias_noise is None:
             self.buffer_bias_noise = torch.zeros_like(
-                self.bias, requires_grad=False).normal_(
-                0, self.param_noise).to(self.bias.device)
+                self.bias, requires_grad=False)
+            if self.param_noise > 0:
+                self.buffer_bias_noise.normal_(
+                    0, self.param_noise).to(self.bias.device)
         bias = perturb_param(param=self.bias,
                              param_noise=self.param_noise,
                              buffer_noise=self.buffer_bias_noise)
