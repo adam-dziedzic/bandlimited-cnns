@@ -48,7 +48,7 @@ class Conv2dNoise(nn.Conv2d):
         weight = perturb_param(param=self.weight,
                                param_noise=self.param_noise,
                                buffer_noise=self.buffer_weight_noise)
-        return self.conv2d_forward(input, weight)
+        return super(Conv2dNoise, self).conv2d_forward(input, weight)
 
 
 class VGG(nn.Module):
