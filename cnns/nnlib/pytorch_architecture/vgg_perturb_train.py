@@ -35,7 +35,7 @@ def train(dataloader, net, loss_f, optimizer):
 
 
 # test and save
-def test(dataloader, net, best_acc, model_out):
+def test(dataloader, net, best_acc, opt):
     net.eval()
     total = 0
     correct = 0
@@ -46,7 +46,8 @@ def test(dataloader, net, best_acc, model_out):
         total += y.numel()
     acc = correct / total
     if acc > best_acc:
-        torch.save(net.state_dict(), model_out + '-test-accuracy-' + str(acc))
+        opt.modelOut = opt.modelOutRoot + '-test-accuracy-' + str(acc)
+        torch.save(net.state_dict(), opt.modelOut)
         return acc, acc
     else:
         return acc, best_acc
@@ -78,7 +79,7 @@ def main():
     parser.add_argument('--noiseInner', type=float, default=0.0)
     opt = parser.parse_args()
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    opt.modelOut = f"{dir_path}/vgg16/rse_perturb_{opt.paramNoise}.pth"
+    opt.modelOutRoot = f"{dir_path}/vgg16/rse_perturb_{opt.paramNoise}.pth"
     opt.root = dir_path + "/" + opt.root
     print(opt)
     # epochs = [80, 60, 40, 20]
@@ -144,7 +145,7 @@ def main():
             accumulate += 1
             run_time, train_acc = train(dataloader, net, loss_f, optimizer)
             test_acc, best_acc = test(dataloader_test, net, best_acc,
-                                      opt.modelOut)
+                                      opt)
             total_time += run_time
             print(
                 '[Epoch={}] Time:{:.2f}, Train: {:.5f}, Test: {:.5f}, Best: {:.5f}'.format(
