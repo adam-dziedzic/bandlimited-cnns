@@ -36,19 +36,16 @@ class VGG(nn.Module):
                 layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
             else:
                 if i == 1:
-                    if self.noise_type == 'backward':
-                        noise_layer = NoisePassBackward(self.init_noise)
-                    elif self.noise_type == 'standard':
-                        noise_layer = Noise(self.init_noise)
-                    else:
-                        raise Exception(f'Unknown noise type: {self.noise_type}')
+                    noise = self.init_noise
                 else:
-                    if self.noise_type == 'backward':
-                        noise_layer = NoisePassBackward(self.inner_noise)
-                    elif self.noise_type == 'standard':
-                        noise_layer = Noise(self.inner_noise)
-                    else:
-                        raise Exception(f'Unknown noise type: {self.noise_type}')
+                    noise = self.inner_noise
+
+                if self.noise_type == 'backward':
+                    noise_layer = NoisePassBackward(noise)
+                elif self.noise_type == 'standard':
+                    noise_layer = Noise(noise)
+                else:
+                    raise Exception(f'Unknown noise type: {self.noise_type}')
                 layers += [
                         noise_layer,
                         nn.Conv2d(in_channels, x, kernel_size=3, padding=1),
