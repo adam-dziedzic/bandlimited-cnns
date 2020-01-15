@@ -26,6 +26,7 @@ from cnns.nnlib.robustness.channels_definition import subtract_rgb
 import cnns.nnlib.pytorch_architecture as models
 from cnns.nnlib.pytorch_architecture import vgg
 from cnns.nnlib.pytorch_architecture import vgg_rse
+from cnns.nnlib.pytorch_architecture import vgg_perturb
 from cnns.nnlib.pytorch_architecture import resnet
 from cnns.nnlib.robustness.param_perturbation.utils import perturb_model_params
 
@@ -277,6 +278,10 @@ def get_nets(opt):
             net = vgg.VGG("VGG16")
         elif opt.defense == "brelu":
             net = models.vgg_brelu.VGG("VGG16", 0.0)
+        elif opt.defense == "perturb":
+            net = vgg_perturb.VGG("VGG16", param_noise=opt.paramNoise)
+            # netAttack = net
+            netAttack = vgg_perturb.VGG("VGG16", param_noise=opt.paramNoise)
         elif opt.defense == "rse":
             net = vgg_rse.VGG("VGG16", opt.noiseInit,
                               opt.noiseInner,
@@ -367,6 +372,7 @@ def set_model_settings(opt):
     net_mode = opt.net_mode  # mode init noise - inner noise
     noiseInit = 0.0
     noiseInner = 0.0
+    paramNoise = 0.0
     if net_mode == 'trained-1-fft':
         modelPath = 'vgg16/rse_0.0_0.0_ady.pth-test-accuracy-0.8523'
         modelAttack = modelPath
@@ -409,6 +415,56 @@ def set_model_settings(opt):
         modelAttack = modelPath
         noiseInit = 0.3
         net = 'vgg16'
+    elif net_mode == 'perturb-0.01':
+        modelPath = '../../pytorch_architecture/vgg16/rse_perturb_0.01.pth-test-accuracy-0.9264'
+        modelAttack = modelPath
+        paramNoise = 0.01
+        net = 'vgg16'
+    elif net_mode == 'perturb-0.02':
+        modelPath = '../../pytorch_architecture/vgg16/rse_perturb_0.02.pth-test-accuracy-0.8943'
+        modelAttack = modelPath
+        paramNoise = 0.02
+        net = 'vgg16'
+    elif net_mode == 'perturb-0.03':
+        modelPath = '../../pytorch_architecture/vgg16/rse_perturb_0.03.pth-test-accuracy-0.8465'
+        modelAttack = modelPath
+        paramNoise = 0.03
+        net = 'vgg16'
+    elif net_mode == 'perturb-0.035':
+        modelPath = '../../pytorch_architecture/vgg16/rse_perturb_0.035.pth-test-accuracy-0.8162'
+        modelAttack = modelPath
+        paramNoise = 0.035
+        net = 'vgg16'
+    elif net_mode == 'perturb-0.04':
+        modelPath = '../../pytorch_architecture/vgg16/rse_perturb_0.04.pth-test-accuracy-0.7866'
+        modelAttack = modelPath
+        paramNoise = 0.04
+        net = 'vgg16'
+    elif net_mode == 'perturb-0.045':
+        modelPath = '../../pytorch_architecture/vgg16/rse_perturb_0.045.pth-test-accuracy-0.7504'
+        modelAttack = modelPath
+        paramNoise = 0.045
+        net = 'vgg16'
+    elif net_mode == 'perturb-0.05':
+        modelPath = '../../pytorch_architecture/vgg16/rse_perturb_0.05.pth-test-accuracy-0.7002'
+        modelAttack = modelPath
+        paramNoise = 0.05
+        net = 'vgg16'
+    elif net_mode == 'perturb-0.06':
+        modelPath = '../../pytorch_architecture/vgg16/rse_perturb_0.06.pth-test-accuracy-0.6429'
+        modelAttack = modelPath
+        paramNoise = 0.06
+        net = 'vgg16'
+    elif net_mode == 'perturb-0.07':
+        modelPath = '../../pytorch_architecture/vgg16/rse_perturb_0.07.pth-test-accuracy-0.5801'
+        modelAttack = modelPath
+        paramNoise = 0.07
+        net = 'vgg16'
+    elif net_mode == 'perturb-0.1':
+        modelPath = '../../pytorch_architecture/vgg16/rse_perturb_0.1.pth-test-accuracy-0.4319'
+        modelAttack = modelPath
+        paramNoise = 0.1
+        net = 'vgg16'
     elif net_mode == 'resnet18':
         modelPath = '../../pytorch_experiments/models/saved-model-2020-01-09-06-14-54-239467-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-loss-0.009636239625141025-test-accuracy-93.27-0-1-normalized-images.model'
         modelAttack = modelPath
@@ -420,6 +476,7 @@ def set_model_settings(opt):
     opt.modelInAttack = modelAttack
     opt.noiseInit = noiseInit
     opt.noiseInner = noiseInner
+    opt.paramNoise = paramNoise
     opt.net = net
 
 
@@ -427,10 +484,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--net_mode',
                         type=str,
-                        default='0-0')
+                        default='perturb-0.04')
     parser.add_argument('--defense', type=str,
-                        default='rse',
+                        # default='rse',
                         # default='plain',
+                        default='perturb',
                         )
     parser.add_argument('--c', type=float, nargs='+',
                         # default=[0.0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.02,
@@ -443,7 +501,7 @@ if __name__ == "__main__":
                         # default='0.05,0.1,0.5,1.0,10.0,100.0',
                         )
     parser.add_argument('--channel', type=str,
-                        # default='empty',
+                        default='empty',
                         # default='gauss_torch',
                         # default='round',
                         # default='svd',
@@ -453,7 +511,7 @@ if __name__ == "__main__":
                         # default='laplace',
                         # default='inv_fft',
                         # default='sub_rgb'
-                        default='perturb',
+                        # default='perturb',
                         )
     parser.add_argument('--attack_iters', type=int,
                         # default=300,

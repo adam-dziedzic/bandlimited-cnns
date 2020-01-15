@@ -83,7 +83,8 @@ def main():
     opt.root = dir_path + "/" + opt.root
     print(opt)
     # epochs = [80, 60, 40, 20]
-    epochs = [120, 100, 80, 150]
+    # epochs = [120, 100, 80, 50]
+    epochs = [150, 100, 100, 100]
     # epochs = [1, 1, 1]
     net = None
     if opt.net is None:
