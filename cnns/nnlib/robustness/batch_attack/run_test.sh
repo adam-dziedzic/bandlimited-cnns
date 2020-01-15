@@ -58,5 +58,117 @@ echo ${timestamp}.txt
 ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
 2020-01-15-04-47-51-999248400.txt
 
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.1' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+nips
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.05' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+nips
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.01' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+iclr
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.02' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+iclr
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=2 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.06' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+iclr
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=3 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.07' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+iclr
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.03' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+wifi
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.045' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+wifi
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.0-model-0.01' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+icml2
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.0-model-0.02' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+icml2
 
 
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.01-model-0.0' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+icml1
+[1] 83466
+cc@icml1:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-15-14-09-42-155628870.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.02-model-0.0' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 83619
+cc@icml1:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-15-14-10-33-761795890.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.03-model-0.0' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+iclr
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.04-model-0.0' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=2 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.045-model-0.0' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=3 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.05-model-0.0' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.06-model-0.0' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+wifi
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.07-model-0.0' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.0-model-0.0' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+nips
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.005-model-0.0' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.01-model-0.0' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+icml2
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.01-model-0.0' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 0.001 0.0005 0.0001 0.0 100.0 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.01-model-0.0' --attack_iters 200 --batch_size 3584 --limit_batch_number 0 --c 0.02 0.03 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
