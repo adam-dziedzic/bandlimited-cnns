@@ -42,8 +42,9 @@ class Conv2dNoise(nn.Conv2d):
 
     def conv2d_forward(self, input, weight):
         if self.padding_mode == 'circular':
-            expanded_padding = ((self.padding[1] + 1) // 2, self.padding[1] // 2,
-                                (self.padding[0] + 1) // 2, self.padding[0] // 2)
+            expanded_padding = (
+            (self.padding[1] + 1) // 2, self.padding[1] // 2,
+            (self.padding[0] + 1) // 2, self.padding[0] // 2)
             return F.conv2d(F.pad(input, expanded_padding, mode='circular'),
                             weight, self.bias, self.stride,
                             _pair(0), self.dilation, self.groups)

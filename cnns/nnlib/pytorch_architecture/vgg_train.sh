@@ -100,3 +100,11 @@ cc@iclr:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestam
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
 CUDA_VISIBLE_DEVICES=2 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-rse'>> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=3 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.1 --noiseInner 0.1 --net 'vgg16-perturb-conv'>> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.03 --noiseInner 0.02 --net 'vgg16-perturb-conv'>> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
