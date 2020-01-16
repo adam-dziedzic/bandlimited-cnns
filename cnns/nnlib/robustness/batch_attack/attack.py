@@ -27,6 +27,7 @@ import cnns.nnlib.pytorch_architecture as models
 from cnns.nnlib.pytorch_architecture import vgg
 from cnns.nnlib.pytorch_architecture import vgg_rse
 from cnns.nnlib.pytorch_architecture import vgg_perturb
+from cnns.nnlib.pytorch_architecture import vgg_perturb_conv
 from cnns.nnlib.pytorch_architecture import resnet
 from cnns.nnlib.robustness.param_perturbation.utils import perturb_model_params
 
@@ -282,6 +283,12 @@ def get_nets(opt):
             net = vgg_perturb.VGG("VGG16", param_noise=opt.paramNoise)
             # netAttack = net
             netAttack = vgg_perturb.VGG("VGG16", param_noise=opt.paramNoise)
+        elif opt.defense == "perturb-conv":
+            net = vgg_perturb_conv.VGG("VGG16", init_noise=opt.noiseInit,
+                                       inner_noise=opt.noiseInner)
+            # netAttack = net
+            netAttack = vgg_perturb_conv.VGG("VGG16", init_noise=opt.noiseInit,
+                                             inner_noise=opt.noiseInner)
         elif opt.defense == "rse":
             net = vgg_rse.VGG("VGG16", opt.noiseInit,
                               opt.noiseInner,
@@ -529,6 +536,7 @@ def set_model_settings(opt):
         modelAttack = modelPath
         net = 'resnet18'
     elif net_mode == 'custom':
+        opt.modelInAttack = opt.modelIn
         return
     else:
         raise Exception(f'Unknown opt.net_mode: {opt.net_mode}')
@@ -583,7 +591,7 @@ if __name__ == "__main__":
                              'processed. Set this param to 0 to process all '
                              'batches.')
     parser.add_argument('--noise_epsilons', type=float, nargs="+",
-                        default = np.linspace(0.09, 0.01, 100),
+                        default=np.linspace(0.09, 0.01, 100),
                         # default=[0.0018, 0.03],
                         # default=[0.0032],
                         # default=[0.0],
@@ -616,9 +624,9 @@ if __name__ == "__main__":
     parser.add_argument('--noiseInit', type=float, default=0.0)
     parser.add_argument('--noiseInner', type=float, default=0.0)
     parser.add_argument('--paramNoise', type=float, default=0.0)
-    parser.add_argument('--net', type=str, default='')
-    parser.add_argument('--modelIn', type=str, default='')
-    parser.add_argument('--modelInAttack', type=str, default='')
+    parser.add_argument('--net', type=str, default='vgg16')
+    parser.add_argument('--modelIn', type=str,
+                        default='../../pytorch_architecture/vgg16/saved_model_rse_perturb_0.0.pth-test-accuracy-0.9351')
     opt = parser.parse_args()
     opt.bounds = (0, 1)
 

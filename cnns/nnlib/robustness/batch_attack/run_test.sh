@@ -174,5 +174,12 @@ CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin
 echo ${timestamp}.txt
 
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
-CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'perturb-0.01-model-0.0' --attack_iters 200 --batch_size 3584 --limit_batch_number 0 --c 0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 >> ${timestamp}.txt 2>&1 &
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'custom' --attack_iters 200 --batch_size 3584 --limit_batch_number 0 --c 0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 --defense 'perturb-conv' --noiseInit 0.03 --noiseInner 0.03 --paramNoise 0.0 --modelIn '../../pytorch_architecture/vgg16/saved_model_vgg16-perturb-conv_perturb_0.0_init_noise_0.03_inner_noise_0.03.pth-test-accuracy-0.8713' >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
+[1] 25569
+ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-15-20-18-39-408925781.txt
+
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'custom' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 --defense 'perturb-conv' --noiseInit 0.03 --noiseInner 0.03 --paramNoise 0.0 --modelIn '../../pytorch_architecture/vgg16/saved_model_vgg16-rse_perturb_0.0_init_noise_0.2_inner_noise_0.1.pth-test-accuracy-0.8772' >> ${timestamp}.txt 2>&1 &
