@@ -162,3 +162,21 @@ echo ${timestamp}.txt
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
 CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.06 --noiseInner 0.06 --net 'vgg16-perturb-conv'>> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.03 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-perturb-fc'>> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 11233
+cc@nips:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-01-16-03-10-05-269879544.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.03 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-perturb-bn'>> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 11341
+cc@nips:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-01-16-03-10-43-772897143.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.03 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-perturb-conv-fc'>> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt

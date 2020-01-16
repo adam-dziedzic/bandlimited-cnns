@@ -113,7 +113,7 @@ class VGG(nn.Module):
                 layers += [
                     Conv2dNoise(in_channels, x, kernel_size=3, padding=1,
                                 param_noise=self.param_noise),
-                    BatchNorm2d(x),
+                    nn.BatchNorm2d(x),
                     nn.ReLU(inplace=True)]
                 in_channels = x
         layers += [nn.AvgPool2d(kernel_size=1, stride=1)]
