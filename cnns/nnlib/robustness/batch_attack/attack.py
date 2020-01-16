@@ -32,6 +32,7 @@ from cnns.nnlib.pytorch_architecture import vgg_perturb_fc
 from cnns.nnlib.pytorch_architecture import vgg_perturb_bn
 from cnns.nnlib.pytorch_architecture import vgg_perturb_conv_fc
 from cnns.nnlib.pytorch_architecture import vgg_perturb_conv_bn
+from cnns.nnlib.pytorch_architecture import vgg_perturb_fc_bn
 from cnns.nnlib.pytorch_architecture import vgg_perturb_conv_even
 from cnns.nnlib.pytorch_architecture import vgg_perturb_conv_every_2nd
 from cnns.nnlib.pytorch_architecture import vgg_perturb_conv_every_3rd
@@ -341,6 +342,11 @@ def get_nets(opt):
             net = vgg_perturb_conv_bn.VGG("VGG16", param_noise=opt.paramNoise)
             # netAttack = net
             netAttack = vgg_perturb_conv_bn.VGG("VGG16",
+                                                param_noise=opt.paramNoise)
+        elif opt.defense == "perturb-fc-bn":
+            net = vgg_perturb_fc_bn.VGG("VGG16", param_noise=opt.paramNoise)
+            # netAttack = net
+            netAttack = vgg_perturb_fc_bn.VGG("VGG16",
                                                 param_noise=opt.paramNoise)
         elif opt.defense == "perturb-weight":
             net = vgg_perturb_weight.VGG("VGG16",
