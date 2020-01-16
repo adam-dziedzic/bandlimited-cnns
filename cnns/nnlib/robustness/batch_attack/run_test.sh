@@ -266,3 +266,58 @@ cc@iclr:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${times
 2020-01-16-08-26-05-205594538.txt
 
 
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'custom' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 --defense 'perturb-conv-fc' --noiseInit 0.0 --noiseInner 0.0 --paramNoise 0.03 --modelIn '../../pytorch_architecture/vgg16/vgg16-perturb-conv-fc_perturb_0.03_init_noise_0.0_inner_noise_0.0.pth-test-accuracy-0.8609' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+wifi
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'custom' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 --defense 'perturb-conv-bn' --noiseInit 0.0 --noiseInner 0.0 --paramNoise 0.03 --modelIn '../../pytorch_architecture/vgg16/vgg16-perturb-conv-bn_perturb_0.03_init_noise_0.0_inner_noise_0.0.pth-test-accuracy-0.8586' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 40885
+cc@wifi:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-16-09-23-02-496807845.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'custom' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 --defense 'perturb-fc' --noiseInit 0.0 --noiseInner 0.0 --paramNoise 0.03 --modelIn '../../pytorch_architecture/vgg16/vgg16-perturb-fc_perturb_0.03_init_noise_0.0_inner_noise_0.0.pth-test-accuracy-0.9337' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 27748
+cc@nips:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-16-09-25-21-413442686.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'custom' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 --defense 'perturb-bn' --noiseInit 0.0 --noiseInner 0.0 --paramNoise 0.03 --modelIn '../../pytorch_architecture/vgg16/vgg16-perturb-bn_perturb_0.03_init_noise_0.0_inner_noise_0.0.pth-test-accuracy-0.9275' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 27827
+cc@nips:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-16-09-26-26-686090374.txt
+
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'custom' --attack_iters 200 --batch_size 3584 --limit_batch_number 0 --c 0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 --defense 'perturb-conv-every-2nd' --noiseInit 0.03 --noiseInner 0.03 --paramNoise 0.0 --modelIn '../../pytorch_architecture/vgg16/vgg16-perturb-conv-every-2nd_perturb_0.0_init_noise_0.03_inner_noise_0.03.pth-test-accuracy-0.9082' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 2745
+ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-16-06-17-25-048108313.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'custom' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 --defense 'perturb-fc' --noiseInit 0.0 --noiseInner 0.0 --paramNoise 0.03 --modelIn '../../pytorch_architecture/vgg16/vgg16-perturb-fc_perturb_0.03_init_noise_0.0_inner_noise_0.0.pth-test-accuracy-0.9337' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'custom' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 --defense 'perturb-conv-every-3rd' --noiseInit 0.03 --noiseInner 0.03 --paramNoise 0.0 --modelIn '../../pytorch_architecture/vgg16/vgg16-perturb-conv-every-3rd_perturb_0.0_init_noise_0.03_inner_noise_0.03.pth-test-accuracy-0.9053' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+icml1 120788
+cc@icml1:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-16-12-23-39-708469757.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'custom' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 --defense 'perturb-conv-even' --noiseInit 0.03 --noiseInner 0.03 --paramNoise 0.0 --modelIn '../../pytorch_architecture/vgg16/vgg16-perturb-conv-even_perturb_0.0_init_noise_0.03_inner_noise_0.03.pth-test-accuracy-0.8979' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 120872
+cc@icml1:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-01-16-12-25-42-144823291.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'custom' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 --defense 'perturb-conv-weight' --noiseInit 0.0 --noiseInner 0.0 --paramNoise 0.03 --modelIn '../../pytorch_architecture/vgg16/vgg16-perturb-weight_perturb_0.03_init_noise_0.0_inner_noise_0.0.pth-test-accuracy-0.8508' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt

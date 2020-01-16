@@ -342,6 +342,12 @@ def get_nets(opt):
             # netAttack = net
             netAttack = vgg_perturb_conv_bn.VGG("VGG16",
                                                 param_noise=opt.paramNoise)
+        elif opt.defense == "perturb-weight":
+            net = vgg_perturb_weight.VGG("VGG16",
+                                         param_noise=opt.paramNoise)
+            # netAttack = net
+            netAttack = vgg_perturb_weight.VGG("VGG16",
+                                               param_noise=opt.paramNoise)
         elif opt.defense == "rse":
             net = vgg_rse.VGG("VGG16", opt.noiseInit,
                               opt.noiseInner,
