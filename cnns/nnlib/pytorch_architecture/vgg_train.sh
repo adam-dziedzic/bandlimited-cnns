@@ -238,10 +238,96 @@ ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo $
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
 CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.03 --noiseInner 0.03 --net 'vgg16-perturb-conv' --batchSize 128 >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
-[1] 9097
+[1] 9421
 cc@iclr:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
-2020-01-16-17-56-01-144570661.txt
+2020-01-16-17-59-14-528687601.txt
 
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
 CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.03 --noiseInner 0.03 --net 'vgg16-perturb-conv' --batchSize 64 >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
+[2] 9530
+cc@iclr:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-01-16-17-59-37-391030220.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=2 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.03 --noiseInner 0.03 --net 'vgg16-perturb-conv' --batchSize 32 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[3] 9663
+cc@iclr:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-01-16-18-00-14-687866631.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=3 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.03 --noiseInner 0.03 --net 'vgg16-perturb-conv' --batchSize 16 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[4] 9796
+cc@iclr:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-01-16-18-00-48-245321187.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.03 --noiseInner 0.03 --net 'vgg16-perturb-conv' --batchSize 8 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 122656
+cc@icml1:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-01-16-18-01-56-937652977.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.03 --noiseInner 0.03 --net 'vgg16-perturb-conv' --batchSize 4 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 122814
+cc@icml1:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-01-16-18-03-05-288923895.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.03 --noiseInner 0.03 --net 'vgg16-perturb-conv' --batchSize 2 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 107272
+cc@icml2:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-01-16-18-03-54-054027596.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.03 --noiseInner 0.03 --net 'vgg16-perturb-conv' --batchSize 1 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 107362
+cc@icml2:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-01-16-18-04-27-892680312.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.03 --noiseInner 0.03 --net 'vgg16-perturb-conv' --batchSize 256 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 43480
+cc@wifi:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-01-16-18-05-44-035685847.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.03 --noiseInner 0.03 --net 'vgg16-perturb-conv' --batchSize 512 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 43593
+cc@wifi:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-01-16-18-06-22-059926369.txt
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -22,6 +22,8 @@ from cnns.nnlib.pytorch_architecture.vgg_perturb_bn import \
 from cnns.nnlib.pytorch_architecture.vgg_rse import VGG as vgg_rse
 from cnns.nnlib.pytorch_architecture.vgg_rse_perturb import \
     VGG as vgg_rse_perturb
+from cnns.nnlib.pytorch_architecture.vgg_rse_perturb_weights import \
+    VGG as vgg_rse_perturb_weights
 from cnns.nnlib.pytorch_architecture.vgg_perturb_conv import \
     VGG as vgg_perturb_conv
 from cnns.nnlib.pytorch_architecture.vgg_perturb_conv_even import \
@@ -132,6 +134,10 @@ def main():
                       inner_noise=opt.noiseInner)
     elif opt.net == "vgg16-rse-perturb":
         net = vgg_rse_perturb("VGG16", init_noise=opt.noiseInit,
+                              inner_noise=opt.noiseInner,
+                              param_noise=opt.paramNoise)
+    elif opt.net == "vgg16-rse-perturb-weights":
+        net = vgg_rse_perturb_weights("VGG16", init_noise=opt.noiseInit,
                               inner_noise=opt.noiseInner,
                               param_noise=opt.paramNoise)
     elif opt.net == "vgg16-perturb-conv":
