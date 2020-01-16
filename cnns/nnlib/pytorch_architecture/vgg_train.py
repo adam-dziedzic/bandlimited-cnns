@@ -20,6 +20,8 @@ from cnns.nnlib.pytorch_architecture.vgg_perturb_fc import \
 from cnns.nnlib.pytorch_architecture.vgg_perturb_bn import \
     VGG as vgg_perturb_bn
 from cnns.nnlib.pytorch_architecture.vgg_rse import VGG as vgg_rse
+from cnns.nnlib.pytorch_architecture.vgg_rse_perturb import \
+    VGG as vgg_rse_perturb
 from cnns.nnlib.pytorch_architecture.vgg_perturb_conv import \
     VGG as vgg_perturb_conv
 from cnns.nnlib.pytorch_architecture.vgg_perturb_conv_even import \
@@ -128,6 +130,10 @@ def main():
     elif opt.net == "vgg16-rse":
         net = vgg_rse("VGG16", init_noise=opt.noiseInit,
                       inner_noise=opt.noiseInner)
+    elif opt.net == "vgg16-rse-perturb":
+        net = vgg_rse_perturb("VGG16", init_noise=opt.noiseInit,
+                              inner_noise=opt.noiseInner,
+                              param_noise=opt.paramNoise)
     elif opt.net == "vgg16-perturb-conv":
         net = vgg_perturb_conv("VGG16", init_noise=opt.noiseInit,
                                inner_noise=opt.noiseInner)
