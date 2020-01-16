@@ -7,6 +7,18 @@ import torch.nn as nn
 import torchvision.datasets as dst
 import torchvision.transforms as tfs
 from cnns.nnlib.pytorch_architecture.vgg_perturb import VGG as vgg_perturb
+from cnns.nnlib.pytorch_architecture.vgg_perturb_weight import \
+    VGG as vgg_perturb_weight
+from cnns.nnlib.pytorch_architecture.vgg_perturb_conv_fc import \
+    VGG as vgg_perturb_conv_fc
+from cnns.nnlib.pytorch_architecture.vgg_perturb_conv_bn import \
+    VGG as vgg_perturb_conv_bn
+from cnns.nnlib.pytorch_architecture.vgg_perturb_fc_bn import \
+    VGG as vgg_perturb_fc_bn
+from cnns.nnlib.pytorch_architecture.vgg_perturb_fc import \
+    VGG as vgg_perturb_fc
+from cnns.nnlib.pytorch_architecture.vgg_perturb_bn import \
+    VGG as vgg_perturb_bn
 from cnns.nnlib.pytorch_architecture.vgg_rse import VGG as vgg_rse
 from cnns.nnlib.pytorch_architecture.vgg_perturb_conv import \
     VGG as vgg_perturb_conv
@@ -95,6 +107,18 @@ def main():
         exit(-1)
     elif opt.net == "vgg16-perturb":
         net = vgg_perturb("VGG16", param_noise=opt.paramNoise)
+    elif opt.net == "vgg16-perturb-weight":
+        net = vgg_perturb_weight("VGG16", param_noise=opt.paramNoise)
+    elif opt.net == "vgg16-perturb-fc":
+        net = vgg_perturb_fc("VGG16", param_noise=opt.paramNoise)
+    elif opt.net == "vgg16-perturb-bn":
+        net = vgg_perturb_bn("VGG16", param_noise=opt.paramNoise)
+    elif opt.net == "vgg16-perturb-conv-fc":
+        net = vgg_perturb_conv_fc("VGG16", param_noise=opt.paramNoise)
+    elif opt.net == "vgg16-perturb-conv-bn":
+        net = vgg_perturb_conv_bn("VGG16", param_noise=opt.paramNoise)
+    elif opt.net == "vgg16-perturb-conv-fc":
+        net = vgg_perturb_fc_bn("VGG16", param_noise=opt.paramNoise)
     elif opt.net == "vgg16-rse":
         net = vgg_rse("VGG16", init_noise=opt.noiseInit,
                       inner_noise=opt.noiseInner)
