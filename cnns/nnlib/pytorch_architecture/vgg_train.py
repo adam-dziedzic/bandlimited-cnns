@@ -102,7 +102,7 @@ def main():
     parser.add_argument('--noiseInner', type=float, default=0.1)
     opt = parser.parse_args()
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    opt.modelOutRoot = f"{dir_path}/vgg16/{opt.net}_perturb_{opt.paramNoise}_init_noise_{opt.noiseInit}_inner_noise_{opt.noiseInner}.pth"
+    opt.modelOutRoot = f"{dir_path}/vgg16/{opt.net}_perturb_{opt.paramNoise}_init_noise_{opt.noiseInit}_inner_noise_{opt.noiseInner}_batch_size_{opt.batchSize}.pth"
     opt.root = dir_path + "/" + opt.root
     print(opt)
     # epochs = [80, 60, 40, 20]
