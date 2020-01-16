@@ -121,7 +121,7 @@ def main():
         net = vgg_perturb_conv_fc("VGG16", param_noise=opt.paramNoise)
     elif opt.net == "vgg16-perturb-conv-bn":
         net = vgg_perturb_conv_bn("VGG16", param_noise=opt.paramNoise)
-    elif opt.net == "vgg16-perturb-conv-fc":
+    elif opt.net == "vgg16-perturb-fc-bn":
         net = vgg_perturb_fc_bn("VGG16", param_noise=opt.paramNoise)
     elif opt.net == "vgg16-rse":
         net = vgg_rse("VGG16", init_noise=opt.noiseInit,
