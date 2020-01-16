@@ -205,6 +205,12 @@ echo ${timestamp}.txt
 cc@icml1:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
 2020-01-16-08-59-27-757019512.txt
 
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.03 --noiseInner 0.03 --net 'vgg16-perturb-conv-every-3rd'>> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 105625
+cc@icml1:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-01-16-09-08-41-262621732.txt
 
 
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)

@@ -28,6 +28,14 @@ from cnns.nnlib.pytorch_architecture import vgg
 from cnns.nnlib.pytorch_architecture import vgg_rse
 from cnns.nnlib.pytorch_architecture import vgg_perturb
 from cnns.nnlib.pytorch_architecture import vgg_perturb_conv
+from cnns.nnlib.pytorch_architecture import vgg_perturb_fc
+from cnns.nnlib.pytorch_architecture import vgg_perturb_bn
+from cnns.nnlib.pytorch_architecture import vgg_perturb_conv_fc
+from cnns.nnlib.pytorch_architecture import vgg_perturb_conv_bn
+from cnns.nnlib.pytorch_architecture import vgg_perturb_conv_even
+from cnns.nnlib.pytorch_architecture import vgg_perturb_conv_every_2nd
+from cnns.nnlib.pytorch_architecture import vgg_perturb_conv_every_3rd
+from cnns.nnlib.pytorch_architecture import vgg_perturb_weight
 from cnns.nnlib.pytorch_architecture import resnet
 from cnns.nnlib.robustness.param_perturbation.utils import perturb_model_params
 
@@ -289,6 +297,51 @@ def get_nets(opt):
             # netAttack = net
             netAttack = vgg_perturb_conv.VGG("VGG16", init_noise=opt.noiseInit,
                                              inner_noise=opt.noiseInner)
+        elif opt.defense == "perturb-conv-even":
+            net = vgg_perturb_conv_even.VGG("VGG16", init_noise=opt.noiseInit,
+                                            inner_noise=opt.noiseInner)
+            # netAttack = net
+            netAttack = vgg_perturb_conv_even.VGG("VGG16",
+                                                  init_noise=opt.noiseInit,
+                                                  inner_noise=opt.noiseInner)
+        elif opt.defense == "perturb-conv-every-2nd":
+            net = vgg_perturb_conv_every_2nd.VGG(
+                "VGG16",
+                init_noise=opt.noiseInit,
+                inner_noise=opt.noiseInner)
+            # netAttack = net
+            netAttack = vgg_perturb_conv_every_2nd.VGG(
+                "VGG16",
+                init_noise=opt.noiseInit,
+                inner_noise=opt.noiseInner)
+        elif opt.defense == "perturb-conv-every-3rd":
+            net = vgg_perturb_conv_every_3rd.VGG(
+                "VGG16",
+                init_noise=opt.noiseInit,
+                inner_noise=opt.noiseInner)
+            # netAttack = net
+            netAttack = vgg_perturb_conv_every_3rd.VGG(
+                "VGG16",
+                init_noise=opt.noiseInit,
+                inner_noise=opt.noiseInner)
+        elif opt.defense == "perturb-fc":
+            net = vgg_perturb_fc.VGG("VGG16", param_noise=opt.paramNoise)
+            # netAttack = net
+            netAttack = vgg_perturb_fc.VGG("VGG16", param_noise=opt.paramNoise)
+        elif opt.defense == "perturb-bn":
+            net = vgg_perturb_bn.VGG("VGG16", param_noise=opt.paramNoise)
+            # netAttack = net
+            netAttack = vgg_perturb_bn.VGG("VGG16", param_noise=opt.paramNoise)
+        elif opt.defense == "perturb-conv-fc":
+            net = vgg_perturb_conv_fc.VGG("VGG16", param_noise=opt.paramNoise)
+            # netAttack = net
+            netAttack = vgg_perturb_conv_fc.VGG("VGG16",
+                                                param_noise=opt.paramNoise)
+        elif opt.defense == "perturb-conv-bn":
+            net = vgg_perturb_conv_bn.VGG("VGG16", param_noise=opt.paramNoise)
+            # netAttack = net
+            netAttack = vgg_perturb_conv_bn.VGG("VGG16",
+                                                param_noise=opt.paramNoise)
         elif opt.defense == "rse":
             net = vgg_rse.VGG("VGG16", opt.noiseInit,
                               opt.noiseInner,
