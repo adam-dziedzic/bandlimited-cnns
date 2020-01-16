@@ -26,6 +26,8 @@ from cnns.nnlib.pytorch_architecture.vgg_perturb_conv_even import \
     VGG as vgg_perturb_conv_even
 from cnns.nnlib.pytorch_architecture.vgg_perturb_conv_every_2nd import \
     VGG as vgg_perturb_conv_every_2nd
+from cnns.nnlib.pytorch_architecture.vgg_perturb_conv_every_3rd import \
+    VGG as vgg_perturb_conv_every_3rd
 from cnns.nnlib.pytorch_architecture.resnext import ResNeXt29_2x64d
 from cnns.nnlib.pytorch_architecture.stl10_model_rse import stl10
 from torch.utils.data import DataLoader
@@ -131,6 +133,9 @@ def main():
                                inner_noise=opt.noiseInner)
     elif opt.net == "vgg16-perturb-conv-every-2nd":
         net = vgg_perturb_conv_every_2nd("VGG16", init_noise=opt.noiseInit,
+                                         inner_noise=opt.noiseInner)
+    elif opt.net == "vgg16-perturb-conv-every-3rd":
+        net = vgg_perturb_conv_every_3rd("VGG16", init_noise=opt.noiseInit,
                                          inner_noise=opt.noiseInner)
     elif opt.net == "vgg16-perturb-conv-even":
         net = vgg_perturb_conv_even("VGG16", init_noise=opt.noiseInit,
