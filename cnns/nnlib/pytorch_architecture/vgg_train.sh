@@ -180,3 +180,15 @@ cc@nips:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestam
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
 CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.03 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-perturb-conv-fc'>> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
+[1] 24121
+cc@wifi:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-01-16-03-13-02-805967604.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.03 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-perturb-conv-bn'>> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 24237
+cc@wifi:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-01-16-03-13-47-062298473.txt
+
+
