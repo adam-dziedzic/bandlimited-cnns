@@ -101,7 +101,7 @@ class Conv2dNoise(nn.Conv2d):
         if self.buffer_bias_noise is None:
             self.buffer_bias_noise = torch.zeros_like(
                 self.bias, requires_grad=False)
-            if self.param_noise > 0:
+            if self.bias_noise > 0:
                 self.buffer_bias_noise.normal_(
                     0, self.param_noise).to(self.bias.device)
         bias = perturb_param(param=self.bias,
@@ -129,7 +129,7 @@ class LinearNoise(nn.Linear):
         if self.buffer_weight_noise is None:
             self.buffer_weight_noise = torch.zeros_like(
                 self.weight, requires_grad=False)
-            if self.param_noise > 0:
+            if self.weight_noise > 0:
                 self.buffer_weight_noise.normal_(
                     0, self.param_noise).to(self.weight.device)
         weight = perturb_param(param=self.weight,
@@ -138,7 +138,7 @@ class LinearNoise(nn.Linear):
         if self.buffer_bias_noise is None:
             self.buffer_bias_noise = torch.zeros_like(
                 self.bias, requires_grad=False)
-            if self.param_noise > 0:
+            if self.bias_noise > 0:
                 self.buffer_bias_noise.normal_(
                     0, self.param_noise).to(self.bias.device)
         bias = perturb_param(param=self.bias,
@@ -162,7 +162,7 @@ class BatchNorm2dNoise(nn.BatchNorm2d):
         if self.buffer_weight_noise is None:
             self.buffer_weight_noise = torch.zeros_like(
                 self.weight, requires_grad=False)
-            if self.param_noise > 0:
+            if self.weight_noise > 0:
                 self.buffer_weight_noise.normal_(
                     0, self.param_noise).to(self.weight.device)
         weight = perturb_param(param=self.weight,
@@ -171,7 +171,7 @@ class BatchNorm2dNoise(nn.BatchNorm2d):
         if self.buffer_bias_noise is None:
             self.buffer_bias_noise = torch.zeros_like(
                 self.bias, requires_grad=False)
-            if self.param_noise > 0:
+            if self.bias_noise > 0:
                 self.buffer_bias_noise.normal_(
                     0, self.param_noise).to(self.bias.device)
         bias = perturb_param(param=self.bias,
