@@ -103,7 +103,7 @@ class Conv2dNoise(nn.Conv2d):
                 self.bias, requires_grad=False)
             if self.bias_noise > 0:
                 self.buffer_bias_noise.normal_(
-                    0, self.param_noise).to(self.bias.device)
+                    0, self.bias_noise).to(self.bias.device)
         bias = perturb_param(param=self.bias,
                              param_noise=self.bias_noise,
                              buffer_noise=self.buffer_bias_noise)
@@ -131,7 +131,7 @@ class LinearNoise(nn.Linear):
                 self.weight, requires_grad=False)
             if self.weight_noise > 0:
                 self.buffer_weight_noise.normal_(
-                    0, self.param_noise).to(self.weight.device)
+                    0, self.weigth_noise).to(self.weight.device)
         weight = perturb_param(param=self.weight,
                                param_noise=self.weight_noise,
                                buffer_noise=self.buffer_weight_noise)
@@ -140,7 +140,7 @@ class LinearNoise(nn.Linear):
                 self.bias, requires_grad=False)
             if self.bias_noise > 0:
                 self.buffer_bias_noise.normal_(
-                    0, self.param_noise).to(self.bias.device)
+                    0, self.bias_noise).to(self.bias.device)
         bias = perturb_param(param=self.bias,
                              param_noise=self.bias_noise,
                              buffer_noise=self.buffer_bias_noise)
@@ -173,7 +173,7 @@ class BatchNorm2dNoise(nn.BatchNorm2d):
                 self.bias, requires_grad=False)
             if self.bias_noise > 0:
                 self.buffer_bias_noise.normal_(
-                    0, self.param_noise).to(self.bias.device)
+                    0, self.bias_noise).to(self.bias.device)
         bias = perturb_param(param=self.bias,
                              param_noise=self.bias_noise,
                              buffer_noise=self.buffer_bias_noise)
