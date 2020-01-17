@@ -38,7 +38,7 @@ from cnns.nnlib.pytorch_architecture.stl10_model_rse import stl10
 from torch.utils.data import DataLoader
 import time
 import sys
-
+from functools import partial
 
 # train one epoch
 def train(dataloader, net, loss_f, optimizer):
@@ -79,12 +79,12 @@ def test(dataloader, net, best_acc, opt):
         return acc, best_acc
 
 
-def weights_init(m):
+def weights_init(initializeNoise, m):
     classname = m.__class__.__name__
     if classname.find('Linear') != -1 or classname.find('LinearNoise') != -1:
         m.weight.data.normal_(0.0, 0.02)
     elif classname.find('Conv') != -1 or classname.find('ConvNoise') != -1:
-        m.weight.data.normal_(0.0, 0.02)
+        m.weight.data.normal_(0.0, initializeNoise)
     elif classname.find('BatchNorm') != -1 and m.affine:
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
@@ -103,6 +103,7 @@ def main():
     parser.add_argument('--paramNoise', type=float, default=0.0)
     parser.add_argument('--noiseInit', type=float, default=0.2)
     parser.add_argument('--noiseInner', type=float, default=0.1)
+    parser.add_argument('--initializeNoise', type=float, default=0.02)
     opt = parser.parse_args()
     dir_path = os.path.dirname(os.path.realpath(__file__))
     opt.modelOutRoot = f"{dir_path}/vgg16/{opt.net}_perturb_{opt.paramNoise}_init_noise_{opt.noiseInit}_inner_noise_{opt.noiseInner}_batch_size_{opt.batchSize}.pth"
@@ -162,13 +163,9 @@ def main():
     else:
         raise Exception("Invalid opt.net: {}".format(opt.net))
 
-    print('model parameters:')
-    params = net.parameters()
-    for i, param in enumerate(params):
-        print(i, param.data.shape)
-
     net = nn.DataParallel(net, device_ids=range(opt.ngpu))
-    net.apply(weights_init)
+    bound_weights_init = partial(weights_init, opt.initializeNoise)
+    net.apply(bound_weights_init)
     net.cuda()
     loss_f = nn.CrossEntropyLoss()
     if opt.dataset == 'cifar10':
