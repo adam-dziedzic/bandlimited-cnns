@@ -52,6 +52,7 @@ class Conv2dNoise(nn.Conv2d):
                         self.padding, self.dilation, self.groups)
 
     def forward(self, input):
+        print(torch.std(input).item())
         if self.buffer_weight_noise is None:
             self.buffer_weight_noise = torch.zeros_like(
                 self.weight, requires_grad=False)
@@ -69,8 +70,8 @@ class VGG(nn.Module):
         super(VGG, self).__init__()
         self.init_noise = init_noise
         self.inner_noise = inner_noise
-        self.classifier = nn.Linear(512, 10)
         self.features = self._make_layers(cfg[vgg_name])
+        self.classifier = nn.Linear(512, 10)
 
     def forward(self, x):
         out = self.features(x)

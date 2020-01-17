@@ -39,6 +39,7 @@ from cnns.nnlib.pytorch_architecture import vgg_perturb_conv_every_3rd
 from cnns.nnlib.pytorch_architecture import vgg_perturb_weight
 from cnns.nnlib.pytorch_architecture import vgg_rse_perturb
 from cnns.nnlib.pytorch_architecture import vgg_rse_perturb_weights
+from cnns.nnlib.pytorch_architecture import vgg_rse_unrolled
 
 from cnns.nnlib.pytorch_architecture import resnet
 from cnns.nnlib.robustness.param_perturbation.utils import perturb_model_params
@@ -368,6 +369,14 @@ def get_nets(opt):
             # netAttack = models.vgg_rse.VGG("VGG16", init_noise=0.0,
             #                                inner_noise=0.0,
             #                                noise_type='standard')
+        elif opt.defense == "rse-unrolled":
+            net = vgg_rse_unrolled.VGG("VGG16", opt.noiseInit,
+                                       opt.noiseInner,
+                                       noise_type='standard')
+            # netAttack = net
+            netAttack = vgg_rse_unrolled.VGG("VGG16", opt.noiseInit,
+                                             opt.noiseInner,
+                                             noise_type=opt.noise_type)
         elif opt.defense == "rse-perturb":
             net = vgg_rse_perturb.VGG("VGG16", init_noise=opt.noiseInit,
                                       inner_noise=opt.noiseInner,
@@ -408,6 +417,8 @@ def get_nets(opt):
         net = resnet.ResNet18()
     else:
         raise Exception(f"Unknown opt.net: {opt.net}")
+
+    get_parameter_stats(net)
 
     try:
         gpus = os.environ['CUDA_VISIBLE_DEVICES']
@@ -638,15 +649,28 @@ def set_model_settings(opt):
     opt.net = net
 
 
+def get_parameter_stats(model):
+    stds = []
+    for param in model.parameters():
+        x = param.data
+        std = torch.std(x).item()
+        min = torch.min(x).item()
+        print(list(x.shape), std, min)
+        stds.append(std)
+    print(','.join([str(x) for x in stds]))
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--net_mode',
                         type=str,
-                        default='perturb-0.04')
+                        default='custom')
     parser.add_argument('--defense', type=str,
+                        # default='rse-perturb',
                         # default='rse',
+                        default='perturb-conv',
                         # default='plain',
-                        default='perturb',
+                        # default='perturb',
                         )
     parser.add_argument('--c', type=float, nargs='+',
                         # default=[0.0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.02,
@@ -675,7 +699,7 @@ if __name__ == "__main__":
                         # default=300,
                         default=1,
                         )
-    parser.add_argument('--limit_batch_number', type=int, default=4,
+    parser.add_argument('--limit_batch_number', type=int, default=0,
                         help='If limit > 0, only that # of batches is '
                              'processed. Set this param to 0 to process all '
                              'batches.')
@@ -715,7 +739,8 @@ if __name__ == "__main__":
     parser.add_argument('--paramNoise', type=float, default=0.0)
     parser.add_argument('--net', type=str, default='vgg16')
     parser.add_argument('--modelIn', type=str,
-                        default='../../pytorch_architecture/vgg16/saved_model_rse_perturb_0.0.pth-test-accuracy-0.9351')
+                        # default='../../pytorch_architecture/vgg16/saved_model_rse_perturb_0.0.pth-test-accuracy-0.9351',
+                        default='../../pytorch_architecture/vgg16/saved_model_vgg16-perturb-conv_perturb_0.0_init_noise_0.0_inner_noise_0.0.pth-test-accuracy-0.9384')
     opt = parser.parse_args()
     opt.bounds = (0, 1)
 

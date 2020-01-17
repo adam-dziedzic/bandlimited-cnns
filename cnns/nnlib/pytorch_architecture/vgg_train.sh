@@ -334,8 +334,38 @@ echo ${timestamp}.txt
 cc@icml1:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
 2020-01-17-02-15-35-954453444.txt
 
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.04 --noiseInner 0.04 --net 'vgg16-perturb-conv' --batchSize 128 --lr 0.1 --initializeNoise 0.03 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 111577
+cc@icml2:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-01-17-02-29-22-166827512.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.05 --noiseInner 0.05 --net 'vgg16-perturb-conv' --batchSize 128 --lr 0.1 --initializeNoise 0.04 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 111703
+cc@icml2:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-01-17-02-30-08-663760220.txt
 
 
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.04 --noiseInit 0.2 --noiseInner 0.1 --net 'vgg16-rse-perturb' --initializeNoise 0.03 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 63883
+cc@wifi:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-01-17-12-12-30-076554215.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.05 --noiseInit 0.2 --noiseInner 0.1 --net 'vgg16-rse-perturb' --initializeNoise 0.04 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 63974
+cc@wifi:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-01-17-12-12-54-119473010.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise -0.1 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-perturb-rse' --initializeNoise 0.02 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
 
 
 

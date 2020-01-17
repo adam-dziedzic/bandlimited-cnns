@@ -8,6 +8,8 @@ import torchvision.datasets as dst
 import torchvision.transforms as tfs
 from cnns.nnlib.pytorch_architecture.vgg import VGG as vgg
 from cnns.nnlib.pytorch_architecture.vgg_perturb import VGG as vgg_perturb
+from cnns.nnlib.pytorch_architecture.vgg_perturb_rse import \
+    VGG as vgg_perturb_rse
 from cnns.nnlib.pytorch_architecture.vgg_perturb_weight import \
     VGG as vgg_perturb_weight
 from cnns.nnlib.pytorch_architecture.vgg_perturb_conv_fc import \
@@ -39,6 +41,28 @@ from torch.utils.data import DataLoader
 import time
 import sys
 from functools import partial
+import numpy as np
+import torch
+
+
+def get_data_stats(dataloader):
+    count = 0
+    sum_avg = 0
+    sum_std = 0
+    global_min = np.float('inf')
+    global_max = np.float('-inf')
+    for x, _ in dataloader:
+        count += 1
+        sum_avg += torch.mean(x)
+        sum_std += torch.std(x)
+        min = torch.min(x)
+        if min < global_min:
+            global_min = min
+        max = torch.max(x)
+        if max > global_max:
+            global_max = max
+    return sum_avg / count, sum_std / count, global_min, global_max
+
 
 # train one epoch
 def train(dataloader, net, loss_f, optimizer):
@@ -133,6 +157,8 @@ def main():
         net = vgg_perturb_conv_bn("VGG16", param_noise=opt.paramNoise)
     elif opt.net == "vgg16-perturb-fc-bn":
         net = vgg_perturb_fc_bn("VGG16", param_noise=opt.paramNoise)
+    elif opt.net == "vgg16-perturb-rse":
+        net = vgg_perturb_rse("VGG16", param_noise=opt.paramNoise)
     elif opt.net == "vgg16-rse":
         net = vgg_rse("VGG16", init_noise=opt.noiseInit,
                       inner_noise=opt.noiseInner)
@@ -203,6 +229,13 @@ def main():
                             num_workers=2)
     dataloader_test = DataLoader(data_test, batch_size=opt.batchSize,
                                  shuffle=False, num_workers=2)
+
+    # train_stats = get_data_stats(dataloader)
+    # test_stats = get_data_stats(dataloader_test)
+    #
+    # print('train_stats: ', train_stats)
+    # print('test_stats: ', test_stats)
+
     accumulate = 0
     best_acc = 0
     total_time = 0
