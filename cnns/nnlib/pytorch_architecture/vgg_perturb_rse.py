@@ -131,7 +131,7 @@ class LinearNoise(nn.Linear):
                 self.weight, requires_grad=False)
             if self.weight_noise > 0:
                 self.buffer_weight_noise.normal_(
-                    0, self.weigth_noise).to(self.weight.device)
+                    0, self.weight_noise).to(self.weight.device)
         weight = perturb_param(param=self.weight,
                                param_noise=self.weight_noise,
                                buffer_noise=self.buffer_weight_noise)
@@ -164,7 +164,7 @@ class BatchNorm2dNoise(nn.BatchNorm2d):
                 self.weight, requires_grad=False)
             if self.weight_noise > 0:
                 self.buffer_weight_noise.normal_(
-                    0, self.param_noise).to(self.weight.device)
+                    0, self.weight_noise).to(self.weight.device)
         weight = perturb_param(param=self.weight,
                                param_noise=self.weight_noise,
                                buffer_noise=self.buffer_weight_noise)
