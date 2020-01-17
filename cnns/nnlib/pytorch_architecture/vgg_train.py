@@ -6,6 +6,7 @@ import torch.optim as optim
 import torch.nn as nn
 import torchvision.datasets as dst
 import torchvision.transforms as tfs
+from cnns.nnlib.pytorch_architecture.vgg import VGG as vgg
 from cnns.nnlib.pytorch_architecture.vgg_perturb import VGG as vgg_perturb
 from cnns.nnlib.pytorch_architecture.vgg_perturb_weight import \
     VGG as vgg_perturb_weight
@@ -95,7 +96,7 @@ def main():
     parser.add_argument('--batchSize', type=int, default=128)
     parser.add_argument('--lr', type=float, default=0.1)
     parser.add_argument('--ngpu', type=int, default=1)
-    parser.add_argument('--net', type=str, default='vgg16-perturb-conv')
+    parser.add_argument('--net', type=str, default='vgg16')
     parser.add_argument('--method', type=str, default="momsgd")
     parser.add_argument('--root', type=str,
                         default="../datasets/cifar-10-batches-py")
@@ -115,6 +116,8 @@ def main():
     if opt.net is None:
         print("opt.net must be specified")
         exit(-1)
+    elif opt.net == "vgg16":
+        net = vgg("VGG16")
     elif opt.net == "vgg16-perturb":
         net = vgg_perturb("VGG16", param_noise=opt.paramNoise)
     elif opt.net == "vgg16-perturb-weight":
@@ -138,8 +141,8 @@ def main():
                               param_noise=opt.paramNoise)
     elif opt.net == "vgg16-rse-perturb-weights":
         net = vgg_rse_perturb_weights("VGG16", init_noise=opt.noiseInit,
-                              inner_noise=opt.noiseInner,
-                              param_noise=opt.paramNoise)
+                                      inner_noise=opt.noiseInner,
+                                      param_noise=opt.paramNoise)
     elif opt.net == "vgg16-perturb-conv":
         net = vgg_perturb_conv("VGG16", init_noise=opt.noiseInit,
                                inner_noise=opt.noiseInner)
@@ -158,6 +161,12 @@ def main():
         net = stl10(32, opt.noiseInit, opt.noiseInner)
     else:
         raise Exception("Invalid opt.net: {}".format(opt.net))
+
+    print('model parameters:')
+    params = net.parameters()
+    for i, param in enumerate(params):
+        print(i, param.data.shape)
+
     net = nn.DataParallel(net, device_ids=range(opt.ngpu))
     net.apply(weights_init)
     net.cuda()

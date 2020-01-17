@@ -37,6 +37,9 @@ from cnns.nnlib.pytorch_architecture import vgg_perturb_conv_even
 from cnns.nnlib.pytorch_architecture import vgg_perturb_conv_every_2nd
 from cnns.nnlib.pytorch_architecture import vgg_perturb_conv_every_3rd
 from cnns.nnlib.pytorch_architecture import vgg_perturb_weight
+from cnns.nnlib.pytorch_architecture import vgg_rse_perturb
+from cnns.nnlib.pytorch_architecture import vgg_rse_perturb_weights
+
 from cnns.nnlib.pytorch_architecture import resnet
 from cnns.nnlib.robustness.param_perturbation.utils import perturb_model_params
 
@@ -347,7 +350,7 @@ def get_nets(opt):
             net = vgg_perturb_fc_bn.VGG("VGG16", param_noise=opt.paramNoise)
             # netAttack = net
             netAttack = vgg_perturb_fc_bn.VGG("VGG16",
-                                                param_noise=opt.paramNoise)
+                                              param_noise=opt.paramNoise)
         elif opt.defense == "perturb-weight":
             net = vgg_perturb_weight.VGG("VGG16",
                                          param_noise=opt.paramNoise)
@@ -365,6 +368,25 @@ def get_nets(opt):
             # netAttack = models.vgg_rse.VGG("VGG16", init_noise=0.0,
             #                                inner_noise=0.0,
             #                                noise_type='standard')
+        elif opt.defense == "rse-perturb":
+            net = vgg_rse_perturb.VGG("VGG16", init_noise=opt.noiseInit,
+                                      inner_noise=opt.noiseInner,
+                                      param_noise=opt.paramNoise,
+                                      noise_type='standard')
+            netAttack = vgg_rse_perturb.VGG("VGG16", init_noise=opt.noiseInit,
+                                            inner_noise=opt.noiseInner,
+                                            param_noise=opt.paramNoise,
+                                            noise_type='standard')
+        elif opt.defense == "rse-perturb-weights":
+            net = vgg_rse_perturb_weights.VGG("VGG16", init_noise=opt.noiseInit,
+                                              inner_noise=opt.noiseInner,
+                                              param_noise=opt.paramNoise,
+                                              noise_type='standard')
+            netAttack = vgg_rse_perturb_weights.VGG("VGG16",
+                                                    init_noise=opt.noiseInit,
+                                                    inner_noise=opt.noiseInner,
+                                                    param_noise=opt.paramNoise,
+                                                    noise_type='standard')
     elif opt.net == "resnext":
         if opt.defense in ("plain", "adv", "dd"):
             net = models.resnext.ResNeXt29_2x64d()
@@ -384,6 +406,8 @@ def get_nets(opt):
                                                opt.noiseInner)
     elif opt.net == 'resnet18':
         net = resnet.ResNet18()
+    else:
+        raise Exception(f"Unknown opt.net: {opt.net}")
 
     try:
         gpus = os.environ['CUDA_VISIBLE_DEVICES']
