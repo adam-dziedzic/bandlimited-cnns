@@ -374,17 +374,58 @@ timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
 CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-perturb-rse' --initializeNoise 0.02 >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
 
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise -0.2 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-perturb-rse' --initializeNoise 0.02 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=2 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise -0.3 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-perturb-rse' --initializeNoise 0.02 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=3 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise -0.4 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-perturb-rse' --initializeNoise 0.02 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
 
 
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.1 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-perturb-rse' --initializeNoise 0.02 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise -0.5 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-perturb-rse' --initializeNoise 0.02 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise -0.01 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-perturb-rse' --initializeNoise 0.02 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise -0.05 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-perturb-rse' --initializeNoise 0.02 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise -0.02 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-perturb-rse' --initializeNoise 0.02 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise -0.03 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-perturb-rse' --initializeNoise 0.02 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
 
 
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise -0.15 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-perturb-rse' --initializeNoise 0.02 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
 
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise -0.04 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-perturb-rse' --initializeNoise 0.02 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
 
-
-
-
-
-
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise -1.0 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-perturb-rse' --initializeNoise 0.02 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 21701
+ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-01-17-19-34-37-549409155.txt
 
 
 

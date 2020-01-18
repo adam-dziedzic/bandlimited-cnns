@@ -461,7 +461,11 @@ cc@iclr:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${times
 
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
 CUDA_VISIBLE_DEVICES=2 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'custom' --attack_iters 200 --batch_size 1024 --limit_batch_number 0 --c 0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 --defense 'rse-perturb' --noiseInit 0.2 --noiseInner 0.1 --paramNoise 0.005 --modelIn '../../pytorch_architecture/vgg16/saved_model_vgg16-rse_perturb_0.0_init_noise_0.2_inner_noise_0.1.pth-test-accuracy-0.8772' >> ${timestamp}.txt 2>&1 &
-echo ${timestamp}.tx
+echo ${timestamp}.txt
 [3] 47153
 cc@iclr:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
 2020-01-17-12-09-53-984737977.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'custom' --attack_iters 200 --batch_size 1024 --limit_batch_number 0 --c 0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 --defense 'perturb-rse' --noiseInit 0.0 --noiseInner 0.0 --paramNoise -0.3 --modelIn '../../pytorch_architecture/vgg16/saved_model_vgg16-perturb-rse_perturb_-0.3_init_noise_0.0_inner_noise_0.0_batch_size_128.pth-test-accuracy-0.7837' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
