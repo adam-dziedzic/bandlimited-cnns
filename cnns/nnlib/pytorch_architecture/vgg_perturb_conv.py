@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 from torch.nn.modules.utils import _pair
+from functools import reduce
 
 cfg = {
     'VGG11': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
@@ -43,8 +44,8 @@ class Conv2dNoise(nn.Conv2d):
     def conv2d_forward(self, input, weight):
         if self.padding_mode == 'circular':
             expanded_padding = (
-            (self.padding[1] + 1) // 2, self.padding[1] // 2,
-            (self.padding[0] + 1) // 2, self.padding[0] // 2)
+                (self.padding[1] + 1) // 2, self.padding[1] // 2,
+                (self.padding[0] + 1) // 2, self.padding[0] // 2)
             return F.conv2d(F.pad(input, expanded_padding, mode='circular'),
                             weight, self.bias, self.stride,
                             _pair(0), self.dilation, self.groups)
@@ -52,7 +53,9 @@ class Conv2dNoise(nn.Conv2d):
                         self.padding, self.dilation, self.groups)
 
     def forward(self, input):
-        print(torch.std(input).item())
+        dims = list(input.shape)
+        print(dims, ',', reduce((lambda x, y: x * y), dims), ',',
+              torch.std(input).item())
         if self.buffer_weight_noise is None:
             self.buffer_weight_noise = torch.zeros_like(
                 self.weight, requires_grad=False)

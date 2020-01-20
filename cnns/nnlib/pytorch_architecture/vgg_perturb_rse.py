@@ -23,22 +23,28 @@ cfg = {
               512, 512, 'M', 512, 512, 512, 512, 'M'],
 }
 
-fc_noise = [0.02517237886786461, 0.019698506221175194]
-conv_bn_noise = [0.10803990811109543, 0.11500568687915802, 0.0, 0.0,
-                 0.0240741278976202, 0.02496134676039219, 0.0, 0.0,
-                 0.024029752239584923, 0.022710483521223068, 0.0, 0.0,
-                 0.017008690163493156, 0.018482772633433342, 0.0, 0.0,
-                 0.017002755776047707, 0.017049072310328484, 0.0, 0.0,
-                 0.012026282958686352, 0.011528636328876019, 0.0, 0.0,
-                 0.012020026333630085, 0.011991619132459164, 0.0, 0.0,
-                 0.01202633511275053, 0.011740812100470066, 0.0, 0.0,
-                 0.008503676392138004, 0.00861838273704052, 0.0, 0.0,
-                 0.008504466153681278, 0.0082998713478446, 0.0, 0.0,
-                 0.008508573286235332, 0.008545858785510063, 0.0, 0.0,
-                 0.008508553728461266, 0.008277240209281445, 0.0, 0.0,
-                 0.008508582599461079, 0.008451293222606182, 0.0, 0.0]
+# standard deviations (std) for parameters
+# fc_noise (std for W matrix, and std for the bias)
+std_fc = [0.02517237886786461, 0.019698506221175194]
 
-x_noise = [
+# std for the conv and bn layers
+# each line is: conv filter std, conv bias std, bn weight std, bn bias std
+std_conv_bn = [0.10803990811109543, 0.11500568687915802, 0.0, 0.0,
+               0.0240741278976202, 0.02496134676039219, 0.0, 0.0,
+               0.024029752239584923, 0.022710483521223068, 0.0, 0.0,
+               0.017008690163493156, 0.018482772633433342, 0.0, 0.0,
+               0.017002755776047707, 0.017049072310328484, 0.0, 0.0,
+               0.012026282958686352, 0.011528636328876019, 0.0, 0.0,
+               0.012020026333630085, 0.011991619132459164, 0.0, 0.0,
+               0.01202633511275053, 0.011740812100470066, 0.0, 0.0,
+               0.008503676392138004, 0.00861838273704052, 0.0, 0.0,
+               0.008504466153681278, 0.0082998713478446, 0.0, 0.0,
+               0.008508573286235332, 0.008545858785510063, 0.0, 0.0,
+               0.008508553728461266, 0.008277240209281445, 0.0, 0.0,
+               0.008508582599461079, 0.008451293222606182, 0.0, 0.0]
+
+# std of the input to each of the noise layers
+std_noise_layers = [
     0.250856459,
     0.243855923,
     0.25971508,
@@ -208,8 +214,8 @@ class VGG(nn.Module):
         self.param_noise = param_noise
         self.noise_type = noise_type
         self.features = self._make_layers(cfg[vgg_name])
-        fc_weight_noise = self.adjust_data_param_noise(fc_noise[0])
-        fc_bias_noise = self.adjust_data_param_noise(fc_noise[1])
+        fc_weight_noise = self.adjust_data_param_noise(std_fc[0])
+        fc_bias_noise = self.adjust_data_param_noise(std_fc[1])
         self.classifier = LinearNoise(512, 10,
                                       weight_noise=fc_weight_noise,
                                       bias_noise=fc_bias_noise)
@@ -237,7 +243,7 @@ class VGG(nn.Module):
             if x == 'M':
                 layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
             else:
-                noise = x_noise[noise_x_index]
+                noise = std_noise_layers[noise_x_index]
                 noise = self.adjust_data_param_noise(noise)
                 noise_x_index += 1
                 if self.noise_type == 'backward':
@@ -249,10 +255,10 @@ class VGG(nn.Module):
 
                 print('conv_bn_index: ', conv_bn_index)
                 # specify noise for each layer and its weight and bias params
-                conv_weight_noise = conv_bn_noise[conv_bn_index + 0]
-                conv_bias_noise = conv_bn_noise[conv_bn_index + 1]
-                bn_weight_noise = conv_bn_noise[conv_bn_index + 2]
-                bn_bias_noise = conv_bn_noise[conv_bn_index + 3]
+                conv_weight_noise = std_conv_bn[conv_bn_index + 0]
+                conv_bias_noise = std_conv_bn[conv_bn_index + 1]
+                bn_weight_noise = std_conv_bn[conv_bn_index + 2]
+                bn_bias_noise = std_conv_bn[conv_bn_index + 3]
                 conv_bn_index += 4
 
                 conv_weight_noise = self.adjust_data_param_noise(

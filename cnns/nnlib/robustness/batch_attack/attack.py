@@ -518,8 +518,8 @@ def set_model_settings(opt):
         noiseInit = 0.2
         net = 'vgg16'
     elif net_mode == '2-1':
-        # modelPath = 'vgg16/rse_0.2_0.1_ady.pth-test-accuracy-0.8728'
-        modelPath = 'vgg16/rse_0.2_0.1_ady.pth-test-accuracy-0.8516'
+        modelPath = 'vgg16/rse_0.2_0.1_ady.pth-test-accuracy-0.8728'
+        # modelPath = 'vgg16/rse_0.2_0.1_ady.pth-test-accuracy-0.8516'
         modelAttack = modelPath
         noiseInit = 0.2
         noiseInner = 0.1
