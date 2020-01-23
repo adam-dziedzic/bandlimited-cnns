@@ -8847,5 +8847,122 @@ echo ${timestamp}.txt
 ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
 2020-01-20-12-20-48-972390035.txt
 
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type='STANDARD' --conv_exec_type=CUDA --dataset='6_classes_WIFI' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_MEDIUM' --next_power2='TRUE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/data_journal/NLOS-6/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 194704
+cc@icml1:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2020-01-20-18-24-02-975319512.txt
 
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type='STANDARD' --conv_exec_type=CUDA --dataset='2_classes_WIFI' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_MEDIUM' --next_power2='TRUE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/data_journal/NLOS-6/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 194835
+cc@icml1:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2020-01-20-18-24-52-962837187.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type='STANDARD' --conv_exec_type=CUDA --dataset='6_classes_WIFI' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_STANDARD' --next_power2='TRUE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/data_journal/NLOS-6/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 19132
+cc@icml2:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2020-01-20-20-55-02-001020407.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 0 --conv_type='STANDARD' --conv_exec_type=CUDA --dataset='4_classes_WIFI' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_STANDARD' --next_power2='TRUE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/data_journal/NLOS-6/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 19310
+cc@icml2:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2020-01-20-20-56-37-370726104.txt
+
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 50 --conv_type='FFT1D' --conv_exec_type=CUDA --dataset='2_classes_WIFI' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_MEDIUM' --next_power2='TRUE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/data_journal/NLOS-6/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 75072
+cc@waw:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2020-01-21-23-33-47-698752368.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 85 --conv_type='FFT1D' --conv_exec_type=CUDA --dataset='2_classes_WIFI' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_MEDIUM' --next_power2='TRUE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/data_journal/NLOS-6/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 75219
+cc@waw:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2020-01-21-23-34-38-142007173.txt
+cc 22
+
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 25 --conv_type='FFT1D' --conv_exec_type=CUDA --dataset='2_classes_WIFI' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_MEDIUM' --next_power2='TRUE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/data_journal/NLOS-6/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 24018
+cc@icml2:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2020-01-21-23-44-14-294344096.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 10 --conv_type='FFT1D' --conv_exec_type=CUDA --dataset='2_classes_WIFI' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_MEDIUM' --next_power2='TRUE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/data_journal/NLOS-6/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 24021
+cc@icml2:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2020-01-21-23-44-14-388860711.txt
+
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 70 --conv_type='FFT1D' --conv_exec_type=CUDA --dataset='2_classes_WIFI' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_MEDIUM' --next_power2='TRUE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/data_journal/NLOS-6/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 151548
+cc@icml1:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2020-01-21-23-45-48-539573384.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 60 --conv_type='FFT1D' --conv_exec_type=CUDA --dataset='2_classes_WIFI' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_MEDIUM' --next_power2='TRUE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/data_journal/NLOS-6/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 151551
+cc@icml1:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2020-01-21-23-45-48-632878695.txt
+
+
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 50 --conv_type='FFT1D' --conv_exec_type=CUDA --dataset='2_classes_WIFI' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_MEDIUM' --next_power2='FALSE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/data_journal/NLOS-6/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 72292
+cc@g-1:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2020-01-22-19-53-04-462490548.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 85 --conv_type='FFT1D' --conv_exec_type=CUDA --dataset='2_classes_WIFI' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_MEDIUM' --next_power2='FALSE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/data_journal/NLOS-6/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 72436
+cc@g-1:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2020-01-22-19-54-16-128635008.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 25 --conv_type='FFT1D' --conv_exec_type=CUDA --dataset='2_classes_WIFI' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_MEDIUM' --next_power2='FALSE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/data_journal/NLOS-6/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 72078
+cc@g-2:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2020-01-22-19-59-19-551653218.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 90 --conv_type='FFT1D' --conv_exec_type=CUDA --dataset='2_classes_WIFI' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_MEDIUM' --next_power2='FALSE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/data_journal/NLOS-6/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 72188
+cc@g-2:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2020-01-22-19-59-37-414914584.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 60 --conv_type='FFT1D' --conv_exec_type=CUDA --dataset='2_classes_WIFI' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_MEDIUM' --next_power2='FALSE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/data_journal/NLOS-6/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 71426
+cc@g-3:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2020-01-22-20-09-17-276878623.txt
+
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main.py --adam_beta2=0.999 --compress_type='STANDARD' --compress_rates 70 --conv_type='FFT1D' --conv_exec_type=CUDA --dataset='2_classes_WIFI' --dev_percent=0 --dynamic_loss_scale='TRUE' --epochs=2000  --is_data_augmentation='TRUE' --is_debug='FALSE' --is_dev_dataset='FALSE' --is_progress_bar='FALSE' --learning_rate=0.0005 --log_conv_size=FALSE --loss_reduction='MEAN' --loss_type='CROSS_ENTROPY' --mem_test='FALSE' --memory_size=25 --memory_type='PINNED' --min_batch_size=32 --model_path='no_model' --momentum=0.9 --network_type='FCNN_MEDIUM' --next_power2='FALSE' --optimizer_type='ADAM' --preserve_energies=100 --sample_count_limit=0 --scheduler_type='ReduceLROnPlateau' --seed=31 --static_loss_scale=1 --stride_type='STANDARD' --tensor_type='FLOAT32' --test_batch_size=32 --use_cuda='TRUE' --visualize='FALSE' --weight_decay=0.0001 --workers=4  --precision_type=FP32 --only_train=FALSE --test_compress_rate='FALSE' --noise_sigmas=0 --values_per_channel=0 --start_epsilon=0 --attack_name="NO_ATTACK" --schedule_patience=20 --schedule_factor=0.5 --ucr_path="../sathya/data_journal/NLOS-6/" --prediction_type='CLASSIFICATION' >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 71428
+cc@g-3:~/code/bandlimited-cnns/cnns/nnlib/pytorch_experiments$ echo ${timestamp}.txt
+2020-01-22-20-09-17-369749579.txt
 

@@ -17,6 +17,7 @@ type = ""
 # sample_size = 192  # 500 for small data # how many values in a single sample collected
 # sample_size = 2048
 
+
 def get_min_len(datasets):
     min_len = sys.maxsize  # get the minimum length of dataset for each class
     for dataset in datasets.values():
@@ -43,8 +44,8 @@ for sample_size in sample_sizes:
 
     datasets = dict()
     path_prefix = 'data_journal/'
-    start_counter = 0
-    max_class = 6
+    start_counter = 1
+    max_class = 3
     class_counter = max_class - start_counter
 
     for los_type in los_types:
@@ -97,7 +98,13 @@ for sample_size in sample_sizes:
                 print('elapsed time to read a single data file: ',
                       elapsed_time)
 
-    min_len = get_min_len(datasets=datasets)
+    # Only truncate the raw dataset sizes.
+    set_min_len_manually = True
+    if set_min_len_manually:
+        min_len = 512 * 400
+    else:
+        min_len = get_min_len(datasets=datasets)
+
 
     print("min_len of the dataset for a class: ", min_len)
     # make sure we have the same number of samples from each class
@@ -134,8 +141,9 @@ for sample_size in sample_sizes:
     for i in datasets.keys():
         datasets[i] = get_samples(datasets[i])
 
-    min_len = get_min_len(datasets=datasets)
     # divide into train/test datasets
+    min_len = get_min_len(datasets=datasets)
+
     stop_train_index = int(np.ceil(min_len * train_rate))
 
     train_arrays = {}
@@ -200,7 +208,12 @@ for sample_size in sample_sizes:
     los_types_str = "-".join(los_types)
     distances_str = "-".join([str(x) for x in distances])
     dir_counter = str(class_counter) + '_classes_' + suffix
+    if set_min_len_manually:
+        len_suffix = "_len_" + str(min_len)
+        # distances_str += len_suffix
+        dir_counter += len_suffix
     dir_name = 'data_journal/' + los_types_str + '-' + distances_str + '/' + dir_counter
+    print('dir_name: ', dir_name)
     # full_dir = dataset_name + "/" + dir_name
     # full_dir = prefix + '/' + prefix + '_' + los_type.lower()
     # full_dir = 'All/raw_files/all_data'
