@@ -102,6 +102,10 @@ for i, column_values in enumerate(cols):
                  marker=markers[i],
                  color=colors[i])
 
+plt.plot([2], [93.5], label='WEASEL', lw=0,
+         marker='o', ms=10,
+         color=colors[0])
+
 plt.grid()
 plt.legend(loc='lower left', frameon=False, prop={'size': legend_size},
            # bbox_to_anchor=(1, 1),

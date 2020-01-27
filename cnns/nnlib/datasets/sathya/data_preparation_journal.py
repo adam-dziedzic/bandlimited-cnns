@@ -75,54 +75,6 @@ def set_dataset(datasets, los_type, distance, counter, start_counter):
     elapsed_time = end_time - start_time
     print('elapsed time to read a single data file: ',
           elapsed_time)
-    start_time = time.time()
-    # csv_path = prefix + los_type + '/' + str(
-    #     distance) + 'F_' + los_type + '/Test_165_' + str(
-    #     distance) + 'F_' + str(
-    #     counter) + suffix + los_type.lower() + type + ".txt"
-    # csv_path = prefix + '/Test_165_' + prefix + '_1WiFi_' + los_type.lower() + '.txt'
-    # csv_path = 'All/raw_files/all_data'
-    # csv_path = 'All/one_two_wifi/' + str(counter + 1) + '_wifi'
-    # csv_path = 'All/one_two_wifi_2/' + str(counter + 1) + '_wifi_2'
-    csv_path = path_prefix + 'raw_' + str(
-        distance) + prefix + '_' + los_type + '/' + los_type + '_' + str(
-        distance) + prefix + '_' + str(
-        counter) + suffix + '.txt'
-
-    print('csv path: ', csv_path)
-
-    # data1 = pd.read_csv(csv_path1, header=None)
-    # # print("data1 values: ", data1.values)
-    # data1 = np.array(data1.values).squeeze()
-
-    dataset = np.genfromtxt(csv_path,
-                            delimiter="\n",
-                            missing_values='',
-                            filling_values='inf',
-                            skip_header=1,
-                            skip_footer=1)
-    for expression in ['-inf', '-Inf', 'inf', 'Inf']:
-        dataset = np.delete(dataset,
-                            np.where(
-                                dataset == float(expression)))
-    dataset = dataset[~np.isnan(dataset)]
-    print("dataset class " + str(counter))
-    print("max: ", dataset.max())
-    print("min: ", dataset.min())
-    print("mean: ", dataset.mean())
-    print("len: ", len(dataset))
-    # print("data1 head: ", data1.head())
-    print("head: ", dataset[:10])
-    class_number = counter - start_counter
-    if counter in datasets.keys():
-        datasets[class_number] = np.concatenate(
-            (datasets[class_number], dataset), axis=0)
-    else:
-        datasets[class_number] = dataset
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    print('elapsed time to read a single data file: ',
-          elapsed_time)
 
 
 def generate_dataset(sample_size, datasets, train_rate, outlier_std_count):
@@ -282,24 +234,24 @@ if __name__ == "__main__":
         suffix = "WIFI"  # "WIFI" or "WIFI_sample"
         # los_types = ['NLOS', 'LOS', 'NLOSLOS']  # LOS or NLOS
         los_types = ['NLOS']
-        distances = [10]
+        distances = [15]
 
-        datasets = dict()
         path_prefix = 'data_journal/'
         # start_counter = 1
         # max_class = 3
 
-        # start_end = [(1, 3), (0, 3), (0, 4), (0, 5), (0, 6)]
         start_end = [(1, 3), (0, 3), (0, 4), (0, 5), (0, 6)]
+        # start_end = [(0, 5)]
         for los_type in los_types:
             for distance in distances:
                 for start_counter, max_class in start_end:
                     class_counter = max_class - start_counter
+                    datasets = dict()
                     for counter in range(start_counter, max_class):
                         set_dataset(datasets=datasets, los_type=los_type,
                                     distance=distance, counter=counter,
                                     start_counter=start_counter)
-                        generate_dataset(sample_size=sample_size,
-                                         datasets=datasets,
-                                         train_rate=train_rate,
-                                         outlier_std_count=outlier_std_count)
+                    generate_dataset(sample_size=sample_size,
+                                     datasets=datasets,
+                                     train_rate=train_rate,
+                                     outlier_std_count=outlier_std_count)
