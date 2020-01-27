@@ -234,14 +234,14 @@ if __name__ == "__main__":
         suffix = "WIFI"  # "WIFI" or "WIFI_sample"
         # los_types = ['NLOS', 'LOS', 'NLOSLOS']  # LOS or NLOS
         los_types = ['NLOS']
-        distances = [15]
+        distances = [10]
 
         path_prefix = 'data_journal/'
         # start_counter = 1
         # max_class = 3
 
-        start_end = [(1, 3), (0, 3), (0, 4), (0, 5), (0, 6)]
-        # start_end = [(0, 5)]
+        # start_end = [(1, 3), (0, 3), (0, 4), (0, 5), (0, 6)]
+        start_end = [(0, 6)]
         for los_type in los_types:
             for distance in distances:
                 for start_counter, max_class in start_end:
