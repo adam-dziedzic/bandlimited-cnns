@@ -233,8 +233,8 @@ if __name__ == "__main__":
         prefix = 'F'
         suffix = "WIFI"  # "WIFI" or "WIFI_sample"
         # los_types = ['NLOS', 'LOS', 'NLOSLOS']  # LOS or NLOS
-        los_types = ['NLOSLOS']
-        distances = [61015]
+        los_types = ['LOS']
+        distances = [6]
 
         path_prefix = 'data_journal/'
         # start_counter = 1
