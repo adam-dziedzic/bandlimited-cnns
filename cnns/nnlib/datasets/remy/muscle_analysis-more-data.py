@@ -784,6 +784,60 @@ def accuracy_column_order(clf, X_cv, y_cv, nr_class, col_names, data_path):
         print(i, delimiter, accuracy)
 
 
+def f_importances(coef, names, topk=5):
+    """
+    Source: https://stackoverflow.com/questions/41592661/determining-the-most-contributing-features-for-svm-classifier-in-sklearn
+
+    :param coef: SVM coefficients
+    :param names: the names of features
+    :param topk: how many top features to show
+
+    Save the graph.
+    """
+    imp = coef.tolist()[0]
+    imp, names = zip(*sorted(zip(imp, names)))
+    imp = imp[:topk] + imp[-topk:]
+    names = names[:topk] + names[-topk:]
+    plt.barh(range(len(names)), imp, align='center')
+    plt.yticks(range(len(names)), names)
+    # plt.show()
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    output_path = os.path.join(dir_path, "svm_importance_features.pdf")
+    plt.tight_layout()
+    plt.savefig(output_path)
+    plt.close()
+
+
+def plot_coefficients(classifier, feature_names, top_features=20):
+    """
+    Source: https://medium.com/@aneesha/visualising-top-features-in-linear-svm-with-scikit-learn-and-matplotlib-3454ab18a14d
+
+    :param classifier: a linear SVM classifier
+    :param feature_names: the names of features
+    :param top_features: how many top features to show
+
+    Save graph.
+    """
+    coef = classifier.coef_.ravel()
+    top_positive_coefficients = np.argsort(coef)[-top_features:]
+    top_negative_coefficients = np.argsort(coef)[:top_features]
+    top_coefficients = np.hstack(
+        [top_negative_coefficients, top_positive_coefficients])
+    # create plot
+    plt.figure(figsize=(15, 5))
+    colors = ['red' if c < 0 else 'blue' for c in coef[top_coefficients]]
+    plt.bar(np.arange(2 * top_features), coef[top_coefficients], color=colors)
+    feature_names = np.array(feature_names)
+    plt.xticks(np.arange(0, 1 + 2 * top_features),
+               feature_names[top_coefficients],
+               rotation=60, ha='right')
+    # plt.show()
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    output_path = os.path.join(dir_path, "svm_importance_features2.pdf")
+    plt.tight_layout()
+    plt.savefig(output_path)
+    plt.close()
+
 def compute():
     warnings.filterwarnings("ignore")
     dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -793,9 +847,9 @@ def compute():
     # data_path = os.path.join(dir_path, "remy_data_final_sign_class.csv")
     # data_path = os.path.join(dir_path, "clean-2019-11-24-3.csv")
 
-    data_path = os.path.join(dir_path, "remy_2019_10_29.csv")
+    # data_path = os.path.join(dir_path, "remy_2019_10_29.csv")
     # data_path = os.path.join(dir_path, "arnold_2019_12_07.csv")
-    # data_path = os.path.join(dir_path, "garrett_2019_11_24.csv")
+    data_path = os.path.join(dir_path, "garrett_2019_11_24.csv")
 
     print('data_path: ', data_path)
     data_all = pd.read_csv(data_path, header=0)
@@ -870,6 +924,14 @@ def compute():
     y_cv = np.concatenate((y[:count], y[-count:]))
 
     SVM = classifiers["SVM"]
+
+    clf = SVM
+    clf.fit(X_norm, y)
+    score = clf.score(X_norm, y)
+    print('SVM accuracy: ', accuracy_percent(score))
+    features_names = col_names.tolist()
+    f_importances(clf.coef_, features_names)
+    plot_coefficients(clf, feature_names=features_names, top_features=20)
 
     accuracy_column_order(clf=SVM, nr_class=nr_class, col_names=col_names,
                           X_cv=X_cv, y_cv=y_cv, data_path=data_path)

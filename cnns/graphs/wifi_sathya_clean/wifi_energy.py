@@ -45,7 +45,14 @@ def read_columns(dataset, columns=5):
         for i, row in enumerate(data):
             if i > 0:  # skip header
                 for column in range(columns):
-                    cols[column].append(float(row[column]))
+                    value = row[column]
+                    value = str(value).strip()
+                    value = value.replace('\r', '')
+                    value = value.replace('\n', '')
+                    value = value.replace(chr(194), '')
+                    value = value.replace(chr(160), '')
+                    print('value: ', value)
+                    cols[column].append(float(value))
     return cols
 
 
@@ -54,14 +61,46 @@ title = "title"
 legend_pos = "center_pos"
 bbox = "bbox"
 file_name = "file_name"
+labels = "labels"
 
-energy = {ylabel: "Energy (dBm)",
-        file_name: "wifi_energy",
-        title: "accuracy",
-        legend_pos: "upper left",
-        bbox: (0.0, 0.1)}
+energy2 = {
+    ylabel: "Energy (dBm)",
+    file_name: "wifi_energy2",
+    title: "accuracy",
+    legend_pos: "upper left",
+    bbox: (0.0, 0.1),
+    labels: ["", "0 Wi-Fi", "1 Wi-Fi", "2 Wi-Fis"],
+}
 
-labels = ["", "0 Wi-Fi", "1 Wi-Fi", "2 Wi-Fis"]
+energy3 = {
+    ylabel: "Energy (dBm)",
+    file_name: "wifi_energy3",
+    title: "accuracy",
+    legend_pos: "upper left",
+    bbox: (0.0, 0.1),
+    labels: ["", "0 Wi-Fi", "1 Wi-Fi", "3 Wi-Fis"],
+}
+
+energy4 = {
+    ylabel: "Energy (dBm)",
+    file_name: "wifi_energy4",
+    title: "accuracy",
+    legend_pos: "upper left",
+    bbox: (0.0, 0.1),
+    labels: ["", "0 Wi-Fi", "1 Wi-Fi", "4 Wi-Fis"],
+}
+
+energy5 = {
+    ylabel: "Energy (dBm)",
+    file_name: "wifi_energy5",
+    title: "accuracy",
+    legend_pos: "upper left",
+    bbox: (0.0, 0.1),
+    labels: ["", "0 Wi-Fi", "1 Wi-Fi", "5 Wi-Fis"],
+}
+
+
+
 ncols = [3, 3]
 columns = 4
 
@@ -70,7 +109,7 @@ colors = [get_color(color) for color in
 markers = ["+", "o", "v", "s", "D", "^"]
 linestyles = ["", "-", "--", ":"]
 
-datasets = [energy]
+datasets = [energy4]
 
 # width = 12
 # height = 5
@@ -93,7 +132,7 @@ for j, dataset in enumerate(datasets):
     for i in range(columns):
         print("i: ", i)
         if i > 1:  # skip first column with the index number
-            plt.plot(cols[0], cols[i], label=f"{labels[i]}", lw=lw,
+            plt.plot(cols[0], cols[i], label=f"{dataset[labels][i]}", lw=lw,
                      color=colors[i], linestyle=linestyles[i])
 
     plt.grid()
@@ -112,8 +151,8 @@ for j, dataset in enumerate(datasets):
 # plt.interactive(False)
 # plt.imshow()
 plt.subplots_adjust(hspace=0.3)
-format = "png"  # "pdf" or "png"
-destination = dir_path + "/" + "wifi-energy5." + format
+format = ".pdf"  # "pdf" or "png"
+destination = dir_path + "/" + dataset[file_name] + '-graph' + format
 print("destination: ", destination)
 fig.savefig(destination,
             bbox_inches='tight',
@@ -122,5 +161,3 @@ fig.savefig(destination,
 plt.show(block=True)
 # plt.interactive(False)
 plt.close()
-
-
