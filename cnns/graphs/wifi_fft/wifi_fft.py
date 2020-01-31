@@ -92,6 +92,7 @@ fig = plt.figure(figsize=(width, height))
 
 # dataset = "model_perturb_data5"
 dataset = "data1"
+# dataset = "data2"
 # dataset = "model_perturb_data_roubst+param4"
 # dataset = "perturb_conv2"
 labels, cols = read_columns(dataset)
@@ -103,9 +104,11 @@ for i, column_values in enumerate(cols):
                  color=colors[i])
 
 plt.grid()
-# plt.legend(loc='lower left', frameon=False, prop={'size': legend_size},
-#            # bbox_to_anchor=(1, 1),
-#            ncol=2)
+plt.legend(loc='lower left',
+           frameon=False,
+           prop={'size': legend_size},
+           # bbox_to_anchor=(1, 1),
+           ncol=2)
 plt.xlabel('FFT compression rate (%)')
 # plt.title(dataset, fontsize=16)
 plt.ylabel("Test accuracy (%)")

@@ -91,7 +91,7 @@ height = 7.5
 fig = plt.figure(figsize=(width, height))
 
 # dataset = "model_perturb_data5"
-dataset = "data1"
+dataset = "data3"
 # dataset = "model_perturb_data_roubst+param4"
 # dataset = "perturb_conv2"
 labels, cols = read_columns(dataset)

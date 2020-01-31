@@ -187,7 +187,8 @@ def generate_dataset(sample_size, datasets, train_rate, outlier_std_count):
         len_suffix = "_len_" + str(min_len)
         # distances_str += len_suffix
         dir_counter += len_suffix
-    dir_name = 'data_journal/' + los_types_str + '-' + distances_str + '/' + dir_counter
+    dir_name = 'data_journal/' + los_types_str + '-' + distances_str + '-' + str(
+        sample_size) + '/' + dir_counter
     print('dir_name: ', dir_name)
     # full_dir = dataset_name + "/" + dir_name
     # full_dir = prefix + '/' + prefix + '_' + los_type.lower()
@@ -219,7 +220,7 @@ def generate_dataset(sample_size, datasets, train_rate, outlier_std_count):
 
 
 if __name__ == "__main__":
-    sample_sizes = [512]  # 512
+    sample_sizes = [1024]  # 512
     # for sample_size in [2**x for x in range(12, 0, -1)]:
     for sample_size in sample_sizes:
         print("sample size: ", str(sample_size))
@@ -241,7 +242,7 @@ if __name__ == "__main__":
         # max_class = 3
 
         # start_end = [(1, 3), (0, 3), (0, 4), (0, 5), (0, 6)]
-        start_end = [(0, 6)]
+        start_end = [(0, 4)]
         for los_type in los_types:
             for distance in distances:
                 for start_counter, max_class in start_end:

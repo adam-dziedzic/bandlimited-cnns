@@ -93,12 +93,13 @@ class LeastSquareClassifierWithOnes(BaseEstimator, ClassifierMixin):
 
 
 classifiers = {
-    "AdaBoost": AdaBoostClassifier(n_estimators=10000),
-    "Random Forest": RandomForestClassifier(max_depth=None, n_estimators=10000,
+    "AdaBoost": AdaBoostClassifier(n_estimators=100),
+    "Random Forest": RandomForestClassifier(max_depth=None,
+                                            n_estimators=100,
                                             max_features=1),
     "Decision Tree": DecisionTreeClassifier(max_depth=None),
     "FC Neural Net": MLPClassifier(alpha=0.0001, # L2 regularization
-                                   max_iter=2000,
+                                   max_iter=100,
                                    hidden_layer_sizes=(500, 500, 300),
                                    learning_rate_init=0.01,
                                    ),
@@ -582,9 +583,9 @@ def compute(args):
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
     wifi_count = args.wifi
-    # wifi_path = f"data_journal/NLOS-6/{wifi_count}_classes_WIFI/{wifi_count}_classes_WIFI"
+    wifi_path = f"data_journal/NLOS-6/{wifi_count}_classes_WIFI/{wifi_count}_classes_WIFI"
     # wifi_path = f"data_journal/NLOS-6/{wifi_count}_classes_WIFI_len_796/{wifi_count}_classes_WIFI_len_796"
-    wifi_path = f"data_journal/NLOS-6/{wifi_count}_classes_WIFI_len_1596/{wifi_count}_classes_WIFI_len_1596"
+    # wifi_path = f"data_journal/NLOS-6/{wifi_count}_classes_WIFI_len_1596/{wifi_count}_classes_WIFI_len_1596"
 
     data_path = os.path.join(dir_path, wifi_path)
     limit_row_nr = None
@@ -610,7 +611,7 @@ def compute(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process arguments.')
     parser.add_argument('--wifi', metavar='N', type=int,
-                        default=2,
+                        default=5,
                         help='number of wifis to detect')
     args = parser.parse_args()
     compute(args)

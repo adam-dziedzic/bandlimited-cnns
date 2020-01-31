@@ -47,10 +47,41 @@ classes_3 = (32.46,
              99.98705502,
              )
 
+static_x_4 = (
+    1024,
+    512,
+    256,
+    128,
+    64,
+    32,
+    16,
+    8,
+    2,
+    1,
+)
+classes_4 = (
+    99.01719902,
+    97.22703362,
+    91.17772109,
+    80.57609183,
+    70.90793141,
+    62.22395101,
+    56.65497521,
+    51.64945676,
+    42.78901156,
+    25,
+)
+
+classes_4 = [x for x in reversed(classes_4)]
+static_x_4 = [x for x in reversed(static_x_4)]
+
 plt.plot(static_x, classes_2, label='2 classes', lw=3, marker='o',
          color=get_color(MY_BLUE))
 plt.plot(static_x, classes_3, label='3 classes', lw=3, marker='v',
          color=get_color(MY_RED))
+plt.plot(static_x_4, classes_4,
+         label='4 classes', lw=3, marker='+',
+         color=get_color(MY_GREEN))
 # plt.plot(mix_x, mix_y, label='energy first + static rest', lw=2, marker='v',
 #          color=get_color(MY_ORANGE))
 # plt.plot(energy_x, energy_y, label='energy based compression', lw=2, marker='s',
@@ -69,6 +100,6 @@ plt.legend(loc=legend_position,
            )
 
 plt.show()
-fig.savefig(dir_path + "/" + "test-accuracy-chunk-size2.pdf",
+fig.savefig(dir_path + "/" + "test-accuracy-chunk-size4.pdf",
             bbox_inches='tight')
 plt.close()
