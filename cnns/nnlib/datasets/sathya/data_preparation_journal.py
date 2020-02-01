@@ -242,7 +242,7 @@ if __name__ == "__main__":
         # max_class = 3
 
         # start_end = [(1, 3), (0, 3), (0, 4), (0, 5), (0, 6)]
-        start_end = [(0, 5)]
+        start_end = [(0, 6)]
         for los_type in los_types:
             for distance in distances:
                 for start_counter, max_class in start_end:

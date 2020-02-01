@@ -75,6 +75,29 @@ classes_4 = (
 classes_4 = [x for x in reversed(classes_4)]
 static_x_4 = [x for x in reversed(static_x_4)]
 
+static_5 = (
+    1024,
+    512,
+    128,
+    32,
+    8,
+    2,
+    1,
+)
+
+classes_5 = (
+    98.83349374,
+    96.85334873,
+    78.68956559,
+    57.04521948,
+    43.29458844,
+    34.34693261,
+    20,
+)
+
+classes_5 = [x for x in reversed(classes_5)]
+static_5 = [x for x in reversed(static_5)]
+
 plt.plot(static_x, classes_2, label='2 classes', lw=3, marker='o',
          color=get_color(MY_BLUE))
 plt.plot(static_x, classes_3, label='3 classes', lw=3, marker='v',
@@ -82,6 +105,9 @@ plt.plot(static_x, classes_3, label='3 classes', lw=3, marker='v',
 plt.plot(static_x_4, classes_4,
          label='4 classes', lw=3, marker='+',
          color=get_color(MY_GREEN))
+plt.plot(static_5, classes_5,
+         label='5 classes', lw=3, marker='+',
+         color=get_color(MY_BLACK))
 # plt.plot(mix_x, mix_y, label='energy first + static rest', lw=2, marker='v',
 #          color=get_color(MY_ORANGE))
 # plt.plot(energy_x, energy_y, label='energy based compression', lw=2, marker='s',
@@ -100,6 +126,6 @@ plt.legend(loc=legend_position,
            )
 
 plt.show()
-fig.savefig(dir_path + "/" + "test-accuracy-chunk-size4.pdf",
+fig.savefig(dir_path + "/" + "test-accuracy-chunk-size5.pdf",
             bbox_inches='tight')
 plt.close()

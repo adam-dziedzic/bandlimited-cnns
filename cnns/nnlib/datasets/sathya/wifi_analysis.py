@@ -93,11 +93,17 @@ class LeastSquareClassifierWithOnes(BaseEstimator, ClassifierMixin):
 
 
 classifiers = {
-    "AdaBoost": AdaBoostClassifier(n_estimators=100),
-    "Random Forest": RandomForestClassifier(max_depth=None,
-                                            n_estimators=100,
+    "AdaBoost1": AdaBoostClassifier(n_estimators=1000),
+    "AdaBoost2": AdaBoostClassifier(n_estimators=750),
+    "AdaBoost3": AdaBoostClassifier(n_estimators=2000),
+    "Random Forest1": RandomForestClassifier(max_depth=90,
+                                            n_estimators=50,
                                             max_features=1),
-    "Decision Tree": DecisionTreeClassifier(max_depth=None),
+    "Decision Tree1": DecisionTreeClassifier(max_depth=None),
+    "Decision Tree2": DecisionTreeClassifier(max_depth=90),
+    "Decision Tree3": DecisionTreeClassifier(max_depth=100),
+    "Decision Tree4": DecisionTreeClassifier(max_depth=200),
+
     "FC Neural Net": MLPClassifier(alpha=0.0001, # L2 regularization
                                    max_iter=100,
                                    hidden_layer_sizes=(500, 500, 300),
@@ -597,21 +603,24 @@ def compute(args):
     # basic_least_squares(X_train=X_train, y_train=y_train,
     #                     X_test=X_test, y_test=y_test)
 
-    print('Classifier, train accuracy, test accuracy')
+    header = ['classifier', 'train accuracy', 'test accuracy', 'elapsed time']
+    print(delimiter.join(header))
     for name, clf in classifiers.items():
+        start = time.time()
         clf.fit(X_train, y_train)
         score_train = clf.score(X_train, y_train)
         score_test = clf.score(X_test, y_test)
-        print(name, ',',
-              score_train, ',',
-              score_test)
+        elapsed_time = time.time() - start
+        results = [name, score_train, score_test, elapsed_time]
+        results_str = [str(x) for x in results]
+        print(delimiter.join(results_str))
         sys.stdout.flush()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process arguments.')
     parser.add_argument('--wifi', metavar='N', type=int,
-                        default=5,
+                        default=6,
                         help='number of wifis to detect')
     args = parser.parse_args()
     compute(args)

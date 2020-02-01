@@ -48,8 +48,8 @@ def get_color(COLOR_TUPLE_255):
 line_width = 4
 colors = [get_color(color) for color in
           [MY_RED, MY_BLUE, MY_RED, MY_GREEN, MY_BLACK, MY_GOLD,
-           MY_VIOLET, MY_OWN, MY_BROWN, MY_GREEN, MY_GREEN, MY_BLACK]]
-markers = ["o", "+", "^", "v", "D", "^", "+", 'o', 'v', '+', 'o', '+']
+           MY_VIOLET, MY_BROWN, MY_BLACK, MY_ORANGE]]
+markers = ["o", "+", "^", "v", "D", "+", "^", 'o', 'v', '+', 'o', '+']
 linestyles = ["-", "--", ":", "--", "-", "--", "-", "--", ':', ':', '-', '--']
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -91,15 +91,18 @@ height = 7.5
 fig = plt.figure(figsize=(width, height))
 
 # dataset = "model_perturb_data5"
-dataset = "data3"
+# dataset = "data3"
+dataset = "data4"
 # dataset = "model_perturb_data_roubst+param4"
 # dataset = "perturb_conv2"
 labels, cols = read_columns(dataset)
 
 for i, column_values in enumerate(cols):
     if i > 0:  # skip sigma
-        plt.plot(cols[0], column_values, label=labels[i], lw=3,
+        plt.plot(cols[0], column_values, label=labels[i],
+                 lw=3,
                  marker=markers[i],
+                 ms=7,
                  color=colors[i])
 
 plt.plot([2], [93.5], label='WEASEL', lw=0,
