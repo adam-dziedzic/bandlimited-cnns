@@ -220,9 +220,9 @@ def generate_dataset(sample_size, datasets, train_rate, outlier_std_count):
 
 
 if __name__ == "__main__":
-    sample_sizes = [1024]  # 512
-    # for sample_size in [2**x for x in range(12, 0, -1)]:
-    for sample_size in sample_sizes:
+    # sample_sizes = [2, 4, ]  # 512
+    for sample_size in [2**x for x in range(10, 0, -1)]:
+    # for sample_size in sample_sizes:
         print("sample size: ", str(sample_size))
         train_rate = 0.5  # rate of training data, test data rate is 1 - train_rate
         outlier_std_count = 10
@@ -242,7 +242,7 @@ if __name__ == "__main__":
         # max_class = 3
 
         # start_end = [(1, 3), (0, 3), (0, 4), (0, 5), (0, 6)]
-        start_end = [(0, 4)]
+        start_end = [(0, 5)]
         for los_type in los_types:
             for distance in distances:
                 for start_counter, max_class in start_end:
