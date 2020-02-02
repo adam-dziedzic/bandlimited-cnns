@@ -113,7 +113,8 @@ plt.grid()
 plt.legend(loc='lower left', frameon=False, prop={'size': legend_size},
            # bbox_to_anchor=(1, 1),
            ncol=2)
-plt.xlabel('# of Wi-Fi APs')
+# plt.xlabel('# of Wi-Fi APs')
+plt.xlabel('# of classes')
 # plt.title(dataset, fontsize=16)
 plt.ylabel("Test accuracy (%)")
 plt.ylim(0, 100)
