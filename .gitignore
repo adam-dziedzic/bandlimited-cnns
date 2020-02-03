@@ -129,3 +129,6 @@ cnns/deeprl/experts
 *.pkl
 *.model
 
+cnns/nnlib/robustness/pni/.vscode/
+cnns/nnlib/robustness/pni/code/save/*
+*.pyc

@@ -130,7 +130,7 @@ plt.legend(loc='lower left', frameon=False,
 # plt.xlabel('# of Wi-Fi APs')
 # plt.title(dataset, fontsize=16)
 plt.ylabel("Test accuracy (%)")
-plt.xlabel('$c$ param (strength of C&W $L_2$ attack)')
+plt.xlabel('Strength of C&W $L_2$ attack (c parameter)')
 plt.xticks(cols[0])
 plt.xscale('log', basex=10)
 # plt.ylim(0, 100)
