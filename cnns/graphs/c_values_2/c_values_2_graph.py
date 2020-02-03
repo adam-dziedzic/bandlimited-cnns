@@ -19,7 +19,7 @@ font = {'size': 30}
 matplotlib.rc('font', **font)
 lw = 4
 fontsize = 25
-legend_size = 24
+legend_size = 19
 title_size = fontsize
 font = {'size': fontsize}
 matplotlib.rc('font', **font)
@@ -45,12 +45,20 @@ def get_color(COLOR_TUPLE_255):
     return [x / 255 for x in COLOR_TUPLE_255]
 
 
-line_width = 4
+# line_width = 4
+# colors = [get_color(color) for color in
+#           [MY_RED, MY_BLUE, MY_RED, MY_GREEN, MY_BLACK, MY_GOLD,
+#            MY_VIOLET, MY_OWN, MY_BROWN, MY_GREEN, MY_GREEN, MY_BLACK]]
+# markers = ["o", "+", "^", "v", "D", "^", "+", 'o', 'v', '+', 'o', '+']
+# linestyles = ["-", "--", ":", "--", "-", "--", "-", "--", ':', ':', '-', '--']
+
 colors = [get_color(color) for color in
-          [MY_RED, MY_BLUE, MY_RED, MY_GREEN, MY_BLACK, MY_GOLD,
-           MY_VIOLET, MY_BROWN, MY_BLACK, MY_ORANGE]]
-markers = ["o", "+", "^", "v", "D", "+", "^", 'o', 'v', '+', 'o', '+']
-linestyles = ["-", "--", ":", "--", "-", "--", "-", "--", ':', ':', '-', '--']
+          [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD,
+           MY_VIOLET, MY_OWN, MY_BROWN, MY_GREEN]]
+markers = ["+", "o", "v", "s", "D", "^", "+", 'o', 'v', '+', 'v', 'D', '^', '+']
+linestyles = [":", "-", "--", ":", "-", "--", "-", "--", ':', ':', "-", "-", "-"]
+line_width = 3
+markersize = 12
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -91,33 +99,41 @@ height = 7.5
 fig = plt.figure(figsize=(width, height))
 
 # dataset = "model_perturb_data5"
-# dataset = "data3"
-dataset = "data5"
+# dataset = "data1"
+dataset = 'c_values7'
 # dataset = "model_perturb_data_roubst+param4"
 # dataset = "perturb_conv2"
 labels, cols = read_columns(dataset)
 
 for i, column_values in enumerate(cols):
     if i > 0:  # skip sigma
-        plt.plot(cols[0], column_values, label=labels[i],
-                 lw=3,
-                 marker=markers[i],
-                 ms=7,
-                 color=colors[i])
+        # plt.plot(cols[0], column_values, label=labels[i], lw=3,
+        #          marker=markers[i],
+        #          color=colors[i])
+        plt.plot(cols[0],
+                 column_values,
+                 label=labels[i],
+                 lw=line_width,
+                 color=colors[i % len(colors)],
+                 linestyle=linestyles[i % len(linestyles)],
+                 # linestyle='None',
+                 marker=markers[i % len(markers)],
+                 markersize=markersize)
 
-plt.plot([2], [93.5], label='WEASEL', lw=0,
-         marker='o', ms=10,
-         color=colors[0])
 
 plt.grid()
-plt.legend(loc='lower left', frameon=False, prop={'size': legend_size},
+plt.legend(loc='lower left', frameon=False,
+           prop={'size': legend_size},
            # bbox_to_anchor=(1, 1),
-           ncol=2)
+           ncol=1)
+# plt.xlabel('FFT compression rate (%)')
 # plt.xlabel('# of Wi-Fi APs')
-plt.xlabel('# of classes')
 # plt.title(dataset, fontsize=16)
 plt.ylabel("Test accuracy (%)")
-plt.ylim(0, 100)
+plt.xlabel('$c$ param (strength of C&W $L_2$ attack)')
+plt.xticks(cols[0])
+plt.xscale('log', basex=10)
+# plt.ylim(0, 100)
 # plt.xlim(0, 2)
 # plt.xscale('log', basex=10)
 

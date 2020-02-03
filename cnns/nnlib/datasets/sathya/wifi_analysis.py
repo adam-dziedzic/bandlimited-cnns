@@ -93,17 +93,16 @@ class LeastSquareClassifierWithOnes(BaseEstimator, ClassifierMixin):
 
 
 classifiers = {
-    "AdaBoost1": AdaBoostClassifier(n_estimators=1000),
-    "AdaBoost2": AdaBoostClassifier(n_estimators=750),
-    "AdaBoost3": AdaBoostClassifier(n_estimators=2000),
+    # "AdaBoost1": AdaBoostClassifier(n_estimators=1000),
+    # "AdaBoost2": AdaBoostClassifier(n_estimators=750),
+    # "AdaBoost3": AdaBoostClassifier(n_estimators=2000),
     "Random Forest1": RandomForestClassifier(max_depth=90,
                                             n_estimators=50,
                                             max_features=1),
     "Decision Tree1": DecisionTreeClassifier(max_depth=None),
-    "Decision Tree2": DecisionTreeClassifier(max_depth=90),
-    "Decision Tree3": DecisionTreeClassifier(max_depth=100),
-    "Decision Tree4": DecisionTreeClassifier(max_depth=200),
-
+    # "Decision Tree2": DecisionTreeClassifier(max_depth=90),
+    # "Decision Tree3": DecisionTreeClassifier(max_depth=100),
+    # "Decision Tree4": DecisionTreeClassifier(max_depth=200),
     "FC Neural Net": MLPClassifier(alpha=0.0001, # L2 regularization
                                    max_iter=100,
                                    hidden_layer_sizes=(500, 500, 300),

@@ -127,7 +127,7 @@ random_pgd_cifar10 = {ylabel: "Accuracy (%)",
                       xlim: (0, 12),
                       ylim: (0, 100)}
 
-random_pgd_cifar10_full = {ylabel: "Accuracy (%)",
+random_pgd_cifar10_full = {ylabel: "Test accuracy (%)",
                            file_name: "distortionRandomPGDCifarFull",
                            # title: "PGD (random start) L$_{\infty}$ CIFAR-10",
                            title: "PGD L$_{\infty}$ CIFAR-10",
@@ -175,14 +175,19 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 #     carlini_cifar10,
 #     carlini_imagenet_full,
 # ]
-datasets = [carlini_cifar10,
-            carlini_imagenet,
-            # carlini_imagenet_full,
-            # pgd_cifar10,
-            random_pgd_cifar10,
-            pgd_imagenet,
-            fgsm_imagenet,
-            ]
+# datasets = [carlini_cifar10,
+#             carlini_imagenet,
+#             # carlini_imagenet_full,
+#             # pgd_cifar10,
+#             random_pgd_cifar10,
+#             pgd_imagenet,
+#             fgsm_imagenet,
+#             ]
+
+datasets = [
+    random_pgd_cifar10_full,
+    carlini_imagenet_full,
+]
 
 # width = 12
 # height = 5
