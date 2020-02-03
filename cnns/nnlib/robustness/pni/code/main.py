@@ -182,11 +182,13 @@ def main():
 
     # if not performing the adversarial training or evalutaion, we append
     # the normalization back to the preprocessing
-    if not (args.adv_train or args.adv_eval):
-        imagenet_train_transform.append(transforms.Normalize(mean, std))
-        imagenet_test_transform.append(transforms.Normalize(mean, std))
-        normal_train_transform.append(transforms.Normalize(mean, std))
-        normal_test_transform.append(transforms.Normalize(mean, std))
+    is_normalization = False
+    if is_normalization:
+        if not (args.adv_train or args.adv_eval):
+            imagenet_train_transform.append(transforms.Normalize(mean, std))
+            imagenet_test_transform.append(transforms.Normalize(mean, std))
+            normal_train_transform.append(transforms.Normalize(mean, std))
+            normal_test_transform.append(transforms.Normalize(mean, std))
 
     if args.dataset == 'imagenet':
         train_transform = transforms.Compose(imagenet_train_transform)
@@ -260,7 +262,7 @@ def main():
         if not args.input_noise:
             net = torch.nn.Sequential(
                 Normalize_layer(mean, std),
-                net_c
+                # net_c
             )
         else:
             net = torch.nn.Sequential(

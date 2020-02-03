@@ -3,18 +3,14 @@
 ############### Host   ##############################
 HOST=$(hostname)
 echo "Current host is: $HOST"
-USER=$(USER)
-case $HOST in
-"alpha")
-    PYTHON="/home/${USER}/anaconda3/bin/python" # python environment
-    TENSORBOARD="/home/${USER}/anaconda3/bin/tensorboard"
-    ;;
-esac
+
+PYTHON="/home/${USER}/anaconda3/bin/python" # python environment
+TENSORBOARD="/home/${USER}/anaconda3/bin/tensorboard"
 
 DATE=`date +%Y-%m-%d`
 
 if [ ! -d "$DIRECTORY" ]; then
-    mkdir ./save/${DATE}/
+    mkdir -p ./save/${DATE}/
 fi
 
 ############### Configurations ########################
@@ -28,13 +24,15 @@ optimizer=SGD
 label_info=train_channelwise_3e-4decay
 
 #dataset path
-data_path='/home/elliot/data/pytorch/cifar10'
+data_path="/home/${USER}/data/pytorch/cifar10"
+
 #tensorboard log path
 tb_path=./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info}/tb_log  
 
 ############### main function ############################
 {
-$PYTHON main.py --dataset ${dataset} \
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+PYTHONPATH=../../../../../ nohup $PYTHON main.py --dataset ${dataset} \
     --data_path ${data_path}   \
     --arch ${model} --save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} \
     --epochs ${epochs} --learning_rate 0.1 \
@@ -43,7 +41,8 @@ $PYTHON main.py --dataset ${dataset} \
     --batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
     --print_freq 100 --decay 0.0003 --momentum 0.9 \
     --adv_eval --epoch_delay 5 \
-    --adv_train
+    --adv_train >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
 } &
 ############## Tensorboard logging ##########################
 {

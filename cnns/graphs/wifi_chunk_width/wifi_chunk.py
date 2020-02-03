@@ -8,6 +8,10 @@ MY_RED = (204, 37, 41)
 MY_ORANGE = (218, 124, 48)
 MY_GREEN = (62, 150, 81)
 MY_BLACK = (83, 81, 84)
+MY_GOLD = (148, 139, 61)
+MY_VIOLET = (107, 76, 154)
+MY_BROWN = (146, 36, 40)
+MY_OWN = (25, 150, 10)
 
 legend_size = 20
 legend_position = 'best'
@@ -98,6 +102,35 @@ classes_5 = (
 classes_5 = [x for x in reversed(classes_5)]
 static_5 = [x for x in reversed(static_5)]
 
+static_6 = (
+    1024,
+    512,
+    256,
+    128,
+    64,
+    32,
+    16,
+    8,
+    2,
+    1,
+)
+
+classes_6 = (
+    98.92845685,
+    97.22703362,
+    91.44536387,
+    83.33293244,
+    73.1476025,
+    63.73802365,
+    57.60152775,
+    53.05491833,
+    43.95324814,
+    16.66666667,
+)
+
+classes_6 = [x for x in reversed(classes_6)]
+static_6 = [x for x in reversed(static_6)]
+
 plt.plot(static_x, classes_2, label='2 classes', lw=3, marker='o',
          color=get_color(MY_BLUE))
 plt.plot(static_x, classes_3, label='3 classes', lw=3, marker='v',
@@ -108,6 +141,9 @@ plt.plot(static_x_4, classes_4,
 plt.plot(static_5, classes_5,
          label='5 classes', lw=3, marker='+',
          color=get_color(MY_BLACK))
+# plt.plot(static_6, classes_6,
+#          label='6 classes', lw=3, marker='+',
+#          color=get_color(MY_ORANGE))
 # plt.plot(mix_x, mix_y, label='energy first + static rest', lw=2, marker='v',
 #          color=get_color(MY_ORANGE))
 # plt.plot(energy_x, energy_y, label='energy based compression', lw=2, marker='s',
