@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
 CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'perturb' --noise_epsilons 0.01 --net_mode '0-0' --attack_iters 300 --batch_size 3584 --limit_batch_number 0 --c 0.0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
@@ -625,9 +626,37 @@ cc@icml1:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${time
 2020-01-18-20-27-51-590980709.txt
 
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
-CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'fft' --noise_epsilons 0.0 --net_mode '0-0' --defense 'rse' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 0.0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 >> ${timestamp}.txt 2>&1 &
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'fft' --noise_epsilons 0.0 --net_mode '0-0' --defense 'rse' --attack_iters 200 --batch_size 512 --limit_batch_number 0 --c 0.0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
-[1] 80255
+
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'fft_adaptive' --noise_epsilons 0.0 --net_mode '0-0' --defense 'rse' --attack_iters 200 --batch_size 256 --limit_batch_number 0 --c 0.0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+k1
+81390
+
+
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode '2-1-non-adaptive' --defense 'rse-non-adaptive' --attack_iters 200 --batch_size 2048 --limit_batch_number 0 --c 0.0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 3414
+ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-02-04-09-27-23-794036308.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode '2-1' --defense 'rse' --attack_iters 200 --batch_size 1024 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 81035
+cc@k-1:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
+2020-02-04-15-29-06-693902924.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup /home/${USER}/anaconda3/bin/python3.6 attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode '0-0' --defense 'rse' --attack_iters 200 --batch_size 1024 --limit_batch_number 0 --c 10.0 2.0 1.0 0.5 0.4 0.3 0.2 0.1 0.07 0.05 0.04 0.03 0.02 0.01 0.005 0.001 0.0005 0.0001 0.0 100.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 81688
 cc@k-2:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
-2020-02-04-14-39-08-945715096.txt
+2020-02-04-15-37-47-978796348.txt
+
 

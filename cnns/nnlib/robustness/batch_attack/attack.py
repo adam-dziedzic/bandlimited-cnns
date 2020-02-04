@@ -85,9 +85,9 @@ def attack_cw(input_v, label_v, net, c, opt, untarget=True, n_class=10):
             attack_net = get_perturbed_net(opt=opt)
         elif opt.channel == 'fft_adaptive':
             attack_net = net = torch.nn.Sequential(
-                    fft_layer(compress_rate=opt.noise_epsilon),
-                    net
-                )
+                fft_layer(compress_rate=opt.noise_epsilon),
+                net
+            )
         else:
             attack_net = net
         optimizer.zero_grad()
@@ -382,6 +382,15 @@ def get_nets(opt):
             # netAttack = models.vgg_rse.VGG("VGG16", init_noise=0.0,
             #                                inner_noise=0.0,
             #                                noise_type='standard')
+        elif opt.defense == "rse-non-adaptive":
+            net = vgg_rse.VGG("VGG16", opt.noiseInit,
+                              opt.noiseInner,
+                              noise_type='standard')
+            # netAttack = net
+            netAttack = models.vgg_rse.VGG("VGG16",
+                                           init_noise=0.0,
+                                           inner_noise=0.0,
+                                           noise_type='standard')
         elif opt.defense == "rse-unrolled":
             net = vgg_rse_unrolled.VGG("VGG16", opt.noiseInit,
                                        opt.noiseInner,
@@ -527,6 +536,13 @@ def set_model_settings(opt):
         modelPath = 'vgg16/rse_0.2_0.1_ady.pth-test-accuracy-0.8728'
         # modelPath = 'vgg16/rse_0.2_0.1_ady.pth-test-accuracy-0.8516'
         modelAttack = modelPath
+        noiseInit = 0.2
+        noiseInner = 0.1
+        net = 'vgg16'
+    elif net_mode == '2-1-non-adaptive':
+        modelPath = 'vgg16/rse_0.2_0.1_ady.pth-test-accuracy-0.8728'
+        # modelPath = 'vgg16/rse_0.2_0.1_ady.pth-test-accuracy-0.8516'
+        modelAttack = 'vgg16/rse_0.0_0.0_ady.pth-test-accuracy-0.8523'
         noiseInit = 0.2
         noiseInner = 0.1
         net = 'vgg16'
