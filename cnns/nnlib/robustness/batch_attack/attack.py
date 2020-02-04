@@ -84,7 +84,7 @@ def attack_cw(input_v, label_v, net, c, opt, untarget=True, n_class=10):
         if opt.channel == 'perturb':
             attack_net = get_perturbed_net(opt=opt)
         elif opt.channel == 'fft_adaptive':
-            attack_net = net = torch.nn.Sequential(
+            attack_net = torch.nn.Sequential(
                 fft_layer(compress_rate=opt.noise_epsilon),
                 net
             )
