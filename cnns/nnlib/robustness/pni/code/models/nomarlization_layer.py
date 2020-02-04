@@ -33,3 +33,5 @@ class noise_Normalize_layer(nn.Module):
         input_noise = output.clone().normal_(0, input_std)
 
         return output + input_noise * self.alpha_i * self.input_noise
+
+

@@ -24,11 +24,13 @@ optimizer=SGD
 label_info=eval_layerwise_resnet20
 
 
-data_path='/home/${USER}/data/pytorch/cifar10' #dataset path
+data_path="/home/${USER}/data/pytorch/cifar10" #dataset path
 tb_path=./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info}/tb_log  #tensorboard log path
 
 # set the pretrained model path
-pretrained_model=/home/elliot/Documents/CVPR_2019/CVPR_2019_PNI/code/save/cifar10_noise_resnet20_160_SGD_29_PNI-W/model_best.pth.tar
+# pretrained_model=/home/elliot/Documents/CVPR_2019/CVPR_2019_PNI/code/save/cifar10_noise_resnet20_160_SGD_29_PNI-W/model_best.pth.tar
+pretrained_model=/home/${USER}/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/2020-02-03/cifar10_noise_resnet20_160_SGD_train_channelwise_3e-4decay/model_best.pth.tar
+
 ############### Neural network ############################
 {
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
@@ -38,11 +40,11 @@ PYTHONPATH=../../../../../ nohup $PYTHON main.py --dataset ${dataset} \
     --epochs ${epochs} --learning_rate 0.1 \
     --optimizer ${optimizer} \
 	--schedule 80 120  --gammas 0.1 0.1 \
-    --batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 1 \
-    --print_freq 100 --decay 0.0002 --momentum 0.9 \
+    --batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
+    --print_freq 100 --decay 0.0003 --momentum 0.9 \
     --evaluate --resume ${pretrained_model} \
-    --adv_eval --epoch_delay 5
-
+    --adv_eval --epoch_delay 5 >> eval_${timestamp}.txt 2>&1 &
+echo eval_${timestamp}.txt
 } &
 ############## Tensorboard logging ##########################
 {

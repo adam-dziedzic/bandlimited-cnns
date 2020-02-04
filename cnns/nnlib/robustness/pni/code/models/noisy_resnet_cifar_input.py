@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.nn import init
 import math
 
-from .noise_layer import noise_Conv2d, noise_Linear
+from .noise_layer_input import noise_Conv2d, noise_Linear
 
 
 class DownsampleA(nn.Module):
@@ -126,7 +126,7 @@ class CifarResNet(nn.Module):
         return self.classifier(x)
 
 
-def noise_resnet20(num_classes=10):
+def noise_resnet20_input(num_classes=10):
     """Constructs a ResNet-20 model for CIFAR-10 (by default)
     Args:
       num_classes (uint): number of classes

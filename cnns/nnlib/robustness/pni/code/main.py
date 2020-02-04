@@ -21,6 +21,7 @@ import copy
 from cnns.nnlib.robustness.pni.code.models.attack_model import Attack
 from cnns.nnlib.robustness.pni.code.models.nomarlization_layer import \
     Normalize_layer, noise_Normalize_layer
+from cnns.nnlib.robustness.pni.code.models.noise_layer import noise_input_layer
 
 model_names = sorted(name for name in models.__dict__
                      if name.islower() and not name.startswith("__")
@@ -32,26 +33,30 @@ parser = argparse.ArgumentParser(
     description='Training network for image classification',
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-parser.add_argument('--data_path', default='/home/elliot/data/pytorch/svhn/',
+username = os.getlogin()
+parser.add_argument('--data_path',
+                    default='/home/' + username + '/data/pytorch/cifar10/',
                     type=str, help='Path to dataset')
-parser.add_argument('--dataset', type=str,
+parser.add_argument('--dataset', type=str, default='cifar10',
                     choices=['cifar10', 'cifar100', 'imagenet', 'svhn', 'stl10',
                              'mnist'],
                     help='Choose between Cifar10/100 and ImageNet.')
-parser.add_argument('--arch', metavar='ARCH', default='lbcnn',
+parser.add_argument('--arch', metavar='ARCH',
+                    # default='lbcnn',
+                    default='noise_resnet20_weight',
                     choices=model_names,
                     help='model architecture: ' + ' | '.join(
                         model_names) + ' (default: resnext29_8_64)')
 # Optimization options
-parser.add_argument('--epochs', type=int, default=200,
+parser.add_argument('--epochs', type=int, default=160,
                     help='Number of epochs to train.')
 parser.add_argument('--optimizer', type=str, default='SGD',
                     choices=['SGD', 'Adam'])
 parser.add_argument('--batch_size', type=int, default=128, help='Batch size.')
 parser.add_argument('--learning_rate', type=float,
-                    default=0.001, help='The Learning Rate.')
+                    default=0.1, help='The Learning Rate.')
 parser.add_argument('--momentum', type=float, default=0.9, help='Momentum.')
-parser.add_argument('--decay', type=float, default=1e-4,
+parser.add_argument('--decay', type=float, default=3e-4,
                     help='Weight decay (L2 penalty).')
 parser.add_argument('--schedule', type=int, nargs='+', default=[80, 120],
                     help='Decrease learning rate at these epochs.')
@@ -67,7 +72,8 @@ parser.add_argument('--resume', default='', type=str, metavar='PATH',
 parser.add_argument('--start_epoch', default=0, type=int,
                     metavar='N',
                     help='manual epoch number (useful on restarts)')
-parser.add_argument('--evaluate', dest='evaluate',
+parser.add_argument('--evaluate',
+                    dest='evaluate',
                     action='store_true',
                     help='evaluate model on validation set')
 parser.add_argument('--fine_tune', dest='fine_tune', action='store_true',
@@ -78,21 +84,32 @@ parser.add_argument('--model_only', dest='model_only', action='store_true',
 parser.add_argument('--ngpu', type=int, default=1, help='0 = CPU.')
 parser.add_argument('--gpu_id', type=int, default=0,
                     help='device range [0,ngpu-1]')
-parser.add_argument('--workers', type=int, default=4,
+parser.add_argument('--workers', type=int, default=0,
                     help='number of data loading workers (default: 2)')
 # random seed
 parser.add_argument('--manualSeed', type=int, default=None, help='manual seed')
 
 # adversarial training
-parser.add_argument('--epoch_delay', type=int, default=5, help='Number of epochs delayed \
+parser.add_argument('--epoch_delay', type=int, default=5,
+                    help='Number of epochs delayed \
                     for starting the adversarial traing')
-parser.add_argument('--adv_train', dest='adv_train', action='store_true',
+parser.add_argument('--adv_train',
+                    dest='adv_train',
+                    action='store_false',
                     help='enable the adversarial training')
 parser.add_argument('--adv_eval', dest='adv_eval', action='store_true',
                     help='enable the adversarial evaluation')
 # PNI technique
-parser.add_argument('--input_noise', dest='input_noise', action='store_true',
-                    help='enable PNI for input, which is right after normalization layer')
+parser.add_argument('--input_noise',
+                    dest='input_noise',
+                    action='store_true',
+                    help='enable PNI for input, which is right after '
+                         'normalization layer')
+# normalization
+parser.add_argument('--normalization',
+                    dest='normalization',
+                    action='store_true',
+                    help='normalize inputs')
 
 ##########################################################################
 
@@ -144,24 +161,28 @@ def main():
     if not os.path.isdir(args.data_path):
         os.makedirs(args.data_path)
 
-    # mean and standard deviation to be used for normalization
-    if args.dataset == 'cifar10':
-        mean = [x / 255 for x in [125.3, 123.0, 113.9]]
-        std = [x / 255 for x in [63.0, 62.1, 66.7]]
-    elif args.dataset == 'cifar100':
-        mean = [x / 255 for x in [129.3, 124.1, 112.4]]
-        std = [x / 255 for x in [68.2, 65.4, 70.4]]
-    elif args.dataset == 'svhn':
-        mean = [0.5, 0.5, 0.5]
-        std = [0.5, 0.5, 0.5]
-    elif args.dataset == 'mnist':
-        mean = [0.5, 0.5, 0.5]
-        std = [0.5, 0.5, 0.5]
-    elif args.dataset == 'imagenet':
-        mean = [0.485, 0.456, 0.406]
-        std = [0.229, 0.224, 0.225]
+    if args.normalization:
+        # mean and standard deviation to be used for normalization
+        if args.dataset == 'cifar10':
+            mean = [x / 255 for x in [125.3, 123.0, 113.9]]
+            std = [x / 255 for x in [63.0, 62.1, 66.7]]
+        elif args.dataset == 'cifar100':
+            mean = [x / 255 for x in [129.3, 124.1, 112.4]]
+            std = [x / 255 for x in [68.2, 65.4, 70.4]]
+        elif args.dataset == 'svhn':
+            mean = [0.5, 0.5, 0.5]
+            std = [0.5, 0.5, 0.5]
+        elif args.dataset == 'mnist':
+            mean = [0.5, 0.5, 0.5]
+            std = [0.5, 0.5, 0.5]
+        elif args.dataset == 'imagenet':
+            mean = [0.485, 0.456, 0.406]
+            std = [0.229, 0.224, 0.225]
+        else:
+            assert False, "Unknow dataset : {}".format(args.dataset)
     else:
-        assert False, "Unknow dataset : {}".format(args.dataset)
+        mean = [0.0, 0.0, 0.0]
+        std = [0.0, 0.0, 0, 0]
 
     # Current data-preprocessing does not include the normalization
     imagenet_train_transform = [
@@ -182,8 +203,8 @@ def main():
 
     # if not performing the adversarial training or evalutaion, we append
     # the normalization back to the preprocessing
-    is_normalization = False
-    if is_normalization:
+
+    if args.normalization:
         if not (args.adv_train or args.adv_eval):
             imagenet_train_transform.append(transforms.Normalize(mean, std))
             imagenet_test_transform.append(transforms.Normalize(mean, std))
@@ -257,18 +278,27 @@ def main():
 
     # Init model, criterion, and optimizer
     net_c = models.__dict__[args.arch](num_classes)
-    # For adversarial case, override the original network with normalization layer
+    # For adversarial case, add normalization layer in front of the original network
     if (args.adv_train or args.adv_eval):
         if not args.input_noise:
-            net = torch.nn.Sequential(
-                Normalize_layer(mean, std),
-                # net_c
-            )
+            if args.normalization:
+                net = torch.nn.Sequential(
+                    Normalize_layer(mean, std),
+                    net_c
+                )
+            else:
+                net = net_c
         else:
-            net = torch.nn.Sequential(
-                noise_Normalize_layer(mean, std),
-                net_c
-            )
+            if args.normalization:
+                net = torch.nn.Sequential(
+                    noise_Normalize_layer(mean, std, input_noise=True),
+                    net_c
+                )
+            else:
+                net = torch.nn.Sequential(
+                    noise_input_layer(input_noise=True),
+                    net_c
+                )
     else:
         net = net_c
 
@@ -276,6 +306,8 @@ def main():
 
     if args.use_cuda:
         if args.ngpu > 1:
+            # Always use DataParallel (also on a single gpu to easily switch between
+            # the 1 or more gpus.
             net = torch.nn.DataParallel(net, device_ids=list(range(args.ngpu)))
 
     # define loss function (criterion) and optimizer
@@ -502,7 +534,8 @@ def train(train_loader, model, criterion, optimizer, epoch, log, attacker=None,
 
         if args.use_cuda:
             # the copy will be asynchronous with respect to the host.
-            target = target.cuda(async=True)
+            # target = target.cuda(async=True)
+            target = target.cuda()
             input = input.cuda()
 
         # compute output for clean data input
