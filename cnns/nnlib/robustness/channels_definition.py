@@ -9,6 +9,15 @@ nprng = np.random.RandomState()
 nprng.seed(31)
 
 
+class fft_layer(torch.nn.Module):
+
+    def __init__(self, compress_rate):
+        super(fft_layer, self).__init__()
+        self.compress_rate = compress_rate
+
+    def forward(self, input):
+        return fft_channel(input, compress_rate=self.compress_rate)
+
 def fft_channel(input, compress_rate, val=0, get_mask=get_hyper_mask,
                 onesided=True, is_next_power2=True):
     """

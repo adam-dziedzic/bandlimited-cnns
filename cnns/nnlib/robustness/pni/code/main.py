@@ -85,7 +85,7 @@ parser.add_argument('--ngpu', type=int, default=1, help='0 = CPU.')
 parser.add_argument('--gpu_id', type=int, default=0,
                     help='device range [0,ngpu-1]')
 parser.add_argument('--workers', type=int, default=0,
-                    help='number of data loading workers (default: 2)')
+                    help='number of data loading workers')
 # random seed
 parser.add_argument('--manualSeed', type=int, default=None, help='manual seed')
 

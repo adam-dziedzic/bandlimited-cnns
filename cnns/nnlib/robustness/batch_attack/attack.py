@@ -15,6 +15,7 @@ from cnns.nnlib.robustness.batch_attack.eot_pgd import EOT_PGD
 from cnns.nnlib.robustness.batch_attack.raw_pgd import RAW_PGD
 from cnns.nnlib.robustness.batch_attack.eot_cw import EOT_CW
 from cnns.nnlib.robustness.channels_definition import fft_channel
+from cnns.nnlib.robustness.channels_definition import fft_layer
 from cnns.nnlib.robustness.channels_definition import round
 from cnns.nnlib.robustness.channels_definition import gauss_noise_torch
 from cnns.nnlib.robustness.channels_definition import uniform_noise_torch
@@ -82,6 +83,11 @@ def attack_cw(input_v, label_v, net, c, opt, untarget=True, n_class=10):
         net.zero_grad()
         if opt.channel == 'perturb':
             attack_net = get_perturbed_net(opt=opt)
+        elif opt.channel == 'fft_adaptive':
+            attack_net = net = torch.nn.Sequential(
+                    fft_layer(compress_rate=opt.noise_epsilon),
+                    net
+                )
         else:
             attack_net = net
         optimizer.zero_grad()
@@ -199,7 +205,7 @@ def acc_under_attack(dataloader, net, c, attack_f, opt, netAttack=None):
         elif opt.channel == 'round':
             adverse_v = round(values_per_channel=opt.noise_epsilon,
                               images=adverse_v)
-        elif opt.channel == 'fft':
+        elif opt.channel in ('fft', 'fft_adaptive'):
             adverse_v = fft_channel(input=adverse_v,
                                     compress_rate=opt.noise_epsilon)
         elif opt.channel == 'uniform':
