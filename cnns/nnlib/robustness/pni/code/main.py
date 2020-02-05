@@ -1,6 +1,6 @@
 from __future__ import division
 from __future__ import absolute_import
-
+import numpy as np
 import os
 import sys
 import shutil
@@ -22,6 +22,8 @@ from cnns.nnlib.robustness.pni.code.models.attack_model import Attack
 from cnns.nnlib.robustness.pni.code.models.nomarlization_layer import \
     Normalize_layer, noise_Normalize_layer
 from cnns.nnlib.robustness.pni.code.models.noise_layer import noise_input_layer
+from cnns.nnlib.robustness.batch_attack.attack import acc_under_attack
+from cnns.nnlib.robustness.batch_attack.attack import attack_cw
 
 model_names = sorted(name for name in models.__dict__
                      if name.islower() and not name.startswith("__")
@@ -107,6 +109,15 @@ parser.add_argument('--adv_train',
 parser.add_argument('--adv_eval', dest='adv_eval',
                     action='store_true',
                     help='enable the adversarial evaluation')
+parser.add_argument('--attack',
+                    default='pgd',
+                    type=str,
+                    help='name of the attack')
+parser.add_argument('--attack_carlini_eval',
+                    dest='attack_carlini_eval',
+                    action='store_true',
+                    help='evaluate the adaptive Carlini Wagner attack')
+
 # PNI technique
 parser.add_argument('--input_noise',
                     dest='input_noise',
@@ -396,12 +407,18 @@ def main():
 
     # initialize the attacker object
     model_attack = Attack(dataloader=train_loader,
-                          attack_method='pgd', epsilon=0.031)
+                          attack_method=args.attack,
+                          epsilon=0.031)
 
     if args.evaluate:
         validate(
             test_loader, net, criterion, log,
             attacker=model_attack, adv_eval=args.adv_eval)
+        return
+
+    if args.attack_carlini_eval:
+        attack_carlini(dataloader_test=test_loader,
+                       net=net)
         return
 
     # Main loop
@@ -755,6 +772,46 @@ def accuracy_logger(base_dir, epoch, train_accuracy, test_accuracy):
     with open(file_path, 'a') as accuracy_log:
         accuracy_log.write(
             '{epoch}       {train}    {test}\n'.format(**recorder))
+
+
+def attack_carlini(dataloader_test, net):
+    print("#c, noise, test accuracy, L2 distortion, time (sec)")
+    for c in [0,
+              0.0001,
+              0.0005,
+              0.001,
+              0.005,
+              0.01,
+              0.02,
+              0.03,
+              0.04,
+              0.05,
+              0.07,
+              0.1,
+              0.2,
+              0.3,
+              0.4,
+              0.5,
+              1,
+              2,
+              10,
+              100,
+              ]:
+        opt = object()
+        opt.noise_epsilon = 0.0
+        opt.gradient_iters = 1
+        opt.attack_iters = 200
+        opt.channel = 'empty'
+
+        beg = time.time()
+        acc, avg_distort = acc_under_attack(
+            dataloader=dataloader_test, net=net, c=c,
+            attack_f=attack_cw, opt=opt,
+            netAttack=net)
+        timing = time.time() - beg
+        print("{}, {}, {}, {}, {}".format(
+            c, opt.noise_epsilon, acc, avg_distort, timing))
+        sys.stdout.flush()
 
 
 if __name__ == '__main__':

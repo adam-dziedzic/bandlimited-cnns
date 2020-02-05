@@ -50,19 +50,13 @@ from cnns.nnlib.robustness.param_perturbation.utils import perturb_model_params
 def attack_eot_pgd(input_v, label_v, net, epsilon=8.0 / 255.0, opt=None):
     eot = EOT_PGD(net=net, epsilon=epsilon, opt=opt)
     adverse_v = eot.eot_batch(images=input_v, labels=label_v)
-    diff = adverse_v - input_v
-    return adverse_v, diff
-
-
-def attack_raw_pgd(input_v, label_v, net, epsilon=8.0 / 255.0, opt=None):
-    raw_pgd = RAW_PGD(model=net, )
+    return adverse_v
 
 
 def attack_eot_cw(input_v, label_v, net, c, opt, untarget=True, n_class=10):
     eot = EOT_CW(net=net, c=c, opt=opt, untarget=untarget, n_class=n_class)
     adverse_v = eot.eot_batch(images=input_v, labels=label_v)
-    diff = adverse_v - input_v
-    return adverse_v, diff
+    return adverse_v
 
 
 def attack_cw(input_v, label_v, net, c, opt, untarget=True, n_class=10):
@@ -118,7 +112,7 @@ def attack_cw(input_v, label_v, net, c, opt, untarget=True, n_class=10):
         loss = dist + c * class_error
         loss.backward()
         optimizer.step()
-    return adverse_v, diff
+    return adverse_v
 
 
 def attack_fgsm(input_v, label_v, net, epsilon):
@@ -192,7 +186,8 @@ def acc_under_attack(dataloader, net, c, attack_f, opt, netAttack=None):
         if netAttack is None:
             netAttack = net
 
-        adverse_v, diff = attack_f(input_v, label_v, netAttack, c, opt)
+        adverse_v = attack_f(input_v, label_v, netAttack, c, opt)
+        diff = adverse_v - input_v
         # print('min max: ', adverse_v.min().item(), adverse_v.max().item())
         bounds = (0.0, 1.0)
         if opt.channel == 'empty':
@@ -244,13 +239,13 @@ def acc_under_attack(dataloader, net, c, attack_f, opt, netAttack=None):
         distort_linf += torch.max(torch.abs(diff))
 
         distort_np = distort.clone().cpu().detach().numpy()
-        distort_linf_np = distort_linf.cpu().detach().numpy()
+        # distort_linf_np = distort_linf.cpu().detach().numpy()
 
-        elapsed = time.time() - beg
-        info = ['k', k, 'current_accuracy', correct / tot, 'L2 distortion',
-                np.sqrt(distort_np / tot), 'Linf distortion',
-                distort_linf_np / tot, 'total_count', tot, 'elapsed time (sec)',
-                elapsed]
+        # elapsed = time.time() - beg
+        # info = ['k', k, 'current_accuracy', correct / tot, 'L2 distortion',
+        #         np.sqrt(distort_np / tot), 'Linf distortion',
+        #         distort_linf_np / tot, 'total_count', tot, 'elapsed time (sec)',
+        #         elapsed]
         # print(','.join([str(x) for x in info]))
 
         # This is a bit unexpected (shortens computations):

@@ -8,3 +8,5 @@ from .noisy_resnet_cifar_both import noise_resnet20_both
 from .noisy_resnet_cifar_robust_weight import noise_resnet20_robust_weight
 from .noisy_resnet_cifar_robust_input import noise_resnet20_robust_input
 from .noisy_resnet_cifar_robust_both import noise_resnet20_robust_both
+
+from .noisy_resnet_cifar_robust import  noise_resnet20_robust
