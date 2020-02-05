@@ -22,9 +22,9 @@ from cnns.nnlib.robustness.pni.code.models.attack_model import Attack
 from cnns.nnlib.robustness.pni.code.models.nomarlization_layer import \
     Normalize_layer, noise_Normalize_layer
 from cnns.nnlib.robustness.pni.code.models.noise_layer import noise_input_layer
-from cnns.nnlib.robustness.batch_attack.attack import acc_under_attack
-from cnns.nnlib.robustness.batch_attack.attack import attack_cw
-from cnns.nnlib.utils.object import Object
+# from cnns.nnlib.robustness.batch_attack.attack import acc_under_attack
+# from cnns.nnlib.robustness.batch_attack.attack import attack_cw
+# from cnns.nnlib.utils.object import Object
 
 model_names = sorted(name for name in models.__dict__
                      if name.islower() and not name.startswith("__")
