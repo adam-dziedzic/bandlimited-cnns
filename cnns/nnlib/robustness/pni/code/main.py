@@ -22,9 +22,9 @@ from cnns.nnlib.robustness.pni.code.models.attack_model import Attack
 from cnns.nnlib.robustness.pni.code.models.nomarlization_layer import \
     Normalize_layer, noise_Normalize_layer
 from cnns.nnlib.robustness.pni.code.models.noise_layer import noise_input_layer
-# from cnns.nnlib.robustness.batch_attack.attack import acc_under_attack
-# from cnns.nnlib.robustness.batch_attack.attack import attack_cw
-# from cnns.nnlib.utils.object import Object
+from cnns.nnlib.robustness.batch_attack.attack import acc_under_attack
+from cnns.nnlib.robustness.batch_attack.attack import attack_cw
+from cnns.nnlib.utils.object import Object
 
 model_names = sorted(name for name in models.__dict__
                      if name.islower() and not name.startswith("__")
@@ -135,10 +135,10 @@ parser.add_argument('--normalization',
 
 args = parser.parse_args()
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-if args.ngpu == 1:
-    # make only devices indexed by #gpu_id visible
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu_id)
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# if args.ngpu == 1:
+#     # make only devices indexed by #gpu_id visible
+#     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu_id)
 
 args.use_cuda = args.ngpu > 0 and torch.cuda.is_available()  # check GPU
 
