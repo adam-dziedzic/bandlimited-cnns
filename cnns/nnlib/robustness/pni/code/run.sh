@@ -584,6 +584,21 @@ ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo $
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
 CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-fft' --compress_rate 80.0 --initializeNoise 0.02 >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
+f 100995
+2020-02-05-21-14-46-235774981.txt
 
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=2 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-fft' --compress_rate 70.0 --initializeNoise 0.02 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[3] 101291
+cc@f:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-02-05-21-15-47-337316762.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=3 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-fft' --compress_rate 70.0 --initializeNoise 0.02 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[4] 101366
+cc@f:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-02-05-21-16-27-074140847.txt
 
 
