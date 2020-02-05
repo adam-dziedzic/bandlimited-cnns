@@ -91,5 +91,6 @@ class ResNeXt(nn.Module):
 
 
 def ResNeXt29_2x64d(noise_init, noise_inner):
-    return ResNeXt(num_blocks=[3,3,3], cardinality=2, bottleneck_width=64, noise_init=noise_init, noise_inner=noise_inner)
+    return ResNeXt(num_blocks=[3,3,3], cardinality=2, bottleneck_width=64,
+                   noise_init=noise_init, noise_inner=noise_inner)
 

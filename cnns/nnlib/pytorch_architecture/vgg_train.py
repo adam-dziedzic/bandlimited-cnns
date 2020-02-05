@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+from cnns import matplotlib_backend
 import argparse
 import torch
 import torch.optim as optim
@@ -7,6 +8,7 @@ import torch.nn as nn
 import torchvision.datasets as dst
 import torchvision.transforms as tfs
 from cnns.nnlib.pytorch_architecture.vgg import VGG as vgg
+from cnns.nnlib.pytorch_architecture.vgg_fft import VGG as vgg_fft
 from cnns.nnlib.pytorch_architecture.vgg_perturb import VGG as vgg_perturb
 from cnns.nnlib.pytorch_architecture.vgg_perturb_rse import \
     VGG as vgg_perturb_rse
@@ -128,9 +130,10 @@ def main():
     parser.add_argument('--noiseInit', type=float, default=0.2)
     parser.add_argument('--noiseInner', type=float, default=0.1)
     parser.add_argument('--initializeNoise', type=float, default=0.02)
+    parser.add_argument('--compress_rate', type=float, default=85.0)
     opt = parser.parse_args()
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    opt.modelOutRoot = f"{dir_path}/vgg16/{opt.net}_perturb_{opt.paramNoise}_init_noise_{opt.noiseInit}_inner_noise_{opt.noiseInner}_batch_size_{opt.batchSize}.pth"
+    opt.modelOutRoot = f"{dir_path}/vgg16/{opt.net}_perturb_{opt.paramNoise}_init_noise_{opt.noiseInit}_inner_noise_{opt.noiseInner}_batch_size_{opt.batchSize}_compress_rate_{opt.compress_rate}.pth"
     opt.root = dir_path + "/" + opt.root
     print(opt)
     # epochs = [80, 60, 40, 20]
@@ -143,6 +146,8 @@ def main():
         exit(-1)
     elif opt.net == "vgg16":
         net = vgg("VGG16")
+    elif opt.net == "vgg16-fft":
+        net = vgg_fft("VGG16", compress_rate=opt.compress_rate)
     elif opt.net == "vgg16-perturb":
         net = vgg_perturb("VGG16", param_noise=opt.paramNoise)
     elif opt.net == "vgg16-perturb-weight":

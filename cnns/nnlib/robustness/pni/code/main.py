@@ -135,10 +135,10 @@ parser.add_argument('--normalization',
 
 args = parser.parse_args()
 
-# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-# if args.ngpu == 1:
-#     # make only devices indexed by #gpu_id visible
-#     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu_id)
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+if args.ngpu == 1:
+    # make only devices indexed by #gpu_id visible
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu_id)
 
 args.use_cuda = args.ngpu > 0 and torch.cuda.is_available()  # check GPU
 
