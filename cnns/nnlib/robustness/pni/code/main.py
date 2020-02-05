@@ -24,6 +24,7 @@ from cnns.nnlib.robustness.pni.code.models.nomarlization_layer import \
 from cnns.nnlib.robustness.pni.code.models.noise_layer import noise_input_layer
 from cnns.nnlib.robustness.batch_attack.attack import acc_under_attack
 from cnns.nnlib.robustness.batch_attack.attack import attack_cw
+from cnns.nnlib.utils.object import Object
 
 model_names = sorted(name for name in models.__dict__
                      if name.islower() and not name.startswith("__")
@@ -797,11 +798,13 @@ def attack_carlini(dataloader_test, net):
               10,
               100,
               ]:
-        opt = object()
+        opt = Object()
         opt.noise_epsilon = 0.0
         opt.gradient_iters = 1
         opt.attack_iters = 200
         opt.channel = 'empty'
+        opt.ensemble = 1
+        opt.limit_batch_number = 0
 
         beg = time.time()
         acc, avg_distort = acc_under_attack(

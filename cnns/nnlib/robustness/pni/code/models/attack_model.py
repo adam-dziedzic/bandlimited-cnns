@@ -2,6 +2,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 from cnns.nnlib.robustness.batch_attack.attack import attack_cw
+from cnns.nnlib.utils.object import Object
+
 
 class Attack(object):
 
@@ -105,13 +107,13 @@ class Attack(object):
 
     def cw(self, net, input_v, label_v, c=0.01, gradient_iters=1, untarget=True,
            n_class=10, attack_iters=200, channel='empty', noise_epsilon=0):
-        opt = object()
+        opt = Object()
         opt.gradient_iters = gradient_iters
         opt.attack_iters = attack_iters
         opt.channel = channel
         opt.noise_epsilon = noise_epsilon
+        opt.ensemble = 1
+        opt.limit_batch_number = 0
 
         return attack_cw(net=net, input_v=input_v, label_v=label_v, c=c,
                          untarget=untarget, n_class=n_class, opt=opt)
-
-
