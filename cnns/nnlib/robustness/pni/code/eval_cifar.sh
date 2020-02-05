@@ -15,7 +15,7 @@ fi
 
 ############### Configurations ########################
 enable_tb_display=false # enable tensorboard display
-model=noise_resnet20
+model=noise_resnet20_input
 dataset=cifar10
 epochs=160
 batch_size=128
@@ -29,7 +29,8 @@ tb_path=./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info}/
 
 # set the pretrained model path
 # pretrained_model=/home/elliot/Documents/CVPR_2019/CVPR_2019_PNI/code/save/cifar10_noise_resnet20_160_SGD_29_PNI-W/model_best.pth.tar
-pretrained_model=/home/${USER}/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/2020-02-03/cifar10_noise_resnet20_160_SGD_train_channelwise_3e-4decay/model_best.pth.tar
+# pretrained_model=/home/${USER}/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/2020-02-03/cifar10_noise_resnet20_160_SGD_train_channelwise_3e-4decay/model_best.pth.tar
+pretrained_model=/home/${USER}/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/save_adv_train_cifar10_noise_resnet20_input_160_SGD_train_layerwise_3e-4decay/mode_best.pth.tar
 
 ############### Neural network ############################
 {

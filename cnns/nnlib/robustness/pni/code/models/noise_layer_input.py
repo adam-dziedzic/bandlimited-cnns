@@ -124,7 +124,8 @@ class noise_Conv2d(nn.Conv2d):
             with torch.no_grad():
                 std = input.std().item()
                 noise_input = input.clone().normal_(0, std)
-
+                # print('alpha_i: ', self.alpha_i)
+                # print('std: ', std)
             noise_input = input + self.alpha_i * noise_input * self.w_noise
         else:
             noise_input = input

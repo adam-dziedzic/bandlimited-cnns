@@ -43,7 +43,7 @@ parser.add_argument('--dataset', type=str, default='cifar10',
                     help='Choose between Cifar10/100 and ImageNet.')
 parser.add_argument('--arch', metavar='ARCH',
                     # default='lbcnn',
-                    default='noise_resnet20_weight',
+                    default='noise_resnet20_input',
                     choices=model_names,
                     help='model architecture: ' + ' | '.join(
                         model_names) + ' (default: resnext29_8_64)')
@@ -65,9 +65,16 @@ parser.add_argument('--gammas', type=float, nargs='+', default=[0.1, 0.1],
 # Checkpoints
 parser.add_argument('--print_freq', default=100, type=int,
                     metavar='N', help='print frequency (default: 200)')
-parser.add_argument('--save_path', type=str, default='./save/',
+parser.add_argument('--save_path',
+                    type=str,
+                    default='./save/',
+                    # default='./svae/save_adv_train_cifar10_noise_resnet20_input_160_SGD_train_layerwise_3e-4decay/mode_best.pth.tar',
                     help='Folder to save checkpoints and log.')
-parser.add_argument('--resume', default='', type=str, metavar='PATH',
+parser.add_argument('--resume',
+                    default='',
+                    # default='./save/save_adv_train_cifar10_noise_resnet20_input_160_SGD_train_layerwise_3e-4decay/',
+                    # default='/home/' + username + '/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/save_adv_train_cifar10_noise_resnet20_input_160_SGD_train_layerwise_3e-4decay/model_best.pth.tar',
+                    type=str, metavar='PATH',
                     help='path to latest checkpoint (default: none)')
 parser.add_argument('--start_epoch', default=0, type=int,
                     metavar='N',
@@ -95,9 +102,10 @@ parser.add_argument('--epoch_delay', type=int, default=5,
                     for starting the adversarial traing')
 parser.add_argument('--adv_train',
                     dest='adv_train',
-                    action='store_false',
+                    action='store_true',
                     help='enable the adversarial training')
-parser.add_argument('--adv_eval', dest='adv_eval', action='store_true',
+parser.add_argument('--adv_eval', dest='adv_eval',
+                    action='store_true',
                     help='enable the adversarial evaluation')
 # PNI technique
 parser.add_argument('--input_noise',
@@ -305,7 +313,7 @@ def main():
     print_log("=> network :\n {}".format(net), log)
 
     if args.use_cuda:
-        if args.ngpu > 1:
+        if args.ngpu > 0:
             # Always use DataParallel (also on a single gpu to easily switch between
             # the 1 or more gpus.
             net = torch.nn.DataParallel(net, device_ids=list(range(args.ngpu)))
