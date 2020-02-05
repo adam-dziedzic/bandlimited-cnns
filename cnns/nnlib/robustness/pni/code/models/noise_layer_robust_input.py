@@ -49,10 +49,12 @@ class noise_Conv2d(nn.Conv2d):
 
     def __init__(self, in_channels, out_channels, kernel_size, stride=1,
                  padding=0, dilation=1,
-                 groups=1, bias=True):
+                 groups=1, bias=True,
+                 noise_type=global_noise_type):
         super(noise_Conv2d, self).__init__(in_channels, out_channels,
                                            kernel_size, stride,
                                            padding, dilation, groups, bias)
+        self.noise_type = noise_type
 
     def forward(self, input):
         if self.noise_type in ('weight', 'both'):
