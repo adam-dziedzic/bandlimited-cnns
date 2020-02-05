@@ -356,13 +356,14 @@ PYTHONPATH=../../../../../ nohup $PYTHON main.py --dataset ${dataset} \
     --epochs ${epochs} --learning_rate 0.1 \
     --optimizer ${optimizer} \
 	--schedule 80 120  --gammas 0.1 0.1 \
-    --batch_size ${batch_size} --workers 4 --ngpu 4 --gpu_id 0 \
+    --batch_size ${batch_size} --workers 4 --ngpu 2 --gpu_id 0 \
     --print_freq 100 --decay 0.0003 --momentum 0.9 \
     --epoch_delay 5 >> train_${timestamp}.txt 2>&1 &
 echo train_${timestamp}.txt
-[1] 61457
-cc@f:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo train_${timestamp}.txt
-train_2020-02-05-04-56-14-433397853.txt
+[1] 58848
+cc@sat:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo train_${timestamp}.txt
+train_2020-02-05-05-37-23-891561239.txt
+
 
 
 ############### Configurations ########################
@@ -384,7 +385,11 @@ PYTHONPATH=../../../../../ nohup $PYTHON main.py --dataset ${dataset} \
     --epochs ${epochs} --learning_rate 0.1 \
     --optimizer ${optimizer} \
 	--schedule 80 120  --gammas 0.1 0.1 \
-    --batch_size ${batch_size} --workers 4 --ngpu 4 --gpu_id 0 \
+    --batch_size ${batch_size} --workers 4 --ngpu 2 --gpu_id 0 \
     --print_freq 100 --decay 0.0003 --momentum 0.9 \
     --epoch_delay 5 --adv_train >> train_${timestamp}.txt 2>&1 &
 echo train_${timestamp}.txt
+[1] 6965
+cc@z:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo train_${timestamp}.txt
+train_2020-02-05-05-36-01-105993017.txt
+

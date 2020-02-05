@@ -117,3 +117,8 @@ class Attack(object):
 
         return attack_cw(net=net, input_v=input_v, label_v=label_v, c=c,
                          untarget=untarget, n_class=n_class, opt=opt)
+
+
+def pgd_adapter(input_v, label_v, net, c, opt=None):
+    return Attack(dataloader=None).pgd(
+        model=net, data=input_v, target=label_v, a=c)
