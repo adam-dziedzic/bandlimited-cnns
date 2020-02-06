@@ -8,7 +8,7 @@ import torch
 
 args = Arguments()
 args.conv_type = ConvType.FFT2D
-args.compress_rate = 85.0
+args.compress_rate = 80.0
 args.dtype = torch.float
 args.preserve_energy = None
 args.next_power2 = True
