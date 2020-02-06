@@ -180,7 +180,7 @@ def acc_under_attack(dataloader, net, c, attack_f, opt, netAttack=None):
     distort_linf = 0.0
 
     for k, (input, output) in enumerate(dataloader):
-        beg = time.time()
+        # beg = time.time()
         input_v, label_v = input.cuda(), output.cuda()
         # attack
         if netAttack is None:

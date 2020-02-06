@@ -779,45 +779,48 @@ def accuracy_logger(base_dir, epoch, train_accuracy, test_accuracy):
             '{epoch}       {train}    {test}\n'.format(**recorder))
 
 
-def select_attack(attack_name):
+def select_attack(attack_name, attack_iters=200):
     if attack_name == 'cw':
         attack_f = attack_cw
         attack_strengths = [0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.02, 0.03,
                             0.04, 0.05, 0.07, 0.1, 0.2, 0.3, 0.4, 0.5, 1, 2, 10,
                             100,
                             ]
+        attack_iters = [attack_iters]
     elif attack_name == 'pgd':
         attack_f = pgd_adapter
-        attack_strengths = [0.0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1,
-                            1.0, 5.0, 10.0, 100.0, 500.0, 1000.0]
+        attack_strengths = [0.01]
+        attack_iters = [0, 1, 4, 7, 10, 20, 40, 100, 1000]
     else:
         raise Exception(f'Unknown attack: {args.attack}')
-    return attack_f, attack_strengths
+    return attack_f, attack_strengths, attack_iters
 
 
 def attack_distortion_accuracy(dataloader_test, net,
                                attack_iters=200, attack_name='cw'):
-    attack_f, attack_strengths = select_attack(attack_name=attack_name)
+    attack_f, attack_strengths, attack_iters = select_attack(
+        attack_name=attack_name, attack_iters=attack_iters)
     print(
-        "#c, noise, test accuracy, L2 distortion, Linf distortion, time (sec)")
-    for c in attack_strengths:
-        opt = Object()
-        opt.noise_epsilon = 0.0
-        opt.gradient_iters = 1
-        opt.attack_iters = attack_iters
-        opt.channel = 'empty'
-        opt.ensemble = 1
-        opt.limit_batch_number = 0
+        "iters, strength, test accuracy, L2 distortion, Linf distortion, time (sec)")
+    for attack_iter in attack_iters:
+        for c in attack_strengths:
+            opt = Object()
+            opt.noise_epsilon = 0.0
+            opt.gradient_iters = 1
+            opt.attack_iters = attack_iter
+            opt.channel = 'empty'
+            opt.ensemble = 1
+            opt.limit_batch_number = 0
 
-        beg = time.time()
-        acc, l2_distortion, linf_distortion = acc_under_attack(
-            dataloader=dataloader_test, net=net, c=c,
-            attack_f=attack_f, opt=opt,
-            netAttack=net)
-        timing = time.time() - beg
-        print("{}, {}, {}, {}, {}".format(
-            c, opt.noise_epsilon, acc, l2_distortion, linf_distortion, timing))
-        sys.stdout.flush()
+            beg = time.time()
+            acc, l2_distortion, linf_distortion = acc_under_attack(
+                dataloader=dataloader_test, net=net, c=c,
+                attack_f=attack_f, opt=opt,
+                netAttack=net)
+            timing = time.time() - beg
+            print("{}, {}, {}, {}, {}, {}".format(
+                attack_iter, c, acc, l2_distortion, linf_distortion, timing))
+            sys.stdout.flush()
 
 
 if __name__ == '__main__':

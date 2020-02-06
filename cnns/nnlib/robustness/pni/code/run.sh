@@ -562,7 +562,7 @@ train_2020-02-05-19-41-09-712288797.txt
 
 PYTHON="/home/${USER}/anaconda3/bin/python" # python environment
 enable_tb_display=false # enable tensorboard display
-model=noise_resnet20_robust
+model=noise_resnet20_robust # init 0.1 inner 0.1
 dataset=cifar10
 epochs=160
 batch_size=128
