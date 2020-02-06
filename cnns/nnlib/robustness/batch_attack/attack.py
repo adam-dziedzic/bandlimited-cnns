@@ -42,6 +42,7 @@ from cnns.nnlib.pytorch_architecture import vgg_perturb_weight
 from cnns.nnlib.pytorch_architecture import vgg_rse_perturb
 from cnns.nnlib.pytorch_architecture import vgg_rse_perturb_weights
 from cnns.nnlib.pytorch_architecture import vgg_rse_unrolled
+from cnns.nnlib.pytorch_architecture import vgg_fft
 
 from cnns.nnlib.pytorch_architecture import resnet
 from cnns.nnlib.robustness.param_perturbation.utils import perturb_model_params
@@ -294,6 +295,8 @@ def get_nets(opt):
             net = vgg.VGG("VGG16")
         elif opt.defense == "brelu":
             net = models.vgg_brelu.VGG("VGG16", 0.0)
+        elif opt.defense == "fft":
+            net = models.vgg_fft.VGG("VGG16", compress_rate=opt.compress_rate)
         elif opt.defense == "perturb":
             net = vgg_perturb.VGG("VGG16", param_noise=opt.paramNoise)
             # netAttack = net
@@ -500,6 +503,14 @@ def set_model_settings(opt):
     if net_mode == 'trained-1-fft':
         modelPath = 'vgg16/rse_0.0_0.0_ady.pth-test-accuracy-0.8523'
         modelAttack = modelPath
+        net = 'vgg16'
+    elif net_mode == 'vgg-fft-80':
+        modelPath = '../../pytorch_architecture/vgg16/saved_model_vgg16_fft_compress_rate_80.0.pth-test-accuracy-0.8505'
+        modelAttack = modelPath
+        net = 'vgg16'
+    elif net_mode == 'vgg-fft-80-non-adaptive':
+        modelPath = '../../pytorch_architecture/vgg16/saved_model_vgg16_fft_compress_rate_80.0.pth-test-accuracy-0.8505'
+        modelAttack = 'vgg16/rse_0.0_0.0_ady.pth-test-accuracy-0.8523'
         net = 'vgg16'
     elif net_mode == '0-0':
         modelPath = 'vgg16/rse_0.0_0.0_ady.pth-test-accuracy-0.8523'
@@ -761,6 +772,7 @@ if __name__ == "__main__":
     parser.add_argument('--noiseInit', type=float, default=0.0)
     parser.add_argument('--noiseInner', type=float, default=0.0)
     parser.add_argument('--paramNoise', type=float, default=0.0)
+    parser.add_argument('--compress_rate', type=float, default=80.0)
     parser.add_argument('--net', type=str, default='vgg16')
     parser.add_argument('--modelIn', type=str,
                         # default='../../pytorch_architecture/vgg16/saved_model_rse_perturb_0.0.pth-test-accuracy-0.9351',
