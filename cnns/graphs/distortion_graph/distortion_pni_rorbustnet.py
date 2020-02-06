@@ -75,6 +75,7 @@ def read_columns(dataset, columns=5):
 
 
 ylabel = "ylabel"
+xlabel = "xlabel"
 title = "title"
 legend_pos = "center_pos"
 bbox = "bbox"
@@ -272,13 +273,87 @@ pni_robustnet_adv_train = {ylabel: "Test Accuracy (%)",
                            column_nr: 10,
                            legend_cols: 1,
                            labels: ['plain',
-                                  'RobustNet\nVGG16 2-1',
-                                  'RobustNet\nResNet-20 2-1',
-                                  'Adv. Train\nResNet-20',
-                                  'PNI-W Adv\nResNet-20',
-                                  ],
+                                    'RobustNet\nVGG16 2-1',
+                                    'RobustNet\nResNet-20 2-1',
+                                    'Adv. Train\nResNet-20',
+                                    'PNI-W Adv\nResNet-20',
+                                    ],
                            xlim: (0, 1.15),
                            ylim: (0, 100)}
+
+pni_robustnet_adv_c_param = {ylabel: "Test Accuracy (%)",
+                             xlabel: "C&W c parameter",
+                             file_name: "distortion_pni_robust_net10",
+                             title: "C&W L$_2$ adaptive",
+                             # legend_pos: "lower left",
+                             legend_pos: "upper right",
+                             bbox: (-1.0, 0.0),
+                             column_nr: 12,
+                             legend_cols: 2,
+                             labels: ['plain',
+                                      'RobustNet\nVGG16 2-1',
+                                      'RobustNet\nResNet-20 2-1',
+                                      'Adv. Train\nResNet-20',
+                                      'PNI-W Adv\nResNet-20',
+                                      'RobustNet\nAdv. Train'
+                                      ],
+                             xlim: (0, 100),
+                             ylim: (0, 100)}
+
+pni_robustnet_adv_train2 = {ylabel: "Test Accuracy (%)",
+                            xlabel: "$L_2$ distortion",
+                            file_name: "distortion_pni_robust_net7",
+                            title: "C&W L$_2$ adaptive",
+                            # legend_pos: "lower left",
+                            legend_pos: "upper right",
+                            bbox: (-1.0, 0.0),
+                            column_nr: 12,
+                            legend_cols: 2,
+                            labels: ['plain',
+                                     'RobustNet\nVGG16 2-1',
+                                     'RobustNet\nResNet-20 2-1',
+                                     'Adv. Train\nResNet-20',
+                                     'PNI-W Adv\nResNet-20',
+                                     'RobustNet\nAdv. Train'
+                                     ],
+                            xlim: (0, 1.6),
+                            ylim: (0, 100)}
+
+pni_robustnet_adv_train_pgd = {ylabel: "Test Accuracy (%)",
+                               xlabel: "$L_2$ distortion",
+                               file_name: "distortion_pni_robust_net8",
+                               title: "PGD L$_{\infty}$ adaptive",
+                               # legend_pos: "lower left",
+                               legend_pos: "upper right",
+                               bbox: (-1.0, 0.0),
+                               column_nr: 8,
+                               legend_cols: 2,
+                               labels: [
+                                   'Adv. Train\nResNet-20',
+                                   'PNI-W Adv\nResNet-20',
+                                   'RobustNet\nResNet-20 2-1',
+                                   'RobustNet\nAdv. Train'
+                               ],
+                               xlim: (0.9, 1.7),
+                               ylim: (0, 100)}
+
+pni_robustnet_adv_train_pgd_iters = {ylabel: "Test Accuracy (%)",
+                                     xlabel: '# of PGD iterations',
+                                     file_name: "distortion_pni_robust_net9",
+                                     title: "PGD L$_{\infty}$ adaptive",
+                                     # legend_pos: "lower left",
+                                     legend_pos: "upper right",
+                                     bbox: (-1.0, 0.0),
+                                     column_nr: 8,
+                                     legend_cols: 2,
+                                     labels: [
+                                         'Adv. Train\nResNet-20',
+                                         'PNI-W Adv\nResNet-20',
+                                         'RobustNet\nResNet-20 2-1',
+                                         'RobustNet\nAdv. Train'
+                                     ],
+                                     xlim: (0, 1000),
+                                     ylim: (0, 100)}
 
 colors = [get_color(color) for color in
           [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
@@ -305,7 +380,14 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 # ]
 
 # datasets = [robust_layers]
-datasets = [pni_robustnet_adv_train]
+# datasets = [pni_robustnet_adv_train2]
+# datasets = [pni_robustnet_adv_train_pgd]
+datasets = [
+    pni_robustnet_adv_c_param,
+    pni_robustnet_adv_train2,
+    pni_robustnet_adv_train_pgd_iters,
+    pni_robustnet_adv_train_pgd,
+]
 
 fig = plt.figure(figsize=(len(datasets) * width, height))
 
@@ -327,7 +409,10 @@ for j, dataset in enumerate(datasets):
         plt.plot(cols[col], cols[col + 1],
                  label=f"{dataset[labels][i]}",
                  lw=line_width,
-                 color=colors[i], linestyle=linestyles[i])
+                 color=colors[i],
+                 linestyle=linestyles[i],
+                 marker="o",
+                 ms=8)
 
     plt.grid()
     plt.legend(loc=dataset[legend_pos],
@@ -337,7 +422,7 @@ for j, dataset in enumerate(datasets):
                columnspacing=1.0,
                # bbox_to_anchor=dataset[bbox]
                )
-    plt.xlabel('$L_2$ distortion')
+    plt.xlabel(dataset[xlabel])
     plt.title(dataset[title], fontsize=title_size)
     if j == 0:
         plt.ylabel(dataset[ylabel])
@@ -346,7 +431,7 @@ for j, dataset in enumerate(datasets):
         # ax.axes.get_yaxis().set_visible(False)
         # ax.set_yticklabels([])
     plt.ylim(dataset[ylim])
-    plt.xlim(dataset[xlim])
+    # plt.xlim(dataset[xlim])
     # plt.xscale('log', basex=10)
 
 # plt.gcf().autofmt_xdate()
