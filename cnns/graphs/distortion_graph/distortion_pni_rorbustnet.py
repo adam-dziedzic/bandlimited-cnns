@@ -355,6 +355,25 @@ pni_robustnet_adv_train_pgd_iters = {ylabel: "Test Accuracy (%)",
                                      xlim: (0, 1000),
                                      ylim: (0, 100)}
 
+pni_robustnet_adv_train_pgd_dist_linf = {ylabel: "Test Accuracy (%)",
+                                     xlabel: '$L_\infty$ distortion x $10^6$',
+                                     file_name: "distortion_pni_robust_net11",
+                                     title: "PGD L$_{\infty}$ adaptive",
+                                     # legend_pos: "lower left",
+                                     legend_pos: "upper right",
+                                     bbox: (-1.0, 0.0),
+                                     column_nr: 8,
+                                     legend_cols: 2,
+                                     labels: [
+                                         'Adv. Train\nResNet-20',
+                                         'PNI-W Adv\nResNet-20',
+                                         'RobustNet\nResNet-20 2-1',
+                                         'RobustNet\nAdv. Train'
+                                     ],
+                                     xlim: (0, 1000),
+                                     ylim: (0, 100)}
+
+
 colors = [get_color(color) for color in
           [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
 markers = ["+", "o", "v", "s", "D", "^", "+"]
@@ -382,11 +401,19 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 # datasets = [robust_layers]
 # datasets = [pni_robustnet_adv_train2]
 # datasets = [pni_robustnet_adv_train_pgd]
+
+# datasets = [
+#     pni_robustnet_adv_c_param,
+#     pni_robustnet_adv_train2,
+#     pni_robustnet_adv_train_pgd_iters,
+#     pni_robustnet_adv_train_pgd,
+# ]
+
 datasets = [
     pni_robustnet_adv_c_param,
     pni_robustnet_adv_train2,
     pni_robustnet_adv_train_pgd_iters,
-    pni_robustnet_adv_train_pgd,
+    pni_robustnet_adv_train_pgd_dist_linf,
 ]
 
 fig = plt.figure(figsize=(len(datasets) * width, height))
