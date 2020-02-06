@@ -23,6 +23,7 @@ MY_GOLD = (148, 139, 61)
 def get_color(COLOR_TUPLE_255):
     return [x / 255 for x in COLOR_TUPLE_255]
 
+
 # configuration 1 figure
 # # fontsize=20
 # fontsize = 40
@@ -42,10 +43,9 @@ fontsize = 36
 legend_size = 32
 title_size = 40
 width = 10
-height = 10
+height = 7
 line_width = 4
 layout = "horizontal"  # "horizontal" or "vertical"
-
 
 font = {'size': fontsize}
 matplotlib.rc('font', **font)
@@ -185,16 +185,16 @@ fgsm_imagenet = {ylabel: "Accuracy (%)",
                  ylim: (0, 100)}
 
 robust_non_adaptive = {ylabel: "Test Accuracy (%)",
-                   file_name: "distortion_robust_net_non_adaptive",
-                   title: "C&W L$_2$ non-adaptive",
-                   # legend_pos: "lower left",
-                   legend_pos: "upper right",
-                   # bbox: (0.0, 0.0),
-                   column_nr: 6,
-                   legend_cols: 1,
-                   labels: ['plain', 'robust\n0.2 0.1', 'fft 50%'],
-                   xlim: (0, 1.15),
-                   ylim: (0, 100)}
+                       file_name: "distortion_robust_net_non_adaptive",
+                       title: "C&W L$_2$ non-adaptive",
+                       # legend_pos: "lower left",
+                       legend_pos: "upper right",
+                       # bbox: (0.0, 0.0),
+                       column_nr: 6,
+                       legend_cols: 1,
+                       labels: ['plain', 'robust\n0.2 0.1', 'fft 50%'],
+                       xlim: (0, 1.15),
+                       ylim: (0, 100)}
 
 robust_adaptive = {ylabel: "Test Accuracy (%)",
                    file_name: "distortion_robust_net2",
@@ -207,6 +207,31 @@ robust_adaptive = {ylabel: "Test Accuracy (%)",
                    labels: ['plain', 'robust\n0.2 0.1', 'fft 50%'],
                    xlim: (0, 1.15),
                    ylim: (0, 100)}
+
+robust_non_adaptive2 = {ylabel: "Test Accuracy (%)",
+                        file_name: "distortion_robust_net_non_adaptive",
+                        title: "C&W L$_2$ non-adaptive",
+                        # legend_pos: "lower left",
+                        legend_pos: "upper right",
+                        # bbox: (0.0, 0.0),
+                        column_nr: 6,
+                        legend_cols: 1,
+                        labels: ['PlainNet', 'RobustNet', 'FC'],
+                        xlim: (0, 1.15),
+                        ylim: (0, 100)}
+
+robust_adaptive2 = {ylabel: "Test Accuracy (%)",
+                    file_name: "distortion_robust_net2",
+                    title: "C&W L$_2$ adaptive",
+                    # legend_pos: "lower left",
+                    legend_pos: "upper right",
+                    # bbox: (0.0, 0.0),
+                    column_nr: 6,
+                    legend_cols: 1,
+                    # labels: ['plain', 'robust\n0.2 0.1', 'fft 50%'],
+                    labels: ['PlainNet', 'RobustNet', 'FC'],
+                    xlim: (0, 1.15),
+                    ylim: (0, 100)}
 
 colors = [get_color(color) for color in
           [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
@@ -232,7 +257,8 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 #     carlini_imagenet_full,
 # ]
 
-datasets = [robust_non_adaptive, robust_adaptive]
+# datasets = [robust_non_adaptive, robust_adaptive]
+datasets = [robust_non_adaptive2, robust_adaptive2]
 
 fig = plt.figure(figsize=(len(datasets) * width, height))
 

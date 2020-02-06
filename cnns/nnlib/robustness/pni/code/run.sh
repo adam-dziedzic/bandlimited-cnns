@@ -675,7 +675,7 @@ epochs=160
 batch_size=128
 optimizer=SGD
 # add more labels as additional info into the saving path
-label_info=train_layerwise_3e-4decay_adv_train_vanilla_resnet20_plain
+label_info=train_layerwise_3e-4decay_adv_train_vanilla_resnet20_plain_no_adv
 #dataset path
 data_path="/home/${USER}/data/pytorch/cifar10"
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
@@ -692,6 +692,9 @@ echo train_${timestamp}.txt
 [1] 111266
 cc@g-1:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo train_${timestamp}.txt
 train_2020-02-06-07-47-05-931286438.txt
+[1] 23458
+cc@g-1:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo train_${timestamp}.txt
+train_2020-02-06-16-33-52-502708202.txt
 
 PYTHON="/home/${USER}/anaconda3/bin/python" # python environment
 enable_tb_display=false # enable tensorboard display

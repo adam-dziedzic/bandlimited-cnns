@@ -814,11 +814,11 @@ if __name__ == "__main__":
             for noise in opt.noise_epsilons:
                 opt.noise_epsilon = noise
                 beg = time.time()
-                acc, avg_distort = acc_under_attack(dataloader_test, net, c,
+                acc, l2_dist, linf_dist = acc_under_attack(dataloader_test, net, c,
                                                     attack_f, opt,
                                                     netAttack=netAttack)
                 timing = time.time() - beg
-                print("{}, {}, {}, {}, {}".format(c, noise, acc, avg_distort,
+                print("{}, {}, {}, {}, {}".format(c, noise, acc, l2_dist,
                                                   timing))
                 sys.stdout.flush()
     else:
