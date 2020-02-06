@@ -79,7 +79,7 @@ class CifarResNet(nn.Module):
         self.num_classes = num_classes
 
         self.conv_1_3x3 = noise_Conv2d(3, 16, kernel_size=3, stride=1,
-                                       padding=1, bias=False, noise_std=0.15)
+                                       padding=1, bias=False, noise_std=0.2)
         self.bn_1 = nn.BatchNorm2d(16)
 
         self.inplanes = 16

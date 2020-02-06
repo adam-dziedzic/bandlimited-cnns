@@ -239,7 +239,7 @@ def acc_under_attack(dataloader, net, c, attack_f, opt, netAttack=None):
         distort_linf += torch.max(torch.abs(diff))
 
         distort_np = distort.clone().cpu().detach().numpy()
-        # distort_linf_np = distort_linf.cpu().detach().numpy()
+        distort_linf_np = distort_linf.cpu().detach().numpy()
 
         # elapsed = time.time() - beg
         # info = ['k', k, 'current_accuracy', correct / tot, 'L2 distortion',
@@ -252,7 +252,7 @@ def acc_under_attack(dataloader, net, c, attack_f, opt, netAttack=None):
         if opt.limit_batch_number > 0 and k >= opt.limit_batch_number:
             break
 
-    return correct / tot, np.sqrt(distort_np / tot)
+    return correct / tot, np.sqrt(distort_np / tot), distort_linf_np / tot
 
 
 def peek(dataloader, net, src_net, c, attack_f):

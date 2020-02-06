@@ -19,6 +19,7 @@ from cnns.nnlib.robustness.pni.code import models
 import copy
 
 from cnns.nnlib.robustness.pni.code.models.attack_model import Attack
+from cnns.nnlib.robustness.pni.code.models.attack_model import pgd_adapter
 from cnns.nnlib.robustness.pni.code.models.nomarlization_layer import \
     Normalize_layer, noise_Normalize_layer
 from cnns.nnlib.robustness.pni.code.models.noise_layer import noise_input_layer
@@ -111,13 +112,15 @@ parser.add_argument('--adv_eval', dest='adv_eval',
                     action='store_true',
                     help='enable the adversarial evaluation')
 parser.add_argument('--attack',
-                    default='pgd',
+                    default='pgd',  # or 'cw'
                     type=str,
                     help='name of the attack')
-parser.add_argument('--attack_carlini_eval',
-                    dest='attack_carlini_eval',
+parser.add_argument('--attack_eval',
+                    dest='attack_eval',
                     action='store_true',
-                    help='evaluate the adaptive Carlini Wagner attack')
+                    help='evaluate the adaptive attack to plot the distortion vs accuracy graph')
+parser.add_argument('--attack_iters', type=int, default=200,
+                    help='number of attack iterations')
 
 # PNI technique
 parser.add_argument('--input_noise',
@@ -417,9 +420,10 @@ def main():
             attacker=model_attack, adv_eval=args.adv_eval)
         return
 
-    if args.attack_carlini_eval:
-        attack_carlini(dataloader_test=test_loader,
-                       net=net)
+    if args.attack_eval:
+        attack_distortion_accuracy(dataloader_test=test_loader,
+                                   net=net, attack_name=args.attack,
+                                   attack_iters=args.attack_iters)
         return
 
     # Main loop
@@ -775,45 +779,44 @@ def accuracy_logger(base_dir, epoch, train_accuracy, test_accuracy):
             '{epoch}       {train}    {test}\n'.format(**recorder))
 
 
-def attack_carlini(dataloader_test, net):
-    print("#c, noise, test accuracy, L2 distortion, time (sec)")
-    for c in [0,
-              0.0001,
-              0.0005,
-              0.001,
-              0.005,
-              0.01,
-              0.02,
-              0.03,
-              0.04,
-              0.05,
-              0.07,
-              0.1,
-              0.2,
-              0.3,
-              0.4,
-              0.5,
-              1,
-              2,
-              10,
-              100,
-              ]:
+def select_attack(attack_name):
+    if attack_name == 'cw':
+        attack_f = attack_cw
+        attack_strengths = [0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.02, 0.03,
+                            0.04, 0.05, 0.07, 0.1, 0.2, 0.3, 0.4, 0.5, 1, 2, 10,
+                            100,
+                            ]
+    elif attack_name == 'pgd':
+        attack_f = pgd_adapter
+        attack_strengths = [0.0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1,
+                            1.0, 5.0, 10.0, 100.0, 500.0, 1000.0]
+    else:
+        raise Exception(f'Unknown attack: {args.attack}')
+    return attack_f, attack_strengths
+
+
+def attack_distortion_accuracy(dataloader_test, net,
+                               attack_iters=200, attack_name='cw'):
+    attack_f, attack_strengths = select_attack(attack_name=attack_name)
+    print(
+        "#c, noise, test accuracy, L2 distortion, Linf distortion, time (sec)")
+    for c in attack_strengths:
         opt = Object()
         opt.noise_epsilon = 0.0
         opt.gradient_iters = 1
-        opt.attack_iters = 200
+        opt.attack_iters = attack_iters
         opt.channel = 'empty'
         opt.ensemble = 1
         opt.limit_batch_number = 0
 
         beg = time.time()
-        acc, avg_distort = acc_under_attack(
+        acc, l2_distortion, linf_distortion = acc_under_attack(
             dataloader=dataloader_test, net=net, c=c,
-            attack_f=attack_cw, opt=opt,
+            attack_f=attack_f, opt=opt,
             netAttack=net)
         timing = time.time() - beg
         print("{}, {}, {}, {}, {}".format(
-            c, opt.noise_epsilon, acc, avg_distort, timing))
+            c, opt.noise_epsilon, acc, l2_distortion, linf_distortion, timing))
         sys.stdout.flush()
 
 

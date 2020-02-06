@@ -120,5 +120,6 @@ class Attack(object):
 
 
 def pgd_adapter(input_v, label_v, net, c, opt=None):
+    k = opt.attack_iters
     return Attack(dataloader=None).pgd(
-        model=net, data=input_v, target=label_v, a=c)
+        model=net, data=input_v, target=label_v, a=c, k=k)

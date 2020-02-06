@@ -301,3 +301,89 @@ echo test_${timestamp}.txt
 cc@g-1:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
 test_2020-02-05-21-11-12-389189283.txt
 
+PYTHON="/home/${USER}/anaconda3/bin/python" # python environment
+enable_tb_display=false # enable tensorboard display
+model=vanilla_resnet20
+dataset=cifar10
+epochs=160
+batch_size=2560
+optimizer=SGD
+# add more labels as additional info into the saving path
+label_info=train_layerwise_3e-4decay_no_adv_train_vanilla_net_eval_carlini
+pretrained_model="/home/${USER}/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/cifar10_vanilla_resnet20_160_SGD_train_layerwise_3e-4decay_robust_net/model_best.pth.tar"
+#dataset path
+data_path="/home/${USER}/data/pytorch/cifar10"
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+PYTHONPATH=../../../../../ nohup $PYTHON main.py --dataset ${dataset} \
+    --data_path ${data_path}   \
+    --arch ${model} --save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} \
+    --epochs ${epochs} --learning_rate 0.1 \
+    --optimizer ${optimizer} \
+	--schedule 80 120  --gammas 0.1 0.1 \
+    --batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
+    --print_freq 100 --decay 0.0003 --momentum 0.9 \
+    --resume ${pretrained_model} \
+    --attack_carlini_eval --epoch_delay 5 >> test_${timestamp}.txt 2>&1 &
+echo test_${timestamp}.txt
+[5] 107060
+cc@f:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
+test_2020-02-05-22-19-27-502676125.txt
+
+cifar10_noise_resnet20_robust_160_SGD_train_layerwise_3e-4decay_robust_net_init_noise_0.15
+
+PYTHON="/home/${USER}/anaconda3/bin/python" # python environment
+enable_tb_display=false # enable tensorboard display
+model=vanilla_resnet20
+dataset=cifar10
+epochs=160
+batch_size=2560
+optimizer=SGD
+# add more labels as additional info into the saving path
+label_info=train_layerwise_3e-4decay_no_adv_train_robust_net_0.15-0.1_eval_carlini
+pretrained_model="/home/${USER}/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/cifar10_noise_resnet20_robust_160_SGD_train_layerwise_3e-4decay_robust_net_init_noise_0.15/model_best.pth.tar"
+#dataset path
+data_path="/home/${USER}/data/pytorch/cifar10"
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+PYTHONPATH=../../../../../ nohup $PYTHON main.py --dataset ${dataset} \
+    --data_path ${data_path}   \
+    --arch ${model} --save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} \
+    --epochs ${epochs} --learning_rate 0.1 \
+    --optimizer ${optimizer} \
+	--schedule 80 120  --gammas 0.1 0.1 \
+    --batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
+    --print_freq 100 --decay 0.0003 --momentum 0.9 \
+    --resume ${pretrained_model} \
+    --attack_carlini_eval --epoch_delay 5 >> test_${timestamp}.txt 2>&1 &
+echo test_${timestamp}.txt
+[1] 106904
+cc@p:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
+test_2020-02-05-23-39-33-549076258.txt
+
+PYTHON="/home/${USER}/anaconda3/bin/python" # python environment
+enable_tb_display=false # enable tensorboard display
+model=noise_resnet20_weight
+dataset=cifar10
+epochs=160
+batch_size=2560
+optimizer=SGD
+# add more labels as additional info into the saving path
+label_info=train_layerwise_3e-4decay_adv_train_noise_weight_scaled_evaluate_pgd
+pretrained_model="/home/${USER}/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/save_adv_train_cifar10_noise_resnet20_weight_160_SGD_train_layerwise_3e-4decay/model_best.pth.tar"
+#dataset path
+data_path="/home/${USER}/data/pytorch/cifar10"
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+PYTHONPATH=../../../../../ nohup $PYTHON main.py --dataset ${dataset} \
+    --data_path ${data_path}   \
+    --arch ${model} --save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} \
+    --epochs ${epochs} --learning_rate 0.1 \
+    --optimizer ${optimizer} \
+	--schedule 80 120  --gammas 0.1 0.1 \
+    --batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
+    --print_freq 100 --decay 0.0003 --momentum 0.9 \
+    --attack_eval --attack 'pgd' --attack_iters 10 --resume ${pretrained_model} \
+    --epoch_delay 5 >> test_${timestamp}.txt 2>&1 &
+echo test_${timestamp}.txt
+[1] 24576
+ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
+test_2020-02-05-19-14-21-025639460.txt
+

@@ -496,6 +496,18 @@ echo train_${timestamp}.txt
 cc@f:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo train_${timestamp}.txt
 train_2020-02-05-16-51-32-572125767.txt
 
+cc@f:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$
+[1]   Done                    PYTHONPATH=../../../../../ nohup $PYTHON main.py --dataset ${dataset} --data_path ${data_path} --arch ${model} --save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} --epochs ${epochs} --learning_rate 0.1 --optimizer ${optimizer} --schedule 80 120 --gammas 0.1 0.1 --batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 --print_freq 100 --decay 0.0003 --momentum 0.9 --epoch_delay 5 --adv_train >> train_${timestamp}.txt 2>&1  (wd: ~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code)
+(wd now: ~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture)
+
+
+==>>[2020-02-05 21:58:12] [Epoch=159/160] [Need: 00:01:55] [LR=0.0010][M=0.90] [Best : Accuracy=84.15, Error=15.85]                           Epoch: [159][000/391]   Time 0.492 (0.492)   Data 0.199 (0.199)   Loss 0.7769 (0.7769)   Prec@1 93.750 (93.750)   Prec@5 99.219 (99.219)   [2020-02-05 21:58:12]                                                                                                                        Epoch: [159][100/391]   Time 0.304 (0.312)   Data 0.000 (0.002)   Loss 0.7494 (0.7410)   Prec@1 88.281 (88.877)   Prec@5 100.000 (99.613)   [2020-02-05 21:58:43]
+  Epoch: [159][200/391]   Time 0.344 (0.300)   Data 0.000 (0.001)   Loss 0.8205 (0.7450)   Prec@1 87.500 (89.043)   Prec@5 98.438 (99.677)   [2020-02-05 21:59:12]
+  Epoch: [159][300/391]   Time 0.327 (0.299)   Data 0.000 (0.001)   Loss 0.6536 (0.7461)   Prec@1 80.469 (88.741)   Prec@5 100.000 (99.676)   [2020-02-05 21:59:42]                                                                                                                       **Train** Prec@1 88.730 Prec@5 99.684 Error@1 11.270
+  **Adversarial Train** Prec@1 53.920 Prec@5 97.768 Error@1 46.080                                                                            **Test** Prec@1 83.760 Prec@5 99.270 Error@1 16.240
+---- save figure the accuracy/loss curve of train/val into ./save//cifar10_vanilla_resnet20_160_SGD_train_layerwise_3e-4decay_robust_net/curve.png
+
+
 PYTHON="/home/${USER}/anaconda3/bin/python" # python environment
 enable_tb_display=false # enable tensorboard display
 model=noise_resnet20_robust_input
@@ -601,4 +613,31 @@ echo ${timestamp}.txt
 cc@f:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
 2020-02-05-21-16-27-074140847.txt
 
+
+
+PYTHON="/home/${USER}/anaconda3/bin/python" # python environment
+enable_tb_display=false # enable tensorboard display
+model=noise_resnet20_robust
+dataset=cifar10
+epochs=160
+batch_size=128
+optimizer=SGD
+# add more labels as additional info into the saving path
+label_info=train_layerwise_3e-4decay_robust_net_init_noise_0.15
+#dataset path
+data_path="/home/${USER}/data/pytorch/cifar10"
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+PYTHONPATH=../../../../../ $PYTHON main.py --dataset ${dataset} \
+    --data_path ${data_path}   \
+    --arch ${model} --save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} \
+    --epochs ${epochs} --learning_rate 0.1 \
+    --optimizer ${optimizer} \
+	--schedule 80 120  --gammas 0.1 0.1 \
+    --batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
+    --print_freq 100 --decay 0.0003 --momentum 0.9 \
+    --epoch_delay 5 >> train_${timestamp}.txt 2>&1 &
+echo train_${timestamp}.txt
+[1] 77816
+cc@p:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo train_${timestamp}.txt
+train_2020-02-05-21-26-54-710179415.txt
 
