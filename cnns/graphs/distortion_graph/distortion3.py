@@ -175,19 +175,21 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 #     carlini_cifar10,
 #     carlini_imagenet_full,
 # ]
-# datasets = [carlini_cifar10,
+# datasets = [
+# carlini_cifar10,
 #             carlini_imagenet,
 #             # carlini_imagenet_full,
 #             # pgd_cifar10,
-#             random_pgd_cifar10,
+#             # random_pgd_cifar10,
 #             pgd_imagenet,
 #             fgsm_imagenet,
 #             ]
 
-datasets = [
-    random_pgd_cifar10_full,
-    carlini_imagenet_full,
-]
+# first figure
+# datasets = [
+#     random_pgd_cifar10_full,
+#     carlini_imagenet_full,
+# ]
 
 # width = 12
 # height = 5

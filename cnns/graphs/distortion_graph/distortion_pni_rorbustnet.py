@@ -40,7 +40,7 @@ def get_color(COLOR_TUPLE_255):
 
 # configuration more figures
 fontsize = 36
-legend_size = 26
+legend_size = 32
 title_size = 40
 width = 10
 height = 7
@@ -86,6 +86,7 @@ legend_cols = "legend_cols"
 xlim = "xlim"
 ylim = "ylim"
 is_log = "is_log"
+legend_title = "legend_title"
 
 carlini_cifar10 = {ylabel: "Accuracy (%)",
                    file_name: "distortionCarliniCifar3",
@@ -323,7 +324,7 @@ pni_robustnet_adv_c_param2 = {ylabel: "Test Accuracy (%)",
                               #          'PNI-W Adv\nResNet-20',
                               #          'RobustNet\nAdv. Train'
                               #          ],
-                              xlim: (0, 100),
+                              # xlim: (0, 100),
                               ylim: (0, 100),
                               is_log: True,
                               }
@@ -369,7 +370,6 @@ pni_robustnet_adv_train3 = {ylabel: "Test Accuracy (%)",
                             #          'PNI-W Adv\nResNet-20',
                             #          'RobustNet\nAdv. Train'
                             #          ],
-                            xlim: (0, 1.6),
                             ylim: (0, 100),
                             is_log: False}
 
@@ -448,7 +448,6 @@ pni_robustnet_adv_train_pgd_iters2 = {ylabel: "Test Accuracy (%)",
                                       #     'RobustNet\nResNet-20 2-1',
                                       #     'RobustNet\nAdv. Train'
                                       # ],
-                                      xlim: (0, 1000),
                                       ylim: (0, 100),
                                       is_log: True}
 
@@ -467,14 +466,100 @@ pni_robustnet_adv_train_pgd_dist_linf2 = {ylabel: "Test Accuracy (%)",
                                               'RobustNet',
                                               'RobustNet Adv.'
                                           ],
-                                          xlim: (0, 1000),
                                           ylim: (0, 100),
                                           is_log: False,
                                           }
 
+robust_non_adaptive2 = {ylabel: "Test Accuracy (%)",
+                        file_name: "distortion_robust_net_non_adaptive",
+                        title: "C&W L$_2$ non-adaptive",
+                        # legend_pos: "lower left",
+                        legend_pos: "upper right",
+                        # bbox: (0.0, 0.0),
+                        column_nr: 6,
+                        legend_cols: 1,
+                        labels: ['PlainNet', 'RobustNet', 'FC'],
+                        xlim: (-0.05, 1.15),
+                        ylim: (0, 100),
+                        xlabel: '$L_2$ distortion',
+                        is_log: False}
+
+robust_adaptive2 = {ylabel: "Test Accuracy (%)",
+                    file_name: "distortion_robust_net2",
+                    title: "C&W L$_2$ adaptive",
+                    # legend_pos: "lower left",
+                    legend_pos: "upper right",
+                    # bbox: (0.0, 0.0),
+                    column_nr: 6,
+                    legend_cols: 1,
+                    # labels: ['plain', 'robust\n0.2 0.1', 'fft 50%'],
+                    labels: ['PlainNet', 'RobustNet', 'FC'],
+                    xlim: (-0.05, 1.15),
+                    ylim: (0, 100),
+                    xlabel: '$L_2$ distortion',
+                    is_log: False}
+
+train_vs_inference = {
+    ylabel: "Test Accuracy (%)",
+    file_name: "train_vs_test_perturbation2",
+    # title: "C&W L$_2$ adaptive",
+    title: "ParamNet",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    # bbox: (0.0, 0.0),
+    column_nr: 8,
+    legend_cols: 1,
+    labels: ['test 0.01', 'train 0.01',
+             'test 0.02', 'train 0.02'],
+    # xlim: (0, 1.15),
+    ylim: (0, 100),
+    xlabel: '$L_2$ distortion',
+    is_log: False,
+    # legend_title: 'ParamNet:',
+}
+
+train_vs_inference3 = {
+    ylabel: "Test Accuracy (%)",
+    file_name: "train_vs_test_perturbation3",
+    # title: "C&W L$_2$ adaptive",
+    title: "ParamNet",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    # bbox: (0.0, 0.0),
+    column_nr: 12,
+    legend_cols: 1,
+    labels: ['test 0.01', 'train 0.01',
+             'test 0.02', 'train 0.02',
+             'test 0.07', 'train 0.07'],
+    # xlim: (0, 1.15),
+    ylim: (0, 100),
+    xlabel: '$L_2$ distortion',
+    is_log: False,
+    # legend_title: 'ParamNet:',
+}
+
+robust_layers_dp = {
+    ylabel: "Test Accuracy (%)",
+    file_name: "distortion_robust_net_layers",
+    # title: "C&W L$_2$ adaptive",
+    title: "RobustNet",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    # bbox: (0.0, 0.0),
+    column_nr: 8,
+    legend_cols: 1,
+    labels: ['0.0 0.0', '0.2 0.1', '0.2 0.0',
+             '0.3 0.0'],
+    xlim: (-0.05, 1.15),
+    ylim: (0, 100),
+    xlabel: '$L_2$ distortion',
+    is_log: False,
+    # legend_title: 'RobustNet:',
+}
+
 colors = [get_color(color) for color in
           [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
-markers = ["+", "o", "v", "s", "D", "^", "+"]
+markers = ["o", "v", "o", "v", "s", "D", "^", "+"]
 linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 
 # datasets = [
@@ -514,12 +599,25 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 #     pni_robustnet_adv_train_pgd_dist_linf,
 # ]
 
-datasets = [
-    pni_robustnet_adv_c_param2,
-    pni_robustnet_adv_train3,
-    pni_robustnet_adv_train_pgd_iters2,
-    pni_robustnet_adv_train_pgd_dist_linf2,
-]
+# first distortion
+# datasets = [
+#     random_pgd_cifar10_full,
+#     carlini_imagenet_full,
+# ]
+
+# non adaptive vs adaptive
+datasets = [robust_non_adaptive2, robust_adaptive2]
+
+# train vs test + where to place noise layer
+# datasets = [train_vs_inference3, robust_layers_dp]
+
+# last figure
+# datasets = [
+#     pni_robustnet_adv_c_param2,
+#     pni_robustnet_adv_train3,
+#     pni_robustnet_adv_train_pgd_iters2,
+#     pni_robustnet_adv_train_pgd_dist_linf2,
+# ]
 
 fig = plt.figure(figsize=(len(datasets) * width, height))
 
@@ -543,18 +641,27 @@ for j, dataset in enumerate(datasets):
                  lw=line_width,
                  color=colors[i],
                  linestyle=linestyles[i],
-                 marker="o",
+                 marker=markers[i],
                  ms=8)
 
     plt.grid()
+    if legend_title in dataset:
+        legend_title_str = dataset[legend_title]
+    else:
+        legend_title_str = None
     plt.legend(loc=dataset[legend_pos],
                ncol=dataset[legend_cols],
                frameon=False,
                prop={'size': legend_size},
                columnspacing=1.0,
-               # bbox_to_anchor=dataset[bbox]
+               # bbox_to_anchor=dataset[bbox],
+               title=legend_title_str,
                )
-    plt.xlabel(dataset[xlabel])
+    if xlabel in dataset:
+        xlabel_str = dataset[xlabel]
+    else:
+        xlabel_str = '$L_2$ distortion'
+    plt.xlabel(xlabel_str)
     plt.title(dataset[title], fontsize=title_size)
     if j == 0:
         plt.ylabel(dataset[ylabel])
@@ -563,8 +670,9 @@ for j, dataset in enumerate(datasets):
         # ax.axes.get_yaxis().set_visible(False)
         # ax.set_yticklabels([])
     plt.ylim(dataset[ylim])
-    # plt.xlim(dataset[xlim])
-    if dataset[is_log]:
+    if xlim in dataset:
+        plt.xlim(dataset[xlim])
+    if is_log in dataset and dataset[is_log]:
         plt.xscale('log', basex=10)
 
 # plt.gcf().autofmt_xdate()
