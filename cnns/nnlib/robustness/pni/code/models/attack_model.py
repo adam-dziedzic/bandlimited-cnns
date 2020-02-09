@@ -8,7 +8,8 @@ from cnns.nnlib.utils.object import Object
 class Attack(object):
 
     def __init__(self, dataloader, criterion=None, gpu_id=0,
-                 epsilon=0.031, attack_method='pgd'):
+                 epsilon=0.031, attack_method='pgd',
+                 iterations=7):
 
         if criterion is not None:
             self.criterion = criterion
@@ -18,6 +19,7 @@ class Attack(object):
         self.dataloader = dataloader
         self.epsilon = epsilon
         self.gpu_id = gpu_id  # this is integer
+        self.iterations = iterations
 
         if attack_method is 'fgsm':
             self.attack_method = self.fgsm
@@ -65,8 +67,22 @@ class Attack(object):
 
         return perturbed_data
 
-    def pgd(self, model, data, target, k=7, a=0.01, random_start=True,
+    def pgd(self, model, data, target, k=None, a=0.01, random_start=True,
             d_min=0, d_max=1):
+        """
+
+        :param model:
+        :param data:
+        :param target:
+        :param k: set to either 7 or 40
+        :param a:
+        :param random_start:
+        :param d_min:
+        :param d_max:
+        :return:
+        """
+        if k is None:
+            k = self.iterations
 
         model.eval()
         # perturbed_data = copy.deepcopy(data)

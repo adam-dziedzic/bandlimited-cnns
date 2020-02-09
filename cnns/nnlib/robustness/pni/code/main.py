@@ -412,7 +412,8 @@ def main():
     # initialize the attacker object
     model_attack = Attack(dataloader=train_loader,
                           attack_method=args.attack,
-                          epsilon=0.031)
+                          epsilon=0.031,
+                          iterations=args.attack_iters)
 
     if args.evaluate:
         validate(
