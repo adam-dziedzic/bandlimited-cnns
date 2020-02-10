@@ -128,6 +128,13 @@ parser.add_argument('--input_noise',
                     action='store_true',
                     help='enable PNI for input, which is right after '
                          'normalization layer')
+
+# RobustNet noise tuning
+parser.add_argument('--init_noise', type=float, default=0.2,
+                    help='init noise')
+parser.add_argument('--inner_noise', type=float, default=0.1,
+                    help='inner noise')
+
 # normalization
 parser.add_argument('--normalization',
                     dest='normalization',
@@ -300,7 +307,12 @@ def main():
     print_log("=> creating model '{}'".format(args.arch), log)
 
     # Init model, criterion, and optimizer
-    net_c = models.__dict__[args.arch](num_classes)
+    if args.arch == 'noise_resnet_cifar_robust':
+        net_c = models.noise_resnet20_robust(num_classes=num_classes,
+                                             init_noise=args.init_noise,
+                                             inner_noise=args.inner_noise)
+    else:
+        net_c = models.__dict__[args.arch](num_classes=num_classes)
     # For adversarial case, add normalization layer in front of the original network
     if (args.adv_train or args.adv_eval):
         if not args.input_noise:
