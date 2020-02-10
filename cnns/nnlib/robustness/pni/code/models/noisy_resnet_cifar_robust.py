@@ -25,15 +25,18 @@ class ResNetBasicblock(nn.Module):
     RexNet basicblock (https://github.com/facebook/fb.resnet.torch/blob/master/models/resnet.lua)
     """
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
+    def __init__(self, inplanes, planes, stride=1, downsample=None,
+                 inner_noise=0.1):
         super(ResNetBasicblock, self).__init__()
 
         self.conv_a = noise_Conv2d(inplanes, planes, kernel_size=3,
-                                   stride=stride, padding=1, bias=False)
+                                   stride=stride, padding=1, bias=False,
+                                   noise_std=inner_noise)
         self.bn_a = nn.BatchNorm2d(planes)
 
         self.conv_b = noise_Conv2d(planes, planes, kernel_size=3, stride=1,
-                                   padding=1, bias=False)
+                                   padding=1, bias=False,
+                                   noise_std=inner_noise)
         self.bn_b = nn.BatchNorm2d(planes)
 
         self.downsample = downsample
@@ -60,7 +63,8 @@ class CifarResNet(nn.Module):
     https://arxiv.org/abs/1512.03385.pdf
     """
 
-    def __init__(self, block, depth, num_classes):
+    def __init__(self, block, depth, num_classes, init_noise,
+                 inner_noise):
         """ Constructor
         Args:
           depth: number of layers.
@@ -79,13 +83,14 @@ class CifarResNet(nn.Module):
         self.num_classes = num_classes
 
         self.conv_1_3x3 = noise_Conv2d(3, 16, kernel_size=3, stride=1,
-                                       padding=1, bias=False, noise_std=0.2)
+                                       padding=1, bias=False,
+                                       noise_std=init_noise)
         self.bn_1 = nn.BatchNorm2d(16)
 
         self.inplanes = 16
-        self.stage_1 = self._make_layer(block, 16, layer_blocks, 1)
-        self.stage_2 = self._make_layer(block, 32, layer_blocks, 2)
-        self.stage_3 = self._make_layer(block, 64, layer_blocks, 2)
+        self.stage_1 = self._make_layer(block=block, planes=16, blocks=layer_blocks, stride=1, inner_noise=inner_noise)
+        self.stage_2 = self._make_layer(block=block, planes=32, blocks=layer_blocks, stride=2, inner_noise=inner_noise)
+        self.stage_3 = self._make_layer(block=block, planes=64, blocks=layer_blocks, stride=2, inner_noise=inner_noise)
         self.avgpool = nn.AvgPool2d(8)
         self.classifier = nn.Linear(64 * block.expansion, num_classes)
 
@@ -101,7 +106,7 @@ class CifarResNet(nn.Module):
                 init.kaiming_normal(m.weight)
                 m.bias.data.zero_()
 
-    def _make_layer(self, block, planes, blocks, stride=1):
+    def _make_layer(self, block, planes, blocks, stride=1, inner_noise=0.1):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = DownsampleA(self.inplanes, planes * block.expansion,
@@ -111,7 +116,9 @@ class CifarResNet(nn.Module):
         layers.append(block(self.inplanes, planes, stride, downsample))
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes))
+            layers.append(block(inplanes=self.inplanes,
+                                planes=planes,
+                                inner_noise=inner_noise))
 
         return nn.Sequential(*layers)
 
@@ -126,12 +133,18 @@ class CifarResNet(nn.Module):
         return self.classifier(x)
 
 
-def noise_resnet20_robust(num_classes=10):
+def noise_resnet20_robust(
+        num_classes=10, init_noise=0.1, inner_noise=0.1):
     """Constructs a ResNet-20 model for CIFAR-10 (by default)
     Args:
       num_classes (uint): number of classes
     """
-    model = CifarResNet(ResNetBasicblock, 20, num_classes)
+    model = CifarResNet(block=ResNetBasicblock,
+                        depth=20,
+                        num_classes=num_classes,
+                        init_noise=init_noise,
+                        inner_noise=inner_noise
+                        )
     return model
 
 
