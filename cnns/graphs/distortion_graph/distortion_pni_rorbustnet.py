@@ -1,5 +1,5 @@
 import matplotlib
-
+import sys
 # matplotlib.use('TkAgg')
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
@@ -69,9 +69,11 @@ def read_columns(dataset, columns=5):
             if i > 0:  # skip header
                 for column in range(columns):
                     try:
+                        # print(row[column])
+                        # sys.stdout.flush()
                         cols[column].append(float(row[column]))
                     except ValueError as ex:
-                        print("Exception: ", ex)
+                        print("Exception: ", ex, " value: ", row[column])
     return cols
 
 
@@ -642,6 +644,93 @@ four_pgd_linf_distance_40_iters_pgd_adv_train = {
     is_log: False,
 }
 
+svhn_cw_c = {
+    ylabel: "Test Accuracy (%)",
+    xlabel: 'C&W c parameter',
+    file_name: 'svhn_cw_c',
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "CW L$_2$ adaptive",
+    legend_pos: "lower left",
+    # legend_pos: "upper right",
+    bbox: (-1.0, 0.0),
+    column_nr: 8,
+    legend_cols: 1,
+    labels: [
+        'Adv. Train',
+        'PNI-W Adv.',
+        'RobustNet',
+        'RobustNet Adv.'
+    ],
+    ylim: (0, 100),
+    is_log: True,
+}
+
+svhn_cw_dist = {
+    ylabel: "Test Accuracy (%)",
+    xlabel: 'L$_2$ distortion',
+    file_name: 'svhn_cw_dist',
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "CW L$_2$ adaptive",
+    legend_pos: "upper right",
+    # legend_pos: "lower left",
+    # legend_pos: "upper right",
+    bbox: (-1.0, 0.0),
+    column_nr: 8,
+    legend_cols: 1,
+    labels: [
+        'Adv. Train',
+        'PNI-W Adv.',
+        'RobustNet',
+        'RobustNet Adv.'
+    ],
+    ylim: (0, 100),
+    is_log: False,
+}
+
+svhn_pgd_iters = {
+    ylabel: "Test Accuracy (%)",
+    xlabel: '# of PGD iterations',
+    file_name: "svhn_pgd_iters",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "PGD L$_\infty$ adaptive",
+    # legend_pos: "lower left",
+    legend_pos: "center right",
+    # legend_pos: "upper right",
+    bbox: (-1.0, 0.0),
+    column_nr: 8,
+    legend_cols: 1,
+    labels: [
+        'Adv. Train',
+        'PNI-W Adv.',
+        'RobustNet',
+        'RobustNet Adv.'
+    ],
+    ylim: (0, 100),
+    is_log: True,
+}
+
+svhn_pgd_dist = {
+    ylabel: "Test Accuracy (%)",
+    xlabel: '$L_\infty$ distortion x $10^{-6}$',
+    file_name: "svhn_pgd_dist",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "PGD L$_\infty$ adaptive",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    # legend_pos: "center",
+    bbox: (-1.0, 0.0),
+    column_nr: 8,
+    legend_cols: 1,
+    labels: [
+        'Adv. Train',
+        'PNI-W Adv.',
+        'RobustNet',
+        'RobustNet Adv.'
+    ],
+    ylim: (0, 100),
+    is_log: False,
+}
+
 colors = [get_color(color) for color in
           [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
 markers = ["o", "v", "o", "v", "s", "D", "^", "+"]
@@ -697,12 +786,12 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 # datasets = [train_vs_inference3, robust_layers_dp]
 
 # last figure
-datasets = [
-    pni_robustnet_adv_c_param2,
-    pni_robustnet_adv_train3,
-    pni_robustnet_adv_train_pgd_iters2,
-    pni_robustnet_adv_train_pgd_dist_linf2,
-]
+# datasets = [
+#     pni_robustnet_adv_c_param2,
+#     pni_robustnet_adv_train3,
+#     pni_robustnet_adv_train_pgd_iters2,
+#     pni_robustnet_adv_train_pgd_dist_linf2,
+# ]
 
 # 40 iterations for PGD attack during training
 # datasets = [four_cw_c_40_iters_pgd_adv_train,
@@ -711,6 +800,13 @@ datasets = [
 #             four_pgd_linf_distance_40_iters_pgd_adv_train,
 #             ]
 
+# svhn
+datasets = [
+    svhn_cw_c,
+    svhn_cw_dist,
+    svhn_pgd_iters,
+    svhn_pgd_dist,
+]
 
 fig = plt.figure(figsize=(len(datasets) * width, height))
 
