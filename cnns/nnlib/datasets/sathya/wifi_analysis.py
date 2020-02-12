@@ -93,7 +93,7 @@ class LeastSquareClassifierWithOnes(BaseEstimator, ClassifierMixin):
 
 
 classifiers = {
-    # "AdaBoost1": AdaBoostClassifier(n_estimators=1000),
+    "AdaBoost1": AdaBoostClassifier(n_estimators=1000),
     # "AdaBoost2": AdaBoostClassifier(n_estimators=750),
     # "AdaBoost3": AdaBoostClassifier(n_estimators=2000),
     "Random Forest1": RandomForestClassifier(max_depth=90,

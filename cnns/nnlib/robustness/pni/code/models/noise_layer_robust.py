@@ -13,6 +13,8 @@ class noise_Conv2d(nn.Conv2d):
         self.noise_std = noise_std
 
     def forward(self, input):
+        std = input.std().item()
+        print('std: ', std)
         noise_i = input.clone().normal_(0, self.noise_std)
         noise_input = input + noise_i
 
