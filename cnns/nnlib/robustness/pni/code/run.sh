@@ -2437,7 +2437,7 @@ epochs=160
 batch_size=128
 optimizer=SGD
 # add more labels as additional info into the saving path
-label_info=train_layerwise_3e-4decay-no-adv-train_robust-0.05-0.04
+label_info=train_layerwise_3e-4decay-without-adv-train_robust-0.05-0.04
 #dataset path
 data_path="/home/${USER}/code/bandlimited-cnns/cnns/nnlib/datasets"
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
@@ -2455,7 +2455,8 @@ CUDA_VISIBLE_DEVICES=3 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
     --inner_noise 0.04 \
     --attack_iters 0 >> train_${timestamp}.txt 2>&1 &
 echo train_${timestamp}.txt
-[1] 31766
+[1] 27282
 ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo train_${timestamp}.txt
-train_2020-02-25-11-15-30-615969791.txt
+train_2020-02-26-21-25-59-790512155.txt
+
 

@@ -438,7 +438,7 @@ def get_nets(opt):
     else:
         raise Exception(f"Unknown opt.net: {opt.net}")
 
-    get_parameter_stats(net)
+    # get_parameter_stats(net)
 
     try:
         gpus = os.environ['CUDA_VISIBLE_DEVICES']
