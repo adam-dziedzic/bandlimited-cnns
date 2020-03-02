@@ -805,11 +805,11 @@ def select_attack(attack_name, attack_iters=200):
         attack_strengths = [0.01]
         # attack_strengths = [0, 0.0001, 0.0005, 0.001, 0.005,
         #                     0.01, 0.05, 0.1]
-        # attack_strengths = [0.0, 0.005, 0.01, 0.015, 0.02, 0.022,
-        #                     0.025, 0.028, 0.03, 0.031, 0.032,
-        #                     0.033, 0.034, 0.035, 0.036, 0.037,
-        #                     0.038, 0.039, 0.04]
-        attack_iters = [0, 1, 4, 7, 10, 20, 40, 100, 1000]
+        attack_strengths = [0.0, 0.005, 0.01, 0.015, 0.02, 0.022,
+                            0.025, 0.028, 0.03, 0.031, 0.032,
+                            0.033, 0.034, 0.035, 0.036, 0.037,
+                            0.038, 0.039, 0.04]
+        # attack_iters = [0, 1, 4, 7, 10, 20, 40, 100, 1000]
         # attack_iters = [attack_iters]
     else:
         raise Exception(f'Unknown attack: {args.attack}')
