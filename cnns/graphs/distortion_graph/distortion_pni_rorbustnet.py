@@ -731,6 +731,92 @@ svhn_pgd_dist = {
     is_log: False,
 }
 
+
+cw_c_40_iters_pgd_adv = {
+    ylabel: "Test Accuracy (%)",
+    xlabel: 'C&W c parameter',
+    file_name: "distortion_cw_c_40_iters_pgd_adv_train2",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "CW L$_2$ adaptive",
+    legend_pos: "lower left",
+    # legend_pos: "upper right",
+    bbox: (-1.0, 0.0),
+    column_nr: 8,
+    legend_cols: 1,
+    labels: [
+        'Adv. Train',
+        'PNI-W Adv.',
+        'RobustNet',
+        'RobustNet Adv.'
+    ],
+    ylim: (0, 100),
+    is_log: True,
+}
+
+cw_dist_40_iters_pgd_adv = {
+    ylabel: "Test Accuracy (%)",
+    xlabel: 'L$_2$ distortion',
+    file_name: "distortion_cw_l2_distance_40_iters_pgd_adv_train2",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "CW L$_2$ adaptive",
+    legend_pos: "lower left",
+    # legend_pos: "upper right",
+    bbox: (-1.0, 0.0),
+    column_nr: 8,
+    legend_cols: 1,
+    labels: [
+        'Adv. Train',
+        'PNI-W Adv.',
+        'RobustNet',
+        'RobustNet Adv.'
+    ],
+    ylim: (0, 100),
+    is_log: False,
+}
+
+pgd_iters_40_iters_pgd_adv_train = {
+    ylabel: "Test Accuracy (%)",
+    xlabel: '# of PGD iterations',
+    file_name: "distortion_pgd_many_iters_attack_train_40_iters_pgd_adv_train2",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "PGD L$_\infty$ adaptive",
+    legend_pos: "lower left",
+    # legend_pos: "upper right",
+    bbox: (-1.0, 0.0),
+    column_nr: 8,
+    legend_cols: 1,
+    labels: [
+        'Adv. Train',
+        'PNI-W Adv.',
+        'RobustNet',
+        'RobustNet Adv.'
+    ],
+    ylim: (0, 100),
+    is_log: True,
+}
+
+pgd_dist_40_iters_pgd_adv_train = {
+    ylabel: "Test Accuracy (%)",
+    xlabel: '$L_\infty$ distortion x $10^{-6}$',
+    file_name: "distortion_pgd_linf_distance_40_iters_pgd_adv_train2",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "PGD L$_\infty$ adaptive",
+    legend_pos: "lower left",
+    # legend_pos: "upper right",
+    bbox: (-1.0, 0.0),
+    column_nr: 8,
+    legend_cols: 1,
+    labels: [
+        'Adv. Train',
+        'PNI-W Adv.',
+        'RobustNet',
+        'RobustNet Adv.'
+    ],
+    ylim: (0, 100),
+    is_log: False,
+}
+
+
 colors = [get_color(color) for color in
           [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
 markers = ["o", "v", "o", "v", "s", "D", "^", "+"]
@@ -801,11 +887,19 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 #             ]
 
 # svhn
+# datasets = [
+#     svhn_cw_c,
+#     svhn_cw_dist,
+#     svhn_pgd_iters,
+#     svhn_pgd_dist,
+# ]
+
+# cifar10 40 iters adv train
 datasets = [
-    svhn_cw_c,
-    svhn_cw_dist,
-    svhn_pgd_iters,
-    svhn_pgd_dist,
+    cw_c_40_iters_pgd_adv,
+    cw_dist_40_iters_pgd_adv,
+    pgd_iters_40_iters_pgd_adv_train,
+    pgd_dist_40_iters_pgd_adv_train,
 ]
 
 fig = plt.figure(figsize=(len(datasets) * width, height))
