@@ -2404,6 +2404,8 @@ echo test_${timestamp}.txt
 cc@m-2:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
 test_2020-03-06-02-49-42-414498876.txt
 
+# pgd iters
+
 PYTHON="/home/${USER}/anaconda3/bin/python" # python environment
 enable_tb_display=false # enable tensorboard display
 model=noise_resnet20_robust
@@ -2433,9 +2435,9 @@ CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
     --inner_noise 0.07 \
     --epoch_delay 5 >> test_${timestamp}.txt 2>&1 &
 echo test_${timestamp}.txt
-[1] 97652
+[1] 97780
 cc@m:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
-test_2020-03-06-02-56-21-462204242.txt
+test_2020-03-06-03-03-42-912748914.txt
 
 PYTHON="/home/${USER}/anaconda3/bin/python" # python environment
 enable_tb_display=false # enable tensorboard display
@@ -2466,5 +2468,8 @@ CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
     --inner_noise 0.07 \
     --epoch_delay 5 >> test_${timestamp}.txt 2>&1 &
 echo test_${timestamp}.txt
+[2] 97988
+cc@m:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
+test_2020-03-06-03-04-00-676250511.txt
 
 
