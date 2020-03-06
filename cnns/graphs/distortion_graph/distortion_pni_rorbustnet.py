@@ -502,6 +502,35 @@ robust_adaptive2 = {ylabel: "Test Accuracy (%)",
                     xlabel: '$L_2$ distortion',
                     is_log: False}
 
+robust_non_adaptive3 = {ylabel: "Test Accuracy (%)",
+                        file_name: "distortion_robust_net_non_adaptive3",
+                        title: "C&W L$_2$ non-adaptive",
+                        # legend_pos: "lower left",
+                        legend_pos: "upper right",
+                        # bbox: (0.0, 0.0),
+                        column_nr: 8,
+                        legend_cols: 1,
+                        labels: ['PlainNet', 'RobustNet', 'FC', 'BandLimit'],
+                        xlim: (-0.05, 1.15),
+                        ylim: (0, 100),
+                        xlabel: '$L_2$ distortion',
+                        is_log: False}
+
+robust_adaptive3 = {ylabel: "Test Accuracy (%)",
+                    file_name: "distortion_robust_net3",
+                    title: "C&W L$_2$ adaptive",
+                    # legend_pos: "lower left",
+                    legend_pos: "upper right",
+                    # bbox: (0.0, 0.0),
+                    column_nr: 8,
+                    legend_cols: 1,
+                    # labels: ['plain', 'robust\n0.2 0.1', 'fft 50%'],
+                    labels: ['PlainNet', 'RobustNet', 'FC', 'BandLimit'],
+                    xlim: (-0.05, 1.15),
+                    ylim: (0, 100),
+                    xlabel: '$L_2$ distortion',
+                    is_log: False}
+
 train_vs_inference = {
     ylabel: "Test Accuracy (%)",
     file_name: "train_vs_test_perturbation2",
@@ -867,6 +896,7 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 
 # non adaptive vs adaptive
 # datasets = [robust_non_adaptive2, robust_adaptive2]
+datasets = [robust_non_adaptive3, robust_adaptive3]
 
 # train vs test + where to place noise layer
 # datasets = [train_vs_inference3, robust_layers_dp]
@@ -895,12 +925,12 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 # ]
 
 # cifar10 40 iters adv train
-datasets = [
-    cw_c_40_iters_pgd_adv,
-    cw_dist_40_iters_pgd_adv,
-    pgd_iters_40_iters_pgd_adv_train,
-    pgd_dist_40_iters_pgd_adv_train,
-]
+# datasets = [
+#     cw_c_40_iters_pgd_adv,
+#     cw_dist_40_iters_pgd_adv,
+#     pgd_iters_40_iters_pgd_adv_train,
+#     pgd_dist_40_iters_pgd_adv_train,
+# ]
 
 fig = plt.figure(figsize=(len(datasets) * width, height))
 
