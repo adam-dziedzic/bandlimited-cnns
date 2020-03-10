@@ -3055,3 +3055,63 @@ echo train_${timestamp}.txt
 ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo train_${timestamp}.txt
 train_2020-03-05-19-53-35-772051178.txt
 
+PYTHON="/home/${USER}/anaconda3/bin/python" # python environment
+enable_tb_display=false # enable tensorboard display
+model=noise_resnet20_robust
+dataset=svhn
+epochs=160
+batch_size=128
+optimizer=SGD
+# add more labels as additional info into the saving path
+label_info=no-adv-train_robust-0.09-0.08
+#dataset path
+data_path="/home/${USER}/code/bandlimited-cnns/cnns/nnlib/datasets"
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
+    --dataset ${dataset} \
+    --data_path ${data_path}   \
+    --arch ${model} \
+    --save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} \
+    --epochs ${epochs} --learning_rate 0.1 \
+    --optimizer ${optimizer} \
+	--schedule 80 120  --gammas 0.1 0.1 \
+    --batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
+    --print_freq 100 --decay 0.0003 --momentum 0.9 \
+    --epoch_delay 5 --init_noise 0.09 \
+    --inner_noise 0.08 \
+    --attack_iters 0 >> train_${timestamp}.txt 2>&1 &
+echo train_${timestamp}.txt
+[1] 99000
+cc@m-3:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo train_${timestamp}.txt
+train_2020-03-06-03-20-54-406689261.txt
+
+PYTHON="/home/${USER}/anaconda3/bin/python" # python environment
+enable_tb_display=false # enable tensorboard display
+model=noise_resnet20_robust
+dataset=svhn
+epochs=160
+batch_size=128
+optimizer=SGD
+# add more labels as additional info into the saving path
+label_info=no-adv-train_robust-0.1-0.09
+#dataset path
+data_path="/home/${USER}/code/bandlimited-cnns/cnns/nnlib/datasets"
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
+    --dataset ${dataset} \
+    --data_path ${data_path}   \
+    --arch ${model} \
+    --save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} \
+    --epochs ${epochs} --learning_rate 0.1 \
+    --optimizer ${optimizer} \
+	--schedule 80 120  --gammas 0.1 0.1 \
+    --batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
+    --print_freq 100 --decay 0.0003 --momentum 0.9 \
+    --epoch_delay 5 --init_noise 0.1 \
+    --inner_noise 0.09 \
+    --attack_iters 0 >> train_${timestamp}.txt 2>&1 &
+echo train_${timestamp}.txt
+[2] 101138
+cc@m-3:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo train_${timestamp}.txt
+train_2020-03-06-03-29-25-885235788.txt
+
