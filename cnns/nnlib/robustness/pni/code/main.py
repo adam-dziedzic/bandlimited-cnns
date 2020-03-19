@@ -1,6 +1,5 @@
 from __future__ import division
 from __future__ import absolute_import
-import numpy as np
 import os
 import sys
 import shutil
@@ -56,7 +55,10 @@ parser.add_argument('--epochs', type=int, default=160,
                     help='Number of epochs to train.')
 parser.add_argument('--optimizer', type=str, default='SGD',
                     choices=['SGD', 'Adam'])
-parser.add_argument('--batch_size', type=int, default=128, help='Batch size.')
+parser.add_argument('--batch_size',
+                    type=int,
+                    default=128,
+                    help='Batch size.')
 parser.add_argument('--learning_rate', type=float,
                     default=0.1, help='The Learning Rate.')
 parser.add_argument('--momentum', type=float, default=0.9, help='Momentum.')
@@ -72,7 +74,7 @@ parser.add_argument('--print_freq', default=100, type=int,
 parser.add_argument('--save_path',
                     type=str,
                     default='./save/',
-                    # default='./svae/save_adv_train_cifar10_noise_resnet20_input_160_SGD_train_layerwise_3e-4decay/mode_best.pth.tar',
+                    # default='./save/save_adv_train_cifar10_noise_resnet20_input_160_SGD_train_layerwise_3e-4decay/mode_best.pth.tar',
                     help='Folder to save checkpoints and log.')
 parser.add_argument('--resume',
                     default='',
@@ -118,9 +120,14 @@ parser.add_argument('--attack',
 parser.add_argument('--attack_eval',
                     dest='attack_eval',
                     action='store_true',
-                    help='evaluate the adaptive attack to plot the distortion vs accuracy graph')
-parser.add_argument('--attack_iters', type=int, default=200,
+                    help='evaluate the adaptive attack to plot the distortion '
+                         'vs accuracy graph')
+parser.add_argument('--attack_iters', type=int, nargs='+', default=[200],
                     help='number of attack iterations')
+parser.add_argument('--attack_strengths', type=float, nargs='+', default=None,
+                    help='the strengths of the attack (this is the maximum '
+                         'L infinity distortions for the PGD attack and the '
+                         'c parameter for the Carlini-Wagner L2 attack).')
 
 # PNI technique
 parser.add_argument('--input_noise',
@@ -436,7 +443,8 @@ def main():
     if args.attack_eval:
         attack_distortion_accuracy(dataloader_test=test_loader,
                                    net=net, attack_name=args.attack,
-                                   attack_iters=args.attack_iters)
+                                   attack_iters=args.attack_iters,
+                                   attack_strengths=args.attack_strengths)
         return
 
     # Main loop
@@ -792,34 +800,39 @@ def accuracy_logger(base_dir, epoch, train_accuracy, test_accuracy):
             '{epoch}       {train}    {test}\n'.format(**recorder))
 
 
-def select_attack(attack_name, attack_iters=200):
+def select_attack(attack_name, attack_iters=[200], attack_strengths=None):
     if attack_name == 'cw':
         attack_f = attack_cw
-        attack_strengths = [0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.02, 0.03,
+        if attack_strengths is None:
+            attack_strengths = [0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.02, 0.03,
                             0.04, 0.05, 0.07, 0.1, 0.2, 0.3, 0.4, 0.5, 1, 2, 10,
                             100,
                             ]
-        attack_iters = [attack_iters]
+        attack_iters = attack_iters
     elif attack_name == 'pgd':
         attack_f = pgd_adapter
         # attack_strengths = [0.03]
         # attack_strengths = [0, 0.0001, 0.0005, 0.001, 0.005,
         #                     0.01, 0.05, 0.1]
-        attack_strengths = [0.0, 0.005, 0.01, 0.015, 0.02, 0.022,
-                            0.025, 0.028, 0.03, 0.031, 0.032,
-                            0.033, 0.034, 0.035, 0.036, 0.037,
-                            0.038, 0.039, 0.04]
+        if attack_strengths is None:
+            attack_strengths = [0.0, 0.005, 0.01, 0.015, 0.02, 0.022,
+                                0.025, 0.028, 0.03, 0.031, 0.032,
+                                0.033, 0.034, 0.035, 0.036, 0.037,
+                                0.038, 0.039, 0.04, 0.05]
         # attack_iters = [0, 1, 4, 7, 10, 20, 40, 100, 1000]
-        attack_iters = [attack_iters]
+        attack_iters = attack_iters
     else:
         raise Exception(f'Unknown attack: {args.attack}')
     return attack_f, attack_strengths, attack_iters
 
 
 def attack_distortion_accuracy(dataloader_test, net,
-                               attack_iters=200, attack_name='cw'):
+                               attack_iters=[200],
+                               attack_name='cw',
+                               attack_strengths=None):
     attack_f, attack_strengths, attack_iters = select_attack(
-        attack_name=attack_name, attack_iters=attack_iters)
+        attack_name=attack_name, attack_iters=attack_iters,
+        attack_strengths=attack_strengths)
     print(
         "iters, strength, test accuracy, L2 distortion, Linf distortion, time (sec)")
     for attack_iter in attack_iters:

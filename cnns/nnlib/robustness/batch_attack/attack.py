@@ -48,6 +48,82 @@ from cnns.nnlib.pytorch_architecture import resnet
 from cnns.nnlib.robustness.param_perturbation.utils import perturb_model_params
 
 
+def linf_for(diff):
+    """
+    Compute usinf for loop.
+
+    :param diff: a mini-batch
+    :return: sum of linf dinstances for each data point in the mini-batch diff.
+    """
+    linf_sum = 0
+    for x in diff:
+        max = torch.max(torch.abs(x))
+        linf_sum += max
+    return linf_sum
+
+
+def linf_batch(diff):
+    """
+    Compute the sum of linf distances for each data point in the mini-batch diff
+    using batch operations.
+
+    :param diff: a mini-batch
+    :return: sum of linf dinstances for each data point in the mini-batch diff.
+    """
+    # torch.sum(torch.max(b.view(b.shape[0], -1), dim=1)[0])
+    # flatten each data point in the batch
+    diff_flat = diff.view(diff.shape[0], -1)
+    # find max per each data point and take only the max values without indices
+    max_batch = torch.max(torch.abs(diff_flat), dim=1)[0]
+    # sum the max'es for all data points in the batch
+    return torch.sum(max_batch)
+
+
+def get_dims_norms(mini_batch):
+    """
+    Get the enumearation of all dimensions starting from 1 (omit the batch
+    dimension).
+
+    :param mini_batch: a mini-batch
+    :return: (1,2,...,batch_max_dim)
+    """
+    return [x for x in range(1, mini_batch.dim())]
+
+
+def linf_torch(diff, dims=None):
+    if dims is None:
+        dims = get_dims_norms(mini_batch=diff)
+    linf = torch.norm(diff, p=float('inf'), dim=dims)
+    return torch.sum(linf)
+
+
+def l2_for(diff):
+    l2_sum = 0
+    for x in diff:
+        squared = x * x
+        sumed = torch.sum(squared)
+        sqrted = torch.sqrt(sumed)
+        l2_sum += sqrted
+    return l2_sum
+
+
+def l2_batch(diff):
+    # take all dimensions apart from the batch dimension
+    dims = [x for x in range(1, diff.dim())]
+    # sum for each data point in the batch
+    distort = torch.sum(diff * diff, dim=dims)
+    distort = torch.sqrt(distort)
+    # sum the l2 distances for all data points in the batch
+    return torch.sum(distort)
+
+
+def l2_torch(diff, dims=None):
+    if dims is None:
+        dims = get_dims_norms(mini_batch=diff)
+    l2 = torch.norm(diff, p=2, dim=dims)
+    return torch.sum(l2)
+
+
 def attack_eot_pgd(input_v, label_v, net, epsilon=8.0 / 255.0, opt=None):
     eot = EOT_PGD(net=net, epsilon=epsilon, opt=opt)
     adverse_v = eot.eot_batch(images=input_v, labels=label_v)
@@ -236,24 +312,27 @@ def acc_under_attack(dataloader, net, c, attack_f, opt, netAttack=None):
             idx = ensemble_infer(adverse_v, net, n=opt.ensemble)
         correct += torch.sum(label_v.eq(idx)).item()
         tot += output.numel()
-        distort += torch.sum(diff * diff)
-        distort_linf += torch.max(torch.abs(diff))
+
+        distort += l2_torch(diff)
+        distort_linf += linf_torch(diff)
 
         distort_np = distort.clone().cpu().detach().numpy()
         distort_linf_np = distort_linf.cpu().detach().numpy()
 
         # elapsed = time.time() - beg
-        # info = ['k', k, 'current_accuracy', correct / tot, 'L2 distortion',
-        #         np.sqrt(distort_np / tot), 'Linf distortion',
-        #         distort_linf_np / tot, 'total_count', tot, 'elapsed time (sec)',
-        #         elapsed]
+        # info = ['k', k,
+        #         'current_accuracy', correct / tot,
+        #         'L2 distortion', distort_np / tot,
+        #         'Linf distortion', distort_linf_np / tot,
+        #         'total_count', tot,
+        #         'elapsed time (sec)', elapsed]
         # print(','.join([str(x) for x in info]))
 
         # This is a bit unexpected (shortens computations):
         if opt.limit_batch_number > 0 and k >= opt.limit_batch_number:
             break
 
-    return correct / tot, np.sqrt(distort_np / tot), distort_linf_np / tot
+    return correct / tot, distort_np / tot, distort_linf_np / tot
 
 
 def peek(dataloader, net, src_net, c, attack_f):
@@ -814,9 +893,10 @@ if __name__ == "__main__":
             for noise in opt.noise_epsilons:
                 opt.noise_epsilon = noise
                 beg = time.time()
-                acc, l2_dist, linf_dist = acc_under_attack(dataloader_test, net, c,
-                                                    attack_f, opt,
-                                                    netAttack=netAttack)
+                acc, l2_dist, linf_dist = acc_under_attack(dataloader_test, net,
+                                                           c,
+                                                           attack_f, opt,
+                                                           netAttack=netAttack)
                 timing = time.time() - beg
                 print("{}, {}, {}, {}, {}".format(c, noise, acc, l2_dist,
                                                   timing))

@@ -1,5 +1,6 @@
 import matplotlib
 import sys
+
 # matplotlib.use('TkAgg')
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
@@ -89,6 +90,7 @@ legend_cols = "legend_cols"
 xlim = "xlim"
 ylim = "ylim"
 is_log = "is_log"
+is_symlog = 'is_symlog'  #
 legend_title = "legend_title"
 
 carlini_cifar10 = {ylabel: "Accuracy (%)",
@@ -452,11 +454,11 @@ pni_robustnet_adv_train_pgd_iters2 = {ylabel: "Test Accuracy (%)",
                                       #     'RobustNet\nAdv. Train'
                                       # ],
                                       ylim: (0, 100),
-                                      is_log: True}
+                                      is_symlog: True}
 
 pni_robustnet_adv_train_pgd_dist_linf2 = {ylabel: "Test Accuracy (%)",
-                                          xlabel: '$L_\infty$ distortion x $10^{-6}$',
-                                          file_name: "distortion_pni_robust_net11",
+                                          xlabel: '$L_\infty$ distortion',
+                                          file_name: "distortion_pni_robust_net14",
                                           title: "PGD L$_{\infty}$ adaptive",
                                           legend_pos: "lower left",
                                           # legend_pos: "upper right",
@@ -760,7 +762,6 @@ svhn_pgd_dist = {
     is_log: False,
 }
 
-
 cw_c_40_iters_pgd_adv = {
     ylabel: "Test Accuracy (%)",
     xlabel: 'C&W c parameter',
@@ -845,6 +846,93 @@ pgd_dist_40_iters_pgd_adv_train = {
     is_log: False,
 }
 
+svhn_cw_c2 = {
+    ylabel: "Test Accuracy (%)",
+    xlabel: 'C&W c parameter',
+    file_name: 'svhn_cw_c2',
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "CW L$_2$ adaptive",
+    legend_pos: "lower left",
+    # legend_pos: "upper right",
+    bbox: (-1.0, 0.0),
+    column_nr: 8,
+    legend_cols: 1,
+    labels: [
+        'Adv. Train',
+        'PNI-W Adv.',
+        'RobustNet',
+        'RobustNet Adv.'
+    ],
+    ylim: (0, 100),
+    is_log: True,
+}
+
+svhn_cw_dist2 = {
+    ylabel: "Test Accuracy (%)",
+    xlabel: 'L$_2$ distortion',
+    file_name: 'svhn_cw_dist2',
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "CW L$_2$ adaptive",
+    legend_pos: "upper right",
+    # legend_pos: "lower left",
+    # legend_pos: "upper right",
+    bbox: (-1.0, 0.0),
+    column_nr: 8,
+    legend_cols: 1,
+    labels: [
+        'Adv. Train',
+        'PNI-W Adv.',
+        'RobustNet',
+        'RobustNet Adv.'
+    ],
+    ylim: (0, 100),
+    is_log: False,
+}
+
+svhn_pgd_iters2 = {
+    ylabel: "Test Accuracy (%)",
+    xlabel: '# of PGD iterations',
+    file_name: "svhn_pgd_iters2",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "PGD L$_\infty$ adaptive",
+    # legend_pos: "lower left",
+    # legend_pos: "center right",
+    legend_pos: "upper right",
+    bbox: (-1.0, 0.0),
+    column_nr: 8,
+    legend_cols: 1,
+    labels: [
+        'Adv. Train',
+        'PNI-W Adv.',
+        'RobustNet',
+        'RobustNet Adv.'
+    ],
+    ylim: (0, 100),
+    is_log: False,
+    is_symlog: True,
+}
+
+svhn_pgd_dist2 = {
+    ylabel: "Test Accuracy (%)",
+    xlabel: '$L_\infty$ distortion',
+    file_name: "svhn_pgd_dist3",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "PGD L$_\infty$ adaptive",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    # legend_pos: "center",
+    bbox: (-1.0, 0.0),
+    column_nr: 8,
+    legend_cols: 1,
+    labels: [
+        'Adv. Train',
+        'PNI-W Adv.',
+        'RobustNet',
+        'RobustNet Adv.'
+    ],
+    ylim: (0, 100),
+    is_log: False,
+}
 
 colors = [get_color(color) for color in
           [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
@@ -896,12 +984,12 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 
 # non adaptive vs adaptive
 # datasets = [robust_non_adaptive2, robust_adaptive2]
-datasets = [robust_non_adaptive3, robust_adaptive3]
+# datasets = [robust_non_adaptive3, robust_adaptive3]
 
 # train vs test + where to place noise layer
 # datasets = [train_vs_inference3, robust_layers_dp]
 
-# last figure
+# distortion for CIFAR-10
 # datasets = [
 #     pni_robustnet_adv_c_param2,
 #     pni_robustnet_adv_train3,
@@ -923,6 +1011,13 @@ datasets = [robust_non_adaptive3, robust_adaptive3]
 #     svhn_pgd_iters,
 #     svhn_pgd_dist,
 # ]
+
+datasets = [
+    svhn_cw_c2,
+    svhn_cw_dist2,
+    svhn_pgd_iters2,
+    svhn_pgd_dist2,
+]
 
 # cifar10 40 iters adv train
 # datasets = [
@@ -987,6 +1082,8 @@ for j, dataset in enumerate(datasets):
         plt.xlim(dataset[xlim])
     if is_log in dataset and dataset[is_log]:
         plt.xscale('log', basex=10)
+    if is_symlog in dataset and dataset[is_symlog]:
+        plt.xscale('symlog', basex=10)
 
 # plt.gcf().autofmt_xdate()
 # plt.xticks(rotation=0)

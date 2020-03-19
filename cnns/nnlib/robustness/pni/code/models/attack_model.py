@@ -119,6 +119,11 @@ class Attack(object):
                     data_min)
         perturbed_data.requires_grad = False
 
+        # diff = data - perturbed_data
+        # distort_linf = torch.max(torch.abs(diff))
+        # distort_linf_np = distort_linf.cpu().detach().numpy()
+        # print('distort_linf_np: ', distort_linf_np)
+
         return perturbed_data
 
     def cw(self, net, input_v, label_v, c=0.01, gradient_iters=1, untarget=True,
