@@ -122,9 +122,11 @@ parser.add_argument('--attack_eval',
                     action='store_true',
                     help='evaluate the adaptive attack to plot the distortion '
                          'vs accuracy graph')
-parser.add_argument('--attack_iters', type=int, nargs='+', default=[200],
+parser.add_argument('--attack_iters', type=int, nargs='+',
+                    default=[200],
                     help='number of attack iterations')
-parser.add_argument('--attack_strengths', type=float, nargs='+', default=None,
+parser.add_argument('--attack_strengths', type=float, nargs='+',
+                    default=[0.031],
                     help='the strengths of the attack (this is the maximum '
                          'L infinity distortions for the PGD attack and the '
                          'c parameter for the Carlini-Wagner L2 attack).')
@@ -431,8 +433,8 @@ def main():
     # initialize the attacker object
     model_attack = Attack(dataloader=train_loader,
                           attack_method=args.attack,
-                          epsilon=0.031,
-                          iterations=args.attack_iters)
+                          epsilon=args.attack_strengths[0],
+                          iterations=args.attack_iters[0])
 
     if args.evaluate:
         validate(
