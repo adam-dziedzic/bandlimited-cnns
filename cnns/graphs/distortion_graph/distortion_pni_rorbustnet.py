@@ -458,7 +458,8 @@ pni_robustnet_adv_train_pgd_iters2 = {ylabel: "Test Accuracy (%)",
 
 pni_robustnet_adv_train_pgd_dist_linf2 = {ylabel: "Test Accuracy (%)",
                                           xlabel: '$L_\infty$ distortion',
-                                          file_name: "distortion_pni_robust_net14",
+                                          # file_name: "distortion_pni_robust_net14",
+                                          file_name: "distortion_pni_robust_net15",
                                           title: "PGD L$_{\infty}$ adaptive",
                                           legend_pos: "lower left",
                                           # legend_pos: "upper right",
@@ -472,6 +473,7 @@ pni_robustnet_adv_train_pgd_dist_linf2 = {ylabel: "Test Accuracy (%)",
                                               'RobustNet Adv.'
                                           ],
                                           ylim: (0, 100),
+                                          xlim: (0, 0.05),
                                           is_log: False,
                                           }
 
@@ -1013,12 +1015,12 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 #     svhn_pgd_dist,
 # ]
 
-datasets = [
-    svhn_cw_c2,
-    svhn_cw_dist2,
-    svhn_pgd_iters2,
-    svhn_pgd_dist2,
-]
+# datasets = [
+#     svhn_cw_c2,
+#     svhn_cw_dist2,
+#     svhn_pgd_iters2,
+#     svhn_pgd_dist2,
+# ]
 
 # cifar10 40 iters adv train
 # datasets = [
@@ -1027,6 +1029,14 @@ datasets = [
 #     pgd_iters_40_iters_pgd_adv_train,
 #     pgd_dist_40_iters_pgd_adv_train,
 # ]
+
+# distortion for CIFAR-10
+datasets = [
+    pni_robustnet_adv_c_param2,
+    pni_robustnet_adv_train3,
+    pni_robustnet_adv_train_pgd_iters2,
+    pni_robustnet_adv_train_pgd_dist_linf2,
+]
 
 fig = plt.figure(figsize=(len(datasets) * width, height))
 
