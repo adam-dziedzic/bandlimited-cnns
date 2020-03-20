@@ -849,7 +849,7 @@ pgd_dist_40_iters_pgd_adv_train = {
 svhn_cw_c2 = {
     ylabel: "Test Accuracy (%)",
     xlabel: 'C&W c parameter',
-    file_name: 'svhn_cw_c2',
+    file_name: 'svhn_cw_c4',
     # title: "PGD L$_{\infty}$ adaptive",
     title: "CW L$_2$ adaptive",
     legend_pos: "lower left",
@@ -870,7 +870,7 @@ svhn_cw_c2 = {
 svhn_cw_dist2 = {
     ylabel: "Test Accuracy (%)",
     xlabel: 'L$_2$ distortion',
-    file_name: 'svhn_cw_dist2',
+    file_name: 'svhn_cw_dist4',
     # title: "PGD L$_{\infty}$ adaptive",
     title: "CW L$_2$ adaptive",
     legend_pos: "upper right",
@@ -892,7 +892,7 @@ svhn_cw_dist2 = {
 svhn_pgd_iters2 = {
     ylabel: "Test Accuracy (%)",
     xlabel: '# of PGD iterations',
-    file_name: "svhn_pgd_iters2",
+    file_name: "svhn_pgd_iters4",
     # title: "PGD L$_{\infty}$ adaptive",
     title: "PGD L$_\infty$ adaptive",
     # legend_pos: "lower left",
@@ -915,7 +915,7 @@ svhn_pgd_iters2 = {
 svhn_pgd_dist2 = {
     ylabel: "Test Accuracy (%)",
     xlabel: '$L_\infty$ distortion',
-    file_name: "svhn_pgd_dist3",
+    file_name: "svhn_pgd_dist4",
     # title: "PGD L$_{\infty}$ adaptive",
     title: "PGD L$_\infty$ adaptive",
     # legend_pos: "lower left",
@@ -931,7 +931,8 @@ svhn_pgd_dist2 = {
         'RobustNet Adv.'
     ],
     ylim: (0, 100),
-    is_log: False,
+    xlim: (0, 0.05),
+    is_symlog: False,
 }
 
 colors = [get_color(color) for color in

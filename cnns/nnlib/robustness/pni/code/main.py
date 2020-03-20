@@ -806,10 +806,12 @@ def select_attack(attack_name, attack_iters=[200], attack_strengths=None):
     if attack_name == 'cw':
         attack_f = attack_cw
         if attack_strengths is None:
-            attack_strengths = [0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.02, 0.03,
-                            0.04, 0.05, 0.07, 0.1, 0.2, 0.3, 0.4, 0.5, 1, 2, 10,
-                            100,
-                            ]
+            attack_strengths = [0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.02,
+                                0.03,
+                                0.04, 0.05, 0.07, 0.1, 0.2, 0.3, 0.4, 0.5, 1, 2,
+                                10,
+                                100,
+                                ]
         attack_iters = attack_iters
     elif attack_name == 'pgd':
         attack_f = pgd_adapter
@@ -820,7 +822,7 @@ def select_attack(attack_name, attack_iters=[200], attack_strengths=None):
             attack_strengths = [0.0, 0.005, 0.01, 0.015, 0.02, 0.022,
                                 0.025, 0.028, 0.03, 0.031, 0.032,
                                 0.033, 0.034, 0.035, 0.036, 0.037,
-                                0.038, 0.039, 0.04, 0.05]
+                                0.038, 0.039, 0.04, 0.05, 0.1]
         # attack_iters = [0, 1, 4, 7, 10, 20, 40, 100, 1000]
         attack_iters = attack_iters
     else:
@@ -835,10 +837,8 @@ def attack_distortion_accuracy(dataloader_test, net,
     attack_f, attack_strengths, attack_iters = select_attack(
         attack_name=attack_name, attack_iters=attack_iters,
         attack_strengths=attack_strengths)
-    print(
-        "iters, strength, test accuracy, L2 distortion, Linf distortion, time (sec)")
-    for attack_iter in attack_iters:
-        for c in attack_strengths:
+    for i, attack_iter in enumerate(attack_iters):
+        for j, c in enumerate(attack_strengths):
             opt = Object()
             opt.noise_epsilon = 0.0
             opt.gradient_iters = 1
@@ -853,8 +853,24 @@ def attack_distortion_accuracy(dataloader_test, net,
                 attack_f=attack_f, opt=opt,
                 netAttack=net)
             timing = time.time() - beg
-            print("{}, {}, {}, {}, {}, {}".format(
-                attack_iter, c, acc, l2_distortion, linf_distortion, timing))
+            if i == 0 and j == 0:
+                header = [
+                    "iters",
+                    "strength",
+                    "test accuracy (%)",
+                    "L2 distortion",
+                    "Linf distortion",
+                    "time (sec)",
+                ]
+                header_str = ",".join([str(x) for x in header])
+                print(header_str)
+            print("{},{},{},{},{},{}".format(
+                attack_iter,
+                c,
+                acc * 100,
+                l2_distortion,
+                linf_distortion,
+                timing))
             sys.stdout.flush()
 
 
