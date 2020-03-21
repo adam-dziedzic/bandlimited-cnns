@@ -1015,12 +1015,12 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 #     svhn_pgd_dist,
 # ]
 
-# datasets = [
-#     svhn_cw_c2,
-#     svhn_cw_dist2,
-#     svhn_pgd_iters2,
-#     svhn_pgd_dist2,
-# ]
+datasets = [
+    svhn_cw_c2,
+    svhn_cw_dist2,
+    svhn_pgd_iters2,
+    svhn_pgd_dist2,
+]
 
 # cifar10 40 iters adv train
 # datasets = [
@@ -1031,12 +1031,12 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 # ]
 
 # distortion for CIFAR-10
-datasets = [
-    pni_robustnet_adv_c_param2,
-    pni_robustnet_adv_train3,
-    pni_robustnet_adv_train_pgd_iters2,
-    pni_robustnet_adv_train_pgd_dist_linf2,
-]
+# datasets = [
+#     pni_robustnet_adv_c_param2,
+#     pni_robustnet_adv_train3,
+#     pni_robustnet_adv_train_pgd_iters2,
+#     pni_robustnet_adv_train_pgd_dist_linf2,
+# ]
 
 fig = plt.figure(figsize=(len(datasets) * width, height))
 
