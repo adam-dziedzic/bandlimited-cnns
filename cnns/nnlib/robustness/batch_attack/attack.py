@@ -10,9 +10,7 @@ import torchvision.datasets as dst
 from torch.utils.data import DataLoader
 import numpy as np
 import time
-from cnns import matplotlib_backend
 from cnns.nnlib.robustness.batch_attack.eot_pgd import EOT_PGD
-from cnns.nnlib.robustness.batch_attack.raw_pgd import RAW_PGD
 from cnns.nnlib.robustness.batch_attack.eot_cw import EOT_CW
 from cnns.nnlib.robustness.channels_definition import fft_channel
 from cnns.nnlib.robustness.channels_definition import fft_layer

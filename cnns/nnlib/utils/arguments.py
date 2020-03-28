@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 from cnns.nnlib.utils.general_utils import CompressType
 from cnns.nnlib.utils.general_utils import NetworkType
 from cnns.nnlib.utils.general_utils import ConvType

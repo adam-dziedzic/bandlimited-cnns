@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+#  ip address of skr-compute1 machine
+# 128.135.164.103
+
 # remove previous cuda (check if it exists)
 sudo add-apt-repository -r cuda-repo-ubuntu1404_10.1.168-1_amd64.deb
 

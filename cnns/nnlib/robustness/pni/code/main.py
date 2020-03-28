@@ -443,10 +443,12 @@ def main():
         return
 
     if args.attack_eval:
-        attack_distortion_accuracy(dataloader_test=test_loader,
-                                   net=net, attack_name=args.attack,
-                                   attack_iters=args.attack_iters,
-                                   attack_strengths=args.attack_strengths)
+        attack_distortion_accuracy(
+            dataloader_test=test_loader,
+            net=net,
+            attack_name=args.attack,
+            attack_iters=args.attack_iters,
+            attack_strengths=args.attack_strengths)
         return
 
     # Main loop
@@ -825,15 +827,18 @@ def select_attack(attack_name, attack_iters=[200], attack_strengths=None):
                                 0.038, 0.039, 0.04, 0.05, 0.1]
         # attack_iters = [0, 1, 4, 7, 10, 20, 40, 100, 1000]
         attack_iters = attack_iters
+    elif attack_name == 'boundary':
+        attack_f = boundary_attack_adapter
     else:
         raise Exception(f'Unknown attack: {args.attack}')
     return attack_f, attack_strengths, attack_iters
 
 
-def attack_distortion_accuracy(dataloader_test, net,
-                               attack_iters=[200],
-                               attack_name='cw',
-                               attack_strengths=None):
+def attack_distortion_accuracy(
+        dataloader_test, net,
+        attack_iters=[200],
+        attack_name='cw',
+        attack_strengths=None):
     attack_f, attack_strengths, attack_iters = select_attack(
         attack_name=attack_name, attack_iters=attack_iters,
         attack_strengths=attack_strengths)
@@ -849,8 +854,11 @@ def attack_distortion_accuracy(dataloader_test, net,
 
             beg = time.time()
             acc, l2_distortion, linf_distortion = acc_under_attack(
-                dataloader=dataloader_test, net=net, c=c,
-                attack_f=attack_f, opt=opt,
+                dataloader=dataloader_test,
+                net=net,
+                c=c,
+                attack_f=attack_f,
+                opt=opt,
                 netAttack=net)
             timing = time.time() - beg
             if i == 0 and j == 0:

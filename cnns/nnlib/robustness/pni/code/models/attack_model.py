@@ -3,6 +3,7 @@ import torch.nn.functional as F
 import torch
 from cnns.nnlib.robustness.batch_attack.attack import attack_cw
 from cnns.nnlib.utils.object import Object
+from cnns.foolbox.foolbox_3_0_0 import foolbox
 
 
 class Attack(object):
@@ -27,6 +28,8 @@ class Attack(object):
             self.attack_method = self.pgd
         elif attack_method is 'cw':
             self.attack_method = self.cw
+        elif attack_method is 'boundary':
+            self.attack_method = self.boundary_attack
 
     def update_params(self, epsilon=None, dataloader=None, attack_method=None):
         if epsilon is not None:
@@ -70,6 +73,7 @@ class Attack(object):
     def pgd(self, model, data, target, k=None, a=0.01, random_start=True,
             d_min=0, d_max=1):
         """
+        PGD attack.
 
         :param model:
         :param data:
@@ -139,8 +143,20 @@ class Attack(object):
         return attack_cw(net=net, input_v=input_v, label_v=label_v, c=c,
                          untarget=untarget, n_class=n_class, opt=opt)
 
+    def boundary_attack(self, net, input_v, label_v, steps=25000, opt=None):
+        fmodel = foolbox.models.PyTorchModel(net, bounds=(0, 1))
+        attack = foolbox.attacks.BoundaryAttack(steps=steps)
+        # we skip the second returned value which is the input, and the last one which is success rate
+        advs, _, _ = attack(fmodel, input_v, label_v, epsilons=None)
+        return advs
+
 
 def pgd_adapter(input_v, label_v, net, c, opt=None):
     k = opt.attack_iters
     return Attack(dataloader=None, epsilon=c).pgd(
         model=net, data=input_v, target=label_v, a=0.01, k=k)
+
+
+def boundary_attack_adapter(input_v, label_v, net, c, opt=None):
+    steps = opt.attack_iters
+    return Attack(dataloader=None, epsilon=c).boundary_attack(net=net, input_v=input_v, label_v=label_v, steps=steps)
