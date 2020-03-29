@@ -38,12 +38,12 @@ Install python libraries:
 - torch_dct (pip install torch_dct)
 
 Using conda:
-`
+```
 conda install -c conda-forge matplotlib --yes
 conda install -c anaconda memory_profiler --yes
 conda install -c conda-forge py3nvmlt --yes
 pip install torch-dct
-`
+```
 
 Install hessian library for PyTorch:
 pip install --upgrade git+https://github.com/noahgolmant/pytorch-hessian-eigenthings.git@master#egg=hessian-eigenthings
