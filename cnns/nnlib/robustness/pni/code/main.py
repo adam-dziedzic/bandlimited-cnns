@@ -1,29 +1,35 @@
-from __future__ import division
 from __future__ import absolute_import
-import os
-import sys
-import shutil
-import time
-import random
+from __future__ import division
+
 import argparse
+import copy
+import os
+import random
+import shutil
+import sys
+import time
+
+import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
+from tensorboardX import SummaryWriter
+
+from cnns.nnlib.robustness.batch_attack.attack import acc_under_attack
+from cnns.nnlib.robustness.batch_attack.attack import acc_under_blackbox_attack
+from cnns.nnlib.robustness.batch_attack.attack import attack_cw
+from cnns.nnlib.robustness.pni.code import models
+from cnns.nnlib.robustness.pni.code.models.attack_model import Attack
+from cnns.nnlib.robustness.pni.code.models.attack_model import boundary_attack_adapter
+from cnns.nnlib.robustness.pni.code.models.attack_model import pgd_adapter
+from cnns.nnlib.robustness.pni.code.models.noise_layer import noise_input_layer
+from cnns.nnlib.robustness.pni.code.models.nomarlization_layer import \
+    Normalize_layer, noise_Normalize_layer
 from cnns.nnlib.robustness.pni.code.utils_.utils import AverageMeter, \
     RecorderMeter, time_string, \
     convert_secs2time
-from tensorboardX import SummaryWriter
-from cnns.nnlib.robustness.pni.code import models
-import copy
-
-from cnns.nnlib.robustness.pni.code.models.attack_model import Attack
-from cnns.nnlib.robustness.pni.code.models.attack_model import pgd_adapter
-from cnns.nnlib.robustness.pni.code.models.nomarlization_layer import \
-    Normalize_layer, noise_Normalize_layer
-from cnns.nnlib.robustness.pni.code.models.noise_layer import noise_input_layer
-from cnns.nnlib.robustness.batch_attack.attack import acc_under_attack
-from cnns.nnlib.robustness.batch_attack.attack import attack_cw
+from cnns.nnlib.utils.general_utils import get_log_time
 from cnns.nnlib.utils.object import Object
 
 model_names = sorted(name for name in models.__dict__
@@ -46,10 +52,11 @@ parser.add_argument('--dataset', type=str, default='cifar10',
                     help='Choose between Cifar10/100 and ImageNet.')
 parser.add_argument('--arch', metavar='ARCH',
                     # default='lbcnn',
-                    default='noise_resnet20_input',
+                    # default='noise_resnet20_input',
+                    default='noise_resnet20_robust_02',
                     choices=model_names,
-                    help='model architecture: ' + ' | '.join(
-                        model_names) + ' (default: resnext29_8_64)')
+                    help='model architecture: ' + ' | '.join(model_names)
+                    )
 # Optimization options
 parser.add_argument('--epochs', type=int, default=160,
                     help='Number of epochs to train.')
@@ -57,7 +64,8 @@ parser.add_argument('--optimizer', type=str, default='SGD',
                     choices=['SGD', 'Adam'])
 parser.add_argument('--batch_size',
                     type=int,
-                    default=128,
+                    default=10,
+                    # default=2560,
                     help='Batch size.')
 parser.add_argument('--learning_rate', type=float,
                     default=0.1, help='The Learning Rate.')
@@ -77,7 +85,8 @@ parser.add_argument('--save_path',
                     # default='./save/save_adv_train_cifar10_noise_resnet20_input_160_SGD_train_layerwise_3e-4decay/mode_best.pth.tar',
                     help='Folder to save checkpoints and log.')
 parser.add_argument('--resume',
-                    default='',
+                    # default='',
+                    default='/home/' + username + '/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/robust_net_0.2.pth.tar',
                     # default='./save/save_adv_train_cifar10_noise_resnet20_input_160_SGD_train_layerwise_3e-4decay/',
                     # default='/home/' + username + '/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/save_adv_train_cifar10_noise_resnet20_input_160_SGD_train_layerwise_3e-4decay/model_best.pth.tar',
                     type=str, metavar='PATH',
@@ -114,22 +123,30 @@ parser.add_argument('--adv_eval', dest='adv_eval',
                     action='store_true',
                     help='enable the adversarial evaluation')
 parser.add_argument('--attack',
-                    default='pgd',  # or 'cw'
+                    default='boundary',
                     type=str,
-                    help='name of the attack')
+                    help='name of the attack: pgd, cw, boundary')
 parser.add_argument('--attack_eval',
                     dest='attack_eval',
-                    action='store_true',
+                    action='store_false',
                     help='evaluate the adaptive attack to plot the distortion '
                          'vs accuracy graph')
 parser.add_argument('--attack_iters', type=int, nargs='+',
-                    default=[200],
+                    # default=[200],
+                    default=[10],
                     help='number of attack iterations')
 parser.add_argument('--attack_strengths', type=float, nargs='+',
-                    default=[0.031],
+                    # default=[0.031],
+                    default=[0.0, 0.005, 0.01, 0.015, 0.02, 0.022,
+                             0.025, 0.028, 0.03, 0.031, 0.032,
+                             0.033, 0.034, 0.035, 0.036, 0.037,
+                             0.038, 0.039, 0.04, 0.05, 0.1, 0.3,
+                             0.5, 0.8, 1.0, 1.1, 1.3, 1.5, 1.8, 2.0],
                     help='the strengths of the attack (this is the maximum '
                          'L infinity distortions for the PGD attack and the '
                          'c parameter for the Carlini-Wagner L2 attack).')
+parser.add_argument('--limit_batch_number', type=int, default=1,
+                    help='Used for debugging and tests, limits the batch number for the test set.')
 
 # PNI technique
 parser.add_argument('--input_noise',
@@ -321,6 +338,7 @@ def main():
                                              init_noise=args.init_noise,
                                              inner_noise=args.inner_noise)
     else:
+        # print('keys of models: ', models.__dict__.keys())
         net_c = models.__dict__[args.arch](num_classes=num_classes)
     # For adversarial case, add normalization layer in front of the original network
     if (args.adv_train or args.adv_eval):
@@ -443,12 +461,24 @@ def main():
         return
 
     if args.attack_eval:
-        attack_distortion_accuracy(
-            dataloader_test=test_loader,
-            net=net,
-            attack_name=args.attack,
-            attack_iters=args.attack_iters,
-            attack_strengths=args.attack_strengths)
+        if args.attack == 'boundary':
+            blackbox_attack_distortion_accuracy(
+                dataloader_test=test_loader,
+                net=net,
+                attack_name=args.attack,
+                attack_iters=args.attack_iters,
+                attack_strengths=args.attack_strengths,
+                args=args
+            )
+        else:
+            attack_distortion_accuracy(
+                dataloader_test=test_loader,
+                net=net,
+                attack_name=args.attack,
+                attack_iters=args.attack_iters,
+                attack_strengths=args.attack_strengths,
+                args=args
+            )
         return
 
     # Main loop
@@ -534,11 +564,11 @@ def main():
 
             if hasattr(module, 'alpha_w'):
                 if module.alpha_w is not None:
-                    if module.pni is 'layerwise':
+                    if module.pni == 'layerwise':
                         writer.add_scalar(name + '/alpha/',
                                           module.alpha_w.clone().item(),
                                           epoch + 1)
-                    elif module.pni is 'channelwise':
+                    elif module.pni == 'channelwise':
                         writer.add_histogram(name + '/alpha/',
                                              module.alpha_w.clone().cpu().data.numpy(),
                                              epoch + 1, bins='tensorflow')
@@ -672,7 +702,7 @@ def validate(val_loader, model, criterion, log, attacker=None, adv_eval=False):
 
     for i, (input, target) in enumerate(val_loader):
         if args.use_cuda:
-            target = target.cuda(async=True)
+            target = target.cuda()
             input = input.cuda()
 
         # compute output
@@ -829,16 +859,101 @@ def select_attack(attack_name, attack_iters=[200], attack_strengths=None):
         attack_iters = attack_iters
     elif attack_name == 'boundary':
         attack_f = boundary_attack_adapter
+        attack_iters = attack_iters
+        if attack_strengths is None:
+            attack_strengths = [0.0, 0.005, 0.01, 0.015, 0.02, 0.022,
+                                0.025, 0.028, 0.03, 0.031, 0.032,
+                                0.033, 0.034, 0.035, 0.036, 0.037,
+                                0.038, 0.039, 0.04, 0.05, 0.1, 0.3,
+                                0.5, 0.8, 1.0, 1.1, 1.3, 1.5, 1.8, 2.0]
+        # attack_strengths = None
     else:
         raise Exception(f'Unknown attack: {args.attack}')
     return attack_f, attack_strengths, attack_iters
 
 
+def print_distortions(distortions, attack_strengths, attack_iter, timing, correct_idx):
+    for norm in distortions.keys():
+        all_distances = distortions[norm]
+        log_time = get_log_time()
+        np.save(log_time + str(norm) + '_distortions', all_distances)
+        np.save(log_time + str(norm) + '_correct_idx', correct_idx)
+        total_count = len(all_distances)
+        for j, c in enumerate(attack_strengths):
+            dist_indices = all_distances < c
+            adv_idx = np.invert(correct_idx)
+            indices = np.logical_and(dist_indices, adv_idx)
+            distances = all_distances[indices]
+            adv_count = len(distances)
+            correct_count = total_count - adv_count
+            acc = correct_count / total_count
+            if j == 0:
+                header = [
+                    "iters",
+                    "strength",
+                    "test accuracy (%)",
+                    norm + " distortion mean",
+                    norm + " distortion max",
+                    norm + " distortion min",
+                    norm + " distortion median",
+                    "time (sec)",
+                ]
+                header_str = ",".join([str(x) for x in header])
+                print(header_str)
+            print("{},{},{},{},{},{}".format(
+                attack_iter,
+                c,
+                acc * 100,
+                distances.mean(),
+                distances.max(),
+                distances.min(),
+                distances.median(),
+                timing))
+            sys.stdout.flush()
+
+
+def blackbox_attack_distortion_accuracy(
+        dataloader_test,
+        net,
+        attack_iters=(25000,),
+        attack_name='boundary',
+        attack_strengths=None,
+        args=None):
+    attack_f, attack_strengths, attack_iters = select_attack(
+        attack_name=attack_name, attack_iters=attack_iters,
+        attack_strengths=attack_strengths)
+
+    for i, attack_iter in enumerate(attack_iters):
+        opt = Object()
+        opt.noise_epsilon = 0.0
+        opt.gradient_iters = 1
+        opt.attack_iters = attack_iter
+        opt.channel = 'empty'
+        opt.ensemble = 1
+        if args is not None:
+            opt.limit_batch_number = args.limit_batch_number
+        else:
+            opt.limit_batch_number = 0
+
+        beg = time.time()
+        acc, distortions, correct_idx = acc_under_blackbox_attack(
+            dataloader=dataloader_test,
+            c=None,
+            net=net,
+            attack_f=attack_f,
+            opt=opt,
+            netAttack=net)
+        timing = time.time() - beg
+        print('attack name,', attack_name, ',iters,', attack_iter, ',accuracy,', acc, ',time (sec),', timing)
+        print_distortions(distortions=distortions, attack_strengths=attack_strengths,
+                          attack_iter=attack_iter, timing=timing, correct_idx=correct_idx)
+
 def attack_distortion_accuracy(
         dataloader_test, net,
         attack_iters=[200],
         attack_name='cw',
-        attack_strengths=None):
+        attack_strengths=[None],
+        args=None):
     attack_f, attack_strengths, attack_iters = select_attack(
         attack_name=attack_name, attack_iters=attack_iters,
         attack_strengths=attack_strengths)
@@ -850,7 +965,10 @@ def attack_distortion_accuracy(
             opt.attack_iters = attack_iter
             opt.channel = 'empty'
             opt.ensemble = 1
-            opt.limit_batch_number = 0
+            if args is not None:
+                opt.limit_batch_number = args.limit_batch_number
+            else:
+                opt.limit_batch_number = 0
 
             beg = time.time()
             acc, l2_distortion, linf_distortion = acc_under_attack(

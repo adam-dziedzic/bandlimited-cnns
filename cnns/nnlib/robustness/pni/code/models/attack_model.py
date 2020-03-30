@@ -1,3 +1,4 @@
+import sys
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
@@ -22,13 +23,13 @@ class Attack(object):
         self.gpu_id = gpu_id  # this is integer
         self.iterations = iterations
 
-        if attack_method is 'fgsm':
+        if attack_method == 'fgsm':
             self.attack_method = self.fgsm
-        elif attack_method is 'pgd':
+        elif attack_method == 'pgd':
             self.attack_method = self.pgd
-        elif attack_method is 'cw':
+        elif attack_method == 'cw':
             self.attack_method = self.cw
-        elif attack_method is 'boundary':
+        elif attack_method == 'boundary':
             self.attack_method = self.boundary_attack
 
     def update_params(self, epsilon=None, dataloader=None, attack_method=None):
@@ -38,9 +39,9 @@ class Attack(object):
             self.dataloader = dataloader
 
         if attack_method is not None:
-            if attack_method is 'fgsm':
+            if attack_method == 'fgsm':
                 self.attack_method = self.fgsm
-            elif attack_method is 'pgd':
+            elif attack_method == 'pgd':
                 self.attack_method = self.pgd
 
     def fgsm(self, model, data, target, data_min=0, data_max=1):
@@ -143,11 +144,17 @@ class Attack(object):
         return attack_cw(net=net, input_v=input_v, label_v=label_v, c=c,
                          untarget=untarget, n_class=n_class, opt=opt)
 
-    def boundary_attack(self, net, input_v, label_v, steps=25000, opt=None):
+    def boundary_attack(self, net, input_v, label_v, steps=25000):
+        net.eval()
         fmodel = foolbox.models.PyTorchModel(net, bounds=(0, 1))
-        attack = foolbox.attacks.BoundaryAttack(steps=steps)
+        attack = foolbox.attacks.BoundaryAttack(
+            steps=steps,
+            init_attack=foolbox.attacks.LinearSearchBlendedUniformNoiseAttack(
+                directions=sys.maxsize, steps=4),
+        )
         # we skip the second returned value which is the input, and the last one which is success rate
-        advs, _, _ = attack(fmodel, input_v, label_v, epsilons=None)
+        advs, _, success_adv = attack(fmodel, input_v, label_v, epsilons=None)
+        print('successful adversaries: ', success_adv)
         return advs
 
 
@@ -157,6 +164,6 @@ def pgd_adapter(input_v, label_v, net, c, opt=None):
         model=net, data=input_v, target=label_v, a=0.01, k=k)
 
 
-def boundary_attack_adapter(input_v, label_v, net, c, opt=None):
+def boundary_attack_adapter(input_v, label_v, net, c=None, opt=None):
     steps = opt.attack_iters
     return Attack(dataloader=None, epsilon=c).boundary_attack(net=net, input_v=input_v, label_v=label_v, steps=steps)

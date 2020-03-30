@@ -122,6 +122,12 @@ def l2_torch(diff, dims=None):
     return torch.sum(l2)
 
 
+def l2_torch_elems(diff, dims=None):
+    if dims is None:
+        dims = get_dims_norms(mini_batch=diff)
+    return torch.norm(diff, p=2, dim=dims)
+
+
 def attack_eot_pgd(input_v, label_v, net, epsilon=8.0 / 255.0, opt=None):
     eot = EOT_PGD(net=net, epsilon=epsilon, opt=opt)
     adverse_v = eot.eot_batch(images=input_v, labels=label_v)
@@ -236,7 +242,7 @@ def ensemble_infer(input_v, net, n=50, nclass=10):
     prob = torch.zeros(batch_size, nclass).cuda()
     for i in range(n):
         prob += softmax(net(input_v))
-    _, pred = torch.max(prob, 1)
+    pred = torch.argmax(prob, 1)
     return pred
 
 
@@ -248,75 +254,125 @@ def get_perturbed_net(opt):
     return perturbed_net
 
 
-def acc_under_attack(dataloader, net, c, attack_f, opt, netAttack=None):
-    correct = 0
-    tot = 0
-    distort = 0.0
-    distort_linf = 0.0
+def apply_channel(adverse_v, opt):
+    if opt.channel == 'empty':
+        pass
+    elif opt.channel == 'perturb':
+        pass
+    elif opt.channel == 'gauss':
+        adverse_v += gauss_noise_torch(epsilon=opt.noise_epsilon,
+                                       images=adverse_v, bounds=opt.bounds)
+    elif opt.channel == 'round':
+        adverse_v = round(values_per_channel=opt.noise_epsilon,
+                          images=adverse_v)
+    elif opt.channel in ('fft', 'fft_adaptive'):
+        adverse_v = fft_channel(input=adverse_v,
+                                compress_rate=opt.noise_epsilon)
+    elif opt.channel == 'uniform':
+        adverse_v += uniform_noise_torch(epsilon=opt.noise_epsilon,
+                                         images=adverse_v,
+                                         bounds=opt.bounds)
+    elif opt.channel == 'laplace':
+        adverse_v += laplace_noise_torch(epsilon=opt.noise_epsilon,
+                                         images=adverse_v,
+                                         bounds=opt.bounds)
+    elif opt.channel == 'svd':
+        adverse_v = compress_svd_batch(x=adverse_v,
+                                       compress_rate=opt.noise_epsilon)
+    elif opt.channel == 'inv_fft':
+        adverse_v = fft_channel(input=adverse_v,
+                                compress_rate=opt.noise_epsilon,
+                                get_mask=get_inverse_hyper_mask)
+    elif opt.channel == 'sub_rgb':
+        adverse_v = subtract_rgb(images=adverse_v,
+                                 subtract_value=opt.noise_epsilon)
+    else:
+        raise Exception(f'Unknown channel: {opt.channel}')
+    return adverse_v
 
+
+def apply_attack(attack_f, c, input, output, net, netAttack, opt):
+    input_v, label_v = input.cuda(), output.cuda()
+    if netAttack is None:
+        netAttack = net
+    adverse_v = attack_f(input_v, label_v, netAttack, c, opt)
+    diff = adverse_v - input_v  # adversarial difference
+    # print('min max: ', adverse_v.min().item(), adverse_v.max().item())
+    # channel-based defense
+    adverse_v = apply_channel(adverse_v=adverse_v, opt=opt)
+    net.eval()
+    if opt.ensemble == 1:
+        if opt.channel == 'perturb':
+            net_infer = get_perturbed_net(opt=opt)
+        else:
+            net_infer = net
+        idx = torch.argmax(net_infer(adverse_v), dim=1)
+    else:
+        idx = ensemble_infer(adverse_v, net=net, n=opt.ensemble)
+    correct_idx = label_v.eq(idx)
+    correct = torch.sum(correct_idx).item()
+    count = output.numel()
+    correct_idx = correct_idx.cpu().detach().numpy()
+    return adverse_v, correct, count, diff, correct_idx
+
+
+def acc_under_blackbox_attack(dataloader, net, c, attack_f, opt, netAttack=None):
+    correct_total = 0
+    count_total = 0
+    distortions = {
+        0: np.array([]),
+        1: np.array([]),
+        2: np.array([]),
+        float('inf'): np.array([]),
+    }
+    correct_idx_total = None
+    dims = (1, 2, 3)
+    for k, (input, output) in enumerate(dataloader):
+        advs, correct, count, diff, correct_idx = apply_attack(attack_f=attack_f, c=c, input=input, output=output,
+                                                               net=net, netAttack=netAttack, opt=opt)
+        # net.eval()
+        # adv_logits = net(advs)
+        # assert adv_logits.ndim == 2
+        # adv_preds = adv_logits.argmax(dim=1)
+        # adv_preds = adv_preds.cpu()
+        # assert adv_preds.size() == output.size()
+        # is_adv = (adv_preds != output)
+        # adv_count = is_adv.sum().item()
+        # adv_indices = np.append(adv_indices, is_adv.cpu().detach().numpy())
+        # assert count == len(output)
+        # assert adv_count == len(output) - correct
+
+        correct_total += correct
+        count_total += count
+        if correct_idx_total is None:
+            correct_idx_total = correct_idx
+        else:
+            correct_idx_total = np.append(correct_idx_total, correct_idx)
+
+        for norm in distortions.keys():
+            norm_distortions = torch.norm(diff, p=norm, dim=dims)
+            norm_distortions = norm_distortions.cpu().detach().numpy()
+            distortions[norm] = np.append(distortions[norm], norm_distortions)
+        if opt.limit_batch_number > 0 and k >= opt.limit_batch_number:
+            break
+    return correct_total / count_total, distortions, correct_idx_total
+
+
+def acc_under_attack(dataloader, net, c, attack_f, opt, netAttack=None):
+    correct_total = 0
+    count_total = 0
+    distort_l2 = 0.0
+    distort_linf = 0.0
     for k, (input, output) in enumerate(dataloader):
         # beg = time.time()
-        input_v, label_v = input.cuda(), output.cuda()
-        # attack
-        if netAttack is None:
-            netAttack = net
-
-        adverse_v = attack_f(input_v, label_v, netAttack, c, opt)
-        diff = adverse_v - input_v
-        # print('min max: ', adverse_v.min().item(), adverse_v.max().item())
-        bounds = (0.0, 1.0)
-        if opt.channel == 'empty':
-            pass
-        elif opt.channel == 'perturb':
-            pass
-        elif opt.channel == 'gauss':
-            adverse_v += gauss_noise_torch(epsilon=opt.noise_epsilon,
-                                           images=adverse_v, bounds=bounds)
-        elif opt.channel == 'round':
-            adverse_v = round(values_per_channel=opt.noise_epsilon,
-                              images=adverse_v)
-        elif opt.channel in ('fft', 'fft_adaptive'):
-            adverse_v = fft_channel(input=adverse_v,
-                                    compress_rate=opt.noise_epsilon)
-        elif opt.channel == 'uniform':
-            adverse_v += uniform_noise_torch(epsilon=opt.noise_epsilon,
-                                             images=adverse_v,
-                                             bounds=bounds)
-        elif opt.channel == 'laplace':
-            adverse_v += laplace_noise_torch(epsilon=opt.noise_epsilon,
-                                             images=adverse_v,
-                                             bounds=bounds)
-        elif opt.channel == 'svd':
-            adverse_v = compress_svd_batch(x=adverse_v,
-                                           compress_rate=opt.noise_epsilon)
-        elif opt.channel == 'inv_fft':
-            adverse_v = fft_channel(input=adverse_v,
-                                    compress_rate=opt.noise_epsilon,
-                                    get_mask=get_inverse_hyper_mask)
-        elif opt.channel == 'sub_rgb':
-            adverse_v = subtract_rgb(images=adverse_v,
-                                     subtract_value=opt.noise_epsilon)
-        else:
-            raise Exception(f'Unknown channel: {opt.channel}')
-        # defense
-        net.eval()
-        if opt.ensemble == 1:
-            if opt.channel == 'perturb':
-                net_infer = get_perturbed_net(opt=opt)
-            else:
-                net_infer = net
-            _, idx = torch.max(net_infer(adverse_v), 1)
-        else:
-            idx = ensemble_infer(adverse_v, net, n=opt.ensemble)
-        correct += torch.sum(label_v.eq(idx)).item()
-        tot += output.numel()
-
-        distort += l2_torch(diff)
+        _, correct, count, diff = apply_attack(attack_f=attack_f, c=c, input=input, output=output, net=net,
+                                               netAttack=netAttack, opt=opt)
+        correct_total += correct
+        count_total += count
+        distort_l2 += l2_torch(diff)
         distort_linf += linf_torch(diff)
-
-        distort_np = distort.clone().cpu().detach().numpy()
-        distort_linf_np = distort_linf.cpu().detach().numpy()
-
+        # distort_np = distort.clone().cpu().detach().numpy()
+        # distort_linf_np = distort_linf.clone().cpu().detach().numpy()
         # elapsed = time.time() - beg
         # info = ['k', k,
         #         'current_accuracy', correct / tot,
@@ -325,12 +381,12 @@ def acc_under_attack(dataloader, net, c, attack_f, opt, netAttack=None):
         #         'total_count', tot,
         #         'elapsed time (sec)', elapsed]
         # print(','.join([str(x) for x in info]))
-
         # This is a bit unexpected (shortens computations):
         if opt.limit_batch_number > 0 and k >= opt.limit_batch_number:
             break
-
-    return correct / tot, distort_np / tot, distort_linf_np / tot
+    distort_np = distort_l2.cpu().detach().numpy()
+    distort_linf_np = distort_linf.cpu().detach().numpy()
+    return correct_total / count_total, distort_np / count_total, distort_linf_np / count_total
 
 
 def peek(dataloader, net, src_net, c, attack_f):

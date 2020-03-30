@@ -12,14 +12,14 @@ class noise_Linear(nn.Linear):
         super(noise_Linear, self).__init__(in_features, out_features, bias)
 
         self.pni = pni
-        if self.pni is 'layerwise':
+        if self.pni == 'layerwise':
             self.alpha_w = nn.Parameter(torch.Tensor([0.25]),
                                         requires_grad=True)
-        elif self.pni is 'channelwise':
+        elif self.pni == 'channelwise':
             self.alpha_w = nn.Parameter(
                 torch.ones(self.out_features).view(-1, 1) * 0.25,
                 requires_grad=True)
-        elif self.pni is 'elementwise':
+        elif self.pni == 'elementwise':
             self.alpha_w = nn.Parameter(torch.ones(self.weight.size()) * 0.25,
                                         requires_grad=True)
 
@@ -47,14 +47,14 @@ class noise_Conv2d(nn.Conv2d):
                                            padding, dilation, groups, bias)
 
         self.pni = pni
-        if self.pni is 'layerwise':
+        if self.pni == 'layerwise':
             self.alpha_w = nn.Parameter(torch.Tensor([0.25]),
                                         requires_grad=True)
-        elif self.pni is 'channelwise':
+        elif self.pni == 'channelwise':
             self.alpha_w = nn.Parameter(
                 torch.ones(self.out_channels).view(-1, 1, 1, 1) * 0.25,
                 requires_grad=True)
-        elif self.pni is 'elementwise':
+        elif self.pni == 'elementwise':
             self.alpha_w = nn.Parameter(torch.ones(self.weight.size()) * 0.25,
                                         requires_grad=True)
 
