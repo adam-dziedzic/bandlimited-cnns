@@ -64,8 +64,9 @@ parser.add_argument('--optimizer', type=str, default='SGD',
                     choices=['SGD', 'Adam'])
 parser.add_argument('--batch_size',
                     type=int,
-                    default=10,
+                    # default=10,
                     # default=2560,
+                    default=128,
                     help='Batch size.')
 parser.add_argument('--learning_rate', type=float,
                     default=0.1, help='The Learning Rate.')
@@ -128,24 +129,25 @@ parser.add_argument('--attack',
                     help='name of the attack: pgd, cw, boundary')
 parser.add_argument('--attack_eval',
                     dest='attack_eval',
-                    action='store_false',
+                    action='store_true',
                     help='evaluate the adaptive attack to plot the distortion '
                          'vs accuracy graph')
 parser.add_argument('--attack_iters', type=int, nargs='+',
                     # default=[200],
-                    default=[10],
+                    default=[25000],
                     help='number of attack iterations')
 parser.add_argument('--attack_strengths', type=float, nargs='+',
                     # default=[0.031],
                     default=[0.0, 0.005, 0.01, 0.015, 0.02, 0.022,
                              0.025, 0.028, 0.03, 0.031, 0.032,
                              0.033, 0.034, 0.035, 0.036, 0.037,
-                             0.038, 0.039, 0.04, 0.05, 0.1, 0.3,
-                             0.5, 0.8, 1.0, 1.1, 1.3, 1.5, 1.8, 2.0],
+                             0.038, 0.039, 0.04, 0.05, 0.1, 0.2, 0.3, 0.4,
+                             0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3,
+                             1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1],
                     help='the strengths of the attack (this is the maximum '
                          'L infinity distortions for the PGD attack and the '
                          'c parameter for the Carlini-Wagner L2 attack).')
-parser.add_argument('--limit_batch_number', type=int, default=1,
+parser.add_argument('--limit_batch_number', type=int, default=0,
                     help='Used for debugging and tests, limits the batch number for the test set.')
 
 # PNI technique
@@ -876,8 +878,9 @@ def print_distortions(distortions, attack_strengths, attack_iter, timing, correc
     for norm in distortions.keys():
         all_distances = distortions[norm]
         log_time = get_log_time()
-        np.save(log_time + str(norm) + '_distortions', all_distances)
-        np.save(log_time + str(norm) + '_correct_idx', correct_idx)
+        norm_str = str(norm)
+        np.save(log_time + norm_str + '_distortions', all_distances)
+        np.save(log_time + norm_str + '_correct_idx', correct_idx)
         total_count = len(all_distances)
         for j, c in enumerate(attack_strengths):
             dist_indices = all_distances < c
@@ -887,29 +890,43 @@ def print_distortions(distortions, attack_strengths, attack_iter, timing, correc
             adv_count = len(distances)
             correct_count = total_count - adv_count
             acc = correct_count / total_count
+            if len(distances) == 0:
+                mean = 0
+                max = 0
+                min = 0
+                median = 0
+            else:
+                mean = distances.mean()
+                max = distances.max()
+                min = distances.min()
+                median = np.median(distances)
+
+            # proper printing
             if j == 0:
                 header = [
                     "iters",
                     "strength",
                     "test accuracy (%)",
-                    norm + " distortion mean",
-                    norm + " distortion max",
-                    norm + " distortion min",
-                    norm + " distortion median",
+                    "L" + norm_str + " distortion mean",
+                    "L" + norm_str + " distortion max",
+                    "L" + norm_str + " distortion min",
+                    "L" + norm_str + " distortion median",
                     "time (sec)",
                 ]
                 header_str = ",".join([str(x) for x in header])
                 print(header_str)
-            print("{},{},{},{},{},{}".format(
+            results = [
                 attack_iter,
                 c,
                 acc * 100,
-                distances.mean(),
-                distances.max(),
-                distances.min(),
-                distances.median(),
-                timing))
-            sys.stdout.flush()
+                mean,
+                max,
+                min,
+                median,
+                timing
+            ]
+            print(",".join([str(x) for x in results]))
+        sys.stdout.flush()
 
 
 def blackbox_attack_distortion_accuracy(
@@ -944,9 +961,11 @@ def blackbox_attack_distortion_accuracy(
             opt=opt,
             netAttack=net)
         timing = time.time() - beg
-        print('attack name,', attack_name, ',iters,', attack_iter, ',accuracy,', acc, ',time (sec),', timing)
+        print('attack name,', attack_name, ',iters,', attack_iter, ',accuracy,', acc,
+              ',total count,', len(correct_idx), ',time (sec),', timing)
         print_distortions(distortions=distortions, attack_strengths=attack_strengths,
                           attack_iter=attack_iter, timing=timing, correct_idx=correct_idx)
+
 
 def attack_distortion_accuracy(
         dataloader_test, net,

@@ -147,14 +147,15 @@ class Attack(object):
     def boundary_attack(self, net, input_v, label_v, steps=25000):
         net.eval()
         fmodel = foolbox.models.PyTorchModel(net, bounds=(0, 1))
+        max_int = sys.maxsize
         attack = foolbox.attacks.BoundaryAttack(
             steps=steps,
-            init_attack=foolbox.attacks.LinearSearchBlendedUniformNoiseAttack(
-                directions=sys.maxsize, steps=4),
+            init_attack=foolbox.attacks.LinearSearchBlendedUniformNoiseAttack(directions=max_int, steps=1000),
+            # init_attack=foolbox.attacks.BlendedUniformNoiseOnlyAttack(directions=max_int)
         )
         # we skip the second returned value which is the input, and the last one which is success rate
         advs, _, success_adv = attack(fmodel, input_v, label_v, epsilons=None)
-        print('successful adversaries: ', success_adv)
+        # print('successful adversaries: ', success_adv)
         return advs
 
 

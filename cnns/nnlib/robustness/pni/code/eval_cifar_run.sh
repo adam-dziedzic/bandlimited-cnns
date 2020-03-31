@@ -3676,12 +3676,12 @@ CUDA_VISIBLE_DEVICES=3 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
 echo test_${timestamp}.txt
 
 
-PYTHON="/home/${USER}/anaconda3/bin/python" # python environment
+PYTHON="/home/${USER}/anaconda3/envs/abs/bin/python" # python environment
 enable_tb_display=false # enable tensorboard display
 model=noise_resnet20_robust_02
 # + adv. training
 dataset=cifar10
-epochs=0
+epochs=160
 batch_size=2560
 optimizer=SGD
 # add more labels as additional info into the saving path
@@ -3706,9 +3706,15 @@ CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
     --attack 'boundary' \
     --init_noise 0.2 \
     --inner_noise 0.1 \
-    --attack_iters 10 \
-    --attack_strengths 0.0 0.005 0.01 0.015 0.02 0.022 0.025 \
-    0.028 0.03 0.031 0.032 0.033 0.034 0.035 0.036 0.037 0.038 \
-    0.039 0.04 0.05 0.1 \
-    --epoch_delay 0 >> test_${timestamp}.txt 2>&1 &
+    --attack_iters 25000 \
+    --attack_strengths 0.0 0.005 0.01 0.015 0.02 0.022 0.025 0.028 0.03 \
+    0.031 0.032 0.033 0.034 0.035 0.036 0.037 0.038 0.039 0.04 0.05 0.1 \
+    0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0 \
+    --epoch_delay 0 \
+    --limit_batch_number 0 >> test_${timestamp}.txt 2>&1 &
 echo test_${timestamp}.txt
+[1] 24429
+(abs) ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
+test_2020-03-30-20-17-10-724758968.txt
+
+
