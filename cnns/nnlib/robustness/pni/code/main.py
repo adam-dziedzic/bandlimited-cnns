@@ -883,6 +883,7 @@ def print_distortions(distortions, attack_strengths, attack_iter, timing, correc
         all_distances = distortions[norm]
         log_time = get_log_time()
         norm_str = str(norm)
+        print('max L' + norm_str + ' distance: ', all_distances.max())
         np.save(log_time + norm_str + '_distortions', all_distances)
         np.save(log_time + norm_str + '_correct_idx', correct_idx)
         total_count = len(all_distances)
@@ -965,8 +966,9 @@ def blackbox_attack_distortion_accuracy(
             opt=opt,
             netAttack=net)
         timing = time.time() - beg
+        correct_count = correct_idx.sum()
         print('attack name,', attack_name, ',iters,', attack_iter, ',accuracy,', acc,
-              ',total count,', len(correct_idx), ',time (sec),', timing)
+              ',correct_count,', correct_count, ',total count,', len(correct_idx), ',time (sec),', timing)
         print_distortions(distortions=distortions, attack_strengths=attack_strengths,
                           attack_iter=attack_iter, timing=timing, correct_idx=correct_idx)
 

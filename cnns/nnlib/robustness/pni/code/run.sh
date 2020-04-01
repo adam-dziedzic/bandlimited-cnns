@@ -3447,9 +3447,9 @@ CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
     --attack_strengths 0.0 \
     --attack_iters 0 >> train_${timestamp}.txt 2>&1 &
 echo train_${timestamp}.txt
-[1] 94857
+[1] 95043
 cc@icml:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo train_${timestamp}.txt
-train_2020-04-01-19-24-05-380748062.txt
+train_2020-04-01-19-30-34-938456390.txt
 
 
 PYTHON="/home/${USER}/anaconda3/bin/python" # python environment
