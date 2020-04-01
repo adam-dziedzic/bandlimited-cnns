@@ -1,6 +1,10 @@
 from __future__ import absolute_import
 from __future__ import division
 
+from cnns import matplotlib_backend
+
+print("Using:", matplotlib_backend.backend)
+
 import argparse
 import copy
 import os

@@ -3790,3 +3790,8 @@ CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
     --epoch_delay 0 \
     --limit_batch_number 0 >> test_${timestamp}.txt 2>&1 &
 echo test_${timestamp}.txt
+[1] 94420
+cc@icml:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
+test_2020-04-01-19-06-38-561124317.txt
+
+
