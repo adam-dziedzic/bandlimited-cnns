@@ -61,6 +61,11 @@ cd foolbox
 pip install .
 ```
 
+Additionally:
+```
+pip install eagerpy
+```
+
 # Experiments
 To run the main experiments for cifar10 and cifar100, go to the directory: `cnns/nnlib/pytorch_experiments`.
 Find the `run.sh` file and run some examples from it. This is how to train 2 exemplar models:
