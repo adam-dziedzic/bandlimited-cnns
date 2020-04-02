@@ -35,6 +35,8 @@ from cnns.nnlib.robustness.pni.code.utils_.utils import AverageMeter, \
     convert_secs2time
 from cnns.nnlib.utils.general_utils import get_log_time
 from cnns.nnlib.utils.object import Object
+from cnns.nnlib.robustness.pni.code.utils_.printing import print_log
+from cnns.nnlib.robustness.pni.code.utils_.load_model import resume_from_checkpoint
 
 model_names = sorted(name for name in models.__dict__
                      if name.islower() and not name.startswith("__")
@@ -198,6 +200,7 @@ cudnn.benchmark = True
 
 ###############################################################################
 ###############################################################################
+
 
 def main():
     # Init logger
@@ -393,6 +396,7 @@ def main():
         if 'alpha_' in name
     ]
 
+    # Initialize the optimizer
     if args.optimizer == "SGD":
         print("using SGD as optimizer")
         optimizer = torch.optim.SGD([
@@ -422,37 +426,22 @@ def main():
             lr=state['learning_rate'], alpha=0.99, eps=1e-08, weight_decay=0,
             momentum=0)
 
+    else:
+        raise Exception(f"Unknonw optimizer type: {args.optimizer}")
+
     if args.use_cuda:
         net.cuda()
         criterion.cuda()
 
-    recorder = RecorderMeter(args.epochs)  # count number of epoches
+    recorder = RecorderMeter(args.epochs)  # count number of epochs
 
     # optionally resume from a checkpoint
     if args.resume:
-        if os.path.isfile(args.resume):
-            print_log("=> loading checkpoint '{}'".format(args.resume), log)
-            checkpoint = torch.load(args.resume)
-            if not (args.fine_tune):
-                args.start_epoch = checkpoint['epoch']
-                recorder = checkpoint['recorder']
-                optimizer.load_state_dict(checkpoint['optimizer'])
-
-            state_tmp = net.state_dict()
-            if 'state_dict' in checkpoint.keys():
-                state_tmp.update(checkpoint['state_dict'])
-            else:
-                state_tmp.update(checkpoint)
-
-            net.load_state_dict(state_tmp)
-
-            print_log("=> loaded checkpoint '{}' (epoch {})".format(
-                args.resume, args.start_epoch), log)
-        else:
-            print_log("=> no checkpoint found at '{}'".format(args.resume), log)
+        recorder, args.start_epoch = resume_from_checkpoint(
+            net=net, resume_file=args.resume, log=log, optimizer=optimizer, recorder=recorder,
+            fine_tune=args.fine_tune, start_epoch=args.start_epoch)
     else:
-        print_log(
-            "=> do not use any checkpoint for {} model".format(args.arch), log)
+        print_log("=> do not use any checkpoint for {} model".format(args.arch), log)
 
     # initialize the attacker object
     model_attack = Attack(dataloader=train_loader,
@@ -768,12 +757,6 @@ def validate(val_loader, model, criterion, log, attacker=None, adv_eval=False):
                 error1=100 - top1_fgsm.avg), log)
 
     return top1.avg, losses.avg, top1_pgd.avg, losses_pgd.avg, top1_fgsm.avg, losses_fgsm.avg
-
-
-def print_log(print_string, log):
-    print("{}".format(print_string))
-    log.write('{}\n'.format(print_string))
-    log.flush()
 
 
 def save_checkpoint(state, is_best, save_path, filename, log):
