@@ -19,6 +19,8 @@ import torch
 import torchvision.transforms as transforms
 import torch.utils.data as Data
 
+from datetime import datetime
+
 from cleverhans.attacks import SPSA
 from cleverhans.model import CallableModelWrapper
 from cleverhans.utils_pytorch import convert_pytorch_model_to_tf
@@ -276,13 +278,21 @@ def spsa_attack(target_model):
             epsilon, 100. * correct / total, correct, total))
 
 
+def get_log_time():
+    # return time.strftime("%Y-%m-%d-%H-%M-%S", datetime.now())
+    return datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f")
+
+
 if __name__ == '__main__':
     # Init logger
     if not os.path.isdir(args.save_path):
         os.makedirs(args.save_path)
+    log_time = get_log_time()
     log = open(os.path.join(args.save_path,
-                            'log_seed_{}.txt'.format(args.manual_seed)), 'w')
+                            'log_seed_{}_{}.txt'.format(args.manual_seed, log_time)), 'w')
     print_log('save path : {}'.format(args.save_path), log)
+    state = {k: v for k, v in args._get_kwargs()}
+    print_log(state, log)
 
     print_log('Prepare data...', log)
     apply_transforms = [transforms.ToTensor()]
