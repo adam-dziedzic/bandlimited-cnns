@@ -248,6 +248,8 @@ def spsa_attack(target_model):
     total = 0
     clean_preds_op = tf_model_fn(x_op)
     for batch_idx, (inputs, targets) in enumerate(test_loader):
+        if args.tf_cpu:
+            inputs, targets = inputs.cpu(), targets.cpu()
         clean_preds = sess.run(clean_preds_op, feed_dict={x_op: inputs, y_op: targets})
         correct += (np.argmax(clean_preds, axis=1) == targets.numpy()).sum()
         total += len(inputs)
@@ -274,6 +276,8 @@ def spsa_attack(target_model):
         correct = 0
         total = 0
         for batch_idx, (inputs, targets) in enumerate(test_loader):
+            if args.tf_cpu:
+                inputs, targets = inputs.cpu(), targets.cpu()
             adv_preds = sess.run(adv_preds_op, feed_dict={x_op: inputs, y_op: targets})
             # print('type of adv_preds: ', type(adv_preds))
             # print('adv_preds shape: ', np.shape(adv_preds))
@@ -318,7 +322,7 @@ if __name__ == '__main__':
     test_dataset = CIFAR10_testset(target_transform)
     test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
                                               batch_size=args.batch_size,
-                                              shuffle=False,
+                                              shuffle=True,
                                               num_workers=4)
 
     # Load model
