@@ -234,6 +234,25 @@ def spsa_attack(target_model):
         config = tf.ConfigProto(device_count={'GPU': 0})
         target_model = target_model.module
         target_model = target_model.cpu()
+
+        print('tensorflow version: ', tf.__version__)
+
+        # # Set CPU as available physical device
+        # my_devices = tf.config.experimental.list_physical_devices(device_type='CPU')
+        # tf.config.experimental.set_visible_devices(devices=my_devices, device_type='CPU')
+        #
+        # # To find out which devices your operations and tensors are assigned to
+        # tf.debugging.set_log_device_placement(True)
+
+        # HACK!
+        # cleverhans is not clever enough and uses
+        # if torch.cuda.is_available():
+        #       x_tensor = x_tensor.cuda()
+        # we do not want to use cuda
+        def return_false():
+            return False
+        torch.cuda.is_available = return_false
+
     else:
         config = tf.ConfigProto()
 
