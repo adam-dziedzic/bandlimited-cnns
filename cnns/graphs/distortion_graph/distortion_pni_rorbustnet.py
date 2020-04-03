@@ -937,6 +937,30 @@ svhn_pgd_dist2 = {
     is_symlog: False,
 }
 
+boundary_attack_linf = {
+    ylabel: "Test Accuracy (%)",
+    xlabel: '$L_\infty$ distortion',
+    file_name: "boundary_attack1",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "Boundary (25K iters)",
+    # legend_pos: "lower left",
+    legend_pos: "center right",
+    # legend_pos: "center",
+    bbox: (-1.0, 0.0),
+    column_nr: 10,
+    legend_cols: 1,
+    labels: [
+        'Plain',
+        'Adv. Train',
+        'PNI-W Adv.',
+        'RobustNet',
+        'RobustNet Adv.'
+    ],
+    ylim: (0, 100),
+    xlim: (0, 1.0),
+    is_symlog: False,
+}
+
 colors = [get_color(color) for color in
           [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
 markers = ["o", "v", "o", "v", "s", "D", "^", "+"]
@@ -1015,12 +1039,12 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 #     svhn_pgd_dist,
 # ]
 
-datasets = [
-    svhn_cw_c2,
-    svhn_cw_dist2,
-    svhn_pgd_iters2,
-    svhn_pgd_dist2,
-]
+# datasets = [
+#     svhn_cw_c2,
+#     svhn_cw_dist2,
+#     svhn_pgd_iters2,
+#     svhn_pgd_dist2,
+# ]
 
 # cifar10 40 iters adv train
 # datasets = [
@@ -1037,6 +1061,10 @@ datasets = [
 #     pni_robustnet_adv_train_pgd_iters2,
 #     pni_robustnet_adv_train_pgd_dist_linf2,
 # ]
+
+datasets = [
+    boundary_attack_linf,
+]
 
 fig = plt.figure(figsize=(len(datasets) * width, height))
 
