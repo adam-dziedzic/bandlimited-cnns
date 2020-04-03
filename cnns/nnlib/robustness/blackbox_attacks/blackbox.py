@@ -255,7 +255,7 @@ def spsa_attack(target_model):
         torch.cuda.is_available = return_false
 
     else:
-        tf_config = tf.ConfigProto(ldevice_count={'GPU': args.ngpu}, og_device_placement=True)
+        tf_config = tf.ConfigProto(device_count={'GPU': args.ngpu}, log_device_placement=True)
 
     sess = tf.Session(config=tf_config)
     x_op = tf.placeholder(tf.float32, shape=(None, 3, 32, 32,))
