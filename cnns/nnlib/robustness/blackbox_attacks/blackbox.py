@@ -46,7 +46,8 @@ model_names = sorted(name for name in models.__dict__
 parser = argparse.ArgumentParser()
 # Setup
 parser.add_argument('--ngpu', type=int, default=1, help='The number of GPUs.')
-parser.add_argument('--no_cuda', dest='no_cuda', action='store_true', help='do not use GPUs')
+parser.add_argument('--no_cuda', dest='no_cuda', action='store_true', help='do not use GPUs for pytorch')
+parser.add_argument('--tf_cpu', dest='tf_cpu', action='store_true', help='use CPU only for tensorflow')
 
 # Data
 parser.add_argument('--batch_size', type=int, default=1, help='The batch size.')
@@ -228,6 +229,11 @@ def boundary_attack(target_model):
 
 def spsa_attack(target_model):
     # Use tf for evaluation on adversarial data
+
+    if args.tf_cpu:
+        config = tf.ConfigProto(device_count={'GPU': 0})
+        target_model = target_model.cpu()
+
     sess = tf.Session()
     x_op = tf.placeholder(tf.float32, shape=(None, 3, 32, 32,))
     y_op = tf.placeholder(tf.float32, shape=(None,))
