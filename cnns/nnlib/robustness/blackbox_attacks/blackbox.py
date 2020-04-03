@@ -221,7 +221,7 @@ def spsa_attack(target_model):
     # Use tf for evaluation on adversarial data
     sess = tf.Session()
     x_op = tf.placeholder(tf.float32, shape=(None, 3, 32, 32,))
-    y_op = tf.placeholder(tf.float32, shape=(1,))
+    y_op = tf.placeholder(tf.float32, shape=(args.batch_size,))
 
     # Convert pytorch model to a tf_model and wrap it in cleverhans
     tf_model_fn = convert_pytorch_model_to_tf(target_model)
