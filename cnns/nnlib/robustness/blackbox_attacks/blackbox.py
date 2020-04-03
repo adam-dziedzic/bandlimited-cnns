@@ -234,7 +234,7 @@ def spsa_attack(target_model):
     # Use tf for evaluation on adversarial data
 
     if args.tf_cpu:
-        tf_config = tf.ConfigProto(device_count={'GPU': 0}, log_device_placement=True)
+        tf_config = tf.ConfigProto(device_count={'GPU': 0}, log_device_placement=args.log_device_placement)
         target_model = target_model.module
         target_model = target_model.cpu()
 
@@ -257,7 +257,7 @@ def spsa_attack(target_model):
         torch.cuda.is_available = return_false
 
     else:
-        tf_config = tf.ConfigProto(device_count={'GPU': args.ngpu}, log_device_placement=True)
+        tf_config = tf.ConfigProto(device_count={'GPU': args.ngpu}, log_device_placement=args.log_device_placement)
 
     sess = tf.Session(config=tf_config)
     x_op = tf.placeholder(tf.float32, shape=(None, 3, 32, 32,))
