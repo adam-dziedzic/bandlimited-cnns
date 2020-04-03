@@ -48,6 +48,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--ngpu', type=int, default=1, help='The number of GPUs.')
 parser.add_argument('--no_cuda', dest='no_cuda', action='store_true', help='do not use GPUs for pytorch')
 parser.add_argument('--tf_cpu', dest='tf_cpu', action='store_true', help='use CPU only for tensorflow')
+parser.add_argument('--test_clean', dest='test_clean', action='store_true', help='run test on clean data')
 
 # Data
 parser.add_argument('--batch_size', type=int, default=1, help='The batch size.')
@@ -231,7 +232,7 @@ def spsa_attack(target_model):
     # Use tf for evaluation on adversarial data
 
     if args.tf_cpu:
-        config = tf.ConfigProto(device_count={'GPU': 0})
+        tf_config = tf.ConfigProto(device_count={'GPU': 0})
         target_model = target_model.module
         target_model = target_model.cpu()
 
@@ -254,9 +255,9 @@ def spsa_attack(target_model):
         torch.cuda.is_available = return_false
 
     else:
-        config = tf.ConfigProto()
+        tf_config = tf.ConfigProto()
 
-    sess = tf.Session(config=config)
+    sess = tf.Session(config=tf_config)
     x_op = tf.placeholder(tf.float32, shape=(None, 3, 32, 32,))
     y_op = tf.placeholder(tf.float32, shape=(None,))
 
@@ -265,16 +266,17 @@ def spsa_attack(target_model):
     cleverhans_model = CallableModelWrapper(tf_model_fn, output_layer='logits')
 
     # Evaluation on clean data
-    correct = 0
-    total = 0
-    clean_preds_op = tf_model_fn(x_op)
-    for batch_idx, (inputs, targets) in enumerate(test_loader):
-        if args.tf_cpu:
-            inputs, targets = inputs.cpu(), targets.cpu()
-        clean_preds = sess.run(clean_preds_op, feed_dict={x_op: inputs, y_op: targets})
-        correct += (np.argmax(clean_preds, axis=1) == targets.numpy()).sum()
-        total += len(inputs)
-    print('Accuracy on clean data: %.3f%% (%d/%d)' % (100. * correct / total, correct, total))
+    if args.test_clean:
+        correct = 0
+        total = 0
+        clean_preds_op = tf_model_fn(x_op)
+        for batch_idx, (inputs, targets) in enumerate(test_loader):
+            if args.tf_cpu:
+                inputs, targets = inputs.cpu(), targets.cpu()
+            clean_preds = sess.run(clean_preds_op, feed_dict={x_op: inputs, y_op: targets})
+            correct += (np.argmax(clean_preds, axis=1) == targets.numpy()).sum()
+            total += len(inputs)
+        print('Accuracy on clean data: %.3f%% (%d/%d)' % (100. * correct / total, correct, total))
 
     # Create an SPSA attack
     spsa = SPSA(cleverhans_model, sess=sess)

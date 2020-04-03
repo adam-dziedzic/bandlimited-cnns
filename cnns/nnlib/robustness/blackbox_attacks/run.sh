@@ -268,3 +268,4 @@ CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup $PYTHON blackbox.py \
 --manual_seed 31 \
 >> test_${timestamp}.txt 2>&1 &
 echo test_${timestamp}.txt
+test_2020-04-03-12-38-55-167373829.txt
