@@ -234,8 +234,10 @@ def spsa_attack(target_model):
         config = tf.ConfigProto(device_count={'GPU': 0})
         target_model = target_model.module
         target_model = target_model.cpu()
+    else:
+        config = tf.ConfigProto()
 
-    sess = tf.Session()
+    sess = tf.Session(config=config)
     x_op = tf.placeholder(tf.float32, shape=(None, 3, 32, 32,))
     y_op = tf.placeholder(tf.float32, shape=(None,))
 
