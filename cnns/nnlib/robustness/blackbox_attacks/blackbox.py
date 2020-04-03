@@ -232,6 +232,7 @@ def spsa_attack(target_model):
 
     if args.tf_cpu:
         config = tf.ConfigProto(device_count={'GPU': 0})
+        target_model = target_model.module
         target_model = target_model.cpu()
 
     sess = tf.Session()
