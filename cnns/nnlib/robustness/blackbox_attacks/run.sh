@@ -201,6 +201,8 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 PYTHONPATH=../../../../ nohup $PYTHON blackbox.py \
 --source_arch ${source_arch} \
 --manual_seed 31 \
 >> test_${timestamp}.txt 2>&1 &
+echo test_${timestamp}.txt
+
 
 
 # PLAIN

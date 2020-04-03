@@ -49,6 +49,8 @@ parser.add_argument('--ngpu', type=int, default=1, help='The number of GPUs.')
 parser.add_argument('--no_cuda', dest='no_cuda', action='store_true', help='do not use GPUs for pytorch')
 parser.add_argument('--tf_cpu', dest='tf_cpu', action='store_true', help='use CPU only for tensorflow')
 parser.add_argument('--test_clean', dest='test_clean', action='store_true', help='run test on clean data')
+parser.add_argument('--log_device_placement', dest='log_device_placement', action='store_true',
+                    help='log device placement for tf')
 
 # Data
 parser.add_argument('--batch_size', type=int, default=1, help='The batch size.')
