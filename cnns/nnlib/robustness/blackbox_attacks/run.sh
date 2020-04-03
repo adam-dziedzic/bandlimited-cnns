@@ -193,7 +193,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 PYTHONPATH=../../../../ nohup $PYTHON blackbox.py \
 --iter 100 \
 --cw_conf 20 \
 --spsa_samples 512 \
---spsa_iters 1 \
+--spsa_iters 4 \
 --save_path './save/' \
 --target_model ${target_model} \
 --target_arch ${target_arch} \
@@ -225,7 +225,7 @@ CUDA_VISIBLE_DEVICES=-1 PYTHONPATH=../../../../ nohup $PYTHON blackbox.py \
 --epsilons 0.031 0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.07 0.08 0.09 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 \
 --iter 100 \
 --cw_conf 20 \
---spsa_samples 2048 \
+--spsa_samples 8192 \
 --spsa_iters 1 \
 --save_path './save/' \
 --target_model ${target_model} \
@@ -258,7 +258,7 @@ CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup $PYTHON blackbox.py \
 --epsilons 0.031 0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.07 0.08 0.09 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 \
 --iter 100 \
 --cw_conf 20 \
---spsa_samples 2048 \
+--spsa_samples 8192 \
 --spsa_iters 1 \
 --save_path './save/' \
 --target_model ${target_model} \
@@ -268,4 +268,3 @@ CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../ nohup $PYTHON blackbox.py \
 --manual_seed 31 \
 >> test_${timestamp}.txt 2>&1 &
 echo test_${timestamp}.txt
-test_2020-04-03-12-38-55-167373829.txt
