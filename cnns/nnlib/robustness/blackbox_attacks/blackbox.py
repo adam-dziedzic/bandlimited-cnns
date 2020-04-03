@@ -11,7 +11,6 @@ import numpy as np
 import os
 import sys
 from PIL import Image
-from cvxpy import *
 
 import foolbox
 import tensorflow as tf
@@ -42,6 +41,7 @@ model_names = sorted(name for name in models.__dict__
 parser = argparse.ArgumentParser()
 # Setup
 parser.add_argument('--ngpu', type=int, default=1, help='The number of GPUs.')
+parser.add_argument('--no_cuda', dest='no_cuda', action='store_true', help='do not use GPUs')
 
 # Data
 parser.add_argument('--batch_size', type=int, default=1, help='The batch size.')
@@ -103,6 +103,7 @@ parser.add_argument('--normalization',
                     help='normalize inputs')
 
 args = parser.parse_args()
+use_cuda = not args.no_cuda
 
 config = {
     'epsilon': args.epsilon / 255.,
@@ -112,7 +113,10 @@ config = {
 }
 
 # Device configuration
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+if use_cuda:
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+else:
+    device = torch.device('cpu')
 
 
 def unpickle(file):
@@ -310,7 +314,7 @@ if __name__ == '__main__':
     target_model = models.__dict__[args.target_arch](num_classes=args.num_classes)
     source_model = models.__dict__[args.source_arch](num_classes=args.num_classes)
 
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() and use_cuda:
         target_model = torch.nn.DataParallel(target_model, device_ids=list(range(args.ngpu)))
         source_model = torch.nn.DataParallel(source_model, device_ids=list(range(args.ngpu)))
 
