@@ -202,7 +202,9 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 PYTHONPATH=../../../../ nohup $PYTHON blackbox.py \
 --manual_seed 31 \
 >> test_${timestamp}.txt 2>&1 &
 echo test_${timestamp}.txt
-
+[1] 10202
+(spsa-gpu3) ady@gpu3:~/code/bandlimited-cnns/cnns/nnlib/robustness/blackbox_attacks$ echo test_${timestamp}.tx
+test_2020-04-03-06-43-01-291912279.txt
 
 
 # PLAIN

@@ -10,6 +10,7 @@ import argparse
 import numpy as np
 import os
 import sys
+import pwd
 from PIL import Image
 
 import foolbox
@@ -32,7 +33,11 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-username = os.getlogin()
+# username = os.getlogin()
+# see: https://docs.python.org/2/library/os.html?highlight=getlogin#os.getlogin
+# and: https://github.com/dmwm/ProdCommon/pull/12
+
+username = pwd.getpwuid(os.geteuid()).pw_name
 
 model_names = sorted(name for name in models.__dict__
                      if name.islower() and not name.startswith("__")
