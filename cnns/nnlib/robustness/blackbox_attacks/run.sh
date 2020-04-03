@@ -192,7 +192,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 PYTHONPATH=../../../../ nohup $PYTHON blackbox.py \
 --epsilons 0.031 0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.07 0.08 0.09 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 \
 --iter 100 \
 --cw_conf 20 \
---spsa_samples 2048 \
+--spsa_samples 512 \
 --spsa_iters 1 \
 --save_path './save/' \
 --target_model ${target_model} \
@@ -201,14 +201,10 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 PYTHONPATH=../../../../ nohup $PYTHON blackbox.py \
 --source_arch ${source_arch} \
 --manual_seed 31 \
 >> test_${timestamp}.txt 2>&1 &
-echo test_${timestamp}.txt
-[1] 10202
-(spsa-gpu3) ady@gpu3:~/code/bandlimited-cnns/cnns/nnlib/robustness/blackbox_attacks$ echo test_${timestamp}.tx
-test_2020-04-03-06-43-01-291912279.txt
 
 
 # PLAIN
-PYTHON="/home/${USER}/anaconda3/envs/spsa-gpu3/bin/python" # python environment
+PYTHON="/home/${USER}/anaconda3/envs/spsa/bin/python" # python environment
 dataset=cifar10
 num_classes=10
 batch_size=1

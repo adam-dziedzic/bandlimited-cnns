@@ -3,10 +3,13 @@ import torch
 
 from cnns.nnlib.robustness.pni.code.utils_.printing import print_log
 
-def resume_from_checkpoint(net, resume_file, log, optimizer=None, recorder=None, fine_tune=False, start_epoch=0):
+def resume_from_checkpoint(net, resume_file, log, optimizer=None, recorder=None, fine_tune=False, start_epoch=0,
+                           device=None):
     if os.path.isfile(resume_file):
         print_log("=> loading checkpoint '{}'".format(resume_file), log)
-        checkpoint = torch.load(resume_file)
+        if device is None:
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        checkpoint = torch.load(resume_file, map_location=device)
         if not fine_tune:
             start_epoch = checkpoint['epoch']
             recorder = checkpoint['recorder']

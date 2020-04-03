@@ -324,8 +324,8 @@ if __name__ == '__main__':
         source_model = torch.nn.DataParallel(source_model, device_ids=list(range(args.ngpu)))
 
     print('Load trained models')
-    _, _ = resume_from_checkpoint(net=target_model, resume_file=args.target_model, log=log)
-    _, _ = resume_from_checkpoint(net=source_model, resume_file=args.source_model, log=log)
+    _, _ = resume_from_checkpoint(net=target_model, resume_file=args.target_model, log=log, device=device)
+    _, _ = resume_from_checkpoint(net=source_model, resume_file=args.source_model, log=log, device=device)
 
     target_model.eval()
     target_model = target_model.to(device)
