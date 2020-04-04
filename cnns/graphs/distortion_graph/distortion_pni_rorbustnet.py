@@ -961,6 +961,30 @@ boundary_attack_linf = {
     is_symlog: False,
 }
 
+boundary_attack_L2 = {
+    ylabel: "Test Accuracy (%)",
+    xlabel: 'max $L_2$ distortion',
+    file_name: "boundary_attack_L2_25K_iters",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "Boundary (25K iters)",
+    # legend_pos: "lower left",
+    legend_pos: "center right",
+    # legend_pos: "center",
+    bbox: (-1.0, 0.0),
+    column_nr: 10,
+    legend_cols: 1,
+    labels: [
+        'Plain',
+        'Adv. Train',
+        'PNI-W Adv.',
+        'RobustNet',
+        'RobustNet Adv.'
+    ],
+    ylim: (0, 100),
+    xlim: (0, 5.0),
+    is_symlog: False,
+}
+
 colors = [get_color(color) for color in
           [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
 markers = ["o", "v", "o", "v", "s", "D", "^", "+"]
@@ -1062,8 +1086,12 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 #     pni_robustnet_adv_train_pgd_dist_linf2,
 # ]
 
+# datasets = [
+#     boundary_attack_linf,
+# ]
+
 datasets = [
-    boundary_attack_linf,
+    boundary_attack_L2,
 ]
 
 fig = plt.figure(figsize=(len(datasets) * width, height))
