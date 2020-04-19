@@ -59,7 +59,7 @@ GPU_MEM_SIZE = 16280
 
 
 def read_columns(dataset, columns=5):
-    file_name = dir_path + "/" + dataset + ".csv"
+    file_name = dir_path + "/data/" + dataset + ".csv"
     with open(file_name) as csvfile:
         data = csv.reader(csvfile, delimiter=",", quotechar='|')
         cols = []
@@ -92,6 +92,7 @@ ylim = "ylim"
 is_log = "is_log"
 is_symlog = 'is_symlog'  #
 legend_title = "legend_title"
+log_base = "log_base"
 
 carlini_cifar10 = {ylabel: "Accuracy (%)",
                    file_name: "distortionCarliniCifar3",
@@ -985,6 +986,79 @@ boundary_attack_L2 = {
     is_symlog: False,
 }
 
+ucr_1 = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: 'max $L_{\infty}$ distortion',
+    # file_name: "boundary_attack_L2_25K_iters",
+    file_name: "time-series-gauss-uniform-laplace-nonthorax-1",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "PGD (default foolbox 1.9)",
+    # legend_pos: "lower left",
+    legend_pos: "center right",
+    # legend_pos: "center",
+    bbox: (-1.0, 0.0),
+    column_nr: 6,
+    legend_cols: 1,
+    labels: [
+        'gauss',
+        'uniform',
+        'laplace',
+    ],
+    ylim: (0, 70),
+    xlim: (0, 2.0),
+    is_symlog: False,
+    log_base: 2,
+}
+
+ucr_2_cw = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{2}$ distortion',
+    # file_name: "boundary_attack_L2_25K_iters",
+    file_name: "cw-attack-noise-time-series-gauss-uniform-laplace-nonthorax-1",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "CW (default foolbox 1.9)",
+    # legend_pos: "lower left",
+    legend_pos: "center right",
+    # legend_pos: "center",
+    bbox: (-1.0, 0.0),
+    column_nr: 6,
+    legend_cols: 1,
+    labels: [
+        'Gauss',
+        'Uniform',
+        'Laplace',
+    ],
+    ylim: (0, 60),
+    xlim: (0, 10.0),
+    is_symlog: False,
+    log_base: 2,
+}
+
+ucr_3_cw = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{2}$ distortion',
+    # file_name: "boundary_attack_L2_25K_iters",
+    file_name: "cw-attack-time-series-gauss-uniform-laplace-nonthorax-1",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "CW (default foolbox 1.9)",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    # legend_pos: "center",
+    bbox: (-1.0, 0.0),
+    column_nr: 8,
+    legend_cols: 1,
+    labels: [
+        'Rounding',
+        'Gauss',
+        'Uniform',
+        'Laplace',
+    ],
+    ylim: (0, 60),
+    xlim: (0, 10.0),
+    is_symlog: False,
+    log_base: 2,
+}
+
 colors = [get_color(color) for color in
           [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
 markers = ["o", "v", "o", "v", "s", "D", "^", "+"]
@@ -1090,8 +1164,20 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 #     boundary_attack_linf,
 # ]
 
+# datasets = [
+#     boundary_attack_L2,
+# ]
+
+# datasets = [
+#     ucr_1,
+# ]
+
+# datasets = [
+#     ucr_2_cw,
+# ]
+
 datasets = [
-    boundary_attack_L2,
+    ucr_3_cw,
 ]
 
 fig = plt.figure(figsize=(len(datasets) * width, height))
@@ -1147,10 +1233,13 @@ for j, dataset in enumerate(datasets):
     plt.ylim(dataset[ylim])
     if xlim in dataset:
         plt.xlim(dataset[xlim])
+    basex = 10
+    if log_base in dataset:
+        basex = dataset[log_base]
     if is_log in dataset and dataset[is_log]:
-        plt.xscale('log', basex=10)
+        plt.xscale('log', basex=basex)
     if is_symlog in dataset and dataset[is_symlog]:
-        plt.xscale('symlog', basex=10)
+        plt.xscale('symlog', basex=basex)
 
 # plt.gcf().autofmt_xdate()
 # plt.xticks(rotation=0)
