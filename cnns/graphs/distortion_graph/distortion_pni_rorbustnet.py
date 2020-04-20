@@ -1059,6 +1059,160 @@ ucr_3_cw = {
     log_base: 2,
 }
 
+ucr_4_cw = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{2}$ distortion',
+    # file_name: "boundary_attack_L2_25K_iters",
+    file_name: "cw-attack-time-series-fft-round-gauss-uniform-laplace-nonthorax-1",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "CW (default foolbox 1.9)",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    # legend_pos: "center",
+    bbox: (-1.0, 0.0),
+    column_nr: 10,
+    legend_cols: 1,
+    labels: [
+        'FC',
+        'Rounding',
+        'Gauss',
+        'Uniform',
+        'Laplace',
+    ],
+    ylim: (0, 70),
+    xlim: (0, 10.0),
+    is_symlog: False,
+    log_base: 2,
+}
+
+ucr_5_cw = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{2}$ distortion',
+    # file_name: "boundary_attack_L2_25K_iters",
+    file_name: "cw-attack-time-series-fft-round-gauss-uniform-laplace-ecg-200-raw",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "CW (default foolbox 1.9)",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    # legend_pos: "center",
+    bbox: (-1.0, 0.0),
+    column_nr: 10,
+    legend_cols: 1,
+    labels: [
+        'FC',
+        'Rounding',
+        'Gauss',
+        'Uniform',
+        'Laplace',
+    ],
+    ylim: (0, 90),
+    xlim: (0, 10.0),
+    is_symlog: False,
+    log_base: 2,
+}
+
+ucr_6_pgd = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{\infty}$ distortion',
+    # file_name: "boundary_attack_L2_25K_iters",
+    file_name: "pgd-attack-time-series-fft-round-gauss-uniform-laplace-ecg-5-days-raw",
+    title: "PGD L$_{\infty}$ adaptive",
+    # title: "CW (default foolbox 1.9)",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    # legend_pos: "center",
+    bbox: (-1.0, 0.0),
+    column_nr: 10,
+    legend_cols: 1,
+    labels: [
+        'FC',
+        'Rounding',
+        'Gauss',
+        'Uniform',
+        'Laplace',
+    ],
+    ylim: (0, 90),
+    xlim: (0, 10.0),
+    is_symlog: False,
+    log_base: 2,
+}
+
+ucr_7_pgd = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{\infty}$ distortion',
+    # file_name: "boundary_attack_L2_25K_iters",
+    file_name: "pgd-attack-time-series-fft-round-gauss-uniform-laplace-ecg-5000-raw",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "PGD (default foolbox 1.9)",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    # legend_pos: "center",
+    bbox: (-1.0, 0.0),
+    column_nr: 10,
+    legend_cols: 2,
+    labels: [
+        'FC',
+        'Rounding',
+        'Gauss',
+        'Uniform',
+        'Laplace',
+    ],
+    ylim: (0, 100),
+    xlim: (0, 20.0),
+    is_symlog: False,
+    log_base: 2,
+}
+
+ucr_8_pgd = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{\infty}$ distortion',
+    # file_name: "boundary_attack_L2_25K_iters",
+    file_name: "pgd-attack-time-series-plain-ideal-gauss-robust-net",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "PGD (foolbox 3.0)",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    # legend_pos: "center",
+    bbox: (-1.0, 0.0),
+    column_nr: 8,
+    legend_cols: 1,
+    labels: [
+        'Plain',
+        'Ideal Gauss',
+        'RobustNet 1',
+        'RobustNet 2',
+    ],
+    ylim: (0, 100),
+    xlim: (0, 0.1),
+    is_symlog: False,
+    log_base: 2,
+}
+
+ucr_9_pgd = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{\infty}$ distortion',
+    # file_name: "boundary_attack_L2_25K_iters",
+    file_name: "plain-robust-net-adv-train-pni",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "PGD (foolbox 3.0)",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    # legend_pos: "center",
+    bbox: (-1.0, 0.0),
+    column_nr: 8,
+    legend_cols: 1,
+    labels: [
+        'Plain',
+        'RobustNet1',
+        'Adv. Train',
+        'PNI-W',
+    ],
+    ylim: (0, 100),
+    xlim: (0, 0.1),
+    is_symlog: False,
+    log_base: 2,
+}
+
 colors = [get_color(color) for color in
           [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
 markers = ["o", "v", "o", "v", "s", "D", "^", "+"]
@@ -1176,8 +1330,20 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 #     ucr_2_cw,
 # ]
 
+# datasets = [
+#     ucr_3_cw,
+# ]
+
+# datasets = [
+#     ucr_5_cw,
+# ]
+
+# datasets = [
+#     ucr_7_pgd,
+# ]
+
 datasets = [
-    ucr_3_cw,
+    ucr_9_pgd,
 ]
 
 fig = plt.figure(figsize=(len(datasets) * width, height))
