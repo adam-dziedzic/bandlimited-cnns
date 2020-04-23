@@ -1213,6 +1213,115 @@ ucr_9_pgd = {
     log_base: 2,
 }
 
+# time-series-adv-train-robus-net-pni-7-step-pgd-attack.csv
+ucr_10_pgd = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{\infty}$ distortion',
+    file_name: "time-series-adv-train-robus-net-pni-7-step-pgd-attack",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "PGD (7 steps for train & test)",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    # legend_pos: "center",
+    bbox: (-1.0, 0.0),
+    column_nr: 12,
+    legend_cols: 1,
+    labels: [
+        'Plain',
+        'Adv. Train',
+        'PNI-W',
+        'Robust',
+        'Robust Adv.',
+        'Robust PNI',
+    ],
+    ylim: (0, 100),
+    xlim: (0, 0.5),
+    is_symlog: False,
+    log_base: 2,
+}
+
+ucr_11_pgd = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{\infty}$ distortion',
+    file_name: "time-series-adv-train-robust-006-net-pni-7-step-pgd-attack",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "PGD (7 steps for train & test)",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    # legend_pos: "center",
+    bbox: (-1.0, 0.0),
+    column_nr: 12,
+    legend_cols: 1,
+    labels: [
+        'Plain',
+        'Adv. Train',
+        'PNI-W',
+        'Robust',
+        'Robust Adv.',
+        'Robust PNI',
+    ],
+    ylim: (0, 100),
+    xlim: (0, 0.3),
+    is_symlog: False,
+    log_base: 2,
+}
+
+# time-series-adv-train-robust-net-pni-100-step-pgd-attack-ensemble.csv
+ucr_robust_net_ensemble = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{\infty}$ distortion',
+    file_name: "time-series-adv-train-robust-net-pni-100-step-pgd-attack-ensemble",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "PGD (100 steps for train & test)",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    # legend_pos: "center",
+    bbox: (-1.0, 0.0),
+    column_nr: 12,
+    legend_cols: 1,
+    labels: [
+        'Ensemble 1',
+        'Ensemble 10',
+        'Ensemble 20',
+        'Ensemble 30',
+        'Ensemble 40',
+        'Ensemble 50',
+    ],
+    ylim: (0, 100),
+    xlim: (0, 0.3),
+    is_symlog: False,
+    log_base: 2,
+}
+
+
+# time-series-adv-train-robust-net-pni-100-step-pgd-attack-final.csv
+ucr_12_pgd = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{\infty}$ distortion',
+    file_name: "time-series-adv-train-robust-net-pni-100-step-pgd-attack-final",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "PGD (100 steps for train & test)",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    # legend_pos: "center",
+    bbox: (-1.0, 0.0),
+    column_nr: 10,
+    legend_cols: 1,
+    labels: [
+        'Plain',
+        'Adv. Train',
+        'PNI-W',
+        'Robust Adv. 0.2 0.1 0.1',
+        'Robust 0.1 0.09 0.09',
+    ],
+    ylim: (0, 100),
+    xlim: (0, 0.3),
+    is_symlog: False,
+    log_base: 2,
+}
+
+
+
 colors = [get_color(color) for color in
           [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
 markers = ["o", "v", "o", "v", "s", "D", "^", "+"]
@@ -1342,8 +1451,21 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 #     ucr_7_pgd,
 # ]
 
+# datasets = [
+#     ucr_11_pgd,
+# ]
+
+# distortion for CIFAR-10
+# datasets = [
+    # pni_robustnet_adv_c_param2,
+    # pni_robustnet_adv_train3,
+    # pni_robustnet_adv_train_pgd_iters2,
+    # pni_robustnet_adv_train_pgd_dist_linf2,
+# ]
+
 datasets = [
-    ucr_9_pgd,
+    # ucr_robust_net_ensemble,
+    ucr_12_pgd,
 ]
 
 fig = plt.figure(figsize=(len(datasets) * width, height))

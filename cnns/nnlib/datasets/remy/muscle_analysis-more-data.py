@@ -23,6 +23,7 @@ from sklearn.svm import SVC
 from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.gaussian_process.kernels import RBF
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import plot_tree
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
@@ -826,10 +827,12 @@ def plot_coefficients(classifier, feature_names, top_features=20):
     # create plot
     plt.figure(figsize=(15, 5))
     colors = ['red' if c < 0 else 'blue' for c in coef[top_coefficients]]
-    plt.bar(np.arange(2 * top_features), coef[top_coefficients], color=colors)
+    coefficients = coef[top_coefficients]
+    plt.bar(np.arange(2 * top_features), coefficients, color=colors)
     feature_names = np.array(feature_names)
+    feature_names = feature_names[top_coefficients]
     plt.xticks(np.arange(0, 1 + 2 * top_features),
-               feature_names[top_coefficients],
+               feature_names,
                rotation=60, ha='right')
     # plt.show()
     dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -837,6 +840,10 @@ def plot_coefficients(classifier, feature_names, top_features=20):
     plt.tight_layout()
     plt.savefig(output_path)
     plt.close()
+    print('feature name, coefficient value')
+    for name, coef in zip(feature_names, coefficients):
+        print(name, ';', coef)
+
 
 def compute():
     warnings.filterwarnings("ignore")
@@ -847,9 +854,9 @@ def compute():
     # data_path = os.path.join(dir_path, "remy_data_final_sign_class.csv")
     # data_path = os.path.join(dir_path, "clean-2019-11-24-3.csv")
 
-    # data_path = os.path.join(dir_path, "remy_2019_10_29.csv")
+    data_path = os.path.join(dir_path, "remy_2019_10_29.csv")
     # data_path = os.path.join(dir_path, "arnold_2019_12_07.csv")
-    data_path = os.path.join(dir_path, "garrett_2019_11_24.csv")
+    # data_path = os.path.join(dir_path, "garrett_2019_11_24.csv")
 
     print('data_path: ', data_path)
     data_all = pd.read_csv(data_path, header=0)
@@ -905,7 +912,8 @@ def compute():
     # print('means: ', means)
     # print('stds: ', stds)
 
-    svd_spectrum(X)
+    # show the SVD spectrum.
+    # svd_spectrum(X)
 
     w_hat = find_w(X_norm, y)
     y_hat = np.sign(np.matmul(X_norm, w_hat))
@@ -923,18 +931,35 @@ def compute():
     X_cv = np.concatenate((X[:count, :], X[-count:, :]))
     y_cv = np.concatenate((y[:count], y[-count:]))
 
-    SVM = classifiers["SVM"]
+    features_names = col_names.tolist()
+    print('index;feature_name')
+    for index, feature_name in enumerate(features_names):
+        print(index, ';', feature_name)
 
+    clf = DecisionTreeClassifier()
+    clf = clf.fit(X, y)
+    # plt.figure(figsize=(11,9))
+    plt.figure()
+    plot_tree(clf, filled=True, feature_names=features_names)
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    output_path = os.path.join(dir_path, "plot_tree8.png")
+    # plt.tight_layout()
+    plt.savefig(output_path, bbox_inches = 'tight')
+    plt.close()
+    exit(0)
+
+    SVM = classifiers["SVM"]
     clf = SVM
     clf.fit(X_norm, y)
+    print("clf.coef_: ", clf.coef_)
     score = clf.score(X_norm, y)
     print('SVM accuracy: ', accuracy_percent(score))
     features_names = col_names.tolist()
     f_importances(clf.coef_, features_names)
     plot_coefficients(clf, feature_names=features_names, top_features=20)
 
-    accuracy_column_order(clf=SVM, nr_class=nr_class, col_names=col_names,
-                          X_cv=X_cv, y_cv=y_cv, data_path=data_path)
+    # accuracy_column_order(clf=SVM, nr_class=nr_class, col_names=col_names,
+    #                       X_cv=X_cv, y_cv=y_cv, data_path=data_path)
 
     max_col_nr = 3
 
