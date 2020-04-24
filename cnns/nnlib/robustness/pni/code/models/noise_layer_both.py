@@ -1,16 +1,14 @@
-import torch.nn as nn
-import math
-import torch.nn.functional as F
 import torch
-import numpy as np
+import torch.nn as nn
+import torch.nn.functional as F
 
-global_noise_type = 'both'
+pni_type = 'both'
 
 
 class noise_Linear(nn.Linear):
 
     def __init__(self, in_features, out_features, bias=True, pni='layerwise',
-                 w_noise=True, noise_type=global_noise_type, input_size=None):
+                 w_noise=True, noise_type=pni_type, input_size=None):
         """
 
         :param in_features:
@@ -79,7 +77,7 @@ class noise_Conv2d(nn.Conv2d):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1,
                  padding=0, dilation=1,
                  groups=1, bias=True, pni='layerwise', w_noise=True,
-                 noise_type=global_noise_type, input_size=None):
+                 noise_type=pni_type, input_size=None):
         super(noise_Conv2d, self).__init__(in_channels, out_channels,
                                            kernel_size, stride,
                                            padding, dilation, groups, bias)

@@ -1320,6 +1320,31 @@ ucr_12_pgd = {
     log_base: 2,
 }
 
+# fig1-NonInvasiveFeatlECGThorax1-foolbox1-9-svd
+ucr_13_pgd = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{\infty}$ distortion',
+    file_name: "fig1-NonInvasiveFeatlECGThorax1-foolbox1-9-svd",
+    # file_name: "time-series-adv-train-robust-net-pni-100-step-pgd-attack-final",
+    # title: "PGD L$_{\infty}$ adaptive",
+    title: "PGD (100 steps for test)",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    # legend_pos: "center",
+    bbox: (-1.0, 0.0),
+    column_nr: 8,
+    legend_cols: 1,
+    labels: [
+        'Gauss',
+        'Uniform',
+        'Laplace',
+        'SVD',
+    ],
+    ylim: (0, 100),
+    xlim: (0, 2.0),
+    is_symlog: False,
+    log_base: 2,
+}
 
 
 colors = [get_color(color) for color in
@@ -1463,9 +1488,14 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
     # pni_robustnet_adv_train_pgd_dist_linf2,
 # ]
 
+# datasets = [
+#     # ucr_robust_net_ensemble,
+#     ucr_12_pgd,
+# ]
+
 datasets = [
     # ucr_robust_net_ensemble,
-    ucr_12_pgd,
+    ucr_13_pgd,
 ]
 
 fig = plt.figure(figsize=(len(datasets) * width, height))
