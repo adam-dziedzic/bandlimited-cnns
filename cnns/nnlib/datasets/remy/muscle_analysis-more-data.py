@@ -29,6 +29,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import RandomizedSearchCV
+from sklearn.linear_model import LassoLars
 
 h = .02  # step size in the mesh
 delimiter = ";"
@@ -854,9 +855,9 @@ def compute():
     # data_path = os.path.join(dir_path, "remy_data_final_sign_class.csv")
     # data_path = os.path.join(dir_path, "clean-2019-11-24-3.csv")
 
-    data_path = os.path.join(dir_path, "remy_2019_10_29.csv")
+    # data_path = os.path.join(dir_path, "remy_2019_10_29.csv")
     # data_path = os.path.join(dir_path, "arnold_2019_12_07.csv")
-    # data_path = os.path.join(dir_path, "garrett_2019_11_24.csv")
+    data_path = os.path.join(dir_path, "garrett_2019_11_24.csv")
 
     print('data_path: ', data_path)
     data_all = pd.read_csv(data_path, header=0)
@@ -940,12 +941,26 @@ def compute():
     clf = clf.fit(X, y)
     # plt.figure(figsize=(11,9))
     plt.figure()
-    plot_tree(clf, filled=True, feature_names=features_names)
+    plot_tree(clf, filled=True, feature_names=features_names,
+              class_names=['neg', 'pos'])
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    output_path = os.path.join(dir_path, "plot_tree8.png")
+    output_path = os.path.join(dir_path, "plot_tree13_full_data.pdf")
     # plt.tight_layout()
-    plt.savefig(output_path, bbox_inches = 'tight')
+    plt.savefig(output_path, bbox_inches='tight')
     plt.close()
+
+    for alpha in np.linspace(0, 0.1, 100):
+        clf = LassoLars(alpha=alpha)
+        clf = clf.fit(X, y)
+        # Indices of active variables at the end of the path.
+        active = clf.active_
+        active = sorted(active)
+        feature_names = np.array(features_names)
+        print('alpha regularization: ', alpha, ' number of variables: ', len(active))
+        print('variable names: ', feature_names[active])
+        print('variable coefficients (how important they are): ', clf.coef_[active])
+
+    # STOP
     exit(0)
 
     SVM = classifiers["SVM"]

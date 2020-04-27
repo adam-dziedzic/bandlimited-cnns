@@ -1347,6 +1347,53 @@ ucr_13_pgd = {
 }
 
 
+ucr_14_pgd = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{\infty}$ distortion',
+    file_name: "fig1-NonInvasiveFeatlECGThorax1-foolbox1-9-svd-fft",
+    title: "PGD (100 steps for test)",
+    legend_pos: "upper right",
+    bbox: (-1.0, 0.0),
+    column_nr: 10,
+    legend_cols: 1,
+    labels: [
+        'Gauss',
+        'Uniform',
+        'Laplace',
+        'SVD',
+        'FC',
+    ],
+    ylim: (0, 100),
+    xlim: (0, 2.0),
+    is_symlog: False,
+    log_base: 2,
+}
+
+
+ucr_15_pgd = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{\infty}$ distortion',
+    file_name: "cw-time-series-foolbox19-thorax1-fft-svd",
+    title: "PGD (100 steps for test)",
+    legend_pos: "upper right",
+    bbox: (-1.0, 0.0),
+    column_nr: 12,
+    legend_cols: 1,
+    labels: [
+        'FC',
+        'Round',
+        'Gauss',
+        'Uniform',
+        'Laplace',
+        'SVD',
+    ],
+    ylim: (0, 100),
+    xlim: (0, 5.0),
+    is_symlog: False,
+    log_base: 2,
+}
+
+
 colors = [get_color(color) for color in
           [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
 markers = ["o", "v", "o", "v", "s", "D", "^", "+"]
@@ -1495,7 +1542,7 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 
 datasets = [
     # ucr_robust_net_ensemble,
-    ucr_13_pgd,
+    ucr_15_pgd,
 ]
 
 fig = plt.figure(figsize=(len(datasets) * width, height))
