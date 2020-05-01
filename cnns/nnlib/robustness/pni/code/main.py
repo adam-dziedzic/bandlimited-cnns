@@ -92,8 +92,8 @@ parser.add_argument('--save_path',
                     # default='./save/save_adv_train_cifar10_noise_resnet20_input_160_SGD_train_layerwise_3e-4decay/mode_best.pth.tar',
                     help='Folder to save checkpoints and log.')
 parser.add_argument('--resume',
-                    # default='',
-                    default='/home/' + username + '/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/robust_net_0.2.pth.tar',
+                    default='',
+                    # default='/home/' + username + '/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/robust_net_0.2.pth.tar',
                     # default='./save/save_adv_train_cifar10_noise_resnet20_input_160_SGD_train_layerwise_3e-4decay/',
                     # default='/home/' + username + '/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/save_adv_train_cifar10_noise_resnet20_input_160_SGD_train_layerwise_3e-4decay/model_best.pth.tar',
                     type=str, metavar='PATH',
@@ -113,7 +113,7 @@ parser.add_argument('--model_only', dest='model_only', action='store_true',
 parser.add_argument('--ngpu', type=int, default=1, help='0 = CPU.')
 parser.add_argument('--gpu_id', type=int, default=0,
                     help='device range [0,ngpu-1]')
-parser.add_argument('--workers', type=int, default=0,
+parser.add_argument('--workers', type=int, default=4,
                     help='number of data loading workers')
 # random seed
 parser.add_argument('--manualSeed', type=int, default=None, help='manual seed')
@@ -130,7 +130,7 @@ parser.add_argument('--adv_eval', dest='adv_eval',
                     action='store_true',
                     help='enable the adversarial evaluation')
 parser.add_argument('--attack',
-                    default='boundary',
+                    default='pgd',
                     type=str,
                     help='name of the attack: pgd, cw, boundary')
 parser.add_argument('--attack_eval',
@@ -139,8 +139,8 @@ parser.add_argument('--attack_eval',
                     help='evaluate the adaptive attack to plot the distortion '
                          'vs accuracy graph')
 parser.add_argument('--attack_iters', type=int, nargs='+',
-                    # default=[200],
-                    default=[25000],
+                    default=[100],
+                    # default=[25000],
                     help='number of attack iterations')
 parser.add_argument('--attack_strengths', type=float, nargs='+',
                     # default=[0.031],
