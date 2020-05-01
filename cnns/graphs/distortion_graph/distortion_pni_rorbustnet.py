@@ -19,7 +19,10 @@ MY_ORANGE = (218, 124, 48)
 MY_GREEN = (62, 150, 81)
 MY_BLACK = (83, 81, 84)
 MY_GOLD = (148, 139, 61)
-
+MY_GOLD = (148, 139, 61)
+MY_VIOLET = (107, 76, 154)
+MY_BROWN = (146, 36, 40)
+MY_OWN = (25, 150, 10)
 
 def get_color(COLOR_TUPLE_255):
     return [x / 255 for x in COLOR_TUPLE_255]
@@ -1393,9 +1396,81 @@ ucr_15_pgd = {
     log_base: 2,
 }
 
+ucr_16_pgd = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{\infty}$ distortion',
+    file_name: "mallat-perturbation-channels-pgd",
+    title: "PGD (100 steps for test)",
+    legend_pos: "upper right",
+    bbox: (-1.0, 0.0),
+    column_nr: 8,
+    legend_cols: 1,
+    labels: [
+        'Gauss',
+        'Uniform',
+        'SVD',
+        'FC',
+    ],
+    ylim: (0, 100),
+    xlim: (0, 0.1),
+    is_symlog: False,
+    log_base: 2,
+}
+
+ucr_17_pgd = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{\infty}$ distortion',
+    file_name: "robust-net-different-types-of-noise-injected-pgd",
+    title: "PGD (100 steps for test)",
+    legend_pos: "upper right",
+    bbox: (-1.0, 0.0),
+    column_nr: 10,
+    legend_cols: 1,
+    labels: [
+        'Plain',
+        'Gauss',
+        'Uniform',
+        'Laplace',
+        'Bernoulli',
+    ],
+    ylim: (0, 100),
+    xlim: (0, 0.1),
+    is_symlog: False,
+    log_base: 2,
+}
+
+ucr_18_pgd = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{\infty}$ distortion',
+    file_name: "pni-no-std-for-weights-computation",
+    title: "PGD (100 steps for test)",
+    legend_pos: "upper right",
+    bbox: (-1.0, 0.0),
+    column_nr: 14,
+    legend_cols: 1,
+    labels: [
+        'Plain',
+        'PNI-W adv 0.5 clean 0.5',
+        'PNI-H adv 0.4 clean 0.6',
+        'PNI-H adv 0.6 clean 0.4',
+        'PNI-H adv 0.7 clean 0.3',
+        'PNI-H adv 0.8 clean 0.2',
+        'PNI-H adv 0.9 clean 0.1',
+    ],
+    ylim: (0, 100),
+    xlim: (0, 0.3),
+    is_symlog: False,
+    log_base: 2,
+}
+
+datasets = [
+    ucr_18_pgd,
+]
+
 
 colors = [get_color(color) for color in
-          [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD]]
+          [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD, MY_VIOLET,
+           MY_OWN, MY_BROWN]]
 markers = ["o", "v", "o", "v", "s", "D", "^", "+"]
 linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 
@@ -1540,10 +1615,7 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 #     ucr_12_pgd,
 # ]
 
-datasets = [
-    # ucr_robust_net_ensemble,
-    ucr_15_pgd,
-]
+
 
 fig = plt.figure(figsize=(len(datasets) * width, height))
 

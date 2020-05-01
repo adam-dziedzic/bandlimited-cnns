@@ -26,17 +26,19 @@ class ResNetBasicblock(nn.Module):
     """
 
     def __init__(self, inplanes, planes, stride=1, downsample=None,
-                 inner_noise=0.1):
+                 inner_noise=0.1, noise_type='gauss'):
         super(ResNetBasicblock, self).__init__()
 
         self.conv_a = noise_Conv2d(inplanes, planes, kernel_size=3,
                                    stride=stride, padding=1, bias=False,
-                                   noise_std=inner_noise)
+                                   noise_std=inner_noise,
+                                   noise_type=noise_type)
         self.bn_a = nn.BatchNorm2d(planes)
 
         self.conv_b = noise_Conv2d(planes, planes, kernel_size=3, stride=1,
                                    padding=1, bias=False,
-                                   noise_std=inner_noise)
+                                   noise_std=inner_noise,
+                                   noise_type=noise_type)
         self.bn_b = nn.BatchNorm2d(planes)
 
         self.downsample = downsample
@@ -64,18 +66,21 @@ class CifarResNet(nn.Module):
     """
 
     def __init__(self, block, depth, num_classes, init_noise,
-                 inner_noise):
+                 inner_noise, noise_type):
         """ Constructor
         Args:
           depth: number of layers.
           num_classes: number of classes
           base_width: base width
+          init_noise: init noise std
+          inner_noise: inner noise std
+          noise_type: type of noise (e.g. gauss or uniform)
         """
         super(CifarResNet, self).__init__()
 
         # Model type specifies number of layers for CIFAR-10 and CIFAR-100 model
         assert (
-                           depth - 2) % 6 == 0, 'depth should be one of 20, 32, 44, 56, 110'
+                       depth - 2) % 6 == 0, 'depth should be one of 20, 32, 44, 56, 110'
         layer_blocks = (depth - 2) // 6
         print('CifarResNet : Depth : {} , Layers for each block : {}'.format(
             depth, layer_blocks))
@@ -84,13 +89,17 @@ class CifarResNet(nn.Module):
 
         self.conv_1_3x3 = noise_Conv2d(3, 16, kernel_size=3, stride=1,
                                        padding=1, bias=False,
-                                       noise_std=init_noise)
+                                       noise_std=init_noise,
+                                       noise_type=noise_type)
         self.bn_1 = nn.BatchNorm2d(16)
 
         self.inplanes = 16
-        self.stage_1 = self._make_layer(block=block, planes=16, blocks=layer_blocks, stride=1, inner_noise=inner_noise)
-        self.stage_2 = self._make_layer(block=block, planes=32, blocks=layer_blocks, stride=2, inner_noise=inner_noise)
-        self.stage_3 = self._make_layer(block=block, planes=64, blocks=layer_blocks, stride=2, inner_noise=inner_noise)
+        self.stage_1 = self._make_layer(block=block, planes=16, blocks=layer_blocks, stride=1, inner_noise=inner_noise,
+                                        noise_type=noise_type)
+        self.stage_2 = self._make_layer(block=block, planes=32, blocks=layer_blocks, stride=2, inner_noise=inner_noise,
+                                        noise_type=noise_type)
+        self.stage_3 = self._make_layer(block=block, planes=64, blocks=layer_blocks, stride=2, inner_noise=inner_noise,
+                                        noise_type=noise_type)
         self.avgpool = nn.AvgPool2d(8)
         self.classifier = nn.Linear(64 * block.expansion, num_classes)
 
@@ -106,7 +115,8 @@ class CifarResNet(nn.Module):
                 init.kaiming_normal(m.weight)
                 m.bias.data.zero_()
 
-    def _make_layer(self, block, planes, blocks, stride=1, inner_noise=0.1):
+    def _make_layer(self, block, planes, blocks, stride=1, inner_noise=0.1,
+                    noise_type='gauss'):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = DownsampleA(self.inplanes, planes * block.expansion,
@@ -118,7 +128,8 @@ class CifarResNet(nn.Module):
         for i in range(1, blocks):
             layers.append(block(inplanes=self.inplanes,
                                 planes=planes,
-                                inner_noise=inner_noise))
+                                inner_noise=inner_noise,
+                                noise_type=noise_type))
 
         return nn.Sequential(*layers)
 
@@ -134,17 +145,19 @@ class CifarResNet(nn.Module):
 
 
 def noise_resnet20_robust(
-        num_classes=10, init_noise=0.1, inner_noise=0.1):
+        num_classes=10, init_noise=0.2, inner_noise=0.1, noise_type='gauss'):
     """Constructs a ResNet-20 model for CIFAR-10 (by default)
     Args:
       num_classes (uint): number of classes
     """
-    model = CifarResNet(block=ResNetBasicblock,
-                        depth=20,
-                        num_classes=num_classes,
-                        init_noise=init_noise,
-                        inner_noise=inner_noise
-                        )
+    model = CifarResNet(
+        block=ResNetBasicblock,
+        depth=20,
+        num_classes=num_classes,
+        init_noise=init_noise,
+        inner_noise=inner_noise,
+        noise_type=noise_type,
+    )
     return model
 
 

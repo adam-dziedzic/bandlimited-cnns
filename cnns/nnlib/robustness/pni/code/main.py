@@ -168,6 +168,9 @@ parser.add_argument('--init_noise', type=float, default=0.2,
                     help='init noise')
 parser.add_argument('--inner_noise', type=float, default=0.1,
                     help='inner noise')
+parser.add_argument('--noise_type', type=str,
+                    default='gauss',
+                    help='the type of noise for RobustNet (e.g. gauss or uniform)')
 
 # normalization
 parser.add_argument('--normalization',
@@ -342,10 +345,13 @@ def main():
     print_log("=> creating model '{}'".format(args.arch), log)
 
     # Init model, criterion, and optimizer
-    if args.arch == 'noise_resnet_cifar_robust':
-        net_c = models.noise_resnet20_robust(num_classes=num_classes,
-                                             init_noise=args.init_noise,
-                                             inner_noise=args.inner_noise)
+    if args.arch == 'noise_resnet20_robust':
+        net_c = models.noise_resnet20_robust(
+            num_classes=num_classes,
+            init_noise=args.init_noise,
+            inner_noise=args.inner_noise,
+            noise_type=args.noise_type,
+        )
     else:
         # print('keys of models: ', models.__dict__.keys())
         net_c = models.__dict__[args.arch](num_classes=num_classes)
