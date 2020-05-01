@@ -3510,3 +3510,7 @@ CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
 --noise_type 'laplace' \
 >> train_${timestamp}.txt 2>&1 &
 echo train_${timestamp}.txt
+[1] 19042
+(abs) ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo train_${timestamp}.txt
+train_2020-04-30-21-58-55-598796642.txt
+
