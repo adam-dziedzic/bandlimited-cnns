@@ -35,7 +35,7 @@ Install python libraries:
 - matplotlib
 - memory_profiler
 - py3nvml
-- torch_dct (pip install torch_dct)
+- torch_dct (pip install torch-dct)
 
 Using conda:
 ```
