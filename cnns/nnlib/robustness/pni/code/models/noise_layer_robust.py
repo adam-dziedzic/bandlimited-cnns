@@ -22,7 +22,7 @@ class noise_Conv2d(nn.Conv2d):
             noise_i = input.clone().normal_(0, self.noise_std)
         elif self.noise_type == 'uniform':
             noise_i = input.clone().uniform_(
-                from_=-self.noise_std, to=self.noise_std)
+                -self.noise_std, self.noise_std)
         elif self.noise_type == 'laplace':
             a = torch.ones_like(input)
             loc = 0 * a

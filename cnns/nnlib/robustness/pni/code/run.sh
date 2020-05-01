@@ -3517,6 +3517,7 @@ train_2020-04-30-21-58-55-598796642.txt
 
 
 PYTHON='python'
+PYTHON="/home/${USER}/anaconda3/envs/abs/bin/python" # python environment
 enable_tb_display=false # enable tensorboard display
 model=noise_resnet20_robust
 dataset=cifar10
@@ -3546,5 +3547,250 @@ CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
 --noise_type 'laplace' \
 --init_noise 0.2 \
 --inner_noise 0.1 \
+--limit_batch_number 0 \
+>> train_${timestamp}.txt 2>&1 &
+echo train_${timestamp}.txt
+[1] 20372
+(abs) ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo train_${timestamp}.txt
+train_2020-04-30-22-27-42-215337499.txt
+
+
+PYTHON='python'
+# PYTHON="/home/${USER}/anaconda3/envs/abs/bin/python" # python environment
+enable_tb_display=false # enable tensorboard display
+model=noise_resnet20_robust
+dataset=cifar10
+epochs=160
+batch_size=128
+optimizer=SGD
+# add more labels as additional info into the saving path
+label_info=train_layerwise_3e-4decay-0.2-0.1-laplace
+#dataset path
+data_path="/home/${USER}/code/bandlimited-cnns/cnns/nnlib/datasets"
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
+--dataset ${dataset} \
+--data_path ${data_path}   \
+--arch ${model} \
+--save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} \
+--epochs ${epochs} \
+--learning_rate 0.1 \
+--optimizer ${optimizer} \
+--schedule 80 120  \
+--gammas 0.1 0.1 \
+--batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
+--print_freq 100 --decay 0.0003 --momentum 0.9 \
+--epoch_delay 5 \
+--attack_strengths 0.0 \
+--attack_iters 0 \
+--noise_type 'laplace' \
+--init_noise 0.2 \
+--inner_noise 0.1 \
+--limit_batch_number 0 \
+>> train_${timestamp}.txt 2>&1 &
+echo train_${timestamp}.txt
+[1] 48714
+cc@icml:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo train_${timestamp}.txt
+train_2020-05-01-03-34-27-764514292.txt
+mosh cc@129.114.109.80
+
+PYTHON='python'
+# PYTHON="/home/${USER}/anaconda3/envs/abs/bin/python" # python environment
+enable_tb_display=false # enable tensorboard display
+model=noise_resnet20_robust
+dataset=cifar10
+epochs=160
+batch_size=128
+optimizer=SGD
+# add more labels as additional info into the saving path
+label_info=train_layerwise_3e-4decay-0.2-0.1-gauss
+#dataset path
+data_path="/home/${USER}/code/bandlimited-cnns/cnns/nnlib/datasets"
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
+--dataset ${dataset} \
+--data_path ${data_path}   \
+--arch ${model} \
+--save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} \
+--epochs ${epochs} \
+--learning_rate 0.1 \
+--optimizer ${optimizer} \
+--schedule 80 120  \
+--gammas 0.1 0.1 \
+--batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
+--print_freq 100 --decay 0.0003 --momentum 0.9 \
+--epoch_delay 5 \
+--attack_strengths 0.0 \
+--attack_iters 0 \
+--noise_type 'gauss' \
+--init_noise 0.2 \
+--inner_noise 0.1 \
+--limit_batch_number 0 \
+>> train_${timestamp}.txt 2>&1 &
+echo train_${timestamp}.txt
+[1] 6176                                                                                                                                    cc@icml:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo train_${timestamp}.txt
+train_2020-05-01-03-46-30-811341935.txt
+mosh cc@129.114.109.80
+
+PYTHON='python'
+# PYTHON="/home/${USER}/anaconda3/envs/abs/bin/python" # python environment
+enable_tb_display=false # enable tensorboard display
+model=noise_resnet20_robust
+dataset=cifar10
+epochs=160
+batch_size=128
+optimizer=SGD
+# add more labels as additional info into the saving path
+label_info=train_layerwise_3e-4decay-adv-train-0.2-0.1-laplace
+#dataset path
+data_path="/home/${USER}/code/bandlimited-cnns/cnns/nnlib/datasets"
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
+--dataset ${dataset} \
+--data_path ${data_path}   \
+--arch ${model} \
+--save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} \
+--epochs ${epochs} \
+--learning_rate 0.1 \
+--optimizer ${optimizer} \
+--schedule 80 120  \
+--gammas 0.1 0.1 \
+--batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
+--print_freq 100 --decay 0.0003 --momentum 0.9 \
+--epoch_delay 5 \
+--attack_strengths 0.0 \
+--attack_iters 0 \
+--noise_type 'laplace' \
+--init_noise 0.2 \
+--inner_noise 0.1 \
+--limit_batch_number 0 \
+--adv_train \
+--attack_strengths 0.031 \
+--attack_iters 7 \
+>> train_${timestamp}.txt 2>&1 &
+echo train_${timestamp}.txt
+cat train_2020-05-01-03-33-04-837271633.txt
+cc@129.114.108.196
+[2] 6300
+cc@icml:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo train_${timestamp}.txt
+train_2020-05-01-03-48-40-477867698.txt
+
+
+PYTHON='python'
+# PYTHON="/home/${USER}/anaconda3/envs/abs/bin/python" # python environment
+enable_tb_display=false # enable tensorboard display
+model=noise_resnet20_robust
+dataset=cifar10
+epochs=160
+batch_size=128
+optimizer=SGD
+# add more labels as additional info into the saving path
+label_info=train_layerwise_3e-4decay-adv-train-0.2-0.1-gauss
+#dataset path
+data_path="/home/${USER}/code/bandlimited-cnns/cnns/nnlib/datasets"
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
+--dataset ${dataset} \
+--data_path ${data_path}   \
+--arch ${model} \
+--save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} \
+--epochs ${epochs} \
+--learning_rate 0.1 \
+--optimizer ${optimizer} \
+--schedule 80 120  \
+--gammas 0.1 0.1 \
+--batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
+--print_freq 100 --decay 0.0003 --momentum 0.9 \
+--epoch_delay 5 \
+--attack_strengths 0.0 \
+--attack_iters 0 \
+--noise_type 'gauss' \
+--init_noise 0.2 \
+--inner_noise 0.1 \
+--limit_batch_number 0 \
+--adv_train \
+--attack_strengths 0.031 \
+--attack_iters 7 \
+>> train_${timestamp}.txt 2>&1 &
+echo train_${timestamp}.txt
+[1] 6084
+cc@icml:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo train_${timestamp}.txt
+train_2020-05-01-03-48-09-437917921.txt
+cc@129.114.108.196
+
+PYTHON='python'
+# PYTHON="/home/${USER}/anaconda3/envs/abs/bin/python" # python environment
+enable_tb_display=false # enable tensorboard display
+model=noise_resnet20_robust
+dataset=cifar10
+epochs=160
+batch_size=128
+optimizer=SGD
+# add more labels as additional info into the saving path
+label_info=train_layerwise_3e-4decay-0.2-0.1-uniform
+#dataset path
+data_path="/home/${USER}/code/bandlimited-cnns/cnns/nnlib/datasets"
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
+--dataset ${dataset} \
+--data_path ${data_path}   \
+--arch ${model} \
+--save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} \
+--epochs ${epochs} \
+--learning_rate 0.1 \
+--optimizer ${optimizer} \
+--schedule 80 120  \
+--gammas 0.1 0.1 \
+--batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
+--print_freq 100 --decay 0.0003 --momentum 0.9 \
+--epoch_delay 5 \
+--attack_strengths 0.0 \
+--attack_iters 0 \
+--noise_type 'uniform' \
+--init_noise 0.2 \
+--inner_noise 0.1 \
+--limit_batch_number 0 \
+--adv_train \
+--attack_strengths 0.031 \
+--attack_iters 7 \
+>> train_${timestamp}.txt 2>&1 &
+echo train_${timestamp}.txt
+[3] 7228
+cc@icml:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo train_${timestamp}.txt
+train_2020-05-01-03-50-29-317629575.txt
+
+
+PYTHON='python'
+# PYTHON="/home/${USER}/anaconda3/envs/abs/bin/python" # python environment
+enable_tb_display=false # enable tensorboard display
+model=noise_resnet20_robust
+dataset=cifar10
+epochs=160
+batch_size=128
+optimizer=SGD
+# add more labels as additional info into the saving path
+label_info=train_layerwise_3e-4decay-0.2-0.1-uniform
+#dataset path
+data_path="/home/${USER}/code/bandlimited-cnns/cnns/nnlib/datasets"
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
+--dataset ${dataset} \
+--data_path ${data_path}   \
+--arch ${model} \
+--save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} \
+--epochs ${epochs} \
+--learning_rate 0.1 \
+--optimizer ${optimizer} \
+--schedule 80 120  \
+--gammas 0.1 0.1 \
+--batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
+--print_freq 100 --decay 0.0003 --momentum 0.9 \
+--epoch_delay 5 \
+--attack_strengths 0.0 \
+--attack_iters 0 \
+--noise_type 'uniform' \
+--init_noise 0.2 \
+--inner_noise 0.1 \
+--limit_batch_number 0 \
 >> train_${timestamp}.txt 2>&1 &
 echo train_${timestamp}.txt
