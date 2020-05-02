@@ -2,7 +2,6 @@ from datetime import datetime
 import os
 import pathlib
 import matplotlib
-import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
@@ -355,8 +354,8 @@ def plot_signals(x, y, title="", xlabel="Time", ylabel="Amplitude",
     plot.tick_params(axis='both', which='major', labelsize=fontsize)
     plot.tick_params(axis='both', which='minor', labelsize=fontsize)
     plt.title(title, fontsize=fontsize)
-    red_patch = mpatches.Patch(color='red', label=label_x)
-    blue_patch = mpatches.Patch(color='blue', label=label_y)
+    red_patch = matplotlib.patches.Patch(color='red', label=label_x)
+    blue_patch = matplotlib.Patch(color='blue', label=label_y)
     plt.legend(handles=[red_patch, blue_patch], fontsize=fontsize,
                loc='upper left')
     plt.xlabel(xlabel, fontsize=fontsize)

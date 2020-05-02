@@ -1463,8 +1463,94 @@ ucr_18_pgd = {
     log_base: 2,
 }
 
+cifar10_pgd_robust_net_no_addv = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{\infty}$ distortion',
+    file_name: "robust-net-pgd-no-adv-train",
+    title: "PGD (40 steps for test)",
+    legend_pos: "upper right",
+    bbox: (-1.0, 0.0),
+    column_nr: 6,
+    legend_cols: 1,
+    labels: [
+        'Gauss',
+        'Uniform',
+        'Laplace',
+    ],
+    ylim: (0, 100),
+    xlim: (0, 0.1),
+    is_symlog: False,
+    log_base: 2,
+}
+
+cifar10_pgd_robust_net_no_addv_full_old_results = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{\infty}$ distortion',
+    file_name: "robust-net-pgd-no-adv-train-full-old-results",
+    title: "PGD (40 steps for test)",
+    legend_pos: "upper right",
+    bbox: (-1.0, 0.0),
+    column_nr: 12,
+    legend_cols: 1,
+    labels: [
+        'RobustNetGauss',
+        'RobustNetUniform',
+        'RobustNetLaplace',
+        'Adv. Train.',
+        'PNI-W',
+        'RobustNetGaussAdv',
+    ],
+    ylim: (0, 100),
+    xlim: (0, 0.1),
+    is_symlog: False,
+    log_base: 2,
+}
+
+
+cifar10_pgd_robust_net_adv_train = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{\infty}$ distortion',
+    file_name: "robust-net-pgd-adv-train-gauss-uniform-laplace",
+    title: "PGD (40 steps for test)",
+    legend_pos: "upper right",
+    bbox: (-1.0, 0.0),
+    column_nr: 6,
+    legend_cols: 1,
+    labels: [
+        'RobustNetAdvGauss',
+        'RobustNetAdvUniform',
+        'RobustNetAdvLaplace',
+    ],
+    ylim: (0, 100),
+    xlim: (0, 0.1),
+    is_symlog: False,
+    log_base: 2,
+}
+
+cifar10_cw_robust_net_no_adv_train = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{2}$ distortion',
+    file_name: "robust-net-cw-no-adv-train",
+    title: "CW (200 steps for test)",
+    legend_pos: "upper right",
+    bbox: (-1.0, 0.0),
+    column_nr: 6,
+    legend_cols: 1,
+    labels: [
+        'RobustNet Gauss',
+        'RobustNet Uniform',
+        'RobustNet Laplace',
+    ],
+    ylim: (0, 100),
+    xlim: (0, 1.0),
+    is_symlog: False,
+    log_base: 2,
+}
+
 datasets = [
-    ucr_18_pgd,
+    # ucr_18_pgd,
+    # cifar10_pgd_robust_net_adv_train,
+    cifar10_cw_robust_net_no_adv_train,
 ]
 
 

@@ -385,7 +385,8 @@ def main(args):
         train_loader, test_loader, _, _ = get_svhn(args)
     elif "WIFI" in dataset_name or dataset_name.startswith(
             '2_classes_WiFi') or dataset_name.startswith(
-        'Case') or dataset_name.startswith('2_classes_WIFI'):
+        'Case') or dataset_name.startswith(
+        '2_classes_WIFI') or dataset_name.startswith('Traffic'):
         # train_loader, test_loader, dev_loader = get_ucr(args)
         test_loader, train_loader, dev_loader = get_ucr(args)
     elif dataset_name in os.listdir(ucr_path):  # dataset from UCR archive
@@ -670,7 +671,8 @@ if __name__ == '__main__':
     elif args.dataset == "deeprl":
         flist = ["deeprl"]
     elif "WIFI" in args.dataset or args.dataset.startswith(
-            '2_classes_WiFi') or args.dataset.startswith('Case'):
+            '2_classes_WiFi') or args.dataset.startswith(
+        'Case') or args.dataset.startswith('Traffic'):
         flist = [args.dataset]
     else:
         raise AttributeError("Unknown dataset: ", args.dataset)
