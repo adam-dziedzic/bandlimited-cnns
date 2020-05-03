@@ -1530,7 +1530,7 @@ cifar10_pgd_robust_net_adv_train = {
 cifar10_cw_robust_net_no_adv_train = {
     ylabel: "Robust Accuracy (%)",
     xlabel: '$L_{2}$ distortion',
-    file_name: "robust-net-cw-no-adv-train",
+    file_name: "robust-net-cw-no-adv-train2",
     title: "CW (200 steps for test)",
     legend_pos: "upper right",
     bbox: (-1.0, 0.0),
@@ -1547,10 +1547,32 @@ cifar10_cw_robust_net_no_adv_train = {
     log_base: 2,
 }
 
+cifar10_cw_robust_net_adv_train = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{2}$ distortion',
+    file_name: "robust-net-cw-adv-train",
+    title: "CW (200 steps for test)",
+    legend_pos: "upper right",
+    bbox: (-1.0, 0.0),
+    column_nr: 6,
+    legend_cols: 1,
+    labels: [
+        'RobustNet Gauss',
+        'RobustNet Uniform',
+        'RobustNet Laplace',
+    ],
+    ylim: (20, 100),
+    xlim: (0, 1.0),
+    is_symlog: False,
+    log_base: 2,
+}
+
+
 datasets = [
     # ucr_18_pgd,
     # cifar10_pgd_robust_net_adv_train,
     cifar10_cw_robust_net_no_adv_train,
+    # cifar10_cw_robust_net_adv_train,
 ]
 
 
