@@ -53,7 +53,7 @@ def set_dataset(datasets, file_name, counter, start_counter=0):
 
 
 def generate_dataset(sample_size, datasets, train_rate, outlier_std_count):
-    class_nr = len(datasets)
+    data_size = len(datasets)
     # Only truncate the raw dataset sizes.
     set_min_len_manually = False
     if set_min_len_manually:
@@ -150,7 +150,7 @@ def generate_dataset(sample_size, datasets, train_rate, outlier_std_count):
     data_test = np.concatenate(test_datasets, axis=0)
     del test_datasets
 
-    dir_name = 'traffic_data/Traffic' + str(class_nr) + '/'
+    dir_name = 'traffic_data/Traffic' + str(data_size) + '/'
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
 
@@ -164,7 +164,7 @@ def generate_dataset(sample_size, datasets, train_rate, outlier_std_count):
                     f.write("," + str(value))
                 f.write("\n")
 
-    full_dir = dir_name + '/Traffic' + str(class_nr)
+    full_dir = dir_name + '/Traffic' + str(data_size)
     write_data(data_train, full_dir + "_TRAIN")
     write_data(data_test, full_dir + "_TEST")
 
