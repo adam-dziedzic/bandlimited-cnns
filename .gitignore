@@ -155,6 +155,7 @@ cnns/nnlib/robustness/images3
 cnns/nnlib/datasets/images/
 cnns/nnlib/datasets/sathya/2WIFI5-192/
 cnns/nnlib/datasets/sathya/data_journal
+cnns/nnlib/datasets/sathya/Traffic/
 
 cnns/nnlib/datasets/data/cifar-10-batches-py
 cnns/nnlib/datasets/data/
