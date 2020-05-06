@@ -1530,7 +1530,7 @@ cifar10_pgd_robust_net_adv_train = {
 cifar10_cw_robust_net_no_adv_train = {
     ylabel: "Robust Accuracy (%)",
     xlabel: '$L_{2}$ distortion',
-    file_name: "robust-net-cw-no-adv-train2",
+    file_name: "robust-net-cw-no-adv-train3",
     title: "CW (200 steps for test)",
     legend_pos: "upper right",
     bbox: (-1.0, 0.0),
@@ -1569,8 +1569,8 @@ cifar10_cw_robust_net_adv_train = {
 
 cifar10_pgd_robust_net_no_adv_train_equal_clean_accuracy = {
     ylabel: "Robust Accuracy (%)",
-    xlabel: '$L_{2}$ distortion',
-    file_name: "robust-net-pgd-no-adv-train2",
+    xlabel: '$L_{\infty}$ distortion',
+    file_name: "robust-net-pgd-no-adv-train4",
     title: "PGD (40 steps for test)",
     legend_pos: "upper right",
     bbox: (-1.0, 0.0),
@@ -1591,9 +1591,9 @@ cifar10_pgd_robust_net_no_adv_train_equal_clean_accuracy = {
 datasets = [
     # ucr_18_pgd,
     # cifar10_pgd_robust_net_adv_train,
-    # cifar10_cw_robust_net_no_adv_train,
+    cifar10_cw_robust_net_no_adv_train,
     # cifar10_cw_robust_net_adv_train,
-    cifar10_pgd_robust_net_no_adv_train_equal_clean_accuracy,
+    # cifar10_pgd_robust_net_no_adv_train_equal_clean_accuracy,
 
 ]
 
