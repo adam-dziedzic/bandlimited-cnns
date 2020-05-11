@@ -18,23 +18,26 @@ class noise_Conv2d(nn.Conv2d):
     def forward(self, input):
         # print('noise_std: ', self.noise_std)
         # print('noise type: ', self.noise_type)
-        if self.noise_type == 'gauss':
-            noise_i = input.clone().normal_(0, self.noise_std)
-        elif self.noise_type == 'uniform':
-            noise_i = input.clone().uniform_(
-                -self.noise_std, self.noise_std)
-        elif self.noise_type == 'laplace':
-            a = torch.ones_like(input)
-            loc = 0 * a
-            scale = self.noise_std * a
-            m = Laplace(
-                loc=loc,
-                scale=scale,
-            )
-            noise_i = m.sample()
+        if self.noise_std > 0:
+            if self.noise_type == 'gauss':
+                noise_i = input.clone().normal_(0, self.noise_std)
+            elif self.noise_type == 'uniform' :
+                noise_i = input.clone().uniform_(
+                    -self.noise_std, self.noise_std)
+            elif self.noise_type == 'laplace':
+                a = torch.ones_like(input)
+                loc = 0 * a
+                scale = self.noise_std * a
+                m = Laplace(
+                    loc=loc,
+                    scale=scale,
+                )
+                noise_i = m.sample()
+            else:
+                raise Exception(f'Unknown noise type: {self.noise_type}')
+            noise_input = input + noise_i
         else:
-            raise Exception(f'Unknown noise type: {self.noise_type}')
-        noise_input = input + noise_i
+            noise_input = input
 
         output = F.conv2d(noise_input, self.weight, self.bias, self.stride,
                           self.padding, self.dilation,

@@ -5272,3 +5272,49 @@ echo test_${timestamp}.txt
 cc@iclr:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
 test_2020-05-05-13-27-35-527694353.txt
 
+cifar10_noise_resnet20_robust_160_SGD_train_layerwise_3e-4decay-0.22-0.0-gauss-acc-79-77.pth.tar
+
+PYTHON='python'
+PYTHON="/home/${USER}/anaconda3/envs/abs/bin/python" # python environment
+enable_tb_display=false # enable tensorboard display
+model=noise_resnet20_robust
+# + adv. training
+dataset=cifar10
+epochs=160
+batch_size=2500
+optimizer=SGD
+# add more labels as additional info into the saving path
+label_info=3e-4decay_no_adv_train_robust-net-0.22-0.0-gauss
+path="/home/${USER}/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/"
+pretrained_model="${path}cifar10_noise_resnet20_robust_160_SGD_train_layerwise_3e-4decay-0.22-0.0-gauss-acc-79-77.pth.tar"
+#dataset path
+data_path="/home/${USER}/data/pytorch/${dataset}"
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
+    --dataset ${dataset} \
+    --data_path ${data_path}   \
+    --arch ${model} --save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} \
+    --epochs ${epochs} --learning_rate 0.1 \
+    --optimizer ${optimizer} \
+	--schedule 80 120  --gammas 0.1 0.1 \
+    --batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
+    --print_freq 100 --decay 0.0003 --momentum 0.9 \
+    --resume ${pretrained_model} \
+    --attack_eval \
+    --attack 'cw' \
+    --attack_iters 200 \
+    --init_noise 0.22 \
+    --inner_noise 0.0 \
+    --noise_type 'gauss' \
+    --attack_strengths \
+    0.0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 \
+    0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 \
+    200.0 300.0 400.0 500.0 600.0 700.0 800.0 900.0 1000.0 10000.0 \
+    --limit_batch_number 0 \
+    --epoch_delay 5 \
+    >> test_${timestamp}.txt 2>&1 &
+echo test_${timestamp}.txt
+[1] 24969
+(abs) ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
+test_2020-05-10-16-57-37-943419844.txt
+
