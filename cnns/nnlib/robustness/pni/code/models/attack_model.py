@@ -22,7 +22,11 @@ class Attack(object):
         self.epsilon = epsilon
         self.gpu_id = gpu_id  # this is integer
         self.iterations = iterations
-        self.eot = eot
+        if eot is None or eot == 0:
+            # compute the gradient at least once
+            self.eot = 1
+        else:
+            self.eot = eot
 
         if attack_method == 'fgsm':
             self.attack_method = self.fgsm
@@ -90,11 +94,11 @@ class Attack(object):
         if k is None:
             k = self.iterations
 
-        if eot == 0:
+        if eot is None:
+            eot = self.eot
+        elif eot == 0:
             # compute the gradient at least once
             eot = 1
-        elif eot is None:
-            eot = self.eot
 
         model.eval()
         # perturbed_data = copy.deepcopy(data)
@@ -171,8 +175,11 @@ class Attack(object):
 
 def pgd_adapter(input_v, label_v, net, c, opt=None):
     k = opt.attack_iters
+    eot = opt.eot
     return Attack(dataloader=None, epsilon=c).pgd(
-        model=net, data=input_v, target=label_v, a=0.01, k=k)
+        model=net, data=input_v, target=label_v, a=0.01, k=k,
+        eot=eot
+    )
 
 
 def boundary_attack_adapter(input_v, label_v, net, c=None, opt=None):

@@ -5402,6 +5402,12 @@ echo test_${timestamp}.txt
 [1] 21965
 (abs) ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
 test_2020-05-20-09-48-36-904643428.txt
+[1] 26732
+(abs) ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
+test_2020-05-20-10-18-38-763762160.txt
+[1] 30362
+(abs) ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
+test_2020-05-20-10-21-49-151289776.txt
 
 PYTHON='python'
 PYTHON="/home/${USER}/anaconda3/envs/abs/bin/python" # python environment
