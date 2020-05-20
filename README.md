@@ -41,7 +41,7 @@ Using conda:
 ```
 conda install -c conda-forge matplotlib --yes
 conda install -c anaconda memory_profiler --yes
-conda install -c conda-forge py3nvmlt --yes
+conda install -c conda-forge py3nvml --yes
 pip install torch-dct
 ```
 
