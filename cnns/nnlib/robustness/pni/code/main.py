@@ -142,6 +142,9 @@ parser.add_argument('--attack_iters', type=int, nargs='+',
                     default=[100],
                     # default=[25000],
                     help='number of attack iterations')
+parser.add_argument('--eot', type=int,
+                    default=1,
+                    help='number of iterations used to computed averaged gradient')
 parser.add_argument('--attack_strengths', type=float, nargs='+',
                     # default=[0.031],
                     default=[0.0, 0.005, 0.01, 0.015, 0.02, 0.022,

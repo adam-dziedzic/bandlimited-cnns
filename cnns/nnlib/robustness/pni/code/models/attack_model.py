@@ -11,7 +11,7 @@ class Attack(object):
 
     def __init__(self, dataloader, criterion=None, gpu_id=0,
                  epsilon=0.031, attack_method='pgd',
-                 iterations=7):
+                 iterations=7, eot=1):
 
         if criterion is not None:
             self.criterion = criterion
@@ -22,6 +22,7 @@ class Attack(object):
         self.epsilon = epsilon
         self.gpu_id = gpu_id  # this is integer
         self.iterations = iterations
+        self.eot = eot
 
         if attack_method == 'fgsm':
             self.attack_method = self.fgsm
@@ -72,7 +73,7 @@ class Attack(object):
         return perturbed_data
 
     def pgd(self, model, data, target, k=None, a=0.01, random_start=True,
-            d_min=0, d_max=1):
+            d_min=0, d_max=1, eot=None):
         """
         PGD attack.
 
@@ -88,6 +89,12 @@ class Attack(object):
         """
         if k is None:
             k = self.iterations
+
+        if eot == 0:
+            # compute the gradient at least once
+            eot = 1
+        elif eot is None:
+            eot = self.eot
 
         model.eval()
         # perturbed_data = copy.deepcopy(data)
@@ -108,14 +115,17 @@ class Attack(object):
 
         for _ in range(k):
 
-            output = model(perturbed_data)
-            loss = F.cross_entropy(output, target)
+            data_grad = 0
+            for _ in range(eot):
+                output = model(perturbed_data)
+                loss = F.cross_entropy(output, target)
 
-            if perturbed_data.grad is not None:
-                perturbed_data.grad.data.zero_()
+                if perturbed_data.grad is not None:
+                    perturbed_data.grad.data.zero_()
 
-            loss.backward()
-            data_grad = perturbed_data.grad.data
+                loss.backward()
+                data_grad += perturbed_data.grad.data
+            data_grad /= eot
 
             with torch.no_grad():
                 perturbed_data.data += a * torch.sign(data_grad)
