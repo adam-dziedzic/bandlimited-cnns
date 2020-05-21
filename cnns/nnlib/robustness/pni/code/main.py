@@ -1027,7 +1027,7 @@ def attack_distortion_accuracy(
     attack_f, attack_strengths, attack_iters = select_attack(
         attack_name=attack_name, attack_iters=attack_iters,
         attack_strengths=attack_strengths)
-    for eot in enumerate(args.eot):
+    for eot in args.eot:
         for i, attack_iter in enumerate(attack_iters):
             for j, c in enumerate(attack_strengths):
                 opt = Object()

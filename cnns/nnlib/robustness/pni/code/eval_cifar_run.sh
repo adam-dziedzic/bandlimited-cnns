@@ -5900,8 +5900,8 @@ echo test_${timestamp}.txt
 (abs) ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
 test_2020-05-21-10-42-11-310127677.txt
 
-
-PYTHON="/home/${USER}/anaconda3/envs/abs/bin/python" # python environment
+PYTHON='python'
+#PYTHON="/home/${USER}/anaconda3/envs/abs/bin/python" # python environment
 enable_tb_display=false # enable tensorboard display
 model=noise_resnet20_robust
 # + adv. training
@@ -5916,7 +5916,7 @@ pretrained_model="${path}cifar10_noise_resnet20_robust_160_SGD_train_layerwise_3
 #dataset path
 data_path="/home/${USER}/data/pytorch/${dataset}"
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
-CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
     --dataset ${dataset} \
     --data_path ${data_path}   \
     --arch ${model} \
@@ -5940,3 +5940,8 @@ CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
     --epoch_delay 5 \
     >> test_${timestamp}.txt 2>&1 &
 echo test_${timestamp}.txt
+[4] 34087
+cc@v:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
+test_2020-05-21-20-50-01-642064934.txt
+
+
