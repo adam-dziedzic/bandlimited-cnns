@@ -60,9 +60,16 @@ parser.add_argument('--dataset', type=str, default='cifar10',
 parser.add_argument('--arch', metavar='ARCH',
                     # default='lbcnn',
                     # default='noise_resnet20_input',
-                    default='noise_resnet20_robust_02',
+                    default='noise_resnet20_robust',
                     choices=model_names,
                     help='model architecture: ' + ' | '.join(model_names)
+                    )
+parser.add_argument('--arch_attack',
+                    # default='lbcnn',
+                    # default='noise_resnet20_input',
+                    default='noise_resnet20_robust_no_grad',
+                    choices=model_names + ['None'],
+                    help='model architecture to attack: ' + ' | '.join(model_names)
                     )
 # Optimization options
 parser.add_argument('--epochs', type=int, default=160,
@@ -93,7 +100,8 @@ parser.add_argument('--save_path',
                     # default='./save/save_adv_train_cifar10_noise_resnet20_input_160_SGD_train_layerwise_3e-4decay/mode_best.pth.tar',
                     help='Folder to save checkpoints and log.')
 parser.add_argument('--resume',
-                    default='',
+                    # default='',
+                    default='./save/cifar10_noise_resnet20_robust_160_SGD_train_layerwise_3e-4decay-0.2-0.1-gauss-acc-80-120.pth.tar',
                     # default='/home/' + username + '/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/robust_net_0.2.pth.tar',
                     # default='./save/save_adv_train_cifar10_noise_resnet20_input_160_SGD_train_layerwise_3e-4decay/',
                     # default='/home/' + username + '/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/save_adv_train_cifar10_noise_resnet20_input_160_SGD_train_layerwise_3e-4decay/model_best.pth.tar',
@@ -143,9 +151,9 @@ parser.add_argument('--attack_iters', type=int, nargs='+',
                     default=[100],
                     # default=[25000],
                     help='number of attack iterations')
-parser.add_argument('--eot', type=int,
-                    default=1,
-                    help='number of iterations used to computed averaged gradient')
+parser.add_argument('--eot', type=int, nargs='+',
+                    default=[1],
+                    help='number of iterations used to computed averaged gradients (Expectation over Transformation)')
 parser.add_argument('--attack_strengths', type=float, nargs='+',
                     # default=[0.031],
                     default=[0.0, 0.005, 0.01, 0.015, 0.02, 0.022,
@@ -186,6 +194,14 @@ parser.add_argument('--normalization',
 
 args = parser.parse_args()
 
+debug = False
+if debug:
+    args.evaluate = False
+    args.adv_eval = False
+    args.attack_eval = True
+    args.attack_strenghts = [0.0, 0.03]
+    args.workers = 0
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 if args.ngpu == 1:
     # make only devices indexed by #gpu_id visible
@@ -207,6 +223,55 @@ cudnn.benchmark = True
 
 ###############################################################################
 ###############################################################################
+
+def prepare_net(arch, mean, std, log, num_classes, args):
+    print_log("=> creating model '{}'".format(arch), log)
+    # Init model
+    if arch == 'noise_resnet20_robust':
+        net_c = models.noise_resnet20_robust(
+            num_classes=num_classes,
+            init_noise=args.init_noise,
+            inner_noise=args.inner_noise,
+            noise_type=args.noise_type,
+        )
+    else:
+        # print('keys of models: ', models.__dict__.keys())
+        net_c = models.__dict__[arch](num_classes=num_classes)
+
+    # For adversarial case, add normalization layer in front of the original network
+    if (args.adv_train or args.adv_eval):
+        if not args.input_noise:
+            if args.normalization:
+                net = torch.nn.Sequential(
+                    Normalize_layer(mean, std),
+                    net_c
+                )
+            else:
+                net = net_c
+        else:
+            if args.normalization:
+                net = torch.nn.Sequential(
+                    noise_Normalize_layer(mean, std, input_noise=True),
+                    net_c
+                )
+            else:
+                net = torch.nn.Sequential(
+                    noise_input_layer(input_noise=True),
+                    net_c
+                )
+    else:
+        net = net_c
+
+    print_log("=> network :\n {}".format(net), log)
+
+    if args.use_cuda:
+        net.cuda()
+        if args.ngpu > 0:
+            # Always use DataParallel (also on a single gpu to easily switch between
+            # the 1 or more gpus.
+            net = torch.nn.DataParallel(net, device_ids=list(range(args.ngpu)))
+
+    return net
 
 
 def main():
@@ -346,50 +411,16 @@ def main():
                                               num_workers=args.workers,
                                               pin_memory=True)
 
-    print_log("=> creating model '{}'".format(args.arch), log)
+    net = prepare_net(
+        arch=args.arch, mean=mean, std=std, log=log, num_classes=num_classes, args=args)
 
-    # Init model, criterion, and optimizer
-    if args.arch == 'noise_resnet20_robust':
-        net_c = models.noise_resnet20_robust(
-            num_classes=num_classes,
-            init_noise=args.init_noise,
-            inner_noise=args.inner_noise,
-            noise_type=args.noise_type,
-        )
+    if args.arch_attack is None or args.arch_attack == 'None':
+        net_attack = None
     else:
-        # print('keys of models: ', models.__dict__.keys())
-        net_c = models.__dict__[args.arch](num_classes=num_classes)
-    # For adversarial case, add normalization layer in front of the original network
-    if (args.adv_train or args.adv_eval):
-        if not args.input_noise:
-            if args.normalization:
-                net = torch.nn.Sequential(
-                    Normalize_layer(mean, std),
-                    net_c
-                )
-            else:
-                net = net_c
-        else:
-            if args.normalization:
-                net = torch.nn.Sequential(
-                    noise_Normalize_layer(mean, std, input_noise=True),
-                    net_c
-                )
-            else:
-                net = torch.nn.Sequential(
-                    noise_input_layer(input_noise=True),
-                    net_c
-                )
-    else:
-        net = net_c
-
-    print_log("=> network :\n {}".format(net), log)
-
-    if args.use_cuda:
-        if args.ngpu > 0:
-            # Always use DataParallel (also on a single gpu to easily switch between
-            # the 1 or more gpus.
-            net = torch.nn.DataParallel(net, device_ids=list(range(args.ngpu)))
+        print('prepare net attack')
+        net_attack = prepare_net(
+            arch=args.arch_attack, mean=mean, std=std, log=log,
+            num_classes=num_classes, args=args)
 
     # define loss function (criterion) and optimizer
     criterion = torch.nn.CrossEntropyLoss()
@@ -440,7 +471,6 @@ def main():
         raise Exception(f"Unknonw optimizer type: {args.optimizer}")
 
     if args.use_cuda:
-        net.cuda()
         criterion.cuda()
 
     recorder = RecorderMeter(args.epochs)  # count number of epochs
@@ -448,10 +478,14 @@ def main():
     # optionally resume from a checkpoint
     if args.resume:
         recorder, args.start_epoch = resume_from_checkpoint(
-            net=net, resume_file=args.resume, log=log, optimizer=optimizer, recorder=recorder,
+            net=net, resume_file=args.resume, log=log, optimizer=optimizer,
+            recorder=recorder,
             fine_tune=args.fine_tune, start_epoch=args.start_epoch)
     else:
         print_log("=> do not use any checkpoint for {} model".format(args.arch), log)
+
+    if net_attack is not None:
+        net_attack.load_state_dict(net.state_dict())
 
     # initialize the attacker object
     model_attack = Attack(dataloader=train_loader,
@@ -460,10 +494,15 @@ def main():
                           iterations=args.attack_iters[0])
 
     if args.evaluate:
+        print('validate net standard:')
         validate(
             test_loader, net, criterion, log,
             attacker=model_attack, adv_eval=args.adv_eval)
-        return
+        if net_attack is not None:
+            print('validate net attack:')
+            validate(
+                test_loader, net_attack, criterion, log,
+                attacker=model_attack, adv_eval=args.adv_eval)
 
     if args.attack_eval:
         if args.attack == 'boundary':
@@ -479,6 +518,7 @@ def main():
             attack_distortion_accuracy(
                 dataloader_test=test_loader,
                 net=net,
+                net_attack=net_attack,
                 attack_name=args.attack,
                 attack_iters=args.attack_iters,
                 attack_strengths=args.attack_strengths,
@@ -977,7 +1017,9 @@ def blackbox_attack_distortion_accuracy(
 
 
 def attack_distortion_accuracy(
-        dataloader_test, net,
+        dataloader_test,
+        net,
+        net_attack=None,
         attack_iters=[200],
         attack_name='cw',
         attack_strengths=[None],
@@ -985,48 +1027,51 @@ def attack_distortion_accuracy(
     attack_f, attack_strengths, attack_iters = select_attack(
         attack_name=attack_name, attack_iters=attack_iters,
         attack_strengths=attack_strengths)
-    for i, attack_iter in enumerate(attack_iters):
-        for j, c in enumerate(attack_strengths):
-            opt = Object()
-            opt.noise_epsilon = 0.0
-            opt.gradient_iters = 1
-            opt.attack_iters = attack_iter
-            opt.channel = 'empty'
-            opt.ensemble = 1
-            opt.eot = args.eot
-            if args is not None:
-                opt.limit_batch_number = args.limit_batch_number
-            else:
-                opt.limit_batch_number = 0
+    for eot in enumerate(args.eot):
+        for i, attack_iter in enumerate(attack_iters):
+            for j, c in enumerate(attack_strengths):
+                opt = Object()
+                opt.noise_epsilon = 0.0
+                opt.gradient_iters = 1
+                opt.attack_iters = attack_iter
+                opt.channel = 'empty'
+                opt.ensemble = 1
+                opt.eot = args.eot
+                if args is not None:
+                    opt.limit_batch_number = args.limit_batch_number
+                else:
+                    opt.limit_batch_number = 0
 
-            beg = time.time()
-            acc, l2_distortion, linf_distortion = acc_under_attack(
-                dataloader=dataloader_test,
-                net=net,
-                c=c,
-                attack_f=attack_f,
-                opt=opt,
-                netAttack=net)
-            timing = time.time() - beg
-            if i == 0 and j == 0:
-                header = [
-                    "iters",
-                    "strength",
-                    "test accuracy (%)",
-                    "L2 distortion",
-                    "Linf distortion",
-                    "time (sec)",
-                ]
-                header_str = ",".join([str(x) for x in header])
-                print(header_str)
-            print("{},{},{},{},{},{}".format(
-                attack_iter,
-                c,
-                acc * 100,
-                l2_distortion,
-                linf_distortion,
-                timing))
-            sys.stdout.flush()
+                beg = time.time()
+                acc, l2_distortion, linf_distortion = acc_under_attack(
+                    dataloader=dataloader_test,
+                    net=net,
+                    c=c,
+                    attack_f=attack_f,
+                    opt=opt,
+                    netAttack=net_attack)
+                timing = time.time() - beg
+                if i == 0 and j == 0:
+                    header = [
+                        "iters",
+                        "strength",
+                        "test accuracy (%)",
+                        "L2 distortion",
+                        "Linf distortion",
+                        "eot",
+                        "time (sec)",
+                    ]
+                    header_str = ",".join([str(x) for x in header])
+                    print(header_str)
+                print("{},{},{},{},{},{}".format(
+                    attack_iter,
+                    c,
+                    acc * 100,
+                    l2_distortion,
+                    linf_distortion,
+                    eot,
+                    timing))
+                sys.stdout.flush()
 
 
 if __name__ == '__main__':

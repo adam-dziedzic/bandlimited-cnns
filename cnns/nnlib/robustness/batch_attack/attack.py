@@ -365,8 +365,9 @@ def acc_under_attack(dataloader, net, c, attack_f, opt, netAttack=None):
     distort_linf = 0.0
     for k, (input, output) in enumerate(dataloader):
         # beg = time.time()
-        _, correct, count, diff, _ = apply_attack(attack_f=attack_f, c=c, input=input, output=output, net=net,
-                                                  netAttack=netAttack, opt=opt)
+        _, correct, count, diff, _ = apply_attack(
+            attack_f=attack_f, c=c, input=input, output=output, net=net,
+            netAttack=netAttack, opt=opt)
         correct_total += correct
         count_total += count
         distort_l2 += l2_torch(diff)
