@@ -27,6 +27,7 @@ from cnns.nnlib.robustness.pni.code import models
 from cnns.nnlib.robustness.pni.code.models.attack_model import Attack
 from cnns.nnlib.robustness.pni.code.models.attack_model import boundary_attack_adapter
 from cnns.nnlib.robustness.pni.code.models.attack_model import pgd_adapter
+from cnns.nnlib.robustness.pni.code.models.attack_model import spsa_attack_adapter
 from cnns.nnlib.robustness.pni.code.models.noise_layer import noise_input_layer
 from cnns.nnlib.robustness.pni.code.models.nomarlization_layer import \
     Normalize_layer, noise_Normalize_layer
@@ -865,6 +866,16 @@ def select_attack(attack_name, attack_iters=[200], attack_strengths=None):
                                 0.038, 0.039, 0.04, 0.05, 0.1, 0.3,
                                 0.5, 0.8, 1.0, 1.1, 1.3, 1.5, 1.8, 2.0]
         # attack_strengths = None
+    elif attack_name == 'spsa':
+        attack_f = spsa_attack_adapter
+        if attack_strengths is None:
+            attack_strengths = [0.03]
+            # attack_strengths = [0.0, 0.005, 0.01, 0.015, 0.02, 0.022,
+            #                     0.025, 0.028, 0.03, 0.031, 0.032,
+            #                     0.033, 0.034, 0.035, 0.036, 0.037,
+            #                     0.038, 0.039, 0.04, 0.05, 0.1]
+        # attack_iters = [0, 1, 4, 7, 10, 20, 40, 100, 1000]
+        attack_iters = attack_iters
     else:
         raise Exception(f'Unknown attack: {args.attack}')
     return attack_f, attack_strengths, attack_iters

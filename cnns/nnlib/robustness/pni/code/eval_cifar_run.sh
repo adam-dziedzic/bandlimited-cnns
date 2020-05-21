@@ -5449,3 +5449,314 @@ CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
     --epoch_delay 5 \
     >> test_${timestamp}.txt 2>&1 &
 echo test_${timestamp}.txt
+
+
+PYTHON='python'
+#PYTHON="/home/${USER}/anaconda3/envs/abs/bin/python" # python environment
+enable_tb_display=false # enable tensorboard display
+model=noise_resnet20_robust
+# + adv. training
+dataset=cifar10
+epochs=160
+batch_size=5000
+optimizer=SGD
+# add more labels as additional info into the saving path
+label_info=3e-4decay_no_adv_train_robust-net-0.2-0.1-gauss
+path="/home/${USER}/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/"
+pretrained_model="${path}cifar10_noise_resnet20_robust_160_SGD_train_layerwise_3e-4decay-0.2-0.1-gauss-acc-80-120.pth.tar"
+#dataset path
+data_path="/home/${USER}/data/pytorch/${dataset}"
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
+    --dataset ${dataset} \
+    --data_path ${data_path}   \
+    --arch ${model} --save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} \
+    --epochs ${epochs} --learning_rate 0.1 \
+    --optimizer ${optimizer} \
+	--schedule 80 120  --gammas 0.1 0.1 \
+    --batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
+    --print_freq 100 --decay 0.0003 --momentum 0.9 \
+    --resume ${pretrained_model} \
+    --attack_eval \
+    --attack 'pgd' \
+    --attack_iters 40 \
+    --eot 100 \
+    --init_noise 0.2 \
+    --inner_noise 0.1 \
+    --noise_type 'gauss' \
+    --attack_strengths 0.0 0.005 0.01 0.015 0.02 0.022 0.025 \
+    0.028 0.03 0.031 0.032 0.033 0.034 0.035 0.036 0.037 0.038 \
+    0.039 0.04 0.05 0.1 \
+    --limit_batch_number 0 \
+    --epoch_delay 5 \
+    >> test_${timestamp}.txt 2>&1 &
+echo test_${timestamp}.txt
+[1] 46841
+cc@rtx:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
+test_2020-05-20-20-11-41-498373917.txt
+
+
+PYTHON='python'
+PYTHON="/home/${USER}/anaconda3/envs/abs/bin/python" # python environment
+enable_tb_display=false # enable tensorboard display
+model=noise_resnet20_robust
+# + adv. training
+dataset=cifar10
+epochs=160
+batch_size=10000
+optimizer=SGD
+# add more labels as additional info into the saving path
+label_info=3e-4decay_no_adv_train_robust-net-0.2-0.1-gauss
+path="/home/${USER}/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/"
+pretrained_model="${path}cifar10_noise_resnet20_robust_160_SGD_train_layerwise_3e-4decay-0.2-0.1-gauss-acc-80-120.pth.tar"
+#dataset path
+data_path="/home/${USER}/data/pytorch/${dataset}"
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
+    --dataset ${dataset} \
+    --data_path ${data_path}   \
+    --arch ${model} --save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} \
+    --epochs ${epochs} --learning_rate 0.1 \
+    --optimizer ${optimizer} \
+	--schedule 80 120  --gammas 0.1 0.1 \
+    --batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
+    --print_freq 100 --decay 0.0003 --momentum 0.9 \
+    --resume ${pretrained_model} \
+    --attack_eval \
+    --attack 'pgd' \
+    --attack_iters 40 \
+    --eot 10 \
+    --init_noise 0.2 \
+    --inner_noise 0.1 \
+    --noise_type 'gauss' \
+    --attack_strengths 0.025 \
+    0.028 0.03 0.031 0.032 0.033 0.034 0.035 0.036 0.037 0.038 \
+    0.039 0.04 0.05 0.1 \
+    --limit_batch_number 0 \
+    --epoch_delay 5 \
+    >> test_${timestamp}.txt 2>&1 &
+echo test_${timestamp}.txt
+[1] 31149
+(abs) ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
+test_2020-05-20-11-17-09-156334080.txt
+
+PYTHON='python'
+#PYTHON="/home/${USER}/anaconda3/envs/abs/bin/python" # python environment
+enable_tb_display=false # enable tensorboard display
+model=noise_resnet20_robust
+# + adv. training
+dataset=cifar10
+epochs=160
+batch_size=2500
+optimizer=SGD
+# add more labels as additional info into the saving path
+label_info=3e-4decay_no_adv_train_robust-net-0.2-0.1-gauss
+path="/home/${USER}/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/"
+pretrained_model="${path}cifar10_noise_resnet20_robust_160_SGD_train_layerwise_3e-4decay-0.2-0.1-gauss-acc-80-120.pth.tar"
+#dataset path
+data_path="/home/${USER}/data/pytorch/${dataset}"
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
+    --dataset ${dataset} \
+    --data_path ${data_path}   \
+    --arch ${model} --save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} \
+    --epochs ${epochs} --learning_rate 0.1 \
+    --optimizer ${optimizer} \
+	--schedule 80 120  --gammas 0.1 0.1 \
+    --batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
+    --print_freq 100 --decay 0.0003 --momentum 0.9 \
+    --resume ${pretrained_model} \
+    --attack_eval \
+    --attack 'pgd' \
+    --attack_iters 40 \
+    --eot 20 \
+    --init_noise 0.2 \
+    --inner_noise 0.1 \
+    --noise_type 'gauss' \
+    --attack_strengths 0.0 0.005 0.01 0.015 0.02 0.022 0.025 \
+    0.028 0.03 0.031 0.032 0.033 0.034 0.035 0.036 0.037 0.038 \
+    0.039 0.04 0.05 0.1 \
+    --limit_batch_number 0 \
+    --epoch_delay 5 \
+    >> test_${timestamp}.txt 2>&1 &
+echo test_${timestamp}.txt
+[1] 12179
+cc@v:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
+test_2020-05-20-20-05-48-005845233.txt
+
+PYTHON='python'
+#PYTHON="/home/${USER}/anaconda3/envs/abs/bin/python" # python environment
+enable_tb_display=false # enable tensorboard display
+model=noise_resnet20_robust
+# + adv. training
+dataset=cifar10
+epochs=160
+batch_size=2500
+optimizer=SGD
+# add more labels as additional info into the saving path
+label_info=3e-4decay_no_adv_train_robust-net-0.2-0.1-gauss
+path="/home/${USER}/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/"
+pretrained_model="${path}cifar10_noise_resnet20_robust_160_SGD_train_layerwise_3e-4decay-0.2-0.1-gauss-acc-80-120.pth.tar"
+#dataset path
+data_path="/home/${USER}/data/pytorch/${dataset}"
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
+    --dataset ${dataset} \
+    --data_path ${data_path}   \
+    --arch ${model} --save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} \
+    --epochs ${epochs} --learning_rate 0.1 \
+    --optimizer ${optimizer} \
+	--schedule 80 120  --gammas 0.1 0.1 \
+    --batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
+    --print_freq 100 --decay 0.0003 --momentum 0.9 \
+    --resume ${pretrained_model} \
+    --attack_eval \
+    --attack 'pgd' \
+    --attack_iters 40 \
+    --eot 50 \
+    --init_noise 0.2 \
+    --inner_noise 0.1 \
+    --noise_type 'gauss' \
+    --attack_strengths 0.0 0.005 0.01 0.015 0.02 0.022 0.025 \
+    0.028 0.03 0.031 0.032 0.033 0.034 0.035 0.036 0.037 0.038 \
+    0.039 0.04 0.05 0.1 \
+    --limit_batch_number 0 \
+    --epoch_delay 5 \
+    >> test_${timestamp}.txt 2>&1 &
+echo test_${timestamp}.txt
+[2] 12773
+cc@v:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
+test_2020-05-20-20-06-17-866830901.txt
+
+
+
+PYTHON="/home/${USER}/anaconda3/envs/abs/bin/python" # python environment
+enable_tb_display=false # enable tensorboard display
+model=vanilla_resnet20
+# + adv. training
+dataset=cifar10
+num_classes=10
+epochs=160
+batch_size=2500
+optimizer=SGD
+# add more labels as additional info into the saving path
+label_info=no_adv_train-02-01-robust-net-spsa
+pretrained_model="/home/${USER}/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/cifar10_vanilla_resnet20_160_SGD_no_adv_train_vanilla_pure_acc_88_00.pth.tar"
+#dataset path
+data_path="/home/${USER}/data/pytorch/${dataset}"
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
+    --dataset ${dataset} \
+    --data_path ${data_path}   \
+    --arch ${model} \
+    --save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} \
+    --epochs ${epochs} \
+    --learning_rate 0.1 \
+    --optimizer ${optimizer} \
+	--schedule 80 120  --gammas 0.1 0.1 \
+    --batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
+    --print_freq 100 --decay 0.0003 --momentum 0.9 \
+    --resume ${pretrained_model} \
+    --attack_eval \
+    --attack 'spsa' \
+    --init_noise 0.0 \
+    --inner_noise 0.0 \
+    --attack_iters 10 \
+    --attack_strengths 0.03 \
+    --epoch_delay 0 \
+    --limit_batch_number 0 \
+    >> test_${timestamp}.txt 2>&1 &
+echo test_${timestamp}.txt
+
+iters: 1000
+[1] 17959
+(abs) ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
+test_2020-05-20-15-16-32-671063448.txt
+
+iters: 10
+[2] 1508
+(abs) ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
+test_2020-05-20-15-30-41-019005362.txt
+
+
+PYTHON="/home/${USER}/anaconda3/envs/abs/bin/python" # python environment
+enable_tb_display=false # enable tensorboard display
+model=vanilla_resnet20
+# + adv. training
+dataset=cifar10
+num_classes=10
+epochs=160
+batch_size=2500
+optimizer=SGD
+# add more labels as additional info into the saving path
+label_info=no_adv_train-02-01-robust-net-spsa
+pretrained_model="/home/${USER}/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/cifar10_vanilla_resnet20_160_SGD_no_adv_train_vanilla_pure_acc_88_00.pth.tar"
+#dataset path
+data_path="/home/${USER}/data/pytorch/${dataset}"
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
+    --dataset ${dataset} \
+    --data_path ${data_path}   \
+    --arch ${model} \
+    --save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} \
+    --epochs ${epochs} \
+    --learning_rate 0.1 \
+    --optimizer ${optimizer} \
+	--schedule 80 120  --gammas 0.1 0.1 \
+    --batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
+    --print_freq 100 --decay 0.0003 --momentum 0.9 \
+    --resume ${pretrained_model} \
+    --attack_eval \
+    --attack 'spsa' \
+    --init_noise 0.0 \
+    --inner_noise 0.0 \
+    --attack_iters 10 \
+    --attack_strengths 0.03 \
+    --epoch_delay 0 \
+    --limit_batch_number 20 \
+    >> test_${timestamp}.txt 2>&1 &
+echo test_${timestamp}.txt
+[3] 9544
+(abs) ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
+test_2020-05-20-15-37-50-389010872.txt
+limit batch 20
+iters 10
+
+PYTHON='python'
+#PYTHON="/home/${USER}/anaconda3/envs/abs/bin/python" # python environment
+enable_tb_display=false # enable tensorboard display
+model=noise_resnet20_robust
+# + adv. training
+dataset=cifar10
+epochs=160
+batch_size=2500
+optimizer=SGD
+# add more labels as additional info into the saving path
+label_info=3e-4decay_no_adv_train_robust-net-0.2-0.1-gauss
+path="/home/${USER}/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code/save/"
+pretrained_model="${path}cifar10_noise_resnet20_robust_160_SGD_train_layerwise_3e-4decay-0.2-0.1-gauss-acc-80-120.pth.tar"
+#dataset path
+data_path="/home/${USER}/data/pytorch/${dataset}"
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
+    --dataset ${dataset} \
+    --data_path ${data_path}   \
+    --arch ${model} --save_path ./save/${DATE}/${dataset}_${model}_${epochs}_${optimizer}_${label_info} \
+    --epochs ${epochs} --learning_rate 0.1 \
+    --optimizer ${optimizer} \
+	--schedule 80 120  --gammas 0.1 0.1 \
+    --batch_size ${batch_size} --workers 4 --ngpu 1 --gpu_id 0 \
+    --print_freq 100 --decay 0.0003 --momentum 0.9 \
+    --resume ${pretrained_model} \
+    --attack_eval \
+    --attack 'pgd' \
+    --attack_iters 40 \
+    --eot 1000 \
+    --init_noise 0.2 \
+    --inner_noise 0.1 \
+    --noise_type 'gauss' \
+    --attack_strengths 0.03 0.04 0.05 0.1 0.01 0.02 \
+    --limit_batch_number 0 \
+    --epoch_delay 5 \
+    >> test_${timestamp}.txt 2>&1 &
+echo test_${timestamp}.txt

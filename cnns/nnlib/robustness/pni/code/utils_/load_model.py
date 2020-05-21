@@ -3,6 +3,7 @@ import torch
 
 from cnns.nnlib.robustness.pni.code.utils_.printing import print_log
 
+
 def resume_from_checkpoint(net, resume_file, log, optimizer=None, recorder=None, fine_tune=False, start_epoch=0,
                            device=None):
     if os.path.isfile(resume_file):
@@ -27,5 +28,8 @@ def resume_from_checkpoint(net, resume_file, log, optimizer=None, recorder=None,
         print_log("=> loaded checkpoint '{}' (epoch {})".format(
             resume_file, start_epoch), log)
     else:
-        print_log("=> no checkpoint found at '{}'".format(resume_file), log)
+        msg = "no checkpoint found at '{}'".format(resume_file)
+        print_log(msg, log)
+        raise Exception(msg)
+
     return recorder, start_epoch

@@ -5,6 +5,8 @@ import torch
 from cnns.nnlib.robustness.batch_attack.attack import attack_cw
 from cnns.nnlib.utils.object import Object
 from cnns.foolbox.foolbox_3_0_0 import foolbox
+from cleverhans.future.torch.attacks.spsa import spsa
+import numpy as np
 
 
 class Attack(object):
@@ -172,6 +174,15 @@ class Attack(object):
         # print('successful adversaries: ', success_adv)
         return advs
 
+    def spsa_attack(self, net, input_v, label_v=None, steps=1000):
+        net.eval()
+        advs = spsa(model_fn=net, x=input_v, eps=self.epsilon,
+                    nb_iter=steps, norm=np.inf, clip_min=0, clip_max=1,
+                    y=None,
+                    targeted=False, early_stop_loss_threshold=None, learning_rate=0.01, delta=0.01,
+                    spsa_samples=128, spsa_iters=1, is_debug=False, sanity_checks=False)
+        return advs
+
 
 def pgd_adapter(input_v, label_v, net, c, opt=None):
     k = opt.attack_iters
@@ -185,3 +196,8 @@ def pgd_adapter(input_v, label_v, net, c, opt=None):
 def boundary_attack_adapter(input_v, label_v, net, c=None, opt=None):
     steps = opt.attack_iters
     return Attack(dataloader=None, epsilon=c).boundary_attack(net=net, input_v=input_v, label_v=label_v, steps=steps)
+
+
+def spsa_attack_adapter(input_v, label_v, net, c=None, opt=None):
+    steps = opt.attack_iters
+    return Attack(dataloader=None, epsilon=c).spsa_attack(net=net, input_v=input_v, label_v=label_v, steps=steps)

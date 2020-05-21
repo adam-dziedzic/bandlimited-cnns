@@ -72,8 +72,9 @@ parser.add_argument('--spsa_samples', type=int, default=2048,
                          'Number of inputs to evaluate at a single time. '
                          'The true batch size (the number of evaluated inputs for each update) is '
                          '`spsa_samples * spsa_iters`')
-parser.add_argument('--spsa_iters', type=int, default=1, help='Number of model evaluations before performing an '
-                                                              'update, where each evaluation is on spsa_samples different inputs.')
+parser.add_argument('--spsa_iters', type=int, default=1,
+                    help='Number of model evaluations before performing an '
+                         'update, where each evaluation is on spsa_samples different inputs.')
 
 # Log
 parser.add_argument('--save_path',
@@ -254,6 +255,7 @@ def spsa_attack(target_model):
         # we do not want to use cuda
         def return_false():
             return False
+
         torch.cuda.is_available = return_false
 
     else:

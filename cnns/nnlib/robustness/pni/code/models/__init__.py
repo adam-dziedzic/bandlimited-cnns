@@ -16,4 +16,5 @@ from .noisy_resnet_cifar_robust_01 import noise_resnet20_robust_01
 from .noisy_resnet_cifar_robust_013 import noise_resnet20_robust_013
 from .noisy_resnet_cifar_robust_014 import noise_resnet20_robust_014
 from .noisy_resnet_cifar_robust_02 import noise_resnet20_robust_02
+from .noisy_resnet_cifar_robust_no_grad import noise_resnet20_robust_no_grad
 

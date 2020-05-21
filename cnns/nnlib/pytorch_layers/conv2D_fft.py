@@ -131,9 +131,12 @@ class Conv2dfftFunction(torch.autograd.Function):
     signal_ndim = 2
 
     @staticmethod
-    def forward(ctx, input, filter, bias=None, padding=(0, 0), stride=(1, 1),
-                args=Arguments(), out_size=None, is_manual=tensor([0]),
-                conv_index=None):
+    def forward(
+            ctx, input, filter, bias=None,
+            padding=(0, 0), stride=(1, 1),
+            args=Arguments(), out_size=None,
+            is_manual=tensor([0]),
+            conv_index=None):
         """
         Compute the forward pass for the 2D convolution.
 
