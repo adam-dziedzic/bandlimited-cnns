@@ -1036,7 +1036,7 @@ def attack_distortion_accuracy(
                 opt.attack_iters = attack_iter
                 opt.channel = 'empty'
                 opt.ensemble = 1
-                opt.eot = args.eot
+                opt.eot = eot
                 if args is not None:
                     opt.limit_batch_number = args.limit_batch_number
                 else:
