@@ -24,6 +24,7 @@ MY_VIOLET = (107, 76, 154)
 MY_BROWN = (146, 36, 40)
 MY_OWN = (25, 150, 10)
 
+
 def get_color(COLOR_TUPLE_255):
     return [x / 255 for x in COLOR_TUPLE_255]
 
@@ -46,6 +47,7 @@ def get_color(COLOR_TUPLE_255):
 fontsize = 36
 # legend_size = 32
 legend_size = 26
+legend_title_fontsize = 26
 title_size = 40
 width = 10
 height = 7
@@ -1296,7 +1298,6 @@ ucr_robust_net_ensemble = {
     log_base: 2,
 }
 
-
 # time-series-adv-train-robust-net-pni-100-step-pgd-attack-final.csv
 ucr_12_pgd = {
     ylabel: "Robust Accuracy (%)",
@@ -1349,7 +1350,6 @@ ucr_13_pgd = {
     log_base: 2,
 }
 
-
 ucr_14_pgd = {
     ylabel: "Robust Accuracy (%)",
     xlabel: '$L_{\infty}$ distortion',
@@ -1371,7 +1371,6 @@ ucr_14_pgd = {
     is_symlog: False,
     log_base: 2,
 }
-
 
 ucr_15_pgd = {
     ylabel: "Robust Accuracy (%)",
@@ -1506,7 +1505,6 @@ cifar10_pgd_robust_net_no_addv_full_old_results = {
     log_base: 2,
 }
 
-
 cifar10_pgd_robust_net_adv_train = {
     ylabel: "Robust Accuracy (%)",
     xlabel: '$L_{\infty}$ distortion',
@@ -1587,16 +1585,132 @@ cifar10_pgd_robust_net_no_adv_train_equal_clean_accuracy = {
     log_base: 2,
 }
 
+# robust-net-pgd-adv-train-plain-gauss-uniform-laplace-adv-train.csv
+cifar10_pgd_robust_net_gauss_uniform_laplace_adv_train_equal_clean_accuracy = {
+    ylabel: "Robust Accuracy (%)",
+    xlabel: '$L_{\infty}$ distortion',
+    file_name: "robust-net-pgd-adv-train-plain-gauss-uniform-laplace-adv-train",
+    title: "PGD (40 steps for test)",
+    legend_pos: "upper right",
+    bbox: (-1.0, 0.0),
+    column_nr: 10,
+    legend_cols: 1,
+    labels: [
+        'Plain',
+        'RobustNet Gauss',
+        'RobustNet Uniform',
+        'RobustNet Laplace',
+        'RobustNet Gauss\nAdv. Train',
+    ],
+    ylim: (0, 100),
+    xlim: (0, 1.5),
+    is_symlog: False,
+    log_base: 2,
+}
 
-datasets = [
-    # ucr_18_pgd,
-    # cifar10_pgd_robust_net_adv_train,
-    cifar10_cw_robust_net_no_adv_train,
-    # cifar10_cw_robust_net_adv_train,
-    # cifar10_pgd_robust_net_no_adv_train_equal_clean_accuracy,
 
-]
+robust_non_adaptive4 = {ylabel: "Test Accuracy (%)",
+                        file_name: "distortion_robust_net_non_adaptive3",
+                        title: "A. Non-adaptive",
+                        # legend_pos: "lower left",
+                        legend_pos: "upper right",
+                        # bbox: (0.0, 0.0),
+                        column_nr: 8,
+                        legend_cols: 1,
+                        labels: ['PlainNet', 'RobustNet', 'FC', 'BandLimited'],
+                        xlim: (-0.05, 1.15),
+                        ylim: (0, 100),
+                        xlabel: '$L_2$ distortion',
+                        is_log: False}
 
+robust_adaptive4 = {ylabel: "Test Accuracy (%)",
+                    file_name: "distortion_robust_net3",
+                    title: "B. Adaptive",
+                    # legend_pos: "lower left",
+                    legend_pos: "upper right",
+                    # bbox: (0.0, 0.0),
+                    column_nr: 8,
+                    legend_cols: 1,
+                    # labels: ['plain', 'robust\n0.2 0.1', 'fft 50%'],
+                    labels: ['PlainNet', 'RobustNet', 'FC', 'BandLimited'],
+                    xlim: (-0.05, 1.15),
+                    ylim: (0, 100),
+                    xlabel: '$L_2$ distortion',
+                    is_log: False}
+
+train_vs_inference4 = {
+    ylabel: "Test Accuracy (%)",
+    file_name: "train_vs_test_perturbation3",
+    # title: "C&W L$_2$ adaptive",
+    title: "C. Train vs Test",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    # bbox: (0.0, 0.0),
+    column_nr: 12,
+    legend_cols: 1,
+    labels: ['test 0.01', 'train 0.01',
+             'test 0.02', 'train 0.02',
+             'test 0.07', 'train 0.07'],
+    xlim: (-0.05, 1.15),
+    ylim: (0, 100),
+    xlabel: '$L_2$ distortion',
+    is_log: False,
+    # legend_title: 'ParamNet:',
+    legend_title: 'Noise $\sigma$\nin ParamNet:',
+}
+
+robust_layers_dp2 = {
+    ylabel: "Test Accuracy (%)",
+    file_name: "distortion_robust_net_layers",
+    # title: "C&W L$_2$ adaptive",
+    title: "D. Init vs Inner",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    legend_title: "Noise $\sigma$\nin RobustNet:",
+    # bbox: (0.0, 0.0),
+    column_nr: 8,
+    legend_cols: 1,
+    labels: ['0.0 0.0', '0.2 0.1', '0.2 0.0',
+             '0.3 0.0'],
+    xlim: (-0.05, 1.15),
+    ylim: (0, 100),
+    xlabel: '$L_2$ distortion',
+    is_log: False,
+    # legend_title: 'RobustNet:',
+}
+
+pgd_eot = {
+    ylabel: "Test Accuracy (%)",
+    file_name: "eot-for-pgd",
+    title: "RobustNet: PGD L$_\infty$+EOT",
+    # title: "D. Init vs Inner",
+    # legend_pos: "lower left",
+    legend_pos: "upper right",
+    legend_title: "EOT iters:",
+    # bbox: (0.0, 0.0),
+    column_nr: 12,
+    legend_cols: 1,
+    labels: [1, 2, 10, 20, 50, 100],
+    xlim: (0, 0.1),
+    ylim: (0, 100),
+    xlabel: '$L_\infty$ distortion',
+    is_log: False,
+    # legend_title: 'RobustNet:',
+}
+
+# datasets = [
+#     # ucr_18_pgd,
+#     # cifar10_pgd_robust_net_adv_train,
+#     cifar10_cw_robust_net_no_adv_train,
+#     # cifar10_cw_robust_net_adv_train,
+#     # cifar10_pgd_robust_net_no_adv_train_equal_clean_accuracy,
+#
+# ]
+
+# datasets = [robust_non_adaptive4, robust_adaptive4,
+#             train_vs_inference4, robust_layers_dp2]
+# datasets = [pgd_eot]
+datasets = [cifar10_pgd_robust_net_gauss_uniform_laplace_adv_train_equal_clean_accuracy]
 
 colors = [get_color(color) for color in
           [MY_GREEN, MY_BLUE, MY_ORANGE, MY_RED, MY_BLACK, MY_GOLD, MY_VIOLET,
@@ -1734,17 +1848,16 @@ linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 
 # distortion for CIFAR-10
 # datasets = [
-    # pni_robustnet_adv_c_param2,
-    # pni_robustnet_adv_train3,
-    # pni_robustnet_adv_train_pgd_iters2,
-    # pni_robustnet_adv_train_pgd_dist_linf2,
+# pni_robustnet_adv_c_param2,
+# pni_robustnet_adv_train3,
+# pni_robustnet_adv_train_pgd_iters2,
+# pni_robustnet_adv_train_pgd_dist_linf2,
 # ]
 
 # datasets = [
 #     # ucr_robust_net_ensemble,
 #     ucr_12_pgd,
 # ]
-
 
 
 fig = plt.figure(figsize=(len(datasets) * width, height))
@@ -1777,14 +1890,16 @@ for j, dataset in enumerate(datasets):
         legend_title_str = dataset[legend_title]
     else:
         legend_title_str = None
-    plt.legend(loc=dataset[legend_pos],
-               ncol=dataset[legend_cols],
-               frameon=False,
-               prop={'size': legend_size},
-               columnspacing=1.0,
-               # bbox_to_anchor=dataset[bbox],
-               title=legend_title_str,
-               )
+    legend = plt.legend(loc=dataset[legend_pos],
+                        ncol=dataset[legend_cols],
+                        frameon=False,
+                        prop={'size': legend_size},
+                        columnspacing=1.0,
+                        # bbox_to_anchor=dataset[bbox],
+                        title=legend_title_str,
+                        )
+    if legend_title in dataset:
+        plt.setp(legend.get_title(), fontsize=legend_title_fontsize)
     if xlabel in dataset:
         xlabel_str = dataset[xlabel]
     else:

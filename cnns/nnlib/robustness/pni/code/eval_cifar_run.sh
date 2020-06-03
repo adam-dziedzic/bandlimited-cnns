@@ -5940,7 +5940,9 @@ CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../../../ nohup $PYTHON main.py \
     --epoch_delay 5 \
     >> test_${timestamp}.txt 2>&1 &
 echo test_${timestamp}.txt
-
+[4] 45244
+cc@v:~/code/bandlimited-cnns/cnns/nnlib/robustness/pni/code$ echo test_${timestamp}.txt
+test_2020-05-21-21-02-22-989951583.txt
 
 
 # PYTHON='python'

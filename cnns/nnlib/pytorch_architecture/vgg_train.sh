@@ -465,4 +465,14 @@ echo ${timestamp}.txt
 ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
 2020-02-05-14-49-53-716081202.txt
 
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 vgg_train.py --paramNoise 0.0 --noiseInit 0.0 --noiseInner 0.1 --net 'vgg16-rse' --compress_rate 0.0 --initializeNoise 0.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup python vgg_train.py --paramNoise 0.0 --noiseInit 0.0 --noiseInner 0.1 --net 'vgg16-rse' --compress_rate 0.0 --initializeNoise 0.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 2026
+(abs) ady@skr-compute1:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-06-02-17-41-27-156714207.txt
 

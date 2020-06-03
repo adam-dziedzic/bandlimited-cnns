@@ -1,23 +1,39 @@
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
-import torch.distributions as tdist
 
 
 class Noise(nn.Module):
-    def __init__(self, std):
+    def __init__(self, std, noise_form='gauss'):
         super(Noise, self).__init__()
         self.std = std
         self.buffer = None
+        self.noise_form = noise_form
 
     def forward(self, x):
         if self.std > 0:
             if self.buffer is None:
-                self.buffer = torch.zeros_like(x, requires_grad=False).normal_(0, self.std).cuda()
+                if self.noise_form == 'gauss':
+                    self.buffer = torch.zeros_like(
+                        x, requires_grad=False).normal_(
+                        0, self.std).cuda()
+                elif self.noise_form == 'uniform':
+                    self.buffer = torch.zeros_like(
+                        x, requires_grad=False).uniform_(
+                        -self.std, self.std).cuda()
+                else:
+                    raise Exception(f'Unknown type of noise (no buffer): {self.noise_form}')
             else:
-                self.buffer.resize_(x.size()).normal_(0, self.std)
+                if self.noise_form == 'gauss':
+                    self.buffer.resize_(x.size()).normal_(0, self.std)
+                elif self.noise_form == 'uniform':
+                    self.buffer.resize_(x.size()).uniform_(-self.std, self.std)
+                else:
+                    raise Exception(f'Unknown type of noise (buffer): {self.noise_form}')
+
             return x + self.buffer
         return x
+
 
 class NoiseFunction(torch.autograd.Function):
     """
@@ -74,14 +90,16 @@ class NoisePassBackward(nn.Module):
         """
         return NoiseFunction.apply(input, self.n)
 
+
 class BReLU(nn.Module):
     def __init__(self, t=1):
         super(BReLU, self).__init__()
-        assert(t > 0)
+        assert (t > 0)
         self.t = t
 
     def forward(self, x):
         return x.clamp(0, self.t)
+
 
 class Normalize(nn.Module):
     def __init__(self, mean_vec, std_vec):
@@ -93,7 +111,8 @@ class Normalize(nn.Module):
         # x: (batch, 3, H, W)
         # mean, std: (1, 3, 1, 1)
         return (x - self.mean) / self.std
-        #return x
+        # return x
+
 
 class DeNormalize(nn.Module):
     def __init__(self, mean_vec, std_vec):
@@ -103,4 +122,4 @@ class DeNormalize(nn.Module):
 
     def forward(self, x):
         return x * self.std + self.mean
-        #return x
+        # return x

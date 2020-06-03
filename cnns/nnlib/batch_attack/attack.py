@@ -509,7 +509,7 @@ def get_nets(opt):
             # netAttack = net
             netAttack = models.vgg_rse.VGG("VGG16", opt.noiseInit,
                                            opt.noiseInner,
-                                           noise_type=opt.noise_type)
+                                           noise_type=opt.noise_form)
             # netAttack = models.vgg_rse.VGG("VGG16", init_noise=0.0,
             #                                inner_noise=0.0,
             #                                noise_type='standard')
@@ -529,7 +529,7 @@ def get_nets(opt):
             # netAttack = net
             netAttack = vgg_rse_unrolled.VGG("VGG16", opt.noiseInit,
                                              opt.noiseInner,
-                                             noise_type=opt.noise_type)
+                                             noise_type=opt.noise_form)
         elif opt.defense == "rse-perturb":
             net = vgg_rse_perturb.VGG("VGG16", init_noise=opt.noiseInit,
                                       inner_noise=opt.noiseInner,

@@ -530,7 +530,7 @@ def get_nets(opt):
             # netAttack = net
             netAttack = vgg_rse_unrolled.VGG("VGG16", opt.noiseInit,
                                              opt.noiseInner,
-                                             noise_type=opt.noise_type)
+                                             noise_type=opt.noise_form)
         elif opt.defense == "rse-perturb":
             net = vgg_rse_perturb.VGG("VGG16", init_noise=opt.noiseInit,
                                       inner_noise=opt.noiseInner,
@@ -677,6 +677,12 @@ def set_model_settings(opt):
         # modelPath = 'vgg16/rse_0.2_0.1_ady.pth-test-accuracy-0.8516'
         modelAttack = modelPath
         noiseInit = 0.2
+        noiseInner = 0.1
+        net = 'vgg16'
+    elif net_mode == '0-1':
+        modelPath = 'vgg16/vgg16-rse_perturb_0.0_init_noise_0.0_inner_noise_0.1_batch_size_128_compress_rate_0.0.pth-test-accuracy-0.8849'
+        modelAttack = modelPath
+        noiseInit = 0.0
         noiseInner = 0.1
         net = 'vgg16'
     elif net_mode == '2-1-non-adaptive':
@@ -908,6 +914,7 @@ if __name__ == "__main__":
     parser.add_argument('--paramNoise', type=float, default=0.0)
     parser.add_argument('--compress_rate', type=float, default=80.0)
     parser.add_argument('--net', type=str, default='vgg16')
+    parser.add_argument('--noise_form', type=str, default='gauss')
     parser.add_argument('--modelIn', type=str,
                         # default='../../pytorch_architecture/vgg16/saved_model_rse_perturb_0.0.pth-test-accuracy-0.9351',
                         default='../../pytorch_architecture/vgg16/saved_model_vgg16-perturb-conv_perturb_0.0_init_noise_0.0_inner_noise_0.0.pth-test-accuracy-0.9384')

@@ -190,6 +190,9 @@ parser.add_argument('--normalization',
                     action='store_true',
                     help='normalize inputs')
 
+# formatting
+parser.add_argument('--sep', type=str, default=';', help='separator')
+
 ##########################################################################
 
 args = parser.parse_args()
@@ -232,7 +235,7 @@ def prepare_net(arch, mean, std, log, num_classes, args):
             num_classes=num_classes,
             init_noise=args.init_noise,
             inner_noise=args.inner_noise,
-            noise_type=args.noise_type,
+            noise_type=args.noise_form,
         )
     else:
         # print('keys of models: ', models.__dict__.keys())
@@ -1027,9 +1030,10 @@ def attack_distortion_accuracy(
     attack_f, attack_strengths, attack_iters = select_attack(
         attack_name=attack_name, attack_iters=attack_iters,
         attack_strengths=attack_strengths)
+    is_start = True
     for eot in args.eot:
-        for i, attack_iter in enumerate(attack_iters):
-            for j, c in enumerate(attack_strengths):
+        for attack_iter in attack_iters:
+            for c in attack_strengths:
                 opt = Object()
                 opt.noise_epsilon = 0.0
                 opt.gradient_iters = 1
@@ -1051,7 +1055,8 @@ def attack_distortion_accuracy(
                     opt=opt,
                     netAttack=net_attack)
                 timing = time.time() - beg
-                if i == 0 and j == 0:
+                if is_start:
+                    is_start = False
                     header = [
                         "iters",
                         "strength",
@@ -1061,16 +1066,18 @@ def attack_distortion_accuracy(
                         "eot",
                         "time (sec)",
                     ]
-                    header_str = ",".join([str(x) for x in header])
+                    header_str = args.sep.join([str(x) for x in header])
                     print(header_str)
-                print("{},{},{},{},{},{}".format(
+                values = [
                     attack_iter,
                     c,
                     acc * 100,
                     l2_distortion,
                     linf_distortion,
                     eot,
-                    timing))
+                    timing]
+                values_str = args.sep.join([str(x) for x in values])
+                print(values_str)
                 sys.stdout.flush()
 
 

@@ -122,7 +122,9 @@ def main():
     parser.add_argument('--batchSize', type=int, default=128)
     parser.add_argument('--lr', type=float, default=0.1)
     parser.add_argument('--ngpu', type=int, default=1)
+    parser.add_argument('--workers', type=int, default=4)
     parser.add_argument('--net', type=str, default='vgg16')
+    parser.add_argument('--noise_form', type=str, default="gauss")
     parser.add_argument('--method', type=str, default="momsgd")
     parser.add_argument('--root', type=str,
                         default="../datasets/cifar-10-batches-py")
@@ -195,8 +197,9 @@ def main():
         raise Exception("Invalid opt.net: {}".format(opt.net))
 
     net = nn.DataParallel(net, device_ids=range(opt.ngpu))
-    bound_weights_init = partial(weights_init, opt.initializeNoise)
-    net.apply(bound_weights_init)
+    if opt.initializeNoise > 0:
+        bound_weights_init = partial(weights_init, opt.initializeNoise)
+        net.apply(bound_weights_init)
     net.cuda()
     loss_f = nn.CrossEntropyLoss()
     if opt.dataset == 'cifar10':
@@ -231,9 +234,9 @@ def main():
         exit(-1)
     assert data, data_test
     dataloader = DataLoader(data, batch_size=opt.batchSize, shuffle=True,
-                            num_workers=2)
+                            num_workers=opt.workers)
     dataloader_test = DataLoader(data_test, batch_size=opt.batchSize,
-                                 shuffle=False, num_workers=2)
+                                 shuffle=False, num_workers=opt.workers)
 
     # train_stats = get_data_stats(dataloader)
     # test_stats = get_data_stats(dataloader_test)
