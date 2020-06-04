@@ -634,7 +634,13 @@ def set_model_settings(opt):
     noiseInit = 0.0
     noiseInner = 0.0
     paramNoise = 0.0
-    if net_mode == 'trained-1-fft':
+    if net_mode == 'generic':
+        modelPath = opt.modelIn
+        modelAttack = modelPath
+        noiseInit = opt.noiseInit
+        noiseInner = opt.noiseInner
+        net = opt.net
+    elif net_mode == 'trained-1-fft':
         modelPath = 'vgg16/rse_0.0_0.0_ady.pth-test-accuracy-0.8523'
         modelAttack = modelPath
         net = 'vgg16'
