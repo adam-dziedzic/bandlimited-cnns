@@ -697,6 +697,12 @@ def set_model_settings(opt):
         modelAttack = modelPath
         noiseInit = 0.3
         net = 'vgg16'
+    elif net_mode == '1-1':
+        modelPath = 'vgg16/rse_0.1_0.1_ady.pth-test-accuracy-0.7706'
+        modelAttack = modelPath
+        noiseInit = 0.1
+        noiseInner = 0.1
+        net = 'vgg16'
     elif net_mode == 'perturb-0.01-model-0.0':
         modelPath = '../../pytorch_architecture/vgg16/saved_model_rse_perturb_0.0.pth-test-accuracy-0.9351'
         modelAttack = modelPath

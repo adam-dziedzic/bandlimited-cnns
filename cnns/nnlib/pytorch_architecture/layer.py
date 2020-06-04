@@ -1,6 +1,7 @@
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
+from torch.distributions import Laplace
 
 
 class Noise(nn.Module):
@@ -21,6 +22,15 @@ class Noise(nn.Module):
                     self.buffer = torch.zeros_like(
                         x, requires_grad=False).uniform_(
                         -self.std, self.std).cuda()
+                elif self.noise_form == 'laplace':
+                    a = torch.ones_like(x, requires_grad=False).cuda()
+                    loc = 0 * a
+                    scale = self.noise_std * a
+                    m = Laplace(
+                        loc=loc,
+                        scale=scale,
+                    )
+                    self.buffer = m.sample()
                 else:
                     raise Exception(f'Unknown type of noise (no buffer): {self.noise_form}')
             else:
@@ -28,6 +38,15 @@ class Noise(nn.Module):
                     self.buffer.resize_(x.size()).normal_(0, self.std)
                 elif self.noise_form == 'uniform':
                     self.buffer.resize_(x.size()).uniform_(-self.std, self.std)
+                elif self.noise_form == 'laplace':
+                    a = torch.ones_like(x, requires_grad=False).cuda()
+                    loc = 0 * a
+                    scale = self.noise_std * a
+                    m = Laplace(
+                        loc=loc,
+                        scale=scale,
+                    )
+                    self.buffer = m.sample()
                 else:
                     raise Exception(f'Unknown type of noise (buffer): {self.noise_form}')
 

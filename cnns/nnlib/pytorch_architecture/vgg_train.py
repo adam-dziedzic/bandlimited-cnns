@@ -135,7 +135,7 @@ def main():
     parser.add_argument('--compress_rate', type=float, default=85.0)
     opt = parser.parse_args()
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    opt.modelOutRoot = f"{dir_path}/vgg16/{opt.net}_perturb_{opt.paramNoise}_init_noise_{opt.noiseInit}_inner_noise_{opt.noiseInner}_batch_size_{opt.batchSize}_compress_rate_{opt.compress_rate}.pth"
+    opt.modelOutRoot = f"{dir_path}/vgg16/{opt.net}_perturb_{opt.paramNoise}_init_noise_{opt.noiseInit}_inner_noise_{opt.noiseInner}_batch_size_{opt.batchSize}_compress_rate_{opt.compress_rate}_{opt.noise_form}.pth"
     opt.root = dir_path + "/" + opt.root
     print(opt)
     # epochs = [80, 60, 40, 20]
