@@ -9,7 +9,7 @@ This paper presents a comprehensive experimental analysis of when and why pertur
 
 The main file of the project is in cnns/nnlib/robustness/main_adversarial.py.
 
-The compression in the frequency domain is implemented in: cnns/nnlib/pytorch_layers/fft_band_2D_complex_mask.py There can be find noise.py and round.py layers in the same folder for the noisy channel and feature squeezing (color depth reduction, also known as rounding).
+The compression in the frequency domain is implemented in: cnns/nnlib/pytorch_layers/fft_band_2D_complex_mask.py You can also find: noise.py and round.py layers in the same folder for the noisy channel and feature squeezing (color depth reduction, also known as rounding).
 
 The arguments are listed in cnns/nnlib/utils/arguments.py and cnns/nnlib/utils/exec_args.py.
 
