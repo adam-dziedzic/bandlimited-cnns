@@ -1,4 +1,4 @@
-# A Perturbation Analysis of Input Transformations for Adversarial Attacks
+# Analysis of Perturbation Based Defenses
 
 The existence of adversarial examples, or intentional mis-predictions constructed from small changes to correctly predicted examples, is one of the most significant challenges in neural network research today.
 Ironically, many new defenses are based on a simple observation---the adversarial inputs themselves are not robust and small perturbations to the attacking input often recover the desired prediction.
