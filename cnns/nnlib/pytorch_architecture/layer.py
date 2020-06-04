@@ -14,6 +14,7 @@ class Noise(nn.Module):
     def forward(self, x):
         if self.std > 0:
             if self.buffer is None:
+                print('noise_form: ', self.noise_form)
                 if self.noise_form == 'gauss':
                     self.buffer = torch.zeros_like(
                         x, requires_grad=False).normal_(
@@ -25,7 +26,7 @@ class Noise(nn.Module):
                 elif self.noise_form == 'laplace':
                     a = torch.ones_like(x, requires_grad=False).cuda()
                     loc = 0 * a
-                    scale = self.noise_std * a
+                    scale = self.std * a
                     m = Laplace(
                         loc=loc,
                         scale=scale,
@@ -41,7 +42,7 @@ class Noise(nn.Module):
                 elif self.noise_form == 'laplace':
                     a = torch.ones_like(x, requires_grad=False).cuda()
                     loc = 0 * a
-                    scale = self.noise_std * a
+                    scale = self.std * a
                     m = Laplace(
                         loc=loc,
                         scale=scale,

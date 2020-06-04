@@ -167,8 +167,10 @@ def main():
     elif opt.net == "vgg16-perturb-rse":
         net = vgg_perturb_rse("VGG16", param_noise=opt.paramNoise)
     elif opt.net == "vgg16-rse":
-        net = vgg_rse("VGG16", init_noise=opt.noiseInit,
-                      inner_noise=opt.noiseInner)
+        net = vgg_rse("VGG16",
+                      init_noise=opt.noiseInit,
+                      inner_noise=opt.noiseInner,
+                      noise_form=opt.noise_form)
     elif opt.net == "vgg16-rse-perturb":
         net = vgg_rse_perturb("VGG16", init_noise=opt.noiseInit,
                               inner_noise=opt.noiseInner,

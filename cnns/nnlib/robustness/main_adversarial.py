@@ -1009,13 +1009,14 @@ def run(args):
             gauss_image = None
 
         if original_result.class_id == args.True_class_id:
-            gradients, grad_stats = compute_gradients(args=args,
-                                                      model=pytorch_model,
-                                                      original_image=original_image,
-                                                      original_label=original_result.class_id,
-                                                      adv_image=adv_image,
-                                                      adv_label=None if result_adv is None else result_adv.class_id,
-                                                      gauss_image=gauss_image)
+            gradients, grad_stats = compute_gradients(
+                args=args,
+                model=pytorch_model,
+                original_image=original_image,
+                original_label=original_result.class_id,
+                adv_image=adv_image,
+                adv_label=None if result_adv is None else result_adv.class_id,
+                gauss_image=gauss_image)
 
             if result_adv:
                 grad_stats['adv_confidence'] = result_adv.confidence
@@ -1369,7 +1370,7 @@ def run(args):
                     diff_fft_avg = np.average(diff_fft)
                     print_heat_map(diff_fft, args=args,
                                    title="fft(adv) / fft(original)\n"
-                                   f"(avg: {diff_fft_avg})",
+                                         f"(avg: {diff_fft_avg})",
                                    ylabel=ylabel)
 
                     diff_fft = adversarial_fft - image_fft
@@ -1377,7 +1378,7 @@ def run(args):
                     ylabel = "fft-ed channel " + str(channel) + ":\n" + fft_type
                     print_heat_map(diff_fft, args=args,
                                    title="fft(adv) - fft(original)\n"
-                                   f"(avg: {diff_fft_avg})",
+                                         f"(avg: {diff_fft_avg})",
                                    ylabel=ylabel)
 
                 if show_2nd:
@@ -1388,7 +1389,7 @@ def run(args):
                         diff_fft_avg = np.average(diff_fft)
                         print_heat_map(diff_fft, args=args,
                                        title="fft(original2) / fft(original)\n"
-                                       f"(avg: {diff_fft_avg})",
+                                             f"(avg: {diff_fft_avg})",
                                        ylabel=ylabel)
 
                         diff_fft = image2_fft - image_fft
@@ -1397,7 +1398,7 @@ def run(args):
                             channel) + ":\n" + fft_type
                         print_heat_map(diff_fft, args=args,
                                        title="fft(original2) - fft(original)\n"
-                                       f"(avg: {diff_fft_avg})",
+                                             f"(avg: {diff_fft_avg})",
                                        ylabel=ylabel)
 
         # plt.subplots_adjust(hspace=0.0, left=0.075, right=0.9)

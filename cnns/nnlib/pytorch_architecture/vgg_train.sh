@@ -520,3 +520,28 @@ echo ${timestamp}.txt
 cc@p:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
 2020-06-04-04-11-00-905724924.txt
 
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=3 PYTHONPATH=../../../ nohup python vgg_train.py --paramNoise 0.0 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-rse' --noise_form='gauss' --compress_rate 0.0 --initializeNoise 0.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup python vgg_train.py --paramNoise 0.0 --noiseInit 0.35 --noiseInner 0.3 --net 'vgg16-rse' --noise_form='uniform' --compress_rate 0.0 --initializeNoise 0.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup python vgg_train.py --paramNoise 0.0 --noiseInit 0.15 --noiseInner 0.1 --net 'vgg16-rse' --noise_form='laplace' --compress_rate 0.0 --initializeNoise 0.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup python vgg_train.py --paramNoise 0.0 --noiseInit 0.15 --noiseInner 0.1 --net 'vgg16-rse' --noise_form='laplace' --compress_rate 0.0 --initializeNoise 0.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup python vgg_train.py --paramNoise 0.0 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-rse' --noise_form='none' --compress_rate 0.0 --initializeNoise 0.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[1] 6248
+cc@p:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-06-04-20-54-49-510772917.txt
+
