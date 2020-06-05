@@ -316,7 +316,8 @@ def apply_attack(attack_f, c, input, output, net, netAttack, opt):
     return adverse_v, correct, count, diff, correct_idx
 
 
-def acc_under_blackbox_attack(dataloader, net, c, attack_f, opt, netAttack=None):
+def acc_under_blackbox_attack(dataloader, net, c, attack_f, opt,
+                              netAttack=None):
     correct_total = 0
     count_total = 0
     distortions = {
@@ -328,8 +329,9 @@ def acc_under_blackbox_attack(dataloader, net, c, attack_f, opt, netAttack=None)
     correct_idx_total = None
     dims = (1, 2, 3)
     for k, (input, output) in enumerate(dataloader):
-        advs, correct, count, diff, correct_idx = apply_attack(attack_f=attack_f, c=c, input=input, output=output,
-                                                               net=net, netAttack=netAttack, opt=opt)
+        advs, correct, count, diff, correct_idx = apply_attack(
+            attack_f=attack_f, c=c, input=input, output=output,
+            net=net, netAttack=netAttack, opt=opt)
         # net.eval()
         # adv_logits = net(advs)
         # assert adv_logits.ndim == 2
@@ -506,11 +508,13 @@ def get_nets(opt):
         elif opt.defense == "rse":
             net = vgg_rse.VGG("VGG16", opt.noiseInit,
                               opt.noiseInner,
-                              noise_type='standard')
+                              noise_type='standard',
+                              noise_form=opt.noise_form)
             # netAttack = net
             netAttack = models.vgg_rse.VGG("VGG16", opt.noiseInit,
                                            opt.noiseInner,
-                                           noise_type=opt.noise_type)
+                                           noise_type=opt.noise_type,
+                                           noise_form=opt.noise_form)
             # netAttack = models.vgg_rse.VGG("VGG16", init_noise=0.0,
             #                                inner_noise=0.0,
             #                                noise_type='standard')
@@ -530,7 +534,7 @@ def get_nets(opt):
             # netAttack = net
             netAttack = vgg_rse_unrolled.VGG("VGG16", opt.noiseInit,
                                              opt.noiseInner,
-                                             noise_type=opt.noise_form)
+                                             noise_type=opt.noise_type)
         elif opt.defense == "rse-perturb":
             net = vgg_rse_perturb.VGG("VGG16", init_noise=opt.noiseInit,
                                       inner_noise=opt.noiseInner,

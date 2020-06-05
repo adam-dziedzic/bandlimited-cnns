@@ -2,6 +2,7 @@ import torch
 from torch.autograd import Variable
 import torch.nn as nn
 from torch.distributions import Laplace
+import sys
 
 
 class Noise(nn.Module):
@@ -15,6 +16,7 @@ class Noise(nn.Module):
         if self.std > 0:
             if self.buffer is None:
                 print('noise_form: ', self.noise_form)
+                sys.stdout.flush()
                 if self.noise_form == 'gauss':
                     self.buffer = torch.zeros_like(
                         x, requires_grad=False).normal_(
@@ -33,7 +35,8 @@ class Noise(nn.Module):
                     )
                     self.buffer = m.sample()
                 else:
-                    raise Exception(f'Unknown type of noise (no buffer): {self.noise_form}')
+                    raise Exception(
+                        f'Unknown type of noise (no buffer): {self.noise_form}')
             else:
                 if self.noise_form == 'gauss':
                     self.buffer.resize_(x.size()).normal_(0, self.std)
@@ -49,7 +52,8 @@ class Noise(nn.Module):
                     )
                     self.buffer = m.sample()
                 else:
-                    raise Exception(f'Unknown type of noise (buffer): {self.noise_form}')
+                    raise Exception(
+                        f'Unknown type of noise (buffer): {self.noise_form}')
 
             return x + self.buffer
         return x
