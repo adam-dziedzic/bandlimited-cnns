@@ -20,6 +20,8 @@ from cnns.nnlib.pytorch_architecture.vgg1D import vgg4bn
 from cnns.nnlib.pytorch_architecture.vgg1D import vgg5bn
 from cnns.nnlib.pytorch_architecture.vgg1D import vgg6bn
 from cnns.nnlib.pytorch_architecture.vgg1D import vgg7bn
+from cnns.nnlib.pytorch_architecture.vgg_rse import VGG as VGG16_RSE
+import torch
 
 
 def getModelPyTorch(args, pretrained=False):
@@ -89,5 +91,12 @@ def getModelPyTorch(args, pretrained=False):
         return vgg6bn(args)
     elif network_type == NetworkType.VGG1D_7:
         return vgg7bn(args)
+    elif network_type == NetworkType.VGG16_RSE:
+        net = VGG16_RSE(vgg_name='VGG16',
+                        init_noise=args.noiseInit,
+                        inner_noise=args.noiseInner)
+        gpus = [0]
+        net = torch.nn.DataParallel(net, device_ids=gpus)
+        return net
     else:
         raise Exception("Unknown network_type: ", network_type)

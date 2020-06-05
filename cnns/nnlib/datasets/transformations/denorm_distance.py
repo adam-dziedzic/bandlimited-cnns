@@ -2,6 +2,48 @@ import torch
 from cnns.nnlib.datasets.transformations.denormalize import Denormalize
 
 
+class Distance01(object):
+
+    def __init__(self, distance_metric=torch.norm,
+                 device=torch.device("cpu")):
+        self.distance_metric = distance_metric
+
+    def __call__(self, tensor1, tensor2, norm=2, dim=None):
+        """
+        Args:
+            tensor1 (Tensor): Tensor image of size (C, H, W) to be de-normalized.
+            tensor2 (Tensor): Tensor image of size (C, H, W) to be de-normalized.
+        Returns:
+            Tensor: distance between images
+        """
+        return self.distance_metric(
+            tensor1 - tensor2, p=norm, dim=dim).item()
+
+    def measure_single_torch(self, tensor1, norm=2, dim=None):
+        return self.distance_metric(
+            tensor1, p=norm, dim=dim).item()
+
+    def measure_single_numpy(self, array1, norm=2, dim=None):
+        return self.distance_metric(array1,
+                                    p=norm, dim=dim).item()
+
+    def measure(self, numpy_array1, numpy_array2, norm=2, dim=None):
+        """
+        Calculate distance measure for numpy arrays. Wrapper around __call__ to
+        call it for numpy arrays.
+
+        :param numpy_array1: the numpy array representing the image.
+        :param numpy_array2: the numpy array representing the image.
+        :return: the distance between the images
+        """
+        return self.__call__(torch.from_numpy(numpy_array1),
+                             torch.from_numpy(numpy_array2), norm, dim=dim)
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(distance_metric={0})'.format(
+            {self.distance_metric})
+
+
 class DenormDistance(object):
     """De-Normalize 2 tensors with mean and standard deviation. Go to the [0,1]
     range of values. Calculate distance between them

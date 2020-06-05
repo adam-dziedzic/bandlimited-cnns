@@ -18,6 +18,7 @@ from cnns.nnlib.utils.general_utils import PredictionType
 from cnns.nnlib.utils.general_utils import SVDTransformType
 from cnns.nnlib.utils.general_utils import PolicyType
 from cnns.nnlib.utils.general_utils import get_log_time
+import os
 
 """
 cFFT cuda_multiply: total elapsed time (sec):  15.602577447891235
@@ -79,6 +80,7 @@ if data_dim == "1D":
     loss_type = LossType.MSE
     loss_reduction = LossReduction.MEAN
     model_path = "no_model"
+    # model_path='vgg16/vgg16-rse_perturb_0.0_init_noise_0.2_inner_noise_0.1_batch_size_128_compress_rate_0.0_gauss.pth-test-accuracy-0.8829'
     # model_path = 'wifi-all-accuracy-99-25.model'
     # model_path = 'pytorch_behave1.model'
     in_channels = 1
@@ -91,7 +93,7 @@ elif data_dim == "2D":
     # dataset = "imagenet"
     # dataset = "svhn"
 
-    batch_size = 1024
+    batch_size = 128
     # test_batch_size = batch_size
     # test_batch_size = 256
     test_batch_size = batch_size
@@ -161,10 +163,14 @@ elif data_dim == "2D":
         model_path = "no_model"
         in_channels = 1
     elif dataset == "cifar10":
-        network_type = NetworkType.ResNet18
+        network_type = NetworkType.VGG16_RSE
+        # network_type = NetworkType.ResNet18
         # network_type = NetworkType.ResNet18SVD
         # model_path = "saved_model_2019-04-08-16-51-16-845688-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.22-channel-vals-0.model"
-        model_path = "saved_model_2019-05-16-11-37-45-415722-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.56-channel-vals-0.model"
+        # model_path = "saved_model_2019-05-16-11-37-45-415722-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-accuracy-93.56-channel-vals-0.model"
+        print('model current path: ', os.getcwd())
+        # model_path = "vgg16/vgg16-rse_perturb_0.0_init_noise_0.2_inner_noise_0.1_batch_size_128_compress_rate_0.0_gauss.pth-test-accuracy-0.8829"
+        model_path = "vgg16/vgg16-rse_perturb_0.0_init_noise_0.0_inner_noise_0.0_batch_size_128_compress_rate_0.0_none.pth-test-accuracy-0.9356"
         # model_path = "no_model"
         # model_path = 'saved-model-2019-08-13-23-06-55-540595-dataset-cifar10-preserve-energy-100-compress-rate-0.0-test-loss-0.01350257922783494-test-accuracy-91.83-channel-vals-0-fft-channel-50-percent.model'
         # model_path = 'saved_model_2019-08-13-21-50-15-942405-dataset-cifar10-preserve-energy-100.0-compress-rate-0.0-test-loss-0.023045711521059276-test-accuracy-86.73-channel-vals-0-fft-layer-85-percent.model'
@@ -335,7 +341,7 @@ class Arguments(object):
                  # dataset="debug",
                  mem_test=False,
                  is_data_augmentation=True,
-                 sample_count_limit=1024,  # 0 means run on full data
+                 sample_count_limit=10000,  # 0 means run on full data
                  # sample_count_limit=1024,
                  # sample_count_limit = 100,
                  # sample_count_limit=32,
@@ -410,8 +416,8 @@ class Arguments(object):
                  schedule_factor=schedule_factor,
                  compress_fft_layer=0,
                  # attack_name="CarliniWagnerL2AttackRoundFFT",
-                 attack_name="CarliniWagnerL2Attack",
-                 # attack_name=None,
+                 # attack_name="CarliniWagnerL2Attack",
+                 attack_name=None,
                  # attack_name="FGSM",
                  # attack_name="ProjectedGradientDescentAttack",
                  # attack_name="GaussAttack",
@@ -435,8 +441,8 @@ class Arguments(object):
                  # recover_type="all",
                  # recover_type="laplace",
                  # recover_type="debug",
-                 recover_type="gauss",
-                 # recover_type="empty",
+                 # recover_type="gauss",
+                 recover_type="empty",
                  # recover_type='rgb',
                  noise_epsilon=0.0,
                  noise_epsilons=[0.0],
@@ -445,7 +451,7 @@ class Arguments(object):
                  many_noise_iterations=[0],
                  recover_iterations=0,
                  many_recover_iterations=[0],
-                 attack_max_iterations=0,
+                 attack_max_iterations=1000,
                  many_attack_iterations=[1000],
                  laplace_epsilon=0.0,
                  laplace_epsilons=[0.0],
@@ -466,7 +472,7 @@ class Arguments(object):
                  # attack_strengths=[0.08, 0.09, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9],
                  # attack_strengths=(0.001, 0.01, 0.03, 0.04, 0.05, 0.07, 0.08, 0.09, 0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9, 1.0,),
                  # attack_strengths=(0.01,),
-                 attack_strengths=[100.0],
+                 attack_strengths=[0.01],
                  gradient_iters=1,
                  ensemble=1,
                  attack_confidence=0,
@@ -486,9 +492,9 @@ class Arguments(object):
                  svd_transform_type=SVDTransformType.NONE,
                  fft_transform=0.0,
                  fft_compress_transform=[0.0],
-                 binary_search_steps=1,
+                 binary_search_steps=5,
                  use_set='test_set',
-                 normalize_pytorch=True,
+                 normalize_pytorch=False,
                  ):
         """
         The default parameters for the execution of the program.

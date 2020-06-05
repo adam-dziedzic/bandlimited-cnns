@@ -103,7 +103,11 @@ def compute_gradients(args, model, original_image: torch.tensor, original_label,
     grad_original_correct = get_gradient_for_input(args=args, model=model,
                                                    input=original_image,
                                                    target=original_label)
-    assert grad_original_correct[2] == original_label, 'wrong classification'
+    if grad_original_correct[2] != original_label:
+        print('wrong classification!')
+        print('original_label: ', original_label)
+        print('grad_original_correct[2]: ', grad_original_correct[2])
+    # assert grad_original_correct[2] == original_label, 'wrong classification'
     grads['original_correct'] = grad_original_correct
 
     grad_original_zero = get_gradient_for_input(args=args, model=model,
@@ -114,24 +118,35 @@ def compute_gradients(args, model, original_image: torch.tensor, original_label,
     for class_nr in range(args.num_classes):
         grad_original = get_gradient_for_input(
             args=args, model=model, input=original_image, target=class_nr)
-        results[f'l2_norm_original_class_{class_nr}'] = np.sqrt(
+        grad_norm = np.sqrt(
             np.sum(grad_original[0] * grad_original[0]))
+        results[f'l2_norm_original_class_{class_nr}'] = grad_norm
+        print('norm of the gradient for input: ', grad_norm)
         results[f'org_confidence_class_{class_nr}'] = grad_original[7]
 
     if adv_image is not None:
         grad_original_adv = get_gradient_for_input(args=args, model=model,
                                                    input=original_image,
                                                    target=adv_label)
-        assert grad_original_adv[2] == original_label, 'wrong classification'
+        if grad_original_adv[2] != original_label:
+            print('original_label: ', adv_label)
+            print('grad_adv_adv[2]: ', grad_original_adv[2])
+        # assert grad_original_adv[2] == original_label, 'wrong classification'
 
         grad_adv_correct = get_gradient_for_input(args=args, model=model,
                                                   input=adv_image,
                                                   target=original_label)
-        assert grad_adv_correct[2] == adv_label, 'wrong classification'
+        if grad_adv_correct[2] != adv_label:
+            print('adv_label: ', adv_label)
+            print('grad_adv_adv[2]: ', grad_adv_correct[2])
+        # assert grad_adv_correct[2] == adv_label, 'wrong classification'
         grad_adv_adv = get_gradient_for_input(args=args, model=model,
                                               input=adv_image,
                                               target=adv_label)
-        assert grad_adv_adv[2] == adv_label, 'wrong classification'
+        if grad_adv_adv[2] != adv_label:
+            print('adv_label: ', adv_label)
+            print('grad_adv_adv[2]: ', grad_adv_adv[2])
+        # assert grad_adv_adv[2] == adv_label, 'wrong classification'
         grad_adv_zero = get_gradient_for_input(args=args, model=model,
                                                input=adv_image,
                                                target=target)

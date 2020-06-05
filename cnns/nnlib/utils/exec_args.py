@@ -536,6 +536,9 @@ def get_args():
                         # "TRUE", "FALSE"
                         help="should we normalize the data pytorch way? " + ",".join(
                             Bool.get_names()))
+    parser.add_argument('--noiseInit', type=float, default=0.0)
+    parser.add_argument('--noiseInner', type=float, default=0.0)
+    parser.add_argument('--param_noise', type=float, default=0.0)
     parsed_args = parser.parse_args()
     args.set_parsed_args(parsed_args=parsed_args)
     return args

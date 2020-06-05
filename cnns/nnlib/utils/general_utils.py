@@ -238,6 +238,7 @@ class NetworkType(EnumWithNames):
     ResNet18SVD = 24
     NetSyntheticSVDChannels = 25
     NetEigen = 26
+    VGG16_RSE = 27
 
 
 class CompressType(EnumWithNames):

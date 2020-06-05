@@ -33,6 +33,7 @@ from cnns.nnlib.utils.general_utils import get_log_time
 from cnns.nnlib.datasets.transformations.normalize import Normalize
 from cnns.nnlib.datasets.transformations.denormalize import Denormalize
 from cnns.nnlib.datasets.transformations.denorm_distance import DenormDistance
+from cnns.nnlib.datasets.transformations.denorm_distance import Distance01
 from cnns.nnlib.utils.complex_mask import get_hyper_mask
 from foolbox.attacks.additive_noise import AdditiveUniformNoiseAttack
 from foolbox.attacks.additive_noise import AdditiveGaussianNoiseAttack
@@ -499,10 +500,12 @@ def rounduniform_recover(result, image, original_image):
 
 def run(args):
     result = Object()
-    fmodel, pytorch_model, from_class_idx_to_label = get_fmodel(args=args)
+    if args.fmodel is None:
+        fmodel, pytorch_model, from_class_idx_to_label = get_fmodel(args=args)
+        args.pytorch_model = pytorch_model
+        args.fmodel = fmodel
+        args.from_class_idx_to_label = from_class_idx_to_label
 
-    args.fmodel = fmodel
-    args.from_class_idx_to_label = from_class_idx_to_label
     args.decimals = 4  # How many digits to print after the decimal point.
 
     # Choose how many channels should be plotted.
@@ -512,7 +515,7 @@ def run(args):
         criterion = TargetClass(target_class=args.target_class)
         print(f'target class id: {args.target_class}')
         print(
-            f'target class name: {from_class_idx_to_label[args.target_class]}')
+            f'target class name: {args.from_class_idx_to_label[args.target_class]}')
     else:
         criterion = Misclassification()
         print('No target class specified')
@@ -527,8 +530,8 @@ def run(args):
 
     # channels = [x for x in range(channels_nr)]
     channels = [0]
-    attack_round_fft = CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
-                                                     get_mask=get_hyper_mask)
+    attack_round_fft = CarliniWagnerL2AttackRoundFFT(
+        model=args.fmodel, args=args, get_mask=get_hyper_mask)
     # attacks = [
     #     # CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
     #     #                               get_mask=get_hyper_mask),
@@ -538,32 +541,33 @@ def run(args):
     # ]
     if args.attack_name == "CarliniWagnerL2Attack":
         attack = foolbox.attacks.CarliniWagnerL2Attack(
-            fmodel, criterion=criterion)
+            args.fmodel, criterion=criterion)
     elif args.attack_name == "CarliniWagnerL2AttackRoundFFT":
         # L2 norm
-        attack = CarliniWagnerL2AttackRoundFFT(model=fmodel, args=args,
+        attack = CarliniWagnerL2AttackRoundFFT(model=args.fmodel, args=args,
                                                get_mask=get_hyper_mask)
     elif args.attack_name == "ProjectedGradientDescentAttack":
         # L infinity norm
         attack = foolbox.attacks.ProjectedGradientDescentAttack(
-            fmodel, criterion=criterion)
+            args.fmodel, criterion=criterion)
     elif args.attack_name == "FGSM":
         # L infinity norm
-        attack = foolbox.attacks.FGSM(fmodel, criterion=criterion)
+        attack = foolbox.attacks.FGSM(args.fmodel, criterion=criterion)
     elif args.attack_name == "RandomStartProjectedGradientDescentAttack":
         attack = foolbox.attacks.RandomStartProjectedGradientDescentAttack(
-            fmodel, criterion=criterion)
+            args.fmodel, criterion=criterion)
     elif args.attack_name == "ProjectedGradientDescentAttack":
         attack = foolbox.attacks.ProjectedGradientDescentAttack(
-            fmodel, criterion=criterion)
+            args.model, criterion=criterion)
     elif args.attack_name == "DeepFoolAttack":
         # L2 attack by default, can also be L infinity
-        attack = foolbox.attacks.DeepFoolAttack(fmodel, criterion=criterion)
+        attack = foolbox.attacks.DeepFoolAttack(args.fmodel,
+                                                criterion=criterion)
     elif args.attack_name == "LBFGSAttack":
-        attack = foolbox.attacks.LBFGSAttack(fmodel, criterion=criterion)
+        attack = foolbox.attacks.LBFGSAttack(args.fmodel, criterion=criterion)
     elif args.attack_name == "L1BasicIterativeAttack":
         attack = foolbox.attacks.L1BasicIterativeAttack(
-            fmodel, criterion=criterion)
+            args.fmodel, criterion=criterion)
     elif args.attack_name == "GaussAttack":
         attack = GaussAttack()
     elif args.attack_name == "FFTHighFrequencyAttack":
@@ -577,36 +581,37 @@ def run(args):
     elif args.attack_name == "FFTReplaceFrequencyAttack":
         attack = FFTReplaceFrequencyAttack()
     elif args.attack_name == "FFTSingleFrequencyAttack":
-        attack = FFTSingleFrequencyAttack(fmodel)
+        attack = FFTSingleFrequencyAttack(args.fmodel)
     elif args.attack_name == "FFTMultipleFrequencyAttack":
         attack = FFTMultipleFrequencyAttack(
             args=args,
-            model=fmodel,
+            model=args.fmodel,
             max_frequencies_percent=10,
             iterations=100,
         )
     elif args.attack_name == "FFTMultipleFrequencyBinarySearchAttack":
-        attack = FFTMultipleFrequencyBinarySearchAttack(model=fmodel, args=args)
+        attack = FFTMultipleFrequencyBinarySearchAttack(model=args.fmodel,
+                                                        args=args)
     elif args.attack_name == "FFTSmallestFrequencyAttack":
-        attack = FFTSmallestFrequencyAttack(fmodel)
+        attack = FFTSmallestFrequencyAttack(args.fmodel)
     elif args.attack_name == "FFTLimitValuesAttack":
-        attack = FFTLimitValuesAttack(fmodel)
+        attack = FFTLimitValuesAttack(args.fmodel)
     elif args.attack_name == "FFTLimitMagnitudesAttack":
-        attack = FFTLimitMagnitudesAttack(fmodel)
+        attack = FFTLimitMagnitudesAttack(args.fmodel)
     elif args.attack_name == "Nattack":
         # We operate directly in PyTorch.
-        attack = Nattack(model=pytorch_model,
+        attack = Nattack(model=args.pytorch_model,
                          args=args,
                          iterations=args.attack_max_iterations,
                          sigma=args.attack_strength)
     elif args.attack_name == "SimbaSingle":
         # This is a simple attack for a single image in the pixel space.
-        attack = SimbaSingle(model=pytorch_model,
+        attack = SimbaSingle(model=args.pytorch_model,
                              args=args,
                              iterations=args.attack_max_iterations,
                              epsilon=args.attack_strength)
     elif args.attack_name == "EmptyAttack":
-        attack = EmptyAttack(fmodel)
+        attack = EmptyAttack(args.fmodel)
     elif args.attack_name is None or args.attack_name == 'None':
         print("No attack set!")
         attack = None
@@ -674,15 +679,20 @@ def run(args):
                                 std_array=args.std_array)
     args.denormalizer = Denormalize(mean_array=args.mean_array,
                                     std_array=args.std_array)
-    args.meter = DenormDistance(mean_array=args.mean_array,
-                                std_array=args.std_array)
+    if args.normalize_pytorch:
+        args.meter = DenormDistance(mean_array=args.mean_array,
+                                    std_array=args.std_array)
+    else:
+        args.meter = Distance01()
 
     if args.use_foolbox_data:
-        images, labels = foolbox.utils.samples(dataset=args.dataset, index=0,
-                                               batchsize=20,
-                                               # batchsize=3,
-                                               shape=(args.init_y, args.init_x),
-                                               data_format='channels_first')
+        images, labels = foolbox.utils.samples(
+            dataset=args.dataset,
+            index=0,
+            batchsize=20,
+            # batchsize=3,
+            shape=(args.init_y, args.init_x),
+            data_format='channels_first')
         # print("max value in images pixels: ", np.max(images))
         images = images / 255
         # print("max value in images after 255 division: ", np.max(images))
@@ -708,8 +718,9 @@ def run(args):
                                                      args.image_index]
             original_image = original_image.astype(np.float32)
 
-            # normalize the data for the pytorch models.
-            original_image = args.normalizer.normalize(original_image)
+            if args.normalizer is not None:
+                # normalize the data for the pytorch models.
+                original_image = args.normalizer.normalize(original_image)
         else:
             original_image, args.True_class_id = test_dataset.__getitem__(
                 args.image_index)
@@ -727,11 +738,11 @@ def run(args):
         if args.dataset == "mnist":
             args.True_class_id = args.True_class_id.item()
 
-        args.true_label = from_class_idx_to_label[args.True_class_id]
+        args.true_label = args.from_class_idx_to_label[args.True_class_id]
         result.true_label = args.true_label
         result.true_id = args.True_class_id
-        print("True class id:", args.True_class_id, ", is label: ",
-              args.true_label)
+        print("True class id:", args.True_class_id,
+              ", ground truth label: ", args.true_label)
 
         # original image.
         if args.show_original:
@@ -770,7 +781,8 @@ def run(args):
         # The image has to be correctly classified in the first place to then
         # create an adversarial example for it.
         if args.adv_type == AdversarialType.BEFORE and (
-                original_result.class_id == args.True_class_id):
+                original_result.class_id == args.True_class_id) and (
+                attack is not None):
             attack_name = attack.name()
             print("attack name: ", attack_name)
             # if attack_name != "carliniwagnerl2attack":
@@ -815,18 +827,18 @@ def run(args):
                 elif attack_name == "FFTHighFrequencyAttackAdversary":
                     adv_image = attack(
                         original_image, label=args.True_class_id,
-                        net=fmodel.predictions)
+                        net=args.fmodel.predictions)
                 elif attack_name == "FFTLimitFrequencyAttack":
                     adv_image = attack(
                         input_or_adv=original_image,
                         label=args.True_class_id,
-                        net=fmodel.predictions,
+                        net=args.fmodel.predictions,
                         compress_rate=args.compress_rate)
                 elif attack_name == "FFTLimitFrequencyAttackAdversary":
                     adv_image = attack(
                         input_or_adv=original_image,
                         label=args.True_class_id,
-                        net=fmodel.predictions)
+                        net=arsg.fmodel.predictions)
                 elif attack_name == "FFTReplaceFrequencyAttack":
                     adv_image, original_image2 = replace_frequency(
                         original_image=original_image, images=images,
@@ -895,6 +907,8 @@ def run(args):
             else:
                 print('the adversarial example has not been found.')
                 result.adv_label = None
+        else:
+            result.adv_label = None
 
         # The rounded image.
         if args.values_per_channel > 0 and image is not None:
@@ -996,7 +1010,7 @@ def run(args):
             result.gauss_label = result_gauss.label
 
             start_time = time.time()
-            result_noise = randomized_defense(image=image, fmodel=fmodel,
+            result_noise = randomized_defense(image=image, fmodel=args.fmodel,
                                               original_image=original_image,
                                               defense_name="gauss")
             result.time_gauss_defend = time.time() - start_time
@@ -1011,7 +1025,7 @@ def run(args):
         if original_result.class_id == args.True_class_id:
             gradients, grad_stats = compute_gradients(
                 args=args,
-                model=pytorch_model,
+                model=args.pytorch_model,
                 original_image=original_image,
                 original_label=original_result.class_id,
                 adv_image=adv_image,
@@ -1094,7 +1108,7 @@ def run(args):
             result.add(result_noise, prefix="noise_")
 
             start_time_defend = time.time()
-            result_noise = randomized_defense(image=image, fmodel=fmodel,
+            result_noise = randomized_defense(image=image, fmodel=args.fmodel,
                                               original_image=original_image,
                                               defense_name="uniform")
             result.time_noise_defend = time.time() - start_time_defend
@@ -1121,7 +1135,7 @@ def run(args):
             result.add(result_laplace, prefix="laplace_")
 
             start_time = time.time()
-            result_laplace = randomized_defense(image=image, fmodel=fmodel,
+            result_laplace = randomized_defense(image=image, fmodel=args.fmodel,
                                                 original_image=original_image)
             result.time_laplace_defend = time.time() - start_time
 
@@ -1166,7 +1180,7 @@ def run(args):
             result.add(result_rgb, prefix="rgb_")
 
             start_time = time.time()
-            result_rgb = randomized_defense(image=rgb_image, fmodel=fmodel,
+            result_rgb = randomized_defense(image=rgb_image, fmodel=args.fmodel,
                                             original_image=original_image)
             result.time_rgb_defend = time.time() - start_time
 
@@ -1190,7 +1204,7 @@ def run(args):
             result.add(result_rgb, prefix="rgb_")
 
             start_time = time.time()
-            result_rgb = randomized_defense(image=rgb_image, fmodel=fmodel,
+            result_rgb = randomized_defense(image=rgb_image, fmodel=args.fmodel,
                                             original_image=original_image)
             result.time_rgb_defend = time.time() - start_time
 
@@ -1505,6 +1519,7 @@ if __name__ == "__main__":
     # arguments
     args = get_args()
     # save fft representations of the original and adversarial images to files
+    args.fmodel = None
     args.save_out = False
     # args.diff_type = "source"  # "source" or "fft"
     args.diff_type = "fft"
@@ -1519,7 +1534,7 @@ if __name__ == "__main__":
     # args.index = 13  # index of the image (out of 20) to be used
     # args.compress_rate = 0
     # args.interpolate = "exp"
-    index_range = range(args.start_epoch, args.epochs, args.step_size)
+
     # index_range = range(11, 12)
     # index_range = range(249, 250)
     # index_range = range(0, 1000)
@@ -1533,9 +1548,15 @@ if __name__ == "__main__":
     # index_range = [1000]
     if args.is_debug:
         args.use_foolbox_data = True
+        max_index = 20
     if not args.use_foolbox_data:
         train_loader, test_loader, train_dataset, test_dataset, limit = get_data(
             args=args)
+        if args.sample_count_limit == 0:
+            max_index = len(test_dataset)
+        else:
+            max_index = args.sample_count_limit
+    index_range = range(0, max_index, args.step_size)
 
     # args.compress_fft_layer = 5
     # args.values_per_channel = 8
@@ -2002,42 +2023,43 @@ if __name__ == "__main__":
                                                          ]]) + "\n")
 
                         with open(out_recovered_file, "a") as f:
-                            f.write(delimiter.join([str(x) for x in
-                                                    [compress_value,
-                                                     total_count,
-                                                     args.recover_iterations,
-                                                     args.noise_iterations,
-                                                     args.attack_strength,
-                                                     args.noise_epsilon,
-                                                     args.laplace_epsilon,
-                                                     args.svd_compress,
-                                                     args.rgb_value,
-                                                     args.attack_max_iterations,
-                                                     base_accuracy,
-                                                     accuracy_after_attack,
-                                                     percent_of_adversarial_from_correctly_classified,
-                                                     recovered_accuracy,
-                                                     percent_of_recovered_from_adversarials,
-                                                     recovered_many_accuracy,
-                                                     percent_of_many_recovered_from_adversarials,
-                                                     sum_L2_distance_defense / total_count,
-                                                     sum_L1_distance_defense / total_count,
-                                                     sum_Linf_distance_defense / total_count,
-                                                     sum_confidence_defense / total_count,
-                                                     sum_L2_distance_defense_many / total_count,
-                                                     sum_L1_distance_defense_many / total_count,
-                                                     sum_Linf_distance_defense_many / total_count,
-                                                     sum_confidence_defense_many / total_count,
-                                                     avg_L2_distance_adv,
-                                                     avg_L1_distance_adv,
-                                                     avg_Linf_distance_adv,
-                                                     avg_confidence_adv,
-                                                     count_recovered,
-                                                     count_many_recovered,
-                                                     count_adv,
-                                                     sum_adv_timing,
-                                                     sum_defend_timing,
-                                                     run_time]]) + "\n")
+                            f.write(delimiter.join(
+                                [str(x) for x in
+                                 [compress_value,
+                                  total_count,
+                                  args.recover_iterations,
+                                  args.noise_iterations,
+                                  args.attack_strength,
+                                  args.noise_epsilon,
+                                  args.laplace_epsilon,
+                                  args.svd_compress,
+                                  args.rgb_value,
+                                  args.attack_max_iterations,
+                                  base_accuracy,
+                                  accuracy_after_attack,
+                                  percent_of_adversarial_from_correctly_classified,
+                                  recovered_accuracy,
+                                  percent_of_recovered_from_adversarials,
+                                  recovered_many_accuracy,
+                                  percent_of_many_recovered_from_adversarials,
+                                  sum_L2_distance_defense / total_count,
+                                  sum_L1_distance_defense / total_count,
+                                  sum_Linf_distance_defense / total_count,
+                                  sum_confidence_defense / total_count,
+                                  sum_L2_distance_defense_many / total_count,
+                                  sum_L1_distance_defense_many / total_count,
+                                  sum_Linf_distance_defense_many / total_count,
+                                  sum_confidence_defense_many / total_count,
+                                  avg_L2_distance_adv,
+                                  avg_L1_distance_adv,
+                                  avg_Linf_distance_adv,
+                                  avg_confidence_adv,
+                                  count_recovered,
+                                  count_many_recovered,
+                                  count_adv,
+                                  sum_adv_timing,
+                                  sum_defend_timing,
+                                  run_time]]) + "\n")
 
     save_adv_org()
 

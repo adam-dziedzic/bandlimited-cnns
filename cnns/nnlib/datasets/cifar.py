@@ -165,6 +165,8 @@ def get_cifar(args, dataset_name):
         args.signal_dimension = 2
     elif args.network_type is NetworkType.DenseNetCifar:
         args.signal_dimension = 2
+    elif args.network_type is NetworkType.VGG16_RSE:
+        args.signal_dimension = 2
     else:
         raise Exception(f"Uknown network type: {args.network_type.name}")
     cur_dir = os.path.dirname(os.path.realpath(__file__))
@@ -183,10 +185,11 @@ def get_cifar(args, dataset_name):
             train_dataset.train_labels = train_dataset.train_labels[
                                          :sample_count]
 
-    train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                               batch_size=args.min_batch_size,
-                                               shuffle=True,
-                                               **kwargs)
+    train_loader = torch.utils.data.DataLoader(
+        dataset=train_dataset,
+        batch_size=args.min_batch_size,
+        shuffle=True,
+        **kwargs)
 
     test_dataset = dataset_loader(root=cur_dir + '/data', train=False,
                                   download=True,

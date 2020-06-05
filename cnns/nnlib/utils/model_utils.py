@@ -17,7 +17,7 @@ def load_model(args, pretrained=False):
             torch.load(os.path.join(models_dir, args.model_path),
                        map_location=args.device))
         msg = "loaded model: " + args.model_path
-        # print(msg)
+        print(msg)
     return model.eval()
 
 

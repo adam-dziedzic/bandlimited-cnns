@@ -526,17 +526,18 @@ echo ${timestamp}.txt
 
 
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
-CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup python vgg_train.py --paramNoise 0.0 --noiseInit 0.35 --noiseInner 0.3 --net 'vgg16-rse' --noise_form='uniform' --compress_rate 0.0 --initializeNoise 0.0 >> ${timestamp}.txt 2>&1 &
+CUDA_VISIBLE_DEVICES=2 PYTHONPATH=../../../ nohup python vgg_train.py --paramNoise 0.0 --noiseInit 0.35 --noiseInner 0.3 --net 'vgg16-rse' --noise_form='uniform' --compress_rate 0.0 --initializeNoise 0.0 >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
+[3] 7881
+cc@p:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-06-04-21-02-17-543924527.txt
 
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
-CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup python vgg_train.py --paramNoise 0.0 --noiseInit 0.15 --noiseInner 0.1 --net 'vgg16-rse' --noise_form='laplace' --compress_rate 0.0 --initializeNoise 0.0 >> ${timestamp}.txt 2>&1 &
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup python vgg_train.py --paramNoise 0.0 --noiseInit 0.15 --noiseInner 0.1 --net 'vgg16-rse' --noise_form='laplace' --compress_rate 0.0 --initializeNoise 0.0 >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
-
-timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
-CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup python vgg_train.py --paramNoise 0.0 --noiseInit 0.15 --noiseInner 0.1 --net 'vgg16-rse' --noise_form='laplace' --compress_rate 0.0 --initializeNoise 0.0 >> ${timestamp}.txt 2>&1 &
-echo ${timestamp}.txt
-
+[2] 7668
+cc@p:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-06-04-21-01-43-330973102.txt
 
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
 CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup python vgg_train.py --paramNoise 0.0 --noiseInit 0.0 --noiseInner 0.0 --net 'vgg16-rse' --noise_form='none' --compress_rate 0.0 --initializeNoise 0.0 >> ${timestamp}.txt 2>&1 &
@@ -544,4 +545,12 @@ echo ${timestamp}.txt
 [1] 6248
 cc@p:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
 2020-06-04-20-54-49-510772917.txt
+
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=3 PYTHONPATH=../../../ nohup python vgg_train.py --paramNoise 0.0 --noiseInit 0.3 --noiseInner 0.2 --net 'vgg16-rse' --noise_form='uniform' --compress_rate 0.0 --initializeNoise 0.0 >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[4] 8341
+cc@p:~/code/bandlimited-cnns/cnns/nnlib/pytorch_architecture$ echo ${timestamp}.txt
+2020-06-04-21-03-20-782345879.txt
 
