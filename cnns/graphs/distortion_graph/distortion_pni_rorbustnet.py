@@ -1769,7 +1769,7 @@ markers = ["o", "v", "o", "v", "s", "D", "^", "+"]
 linestyles = [":", "-", "--", ":", "-", "--", ":", "-"]
 
 # datasets = [
-#     random_pgd_cifar10_full,
+random_pgd_cifar10_full,
 #     carlini_cifar10,
 #     carlini_imagenet_full,
 # ]

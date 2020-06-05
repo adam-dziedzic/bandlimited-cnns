@@ -4,6 +4,16 @@ CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/py
 echo ${timestamp}.txt
 
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
-CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup /home/${USER}/anaconda3/bin/python3.6 main_adversarial.py --attack_name="CarliniWagnerL2Attack" --noiseInit 0.0 --noiseInner 0.0 --model_path=
->> ${timestamp}.txt 2>&1 &
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../ nohup python main_adversarial.py --attack_name="CarliniWagnerL2Attack" --noiseInit 0.0 --noiseInner 0.0 --model_path="vgg16/vgg16-rse_perturb_0.0_init_noise_0.0_inner_noise_0.0_batch_size_128_compress_rate_0.0_none.pth-test-accuracy-0.9356" >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
+[1] 36730
+cc@p:~/code/bandlimited-cnns/cnns/nnlib/robustness$ echo ${timestamp}.txt
+2020-06-05-01-25-11-001606244.txt
+
+timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=../../../ nohup python main_adversarial.py --attack_name="CarliniWagnerL2Attack" --noiseInit 0.2 --noiseInner 0.1 --model_path="vgg16/vgg16-rse_perturb_0.0_init_noise_0.2_inner_noise_0.1_batch_size_128_compress_rate_0.0_gauss.pth-test-accuracy-0.8829" >> ${timestamp}.txt 2>&1 &
+echo ${timestamp}.txt
+[2] 37200
+cc@p:~/code/bandlimited-cnns/cnns/nnlib/robustness$ echo ${timestamp}.txt
+2020-06-05-01-28-48-312342977.txt
+

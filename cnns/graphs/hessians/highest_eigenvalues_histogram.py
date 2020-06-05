@@ -186,6 +186,10 @@ limit = 1024
 # limit = 512
 data_len = 0
 
+def get_stats(data):
+    print('avg: ', np.average(data))
+    print('median: ', np.median(data))
+
 for j, dataset in enumerate(datasets):
     print("dataset: ", dataset)
     rows = read_rows(dataset[file_name], row_nr=dataset[row_nr])
@@ -193,6 +197,7 @@ for j, dataset in enumerate(datasets):
     # print(f"row {j}: ", row)
     data_len = len(row)
     print("length: ", data_len)
+    get_stats(row)
     if limit > 0:
         eigenvalues = row[:limit]
         data_len = limit
@@ -203,12 +208,12 @@ for j, dataset in enumerate(datasets):
     # indexing = [i + 1 for i in range(xlen)]
     y, bin_edges = np.histogram(eigenvalues, bins=50)
     bin_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
-    print("bin centers: ")
-    for center in bin_centers:
-        print(center)
-    print("y: ")
-    for x in y:
-        print(x)
+    # print("bin centers: ")
+    # for center in bin_centers:
+    #     print(center)
+    # print("y: ")
+    # for x in y:
+    #     print(x)
     # y = [0 for x in y]
     is_clean = True
     if j > -1:
