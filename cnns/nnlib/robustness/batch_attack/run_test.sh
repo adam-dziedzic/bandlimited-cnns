@@ -823,17 +823,17 @@ cc@p:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestam
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
 CUDA_VISIBLE_DEVICES=2 PYTHONPATH=../../../../ nohup python attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'generic' --defense 'rse' --noise_form 'laplace' --attack_iters 200 --batch_size 512 --limit_batch_number 0 --noiseInit 0.15 --noiseInner 0.1 --net 'vgg16' --modelIn 'vgg16/vgg16-rse_perturb_0.0_init_noise_0.15_inner_noise_0.1_batch_size_128_compress_rate_0.0_laplace.pth-test-accuracy-0.8592' --c 0.0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
-[3] 2883
+[2] 45937
 cc@p:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
-2020-06-05-05-01-09-908192750.txt
+2020-06-05-11-41-43-718685872.txt
 
 
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
 CUDA_VISIBLE_DEVICES=3 PYTHONPATH=../../../../ nohup python attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'generic' --defense 'rse' --noise_form 'uniform' --attack_iters 200 --batch_size 512 --limit_batch_number 0 --noiseInit 0.3 --noiseInner 0.2 --net 'vgg16' --modelIn 'vgg16/vgg16-rse_perturb_0.0_init_noise_0.3_inner_noise_0.2_batch_size_128_compress_rate_0.0_uniform.pth-test-accuracy-0.8679' --c 0.0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 >> ${timestamp}.txt 2>&1 &
 echo ${timestamp}.txt
-[4] 3072
+[1] 45630
 cc@p:~/code/bandlimited-cnns/cnns/nnlib/robustness/batch_attack$ echo ${timestamp}.txt
-2020-06-05-05-02-25-428680646.txt
+2020-06-05-11-39-42-065564657.txt
 
 timestamp=$(date +%Y-%m-%d-%H-%M-%S-%N)
 CUDA_VISIBLE_DEVICES=0 PYTHONPATH=../../../../ nohup python attack.py --channel 'empty' --noise_epsilons 0.0 --net_mode 'generic' --defense 'rse' --noise_form 'gauss' --attack_iters 200 --batch_size 512 --limit_batch_number 0 --noiseInit 0.2 --noiseInner 0.1 --net 'vgg16' --modelIn 'vgg16/vgg16-rse_perturb_0.0_init_noise_0.2_inner_noise_0.1_batch_size_128_compress_rate_0.0_gauss.pth-test-accuracy-0.8829' --c 0.0 0.0001 0.0005 0.001 0.005 0.01 0.02 0.03 0.04 0.05 0.07 0.1 0.2 0.3 0.4 0.5 1.0 2.0 10.0 100.0 >> ${timestamp}.txt 2>&1 &
