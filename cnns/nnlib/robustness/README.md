@@ -17,6 +17,70 @@ The additional compression layers CD, FC and stochastic channel are in: stochast
 
 We had to implement a separate adaptive adversarial attack in stochastic-channels/cnns/nnlib/attacks/carlini_wagner_round_fft.py because the many trials for the noisy channel require many inference operations through the network, so this cannot be implemented simply as a layer of a neural network. 
 
+The experiments for RobustNet on VGG16 are placed in: cnns/nnlib/robustness/batch_attack
+The training of the VGG16 models is in: cnns/nnlib/pytorch_architecture/vgg_train.py
+
+The code that compares RobustNet with PNI and adversarial training is in folder: cnns/nnlib/robustness/pni/code
+
+The EOT for PGD is implemented in: cnns/nnlib/robustness/pni/code/models/attack_model.py
+
+```
+    def pgd(model, data, target, k=7, a=0.01, random_start=True,
+            d_min=0, eot=1, d_max=1, eot=None, epsilon=8/255):
+        """
+
+        :param model: the model to attack
+        :param data: clean input data
+        :param target: the target class for the clean data
+        :param k: number of iterations of the attack
+        :param a: the scaling of the gradients used by the attack
+        :param random_start: should we start from random perturbation of the clean data
+        :param d_min: data min value
+        :param d_max: data max value
+        :param eot: number of iterations for EOT
+        :return: adversarially perturbed data
+        """
+
+        model.eval()
+        perturbed_data = data.clone()
+
+        perturbed_data.requires_grad = True
+
+        data_max = data + epsilon
+        data_min = data - epsilon
+        data_max.clamp_(d_min, d_max)
+        data_min.clamp_(d_min, d_max)
+
+        if random_start:
+            with torch.no_grad():
+                perturbed_data.data = data + perturbed_data.uniform_(
+                    -1 * epsilon, epsilon)
+                perturbed_data.data.clamp_(d_min, d_max)
+
+        for _ in range(k):
+
+            data_grad = 0
+            for _ in range(eot):
+                output = model(perturbed_data)
+                loss = F.cross_entropy(output, target)
+
+                if perturbed_data.grad is not None:
+                    perturbed_data.grad.data.zero_()
+
+                loss.backward()
+                data_grad += perturbed_data.grad.data
+            data_grad /= eot
+
+            with torch.no_grad():
+                perturbed_data.data += a * torch.sign(data_grad)
+                perturbed_data.data = torch.max(
+                    torch.min(perturbed_data, data_max),
+                    data_min)
+        perturbed_data.requires_grad = False
+
+        return perturbed_data
+```
+
 ## Run the experiments
 
 ### Pre-requisites
@@ -29,7 +93,7 @@ cd foolbox
 git reset --hard 5191c3a595baadedf0a3659d88b48200024cd534
 pip install --editable .
 ```
-- Use PyTorch 1.1: https://pytorch.org/
+- Use PyTorch 1.1 or higher: https://pytorch.org/
 
 ### A simple example
 We extracted a simple example that shows that adding a uniform noise after the FGSM attack can restore the correct label. The labels are given as numbers from 0 to 999. We use ResNet-18 on 20 ImageNet samples from foolbox. Please, find the Python file attached.
