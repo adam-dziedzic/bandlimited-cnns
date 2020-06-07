@@ -17,6 +17,9 @@ The additional compression layers CD, FC and stochastic channel are in: stochast
 
 We had to implement a separate adaptive adversarial attack in stochastic-channels/cnns/nnlib/attacks/carlini_wagner_round_fft.py because the many trials for the noisy channel require many inference operations through the network, so this cannot be implemented simply as a layer of a neural network. 
 
+The experiments for RobustNet on VGG16 are placed in: cnns/nnlib/robustness/batch_attack
+The training of the VGG16 models is in: cnns/nnlib/pytorch_architecture/vgg_train.py
+
 The code that compares RobustNet with PNI and adversarial training is in folder: cnns/nnlib/robustness/pni/code
 
 The EOT for PGD is implemented in: cnns/nnlib/robustness/pni/code/models/attack_model.py
