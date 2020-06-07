@@ -81,17 +81,17 @@ class Attack(object):
     def pgd(self, model, data, target, k=None, a=0.01, random_start=True,
             d_min=0, d_max=1, eot=None):
         """
-        PGD attack.
 
-        :param model:
-        :param data:
-        :param target:
-        :param k: set to either 7 or 40
-        :param a:
-        :param random_start:
-        :param d_min:
-        :param d_max:
-        :return:
+        :param model: the model to attack
+        :param data: clean input data
+        :param target: the target class for the clean data
+        :param k: number of iterations of the attack
+        :param a: the scaling of the gradients used by the attack
+        :param random_start: should we start from random perturbation of the clean data
+        :param d_min: data min value
+        :param d_max: data max value
+        :param eot: number of iterations for EOT
+        :return: adversarially perturbed data
         """
         if k is None:
             k = self.iterations
@@ -103,7 +103,6 @@ class Attack(object):
             eot = 1
 
         model.eval()
-        # perturbed_data = copy.deepcopy(data)
         perturbed_data = data.clone()
 
         perturbed_data.requires_grad = True
@@ -139,11 +138,6 @@ class Attack(object):
                     torch.min(perturbed_data, data_max),
                     data_min)
         perturbed_data.requires_grad = False
-
-        # diff = data - perturbed_data
-        # distort_linf = torch.max(torch.abs(diff))
-        # distort_linf_np = distort_linf.cpu().detach().numpy()
-        # print('distort_linf_np: ', distort_linf_np)
 
         return perturbed_data
 
