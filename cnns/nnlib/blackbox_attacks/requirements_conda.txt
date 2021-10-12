@@ -2,7 +2,7 @@
 cleverhans==3.0.1
 cvxpy==1.0.6
 knnimpute==0.1.0
-opencv-python==3.4.3.18
+opencv-python==3.4.7.28
 torch==1.4.0
 torchvision==0.5.0
 foolbox==1.6.2
